@@ -1,0 +1,43 @@
+name: Reportar un fallo
+description: Algo del juego no funciona como debería
+labels: ["fallo", "por revisar"]
+body:
+  - type: dropdown
+    id: donde
+    attributes:
+      label: Dónde
+      options:
+        - En carrera
+        - Un circuito concreto
+        - Menú nuevo
+        - Menú original
+        - Online
+        - Pantalla partida
+        - Mandos
+        - Sonido o música
+        - Gráficos
+        - Otro
+    validations:
+      required: true
+  - type: input
+    id: circuito
+    attributes:
+      label: Circuito / vehículo
+      placeholder: p. ej. CITY4 · Mini
+  - type: textarea
+    id: descripcion
+    attributes:
+      label: Descripción
+      description: Qué esperabas que pasara y qué pasó en realidad. Puedes pegar capturas de pantalla aquí.
+    validations:
+      required: true
+  - type: textarea
+    id: pasos
+    attributes:
+      label: Cómo reproducirlo
+      placeholder: "1. Elige… 2. Ve a… 3. …"
+  - type: input
+    id: navegador
+    attributes:
+      label: Navegador y sistema
+      placeholder: p. ej. Chrome 130 · Windows 11
