@@ -126,6 +126,12 @@ textarea{min-height:92px;resize:vertical}
 .empty{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:22px;color:var(--mut);text-align:center}
 .s-pend{--st:var(--mut)} .s-acc{--st:var(--info)} .s-inv{--st:var(--warn)} .s-fix{--st:var(--ok)} .s-rej{--st:var(--bad)} .s-dup{--st:var(--mut)}
 
+/* hoja de ruta */
+.road{margin:0;padding:0;list-style:none;counter-reset:r;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.road li{counter-increment:r;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px 52px;position:relative}
+.road li::before{content:counter(r);position:absolute;left:14px;top:12px;width:26px;height:26px;border-radius:50%;background:var(--red);color:#fff;font:700 13px/26px var(--f-mono);text-align:center}
+.road b{display:block}.road span{color:var(--mut);font-size:14px}
+@media (max-width:860px){.road{grid-template-columns:1fr}}
 /* clasificaciones */
 .lbwrap{display:grid;gap:12px;max-width:760px}
 .lbwrap select{max-width:340px}
@@ -162,7 +168,7 @@ footer b{color:#fff}
 <header class="top"><div class="wrap">
   <a class="brand" href="#inicio">BIG RED <b>REPORT</b></a>
   <nav aria-label="Secciones">
-    <a href="#inicio">Inicio</a><a href="#descargar">Descargar</a><a href="#mejoras">Mejoras</a><a href="#noticias">Noticias</a><a href="#clasificaciones">Clasificaciones</a><a href="#fallos">Reportar fallo</a><a href="#faq">Preguntas</a>
+    <a href="#inicio">Inicio</a><a href="#descargar">Descargar</a><a href="#mejoras">Mejoras</a><a href="#noticias">Noticias</a><a href="#hoja">Hoja de ruta</a><a href="#clasificaciones">Clasificaciones</a><a href="#fallos">Reportar fallo</a><a href="#faq">Preguntas</a>
   </nav>
 </div></header>
 
@@ -304,6 +310,22 @@ footer b{color:#fff}
       <h3>El juego arranca en un ordenador moderno</h3>
       <p>Los 25 circuitos, los 20 vehículos, la música del CD y el menú original funcionando en el navegador, con iluminación moderna y pantalla partida.</p></div></article>
   </div>
+</div></section>
+
+<section id="hoja"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Lo que viene</div><h2>Hoja de ruta</h2><p>Lo que falta para la versión final, en orden de prioridad. La lista completa, con lo que se va tachando, está en <a href="https://github.com/BigRedReport/bigredreport/blob/main/ROADMAP.md">GitHub</a>.</p></div></div>
+  <ol class="road">
+    <li><b>Online más sólido</b><span>reconexión, cambio de anfitrión si se va, expulsar jugadores</span></li>
+    <li><b>Físicas originales</b><span>el manejo de 1995 como opción y un modo clásico auténtico</span></li>
+    <li><b>Web y comunidad</b><span>contador de descargas, comentarios, clasificaciones verificadas</span></li>
+    <li><b>Windows, Linux y Steam Deck</b><span>programa instalable, volantes y pedales</span></li>
+    <li><b>Mods de verdad</b><span>coches y circuitos nuevos, editor de circuitos, catálogo</span></li>
+    <li><b>Gráficos</b><span>suelo suavizado, clima y horas del día, daños, texturas HD</span></li>
+    <li><b>Editor de decoración</b><span>metalizados, vinilos, capas de pegatinas</span></li>
+    <li><b>Modos de juego</b><span>modo con objetos y misiles, acrobacias, fantasmas, retos semanales</span></li>
+    <li><b>Social</b><span>amigos, grupos, revancha, ligas</span></li>
+    <li><b>Sonido</b><span>motores mejorados, banda sonora remasterizada</span></li>
+  </ol>
 </div></section>
 
 <section id="clasificaciones"><div class="wrap">

@@ -9,6 +9,7 @@ originales del juego.
 - **Jugar en el navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html
 - **Descargar:** [descargas/BigRedRacing_port.zip](descargas/BigRedRacing_port.zip)
 - **Código del port:** carpeta [`juego/`](juego/) (JavaScript + WebGL2, sin dependencias). Servidor dedicado opcional en `juego/server/` (Node.js).
+- **Hoja de ruta:** [ROADMAP.md](ROADMAP.md)
 - **Fallos:** usa la pestaña *Issues* (plantilla «Reportar un fallo») o el formulario de la web.
 
 Para jugar hace falta una copia original de Big Red Racing: el port lee sus archivos y no incluye ni
