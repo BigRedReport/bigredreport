@@ -56,10 +56,14 @@ Pantalla partida (2-8 jugadores; de 5 en adelante, para pantallas grandes)
                     J2 = flechas (Ctrl dcho. freno de mano, Intro nitro, Retroceso recolocar).
 
 Notas
-- Rivales originales (por defecto): como en 1995, los coches de la máquina reproducen las carreras grabadas
-  que trae cada circuito (0.REC a 5.REC). Si vas primero aceleran y si vas quinto o peor frenan ("goma elástica"
-  del original). En Opciones → Rivales puedes cambiar a la "IA nueva". Si pides más de 5 rivales, los que
-  sobran usan la IA nueva.
+- Rivales en PELOTÓN: todos los rivales (los grabados del original y los de la IA nueva) corren en grupo contigo.
+  Cada uno tiene un sitio en el grupo que va cambiando poco a poco (unos delante, otros detrás, y se van cruzando),
+  así hay adelantamientos y choques todo el rato sin obligarte a ir en ningún puesto. A la vista se corrige poco;
+  el que se queda muy atrás donde no lo ves recupera terreno. En la última vuelta la ayuda es la mitad.
+  La dificultad mueve el grupo: Fácil, casi todos detrás de ti; Normal, a tu alrededor; Difícil y Muy difícil,
+  por delante, y hay que conducir bien para ganar.
+- Rivales originales (por defecto): reproducen las carreras grabadas que trae cada circuito (0.REC a 5.REC).
+  En Opciones → Rivales puedes cambiar a la "IA nueva". Si pides más de 5 rivales, los que sobran usan la IA nueva.
 - La primera vez que corres en un circuito con rivales tarda unos segundos en "Preparar a los pilotos";
   después se guarda y carga al instante.
 

@@ -1374,6 +1374,43 @@
     h.rbT = (h.rbT || 0) - dt; if ((strong > 0.05 || weak > 0.03) && h.rbT <= 0) { h.rbT = 0.08;
       try { act.playEffect ? act.playEffect('dual-rumble', { duration: strong > 0.05 ? 160 : 100, strongMagnitude: Math.min(1, strong * k), weakMagnitude: Math.min(1, weak * k) }) : act.pulse(Math.min(1, (strong + weak) * k), 100); } catch (e) { } }
   }
+  // ---------- PELOTÓN ----------
+  // Cada rival tiene una distancia objetivo respecto al jugador que va cambiando despacio (unos delante, otros detrás, y se
+  // van cruzando): así se corre en grupo, con adelantamientos y choques, sin obligarte a ir en ningún puesto.
+  // A la vista se corrige poco (±12 %, la mitad en la última vuelta); fuera de la vista se acercan o se alejan más deprisa.
+  // La dificultad desplaza el grupo: fácil, casi todos detrás; muy difícil, casi todos delante.
+  let packT = 0;
+  const camHidden = p => !humans.length || humans.every(h => { const C = h.cam; if (!C || !C.pos || !C.look) return true; const d = V.sub(p, C.pos), L = V.len(d), f = V.norm(V.sub(C.look, C.pos)); return L > 90 || V.dot(d, f) < L * 0.2; });
+  function packFrame(dt) {
+    if (!rivals.length || !humans.length) return;
+    if (netRace && netRace.role !== 'host') return;
+    const H = humans.filter(h => h.race.phase === 'race' || h.race.phase === 'finished'); if (!H.length) return;
+    packT += dt;
+    const seg = race.total / ((race.maxNum || 1) + 1);
+    let hs = Math.max(...humans.map(h => h.race.score()));
+    for (const r of rivals) if (r.remote && !r.isAI && r.sc != null) hs = Math.max(hs, r.sc);   // online: el humano que vaya primero
+    const lead = humans.reduce((a, b) => b.race.score() > a.race.score() ? b : a), lastLap = lead.race.lap >= lead.race.laps - 1, hP = lead.race.progress || 0;
+    const bias = [0, -40, -10, 12, 30][opt.diff] ?? -10, mine = rivals.filter(r => !r.remote), n = mine.length, span = 22 + 7 * Math.min(11, n);
+    const assist = lastLap ? 0.5 : 1;
+    mine.forEach((r, i) => {
+      if (r.race.phase !== 'race') return;
+      if (r.packPh == null) { r.packPh = Math.random() * 6.283; r.packPer = 22 + Math.random() * 30; r.packAmp = 0.5 + Math.random() * 0.5; }
+      const base = n > 1 ? (i / (n - 1) * 2 - 1) * span * 0.55 : 0;
+      const target = bias + base + Math.sin(packT * 6.283 / r.packPer + r.packPh) * span * r.packAmp;
+      // distancia real por la carretera: la del recorrido (continua) ajustada a vueltas con la de los controles (gruesa)
+      const coarse = (r.race.score() - hs) * seg, T0 = race.total, fine0 = ((r.race.progress || 0) - (hP || 0)) * T0;
+      const gap = fine0 + Math.round((coarse - fine0) / T0) * T0, err = target - gap, early = r.race.t < 6, hid = camHidden(r.car.p);
+      // a la vista: frena hasta un 25 % si va por delante de su sitio y acelera hasta un 15 % si va por detrás
+      let m = early ? 1 : 1 + (err > 0 ? Math.min(1, err / 110) * 0.15 : Math.max(-1, err / 110) * 0.25) * assist;
+      if (!early && hid && Math.abs(err) > 90) m = 1 + (err > 0 ? Math.min(0.55, (err - 60) / 250) : -Math.min(0.65, (-err - 60) / 220));
+      r.packM = r.packM == null ? 1 : r.packM + (m - r.packM) * Math.min(1, dt * (hid ? 2 : 0.7));
+      if (r.replay) { const B = r.replay.band; r.replay.rate = B.nom * r.packM; }
+      if (r.ai) { r.ai.rubber = Math.min(1.15, r.packM);
+        // la IA con físicas no puede ir más rápido que su motor: si se ha quedado muy atrás y nadie la ve, salta hacia el grupo
+        r.warpCd = (r.warpCd || 0) - dt;
+        if (!early && hid && err > 180 && r.warpCd <= 0) { const want = Math.min(450, err - 70); const ok = r.ai.warp(want, camHidden) || r.ai.warp(want * 0.6, camHidden); r.warpCd = ok ? 6 : 2; } }
+    });
+  }
   let lastDraw = 0;
   function frame(t) {
     requestAnimationFrame(frame);
@@ -1388,13 +1425,12 @@
       for (const h of humans) { const inp = readInput(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) nitroFx(h.car); h.nPrev = inp.nitro; }
       for (const r of rivals) if (r.inp && r.inp.nitro && r.car.fireNitro()) nitroFx(r.car);
       const ps = Math.max(...humans.map(h => h.race.score())), tA = performance.now();
-      for (const r of rivals) if (r.ai) r.inp = r.ai.control(dt, allCars, ps);
+      for (const r of rivals) if (r.ai) r.inp = r.ai.control(dt, allCars, null);   // ritmo: lo pone el pelotón (packFrame)
       const tB = performance.now();
       acc += dt; let n = 0;
       while (acc >= DT) { for (const h of humans) h.car.step(DT, h.inp); for (const r of rivals) if (!r.remote && !r.replay) r.car.step(DT, r.inp); acc -= DT; if (++n % 3 === 0) BRR.carCollisions(allCars); }
-      if (replayBand && humans[0].race.phase === 'race') { let best = 99; for (const h of humans) { const p = order.findIndex(o => o.h === h); if (p >= 0) best = Math.min(best, p); } replayBand.update(dt, best === 99 ? 3 : best);
-        const hs = Math.max(...humans.map(h => h.race.score())), seg = race.total / ((race.maxNum || 1) + 1);
-        for (const r of rivals) if (r.replay) r.replay.adjust((r.race.score() - hs) * seg, dt); }
+      if (replayBand && replayBand.age == null) replayBand.age = 0; if (replayBand) replayBand.age += dt;
+      packFrame(dt);
       for (const r of rivals) if (r.replay) r.replay.update(dt);
       BRR.carCollisions(allCars); const tC = performance.now(); const P = BRR.PERF || (BRR.PERF = { ai: 0, phys: 0, n: 0 }); P.ai += tB - tA; P.phys += tC - tB; P.n++;
       for (const h of humans) { h.race.update(dt, h.car); handleEvents(h); }
