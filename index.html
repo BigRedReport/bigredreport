@@ -38,14 +38,18 @@ a{color:var(--redink)}
 
 /* barra superior */
 .top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--asph);color:#f1ede7}
-.top .wrap{display:flex;align-items:center;gap:18px;padding-block:10px;flex-wrap:wrap}
+.top .wrap{display:flex;align-items:center;gap:14px;padding-block:10px;flex-wrap:wrap}
 .brand{font:400 24px/1 var(--f-display);color:#fff;text-decoration:none;letter-spacing:.5px}
 .brand b{color:var(--red);font-weight:400}
 .top nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
-.top nav a{color:#d9d4cf;text-decoration:none;font-weight:600;font-size:14px;padding:7px 11px;border-radius:6px}
+.top nav a{color:#d9d4cf;text-decoration:none;font-weight:600;font-size:14px;padding:7px 8px;border-radius:6px}
 .top nav a:hover,.top nav a.on{background:#ffffff14;color:#fff}
-#langsel{background:#ffffff14;color:#f1ede7;border:1px solid #ffffff30;border-radius:6px;padding:6px 8px;font:600 13px/1 inherit}
-#langsel option{color:#111}
+.brandbox{display:flex;flex-direction:column;gap:5px}
+#langs{display:flex;gap:5px;align-items:center}
+#langs a{display:block;line-height:0;border-radius:3px;opacity:.55;transition:opacity .15s,transform .15s;outline-offset:2px}
+#langs a:hover,#langs a:focus-visible{opacity:1;transform:translateY(-1px)}
+#langs a.on{opacity:1;box-shadow:0 0 0 2px #fff}
+#langs svg{width:21px;height:14px;border-radius:2px;display:block}
 
 /* cabecera */
 .hero{background:var(--asph);color:#f1ede7;position:relative;overflow:hidden}
@@ -168,11 +172,11 @@ footer b{color:#fff}
 </head><body>
 
 <header class="top"><div class="wrap">
-  <a class="brand" href="#inicio">BIG RED <b>REPORT</b></a>
+  <div class="brandbox"><a class="brand" href="#inicio">BIG RED <b>REPORT</b></a>
+  <div id="langs" role="group" aria-label="Idioma / Language"></div></div>
   <nav aria-label="Secciones">
     <a href="#inicio">Inicio</a><a href="#descargar">Descargar</a><a href="#mejoras">Mejoras</a><a href="#noticias">Noticias</a><a href="#hoja">Hoja de ruta</a><a href="#clasificaciones">Clasificaciones</a><a href="#fallos">Reportar fallo</a><a href="#faq">Preguntas</a>
   </nav>
-  <select id="langsel" aria-label="Idioma / Language"><option value="es">ES</option><option value="en">EN</option><option value="fr">FR</option><option value="de">DE</option><option value="it">IT</option><option value="pt">PT</option></select>
 </div></header>
 
 <div class="hero" id="inicio">

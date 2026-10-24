@@ -9,10 +9,18 @@
   for (const a of document.querySelectorAll('a[href^="https://github.com/BigRedReport/bigredreport"]')) a.href = 'https://github.com/' + REPO;
 
   // idioma: la web está en español; los demás idiomas se sirven con la traducción automática de Google
-  try { const sel = $('langsel'), m = location.hostname.match(/translate\.goog$/) ? new URLSearchParams(location.search).get('_x_tr_tl') : null;
-    sel.value = m || 'es';
-    sel.onchange = () => { const l = sel.value, base = 'https://bigredreport.github.io/bigredreport/';
-      location.href = l === 'es' ? base : 'https://bigredreport-github-io.translate.goog/bigredreport/?_x_tr_sl=es&_x_tr_tl=' + l + '&_x_tr_hl=' + l; }; } catch (e) { }
+  try {
+    const F = {
+      es: ['Español', '<rect width="30" height="20" fill="#c60b1e"/><rect y="5" width="30" height="10" fill="#ffc400"/>'],
+      en: ['English', '<rect width="30" height="20" fill="#012169"/><path d="M0 0L30 20M30 0L0 20" stroke="#fff" stroke-width="4"/><path d="M0 0L30 20M30 0L0 20" stroke="#c8102e" stroke-width="1.6"/><path d="M15 0V20M0 10H30" stroke="#fff" stroke-width="6"/><path d="M15 0V20M0 10H30" stroke="#c8102e" stroke-width="3.4"/>'],
+      fr: ['Français', '<rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#0055a4"/><rect x="20" width="10" height="20" fill="#ef4135"/>'],
+      de: ['Deutsch', '<rect width="30" height="20" fill="#000"/><rect y="6.67" width="30" height="6.67" fill="#dd0000"/><rect y="13.33" width="30" height="6.67" fill="#ffce00"/>'],
+      it: ['Italiano', '<rect width="30" height="20" fill="#fff"/><rect width="10" height="20" fill="#009246"/><rect x="20" width="10" height="20" fill="#ce2b37"/>'],
+      pt: ['Português', '<rect width="30" height="20" fill="#ff0000"/><rect width="12" height="20" fill="#006600"/><circle cx="12" cy="10" r="4" fill="#ffcc00"/><circle cx="12" cy="10" r="2.4" fill="#fff" stroke="#ff0000" stroke-width="1"/>']
+    };
+    const cur = (location.hostname.match(/translate\.goog$/) && new URLSearchParams(location.search).get('_x_tr_tl')) || 'es', base = 'https://bigredreport.github.io/bigredreport/';
+    $('langs').innerHTML = Object.entries(F).map(([l, [n, svg]]) => `<a href="${l === 'es' ? base : 'https://bigredreport-github-io.translate.goog/bigredreport/?_x_tr_sl=es&_x_tr_tl=' + l + '&_x_tr_hl=' + l}" title="${n}" aria-label="${n}" lang="${l}"${l === cur ? ' class="on" aria-current="true"' : ''}><svg viewBox="0 0 30 20" aria-hidden="true">${svg}</svg></a>`).join('');
+  } catch (e) { }
   // navegación: resalta la sección visible
   const links = [...document.querySelectorAll('.top nav a')];
   const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
