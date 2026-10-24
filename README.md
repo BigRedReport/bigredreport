@@ -4,9 +4,11 @@ Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores mod
 iluminación nueva, mandos actuales, pantalla partida hasta 8 jugadores, online sin servidor y los rivales
 originales del juego.
 
-🌐 Web: https://bigredreport.github.io/
+🌐 Web: https://bigredreport.github.io/bigredreport/
 
-- **Descargas:** próximamente.
+- **Jugar en el navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html
+- **Descargar:** [descargas/BigRedRacing_port.zip](descargas/BigRedRacing_port.zip)
+- **Código del port:** carpeta [`juego/`](juego/) (JavaScript + WebGL2, sin dependencias). Servidor dedicado opcional en `juego/server/` (Node.js).
 - **Fallos:** usa la pestaña *Issues* (plantilla «Reportar un fallo») o el formulario de la web.
 
 Para jugar hace falta una copia original de Big Red Racing: el port lee sus archivos y no incluye ni

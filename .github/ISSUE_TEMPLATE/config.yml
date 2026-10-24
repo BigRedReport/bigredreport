@@ -1,0 +1,5 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Web de Big Red Report
+    url: https://bigredreport.github.io/bigredreport/
+    about: Novedades, clasificaciones y estado de los fallos.

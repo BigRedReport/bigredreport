@@ -1,0 +1,82 @@
+BIG RED RACING - remake para navegador
+======================================
+
+Cómo jugar
+- Abre BigRedRacing.html con Chrome o Edge.
+- Elige la carpeta del juego original (la que contiene BIGRED e IMAGE.img/IMAGE.cue).
+  El remake lee tus archivos originales; no incluye datos del juego.
+
+Menú
+- Al empezar sale el MENÚ NUEVO (con el fondo del original):
+  · Un jugador: Carrera rápida, Campeonato (las 7 series del original), Contrarreloj (sin rivales, a por tu
+    mejor vuelta, con clasificación) y Modo libre (sin rivales ni vueltas; cualquier vehículo en cualquier circuito).
+  · Multijugador: Pantalla partida (2-8 jugadores) y Online (salas, chat de texto y chat de voz 🎤).
+  · Piloto y escudería: elige piloto (6), logo (13 originales o "Logo propio": cualquier PNG/JPG tuyo) y color
+    del equipo, y tu nombre. El logo se pinta en tu coche (en el hueco donde el original pone el del equipo).
+    También la BOCINA (31: normales, sirenas, animales, cachondas y las muestras graciosas del propio juego,
+    o una tuya de hasta 4 s), los PERFILES (cada uno con sus ajustes, récords y campeonato), tus ESTADÍSTICAS
+    y tus RÉCORDS por circuito y vehículo.
+  · Opciones, Mods, Menú original (1995) y Salir.
+- Todo se maneja con el mando: cruceta/stick para moverte, A aceptar, B volver, izquierda/derecha cambian
+  los valores; en la elección de circuito LB/RB pasan al anterior/siguiente. También con flechas e Intro.
+- El MENÚ ORIGINAL del juego (sus pantallas, letras y sonidos) sigue disponible desde el botón "Menú original".
+
+Mods
+- Menú → Mods → "Elegir carpeta del mod". Un mod es una carpeta con archivos que sustituyen a los del juego:
+  · JEEP.VHC, SAMPLES/BEEP3.WAV… (mismo nombre o ruta que en BIGRED): sustituyen el archivo entero.
+  · DIRT1.LEV/TEX41.TM (subcarpeta con el nombre de un paquete .LEV/.VHC/.WAP/.SCN): cambia o añade ese archivo dentro.
+  · Un archivo suelto (TEX41.TM, JEEP4.3DW…): sustituye a ese archivo dentro de cualquier paquete que lo tenga.
+- Se guardan en el navegador; se activan/desactivan/borran desde la lista y se aplican en la siguiente carrera.
+
+Controles (1 jugador)
+- Teclado: flechas o WASD, Espacio freno de mano, Mayús/N nitro, E/Q subir/bajar (helicóptero),
+  J/L/K mirar, C cámara, R recolocar, H bocina, O iluminación original/moderna, F modo foto, Esc pausa.
+- Mando: RT/A acelerar, LT/X frenar, stick izq. girar, stick der. mirar alrededor,
+  B/RB freno de mano, LB nitro, cruceta subir/bajar, Y recolocar, View cámara, Start pausa,
+  L3/R3 (pulsar los sticks) bocina, View+Y iluminación original/moderna, View+X modo foto. El mando vibra
+  con los golpes, los aterrizajes, los derrapes y el suelo rugoso (Opciones → Juego).
+- Cámaras: persecución cerca/lejos/alta, cabina, parachoques y televisión (las cámaras del circuito original).
+- Modo foto: la carrera se congela; WASD/sticks para mover la cámara, ratón/stick der. para mirar, Q/E subir/bajar,
+  exposición, desenfoque del fondo (enfoca tu coche) y "Guardar foto" (descarga un PNG).
+
+Opciones
+- Gráficos: escala de render, resolución automática, campo de visión, distancia, iluminación, sombras, texturas,
+  antialiasing (FXAA), cantidad de partículas, límite de FPS. La física va siempre a 240 pasos por segundo.
+- Cámara y HUD: cámara por defecto, marcador centrado en 16:9 para pantallas ultrapanorámicas (21:9, 32:9),
+  tamaño del marcador, velocímetro digital o de aguja, y ocultar/mostrar cada parte (minimapa, posición, tiempos,
+  nitros, mensajes, nombres sobre los coches, ayuda).
+- Sonido: volumen general, música, voces, efectos, motores, menús y ambiente; música del CD, tus propias
+  canciones (se guardan en el navegador), mezcla o sin música; sonido en 3D (rivales y golpes suenan desde su
+  sitio, eco en los túneles).
+- Juego: rivales originales o IA nueva, vibración del mando, pausa automática al cambiar de ventana.
+
+Pantalla partida (2-8 jugadores; de 5 en adelante, para pantallas grandes)
+- Cada mando conectado es un jugador (pulsa un botón del mando en el menú para que el navegador lo detecte).
+- Si faltan mandos: J1 = teclado WASD (Espacio freno de mano, Mayús izq. nitro, R recolocar)
+                    J2 = flechas (Ctrl dcho. freno de mano, Intro nitro, Retroceso recolocar).
+
+Notas
+- Rivales originales (por defecto): como en 1995, los coches de la máquina reproducen las carreras grabadas
+  que trae cada circuito (0.REC a 5.REC). Si vas primero aceleran y si vas quinto o peor frenan ("goma elástica"
+  del original). En Opciones → Rivales puedes cambiar a la "IA nueva". Si pides más de 5 rivales, los que
+  sobran usan la IA nueva.
+- La primera vez que corres en un circuito con rivales tarda unos segundos en "Preparar a los pilotos";
+  después se guarda y carga al instante.
+
+Online (sin instalar nada)
+- Multijugador → Online. Pon tu nombre en "Piloto y escudería".
+- CREAR PARTIDA: elige nombre, pública o privada, contraseña, jugadores y modo:
+  · Una carrera · Lista de carreras (eliges varios circuitos en orden) · Campeonato (una serie del torneo)
+  · Circuito al azar cada carrera · Votación (al terminar cada carrera se vota entre 3 circuitos).
+  Tu juego hace de servidor: no hay que abrir puertos ni saber tu IP. Te da un CÓDIGO (p. ej. 7E2S3Q): pásaselo a
+  tus amigos. Si es pública, además aparece en la lista "Partidas públicas" de todos.
+- UNIRSE: escribe el código (y la contraseña si tiene) y pulsa Unirse, o pulsa Unirse en la lista pública.
+- En la sala: cada uno elige vehículo y equipo, chat de texto (Intro o Enviar) y chat de voz (🎤 Micro).
+  Los logos (también los propios) se ven en los coches de todos.
+- Entre carreras se vuelve solo a la sala; en lista/campeonato/azar la siguiente empieza sola a los 12 s,
+  en votación cuando termina la votación. Se suman puntos (10-6-4-3-2-1) y se ve la clasificación.
+- Cómo funciona: para encontrarse se usa un buzón público de mensajes en Internet (gratuito) y luego los
+  juegos se conectan directamente entre sí. Algunos routers muy cerrados pueden impedir la conexión directa;
+  en ese caso se puede usar un servidor dedicado (abajo).
+- Servidor dedicado (avanzado, opcional): server/iniciar-servidor.bat (necesita Node.js). En Online →
+  "Servidor dedicado" escribe ws://IP:7777. También guarda las clasificaciones de contrarreloj.

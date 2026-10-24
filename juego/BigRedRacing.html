@@ -1,0 +1,410 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Big Red Racing</title>
+<style>
+:root{--bg:#0b0d12;--panel:rgba(14,17,24,.92);--fg:#eef1f6;--mut:#9aa4b2;--red:#e23b3b;--line:rgba(255,255,255,.12)}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%;background:var(--bg);color:var(--fg);font:15px/1.45 system-ui,Segoe UI,sans-serif;overflow:hidden;user-select:none}
+#c{position:fixed;inset:0;width:100vw;height:100vh;display:block}
+.screen{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;padding:16px}
+.screen[hidden]{display:none}
+.card{max-height:calc(100vh - 32px);overflow:auto;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:24px 26px;width:min(520px,100%);box-shadow:0 20px 60px rgba(0,0,0,.5)}
+h1{margin:0 0 4px;font-size:30px;letter-spacing:.5px}h1 b{color:var(--red)}
+p{color:var(--mut);margin:6px 0 16px}
+button,select{font:inherit;color:var(--fg);background:#1c2230;border:1px solid var(--line);border-radius:9px;padding:10px 14px;cursor:pointer}
+button.main{background:var(--red);border-color:var(--red);font-weight:600;width:100%;margin-top:6px}
+button:hover{filter:brightness(1.15)} select{width:100%}
+label.row{display:block;margin:12px 0 4px;color:var(--mut);font-size:13px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+#options{margin-top:4px}
+#options .opt{display:grid;grid-template-columns:170px 1fr 70px;align-items:center;gap:10px;margin:8px 0;font-size:14px}
+#options .opt span:last-child{text-align:right;color:var(--mut)}
+#o_res{color:var(--mut);font-size:13px}
+input[type=range]{width:100%;accent-color:var(--red)}
+#hud{pointer-events:none;align-items:flex-end;justify-content:flex-start;padding:0}
+#phuds{position:absolute;inset:0}
+/* marcador configurable */
+.phud .race,.phud .bottom,.phud .mini{zoom:var(--hudsc,1)}
+.hide-mini .phud .mini,.hide-pos .phud .race .lap,.hide-times .phud .race .row,.hide-nitro .phud .nitrobox,.hide-msg .phud .msg:not(.big),.hide-help #help,.hide-speed .phud .speedbox{display:none!important}
+.hide-pos.hide-times .phud .race{display:none}
+.phud .gauge{display:none;width:120px;height:120px}.speed-ana .phud .gauge{display:block}.speed-ana .phud .speedbox .speed,.speed-ana .phud .speedbox small{display:none}.speed-ana .phud .speedbox{padding:4px;border-radius:50%}
+.hud169 .phud.solo .hudin{position:absolute;top:0;bottom:0;left:50%;width:min(100%,calc(100vh*16/9));transform:translateX(-50%)}
+.phud .hudin{position:absolute;inset:0}
+.ntag{position:absolute;transform:translate(-50%,-100%);font:700 12px/1 system-ui,sans-serif;color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000;white-space:nowrap;pointer-events:none}
+#photo{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 14px;display:flex;gap:14px;align-items:center;flex-wrap:wrap;z-index:6;font-size:13px}
+#photo[hidden]{display:none}#photo label{display:flex;align-items:center;gap:6px}
+
+.phud{position:absolute;overflow:hidden;font-size:15px}.phud.small .race{transform:scale(.72);transform-origin:top left}.phud.small .bottom{transform:scale(.72);transform-origin:bottom right}.phud.small .mini{width:120px;height:120px}.phud.small .msg{transform:translateX(-50%) scale(.75)}
+.phud .bottom{position:absolute;right:12px;bottom:12px;display:flex;align-items:flex-end}
+.phud .pname{color:#fff;font-weight:800;margin-right:8px}
+.phud .done{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-size:42px;font-weight:800;text-shadow:0 3px 8px #000;background:rgba(0,0,0,.25)}
+.phud .done[hidden]{display:none}
+#help{position:absolute;left:12px;bottom:12px}
+.vsep{position:absolute;background:#000;z-index:2}
+.speedbox{background:var(--panel);border-radius:12px;padding:8px 16px;font-variant-numeric:tabular-nums;border:1px solid var(--line)}
+.nitrobox{margin-right:10px;background:var(--panel);border-radius:12px;padding:8px 14px;border:1px solid var(--line);display:flex;flex-direction:column;gap:2px}
+.nitrobox small{color:var(--mut);font-size:11px;letter-spacing:.1em}.h_nitro{color:#ff9a3c;font-size:18px;letter-spacing:2px;min-height:22px}
+.nitrobox.on{border-color:#ff9a3c;box-shadow:0 0 18px #ff7a1a88}
+.speed{font-size:40px;font-weight:700}.speedbox small{color:var(--mut);margin-left:4px}
+#fps{position:fixed;top:10px;right:12px;color:#fff;text-shadow:0 1px 2px #000;font-size:13px}
+.race{position:absolute;top:12px;left:12px;background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:8px 14px;font-variant-numeric:tabular-nums;pointer-events:none}
+.race .row{display:flex;justify-content:space-between;gap:18px;font-size:14px;color:var(--mut)} .race .row b{color:var(--fg);font-weight:600}
+.race .lap{font-size:26px;font-weight:700;color:var(--fg)} .race .lap small{font-size:13px;color:var(--mut);font-weight:500;margin-right:6px}
+.msg{position:absolute;top:18%;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 22px;font-size:20px;font-weight:600;pointer-events:none;white-space:nowrap}
+.msg.big{font-size:84px;padding:6px 40px;top:28%} .msg.warn{color:#ffd23f}
+.wrong{position:absolute;top:38%;left:50%;transform:translateX(-50%);color:#fff;background:#c62828;border-radius:12px;padding:10px 26px;font-size:28px;font-weight:800;letter-spacing:1px;pointer-events:none;animation:blink .6s steps(2) infinite}
+@keyframes blink{50%{opacity:.35}}
+.mini{position:absolute;right:12px;top:12px;width:190px;height:190px;background:rgba(14,17,24,.55);border-radius:12px;border:1px solid var(--line);pointer-events:none}
+#trackinfo{position:fixed;right:14px;bottom:2px;font-size:11px;color:#fff;text-shadow:0 1px 2px #000;pointer-events:none}
+#results{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.35)}
+#results[hidden]{display:none}
+#results table{width:100%;border-collapse:collapse;font-variant-numeric:tabular-nums;margin:8px 0 12px}
+#results td{padding:6px 4px;border-bottom:1px solid var(--line)} #results td:last-child{text-align:right}
+#results tr.best td{color:#ffd23f} #results tr.me td{color:#fff;font-weight:700} #results tr.hdr td{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:1px;padding-top:12px}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px;vertical-align:middle} #results tr.tot td{font-weight:700;font-size:18px;border-bottom:none}
+#help{background:var(--panel);border-radius:10px;padding:8px 12px;font-size:12px;color:var(--mut);border:1px solid var(--line);max-width:380px}
+#err{position:fixed;top:10px;left:10px;color:#f88}
+.small{font-size:12px;color:var(--mut)}
+
+#menu{padding:0;align-items:stretch;justify-content:stretch;background:#07080b center/cover no-repeat}
+#menu::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,8,11,.55),rgba(7,8,11,.88));pointer-events:none}
+.mwrap{position:relative;display:flex;flex-direction:column;width:100%;height:100%;padding:18px 22px 10px;gap:14px}
+.mtop{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+.logo{font-size:34px;font-weight:800;font-style:italic;letter-spacing:.5px;text-shadow:0 3px 0 #000}
+.tabs{display:flex;gap:6px;margin-left:auto}.tabs button{background:rgba(20,24,34,.8);padding:9px 16px}.tabs button.on{background:var(--red);border-color:var(--red);font-weight:600}
+.pane{flex:1;min-height:0;display:grid;grid-template-columns:1fr minmax(320px,400px);gap:16px}
+.pane[hidden]{display:none}
+#menu.homeview::before{background:linear-gradient(90deg,rgba(7,8,11,.8),rgba(7,8,11,.15) 60%,rgba(7,8,11,.35))}
+.home{grid-template-columns:minmax(260px,420px) 1fr;align-items:center}
+.hmenu{display:flex;flex-direction:column;justify-content:center;height:100%}
+.hcol{display:flex;flex-direction:column;gap:10px}.hcol[hidden]{display:none}
+.hbtn{font-size:22px;font-weight:700;font-style:italic;text-align:left;padding:14px 22px;background:rgba(14,17,25,.82);border:2px solid rgba(255,255,255,.12);border-radius:12px;letter-spacing:.3px;transition:transform .1s,background .1s}
+.hbtn.small2{font-size:16px;padding:10px 22px}
+.hbtn:hover,.hbtn:focus{background:var(--red);border-color:#fff;transform:translateX(8px);outline:none}
+.hprof{justify-self:end;align-self:end;background:rgba(14,17,25,.82);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;gap:12px;align-items:center}
+.hprof img{width:64px;height:64px;image-rendering:pixelated}
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.pitem{background:#111;border:2px solid transparent;border-radius:10px;padding:6px;text-align:center;cursor:pointer;font-size:12px}
+.pitem img{width:100%;aspect-ratio:1;object-fit:contain;image-rendering:pixelated}.pitem.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(226,59,59,.35)}
+.lbt{width:100%;font-size:13px;border-collapse:collapse}.lbt td{padding:2px 4px;border-bottom:1px solid var(--line)}.lbt td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+#m_title{font-size:20px;font-weight:700;font-style:italic;align-self:center;margin-left:8px}
+.padfocus{outline:3px solid #ffd23f !important;outline-offset:2px}
+#picker{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:30}#picker[hidden]{display:none}
+#picker .card.wide{width:min(1100px,94vw);max-height:90vh;display:flex;flex-direction:column}#pk_grid{flex:1 1 auto;min-height:200px;overflow:auto;grid-auto-rows:118px}#pk_grid .tcard{aspect-ratio:auto;height:118px}
+.tcard .num{position:absolute;top:6px;left:6px;background:var(--red);color:#fff;font-weight:700;border-radius:50%;width:26px;height:26px;display:flex;align-items:center;justify-content:center}
+.ntrack{display:flex;gap:10px;align-items:center;margin:8px 0;border-radius:10px;padding:4px}.ntrack.pick{cursor:pointer;background:#ffffff0d;border:1px dashed var(--line)}.ntrack.pick:hover,.ntrack.pick:focus{background:var(--red)}.ntrack img{width:150px;aspect-ratio:16/10;object-fit:cover;border-radius:8px;image-rendering:pixelated}
+#n_codebox .code{font-size:30px;font-weight:800;letter-spacing:4px;background:#0d1016;border:1px dashed var(--line);border-radius:10px;padding:6px 12px;display:inline-block;margin:4px 0;user-select:all}
+.vopt{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;text-align:left}.vopt img{width:80px;aspect-ratio:16/10;object-fit:cover;border-radius:6px}
+#pane_online.inroom{grid-template-columns:1fr}#pane_online.inroom>.tlist{display:none}#pane_online.inroom #n_room{max-width:none}
+.roomgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.rcol{min-width:0}@media (max-width:900px){.roomgrid{grid-template-columns:1fr}}
+.vpick{display:flex;align-items:center;gap:4px}.vpick canvas{flex:1;min-width:0;width:100%;aspect-ratio:16/11;background:#0d1016;border:1px solid var(--line);border-radius:8px}.vpick button{padding:8px 6px}
+.hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}.hgrid button{text-align:left;font-size:13px;padding:8px 10px}.hgrid button.on{background:var(--red);border-color:var(--red)}
+.stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}.stats div{background:#0d1016;border:1px solid var(--line);border-radius:8px;padding:8px 10px}.stats b{display:block;font-size:22px}.stats span{font-size:12px;color:var(--mut)}
+.modrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+.tracks{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;align-content:start;padding:2px 4px 8px 2px}
+.tcard{position:relative;border-radius:10px;overflow:hidden;border:2px solid transparent;cursor:pointer;background:#111;aspect-ratio:16/10;transition:transform .12s,border-color .12s}
+.tcard img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated}
+.tcard:hover{transform:translateY(-2px)}.tcard.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(226,59,59,.35)}
+.tcard .tag{position:absolute;left:0;right:0;bottom:0;padding:16px 8px 5px;font-size:12px;background:linear-gradient(transparent,rgba(0,0,0,.85));display:flex;justify-content:space-between}
+.tcard .tag b{font-weight:600}.tcard .lock{position:absolute;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;font-size:13px;color:#ccc}
+.detail{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:auto;display:flex;flex-direction:column}
+.dimg{position:relative}.dimg img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;image-rendering:pixelated;background:#000}
+#d_globe{position:absolute;right:8px;bottom:8px;width:96px;height:96px;filter:drop-shadow(0 2px 6px #000)}
+#d_place{position:absolute;left:10px;bottom:8px;font-size:12px;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:6px}
+.dbody{padding:14px 18px 18px}.dhead{display:flex;align-items:center;gap:10px}.dhead h2{margin:0;font-size:20px}
+.diff{margin-left:auto;font-size:12px;padding:3px 8px;border-radius:6px;background:#263}.diff.d2{background:#663}.diff.d3{background:#733}
+#d_desc{white-space:pre-line;color:#cfd5de;margin:8px 0 4px}
+.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.mfoot{display:flex;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.tlist{overflow:auto;display:flex;flex-direction:column;gap:12px;padding-right:4px}
+.series{background:rgba(14,17,24,.8);border:1px solid var(--line);border-radius:12px;padding:10px 12px}
+.series h3{margin:0 0 8px;font-size:15px;display:flex;gap:10px}.series h3 small{color:var(--mut);font-weight:400;margin-left:auto}
+.series.cur{border-color:var(--red)}.series .row4{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
+.series .tcard{aspect-ratio:16/10}.won{position:absolute;top:6px;right:6px;background:#ffd23f;color:#000;font-weight:700;font-size:11px;padding:2px 6px;border-radius:5px}
+#optpanel{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);z-index:20}
+#optpanel[hidden]{display:none}
+.optcard{width:min(640px,100%);max-height:92vh;overflow:auto}.otabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}.otabs button{padding:7px 12px}.otabs button.on{background:var(--red);border-color:var(--red)}.opage[hidden]{display:none}
+#loading{background:#000 center/cover no-repeat}#loading .card{background:rgba(14,17,24,.82)}
+#results{background:rgba(0,0,0,.35) center/cover no-repeat}
+@media (max-width:760px){.pane{grid-template-columns:1fr;overflow:auto}.tracks{grid-template-columns:repeat(auto-fill,minmax(140px,1fr))}.logo{font-size:26px}}
+#origmenu{position:fixed;inset:0;background:#000;display:flex;align-items:center;justify-content:center;z-index:15}
+#origmenu[hidden]{display:none}
+#origmenu canvas{image-rendering:pixelated;width:min(100vw,160vh);height:min(62.5vw,100vh);cursor:pointer}
+.omhint{position:fixed;left:8px;bottom:6px;font-size:11px;color:#888;pointer-events:none}
+.inp{font:inherit;color:var(--fg);background:#1c2230;border:1px solid var(--line);border-radius:9px;padding:9px 12px;width:100%}
+#n_list .rrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
+#n_members .mrow{display:flex;align-items:center;gap:8px;padding:4px 0}
+#n_chat{height:180px;overflow:auto;background:#0d1016;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;margin:8px 0 6px}
+#netbar{position:fixed;left:50%;transform:translateX(-50%);top:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 14px;font-size:13px;z-index:5;pointer-events:none}
+</style></head><body>
+<canvas id="c"></canvas><div id="err"></div>
+
+<div class="screen" id="folder"><div class="card">
+  <h1><b>Big Red</b> Racing</h1>
+  <p>Este remake usa los archivos de tu copia original. Elige la carpeta del juego que contiene <b>BIGRED</b> e <b>IMAGE.img</b> (así tendrás también la música del CD), o directamente la carpeta BIGRED.</p>
+  <button class="main" id="pick">Elegir carpeta BIGRED</button>
+  <button class="main" id="again" hidden style="background:#1c2230;border-color:var(--line)"></button>
+  <input type="file" id="dirinput" webkitdirectory directory multiple hidden>
+  <p id="folder_msg" class="small"></p>
+</div></div>
+
+<div class="screen" id="menu" hidden>
+<div class="mwrap">
+  <header class="mtop">
+    <h1 class="logo"><b>Big Red</b> Racing</h1>
+    <nav class="tabs"><button id="m_back" hidden>◀ Volver</button><span id="m_title"></span></nav>
+  </header>
+  <section id="pane_home" class="pane home">
+    <div class="hmenu">
+      <div class="hcol" id="h_main">
+        <button class="hbtn" data-go="single">Un jugador</button>
+        <button class="hbtn" data-go="multi">Multijugador</button>
+        <button class="hbtn" data-go="profile">Piloto y escudería</button>
+        <button class="hbtn" data-go="options">Opciones</button>
+        <button class="hbtn" data-go="mods">Mods</button>
+        <button class="hbtn small2" data-go="orig">Menú original (1995)</button>
+        <button class="hbtn small2" data-go="exit">Salir</button>
+      </div>
+      <div class="hcol" id="h_single" hidden>
+        <button class="hbtn" data-go="quick">Carrera rápida</button>
+        <button class="hbtn" data-go="tourn">Campeonato</button>
+        <button class="hbtn" data-go="tt">Contrarreloj</button>
+        <button class="hbtn" data-go="free">Modo libre</button>
+        <button class="hbtn small2" data-go="back">◀ Volver</button>
+      </div>
+      <div class="hcol" id="h_multi" hidden>
+        <button class="hbtn" data-go="split">Pantalla partida (2-8)</button>
+        <button class="hbtn" data-go="online">Online</button>
+        <button class="hbtn small2" data-go="back">◀ Volver</button>
+      </div>
+    </div>
+    <aside class="hprof" id="h_prof"></aside>
+  </section>
+  <section id="pane_profile" class="pane" hidden>
+    <div class="tlist">
+      <div class="series"><h3>Piloto</h3><div id="pf_chars" class="pgrid"></div></div>
+      <div class="series"><h3>Escudería (logo y color)</h3><div id="pf_logos" class="pgrid"></div></div>
+      <div class="series"><h3>Bocina <small>H en el teclado · L3/R3 en el mando</small></h3><div id="pf_horns" class="hgrid"></div>
+        <p class="small" style="margin:8px 0 0"><button id="pf_hornfile">Cargar mi propia bocina…</button> <span id="pf_hornname"></span> (MP3, WAV, OGG; máx. 1 MB y 4 s)</p><input type="file" id="pf_hornin" accept="audio/*" hidden></div>
+      <div class="series"><h3>Nombre</h3><input id="pf_name" class="inp" maxlength="20" placeholder="Tu nombre (clasificaciones y online)"></div>
+      <div class="series"><h3>Perfil <small>cada perfil guarda sus ajustes, récords, campeonato y estadísticas</small></h3>
+        <div class="grid3"><select id="pf_prof"></select><button id="pf_pnew">Nuevo perfil</button><button id="pf_pdel">Borrar este perfil</button></div>
+        <div id="pf_pnewrow" hidden style="margin-top:8px" class="grid2"><input id="pf_pname" class="inp" maxlength="16" placeholder="Nombre del perfil"><button id="pf_pok" class="main">Crear y cambiar</button></div></div>
+      <div class="series"><h3>Estadísticas</h3><div id="pf_stats" class="stats"></div></div>
+      <div class="series"><h3>Récords</h3><div id="pf_recs" class="small"></div></div>
+    </div>
+    <aside class="detail"><div class="dbody" style="text-align:center"><canvas id="pf_view" width="260" height="260" style="max-width:100%"></canvas><h2 id="pf_title"></h2><p class="small">El piloto y la escudería se usan en carrera rápida, campeonato, contrarreloj y online.</p></div></aside>
+  </section>
+  <section id="pane_mods" class="pane" hidden>
+    <div class="tlist">
+      <div class="series"><h3>Mods instalados</h3><div id="mod_list" class="small">Ninguno.</div></div>
+      <div class="series"><h3>Cargar un mod</h3>
+        <p class="small">Un mod es una carpeta con archivos que sustituyen a los del juego:<br>
+        · <b>JEEP.VHC</b>, <b>SAMPLES/BEEP3.WAV</b>… (mismo nombre o ruta que en BIGRED) sustituyen el archivo entero.<br>
+        · <b>DIRT1.LEV/TEX41.TM</b> (subcarpeta con el nombre de un circuito o paquete) cambia o añade un archivo dentro de ese paquete.<br>
+        · Un archivo suelto como <b>TEX41.TM</b> o <b>JEEP4.3DW</b> sustituye a ese archivo dentro de cualquier paquete que lo tenga.<br>
+        Los mods activos se aplican desde la siguiente carrera. Si hay dos que cambian lo mismo, gana el de más abajo en la lista.</p>
+        <input id="mod_name" class="inp" placeholder="Nombre del mod" style="margin-bottom:8px">
+        <button id="mod_add" class="main">Elegir carpeta del mod…</button><input type="file" id="mod_input" webkitdirectory directory multiple hidden>
+        <p class="small" id="mod_msg"></p>
+      </div>
+    </div>
+    <aside class="detail"><div class="dbody"><h2>Mods</h2><p class="small">Se guardan en el navegador (no se modifica tu carpeta del juego). Puedes activarlos, desactivarlos o borrarlos cuando quieras.</p></div></aside>
+  </section>
+  <section id="pane_quick" class="pane" hidden>
+    <div id="tracks" class="tracks"></div>
+    <aside class="detail">
+      <div class="dimg"><img id="d_img" alt=""><div id="d_place"></div><canvas id="d_globe" width="200" height="200"></canvas></div>
+      <div class="dbody">
+        <div class="dhead"><h2 id="d_name"></h2><span id="d_diff" class="diff"></span></div>
+        <p id="d_desc"></p>
+        <p class="small" id="d_rec"></p>
+        <div id="d_head" style="display:flex;align-items:center;gap:6px;margin-top:6px"></div>
+        <select id="m_level" hidden></select>
+        <div class="grid2"><div><label class="row">Vehículo</label><select id="m_veh"></select></div>
+        <div><label class="row">Equipo (color)</label><select id="m_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select></div></div>
+        <div class="grid3"><div><label class="row">Rivales</label><select id="m_rivals"><option value="0">Ninguno</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 (original)</option><option value="7">7</option><option value="9">9</option><option value="11">11</option></select></div>
+        <div><label class="row">Dificultad</label><select id="m_diff"><option value="1">Fácil</option><option value="2">Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div>
+        <div><label class="row">Vueltas</label><select id="m_laps"><option value="0">Original</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="10">10</option></select></div></div>
+        <div class="grid2"><div><label class="row">Jugadores (pantalla partida)</label><select id="m_players"><option value="1">1 jugador</option><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4">4 jugadores</option><option value="5">5 jugadores</option><option value="6">6 jugadores</option><option value="7">7 jugadores</option><option value="8">8 jugadores</option></select></div>
+        <div><p class="small" style="margin:30px 0 0">Cada mando es un jugador. Sin mandos suficientes: J1 teclado WASD, J2 flechas.</p></div></div>
+        <div id="d_lb" hidden><label class="row">Clasificación contrarreloj <span class="small" id="d_lbsrc"></span></label><table id="d_lbt" class="lbt"></table></div>
+        <button class="main" id="go">Correr</button>
+      </div>
+    </aside>
+  </section>
+  <section id="pane_tourn" class="pane" hidden>
+    <div class="tlist" id="t_list"></div>
+    <aside class="detail tdetail">
+      <div class="dbody">
+        <canvas id="t_globe" width="200" height="200" style="display:block;margin:0 auto 6px"></canvas>
+        <h2>Torneo</h2>
+        <p class="small">Como en el original: siete series de circuitos en orden. En cada serie tienes que ganar las carreras que pide para pasar a la siguiente. Siempre corres contra los 5 equipos rivales con el vehículo del circuito. Además se reparten puntos (10, 5, 3, 2, 1) para la clasificación general.</p>
+        <div id="t_info"></div>
+        <div class="grid2"><div><label class="row">Equipo (color)</label><select id="t_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select></div>
+        <div><label class="row">Dificultad</label><select id="t_diff"><option value="1">Fácil</option><option value="2">Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div></div>
+        <button class="main" id="t_go">Siguiente carrera</button>
+        <button id="t_reset" style="width:100%;margin-top:8px">Empezar un torneo nuevo</button>
+      </div>
+    </aside>
+  </section>
+  <section id="pane_online" class="pane" hidden>
+    <div class="tlist">
+      <div class="series" id="n_home">
+        <h3>Jugar online <small id="n_status" class="small">Conectando…</small></h3>
+        <p class="small">No hace falta instalar nada: quien crea la partida hace de servidor desde su propio juego. Comparte el <b>código</b> con tus amigos (o hazla pública y la verán en la lista).</p>
+        <button class="main" id="n_newbtn">Crear partida</button>
+        <div class="grid3" style="margin-top:8px"><input id="n_code" class="inp" placeholder="Código de la partida" maxlength="8"><input id="n_pass" class="inp" placeholder="Contraseña (si tiene)"><button id="n_join">Unirse</button></div>
+        <h3 style="margin-top:14px">Partidas públicas <small><button id="n_refresh">↻ Actualizar</button></small></h3>
+        <div id="n_list" class="small">—</div>
+        <details style="margin-top:12px"><summary class="small">Servidor dedicado (avanzado)</summary>
+          <p class="small">Si alguien tiene en marcha <b>server/iniciar-servidor</b> (Node.js), escribe su dirección. Déjalo vacío para jugar sin servidor.</p>
+          <div class="grid2"><input id="n_url" class="inp" placeholder="ws://IP:7777 (vacío = sin servidor)"><button id="n_conn">Conectar</button></div>
+        </details>
+      </div>
+      <div class="series" id="n_new" hidden>
+        <h3>Crear partida</h3>
+        <div class="grid2"><div><label class="row">Nombre</label><input id="n_rname" class="inp" maxlength="30"></div>
+          <div><label class="row">Tipo</label><select id="n_pub"><option value="1">Pública (sale en la lista)</option><option value="0">Privada (solo con el código)</option></select></div></div>
+        <div class="grid3"><div><label class="row">Contraseña</label><input id="n_rpass" class="inp" placeholder="(opcional)"></div>
+          <div><label class="row">Jugadores</label><select id="n_max"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option><option>10</option><option>12</option></select></div>
+          <div><label class="row">Modo</label><select id="n_mode"><option value="single">Una carrera</option><option value="list">Lista de carreras</option><option value="champ">Campeonato (serie del torneo)</option><option value="rotate">Circuito al azar cada carrera</option><option value="vote">Votación al terminar cada carrera</option></select></div></div>
+        <div id="n_mapsrow"><label class="row">Circuitos <span class="small" id="n_mapshint"></span></label><div id="n_maps" class="small"></div><button id="n_pickmaps" style="margin-top:6px">Elegir circuitos…</button></div>
+        <div id="n_seriesrow" hidden><label class="row">Serie</label><select id="n_series"></select></div>
+        <div class="grid3"><div><label class="row">Vueltas</label><select id="n_laps"><option value="0">Original</option><option>1</option><option>2</option><option>3</option><option>5</option></select></div>
+          <div><label class="row">Rivales de la máquina</label><select id="n_ai"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option><option>10</option></select></div>
+          <div><label class="row">Dificultad</label><select id="n_diff"><option value="1">Fácil</option><option value="2" selected>Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div></div>
+        <div class="grid2" style="margin-top:10px"><button class="main" id="n_create">Crear</button><button id="n_cancel">Cancelar</button></div>
+      </div>
+    </div>
+    <aside class="detail" id="n_room" hidden><div class="dbody roomgrid">
+      <div class="rcol">
+      <div class="ntrack"><img id="n_timg" alt=""><div><b id="n_tname"></b><p class="small" id="n_levelinfo"></p><p class="small" id="n_modeinfo"></p></div></div>
+      <h2 id="n_rtitle"></h2><p id="n_rcode" class="small"></p>
+      <div id="n_codebox"></div>
+      <div id="n_members"></div>
+      <button id="n_change" hidden>Cambiar circuito…</button>
+      <div id="n_vote" hidden></div>
+      <div id="n_stand"></div>
+      </div><div class="rcol">
+      <div class="grid2"><div><label class="row">Tu vehículo</label><div class="vpick"><button id="n_vprev">◀</button><canvas id="n_vcv" width="160" height="110"></canvas><button id="n_vnext">▶</button></div><div class="small" id="n_vname" style="text-align:center"></div><select id="n_veh" hidden></select></div><div><label class="row">Tu equipo</label><select id="n_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select>
+        <label class="small" style="display:block;margin:12px 0"><input type="checkbox" id="n_ready"> ¡Listo!</label></div></div>
+      <div id="n_chat"></div><div style="display:flex;gap:6px"><input id="n_msg" class="inp" placeholder="Escribe un mensaje…"><button id="n_send">Enviar</button><button id="n_mic" title="Chat de voz">🎤 Micro: no</button></div>
+      <button id="n_start" class="main">Empezar carrera</button>
+      <button id="n_leave" style="width:100%;margin-top:8px">Salir de la partida</button>
+      </div>
+    </div></aside>
+  </section>
+  <footer class="mfoot"><span class="small" id="cdinfo"></span><span class="small" id="pad">Mando: conéctalo y pulsa un botón para que el navegador lo detecte.</span></footer>
+</div>
+</div>
+
+<div id="optpanel" hidden><div class="card optcard"><h2 style="margin:0 0 6px">Opciones</h2>
+<nav class="otabs"><button data-ot="g" class="on">Gráficos</button><button data-ot="c">Cámara y HUD</button><button data-ot="s">Sonido</button><button data-ot="j">Juego</button></nav>
+<div id="options">
+  <div class="opage" data-op="g">
+    <div class="opt"><span>Escala de render</span><input id="o_scale" type="range" min="50" max="200" step="25"><span id="o_scale_v"></span></div>
+    <div id="o_res"></div>
+    <div class="opt"><span>Resolución automática</span><input id="o_auto" type="checkbox"><span></span></div>
+    <div class="opt"><span>Campo de visión</span><input id="o_fov" type="range" min="50" max="110" step="1"><span id="o_fov_v"></span></div>
+    <div class="opt"><span>Distancia de dibujado</span><input id="o_far" type="range" min="300" max="4000" step="100"><span id="o_far_v"></span></div>
+    <div class="opt"><span>Iluminación</span><select id="o_light"><option value="moderna">Moderna (sol, cielo, sombras)</option><option value="original">Original 1995 (plana)</option></select><span></span></div>
+    <div class="opt"><span>Sombras</span><select id="o_shadows"><option value="0">Desactivadas</option><option value="1">Medias</option><option value="2">Altas</option></select><span></span></div>
+    <div class="opt"><span>Texturas</span><select id="o_filter"><option value="nearest">Pixeladas (original)</option><option value="smooth">Suavizadas</option></select><span></span></div>
+    <div class="opt"><span>Antialiasing</span><select id="o_aa"><option value="0">No</option><option value="1">FXAA (suaviza bordes)</option></select><span></span></div>
+    <div class="opt"><span>Partículas</span><select id="o_parts"><option value="0.4">Pocas</option><option value="1">Normal</option><option value="1.6">Muchas</option></select><span></span></div>
+    <div class="opt"><span>Límite de FPS</span><select id="o_fpslim"><option value="0">Sin límite (los Hz de tu pantalla)</option><option value="30">30</option><option value="60">60</option><option value="120">120</option><option value="144">144</option></select><span></span></div>
+    <div class="opt"><span>Mostrar FPS</span><input id="o_fps" type="checkbox"><span></span></div>
+    <p class="small">La física va siempre a 240 pasos por segundo, sea cual sea la frecuencia de tu pantalla. La sincronización vertical la decide el navegador.</p>
+    <button id="o_full" style="width:100%">Pantalla completa</button>
+  </div>
+  <div class="opage" data-op="c" hidden>
+    <div class="opt"><span>Cámara</span><select id="o_cam"><option value="cerca">Persecución cerca</option><option value="lejos">Persecución lejos</option><option value="alta">Persecución alta</option><option value="capo">Cabina</option><option value="parachoques">Parachoques</option><option value="tv">Televisión (cámaras del original)</option></select><span></span></div>
+    <div class="opt"><span>Marcador en pantallas anchas</span><select id="o_hudw"><option value="full">A todo lo ancho</option><option value="169">Centrado en 16:9 (ultrapanorámicas)</option></select><span></span></div>
+    <div class="opt"><span>Tamaño del marcador</span><input id="o_hudsc" type="range" min="70" max="150" step="5"><span id="o_hudsc_v"></span></div>
+    <div class="opt"><span>Velocímetro</span><select id="o_speedo"><option value="dig">Digital</option><option value="ana">De aguja</option><option value="off">Oculto</option></select><span></span></div>
+    <div class="opt"><span>Minimapa</span><input id="o_hmini" type="checkbox"><span></span></div>
+    <div class="opt"><span>Posición y vueltas</span><input id="o_hpos" type="checkbox"><span></span></div>
+    <div class="opt"><span>Tiempos</span><input id="o_htimes" type="checkbox"><span></span></div>
+    <div class="opt"><span>Nitros</span><input id="o_hnitro" type="checkbox"><span></span></div>
+    <div class="opt"><span>Mensajes</span><input id="o_hmsg" type="checkbox"><span></span></div>
+    <div class="opt"><span>Nombres sobre los coches</span><input id="o_hnames" type="checkbox"><span></span></div>
+    <div class="opt"><span>Ayuda de controles</span><input id="o_hhelp" type="checkbox"><span></span></div>
+  </div>
+  <div class="opage" data-op="s" hidden>
+    <div class="opt"><span>General</span><input id="o_vmaster" type="range" min="0" max="100" step="1"><span id="o_vmaster_v"></span></div>
+    <div class="opt"><span>Música</span><input id="o_vmusic" type="range" min="0" max="100" step="1"><span id="o_vmusic_v"></span></div>
+    <div class="opt"><span>Voces</span><input id="o_vvoice" type="range" min="0" max="100" step="1"><span id="o_vvoice_v"></span></div>
+    <div class="opt"><span>Efectos</span><input id="o_vsfx" type="range" min="0" max="100" step="1"><span id="o_vsfx_v"></span></div>
+    <div class="opt"><span>Motores</span><input id="o_vengine" type="range" min="0" max="100" step="1"><span id="o_vengine_v"></span></div>
+    <div class="opt"><span>Menús</span><input id="o_vui" type="range" min="0" max="100" step="1"><span id="o_vui_v"></span></div>
+    <div class="opt"><span>Ambiente</span><input id="o_vamb" type="range" min="0" max="100" step="1"><span id="o_vamb_v"></span></div>
+    <div class="opt"><span>Música</span><select id="o_msrc"><option value="cd">Banda sonora original (CD)</option><option value="mias">Mis canciones</option><option value="mezcla">Mezcla de las dos</option><option value="off">Sin música</option></select><span></span></div>
+    <div class="opt"><span>Mis canciones</span><button id="o_mymusic">Añadir canciones…</button><span id="o_mymusic_n"></span></div>
+    <input type="file" id="o_mymusic_in" accept="audio/*" multiple hidden>
+    <p class="small"><button id="o_mymusic_clear">Quitar mis canciones</button> Se guardan en el navegador; MP3, OGG, WAV o M4A.</p>
+    <div class="opt"><span>Sonido en 3D</span><input id="o_spatial" type="checkbox"><span></span></div>
+  </div>
+  <div class="opage" data-op="j" hidden>
+    <div class="opt"><span>Rivales</span><select id="o_origai"><option value="1">Originales (carreras grabadas del juego)</option><option value="0">IA nueva</option></select><span></span></div>
+    <div class="opt"><span>Vibración del mando</span><select id="o_rumble"><option value="0">No</option><option value="0.5">Suave</option><option value="1">Normal</option><option value="1.5">Fuerte</option></select><span></span></div>
+    <div class="opt"><span>Pausa al cambiar de ventana</span><input id="o_autopause" type="checkbox"><span></span></div>
+    <p class="small">Atajos: <b>O</b> (o Select+Y en el mando) cambia entre iluminación original y moderna en plena carrera · <b>F</b> (o Select+X) modo foto · <b>C</b> / View: cámara.</p>
+  </div>
+</div>
+<button class="main optbtn">Cerrar</button></div></div>
+
+<div id="picker" hidden><div class="card wide"><h2 id="pk_title">Elige circuito</h2><div id="pk_grid" class="tracks"></div>
+  <div class="grid2" style="margin-top:10px"><button class="main" id="pk_ok">Aceptar</button><button id="pk_cancel">Cancelar</button></div></div></div>
+<div class="screen" id="bye" hidden><div class="card"><h1><b>Big Red</b> Racing</h1><p>¡Gracias por jugar! Ya puedes cerrar esta pestaña.</p><button class="main" id="bye_back">Volver al menú</button></div></div>
+<div class="screen" id="loading" hidden><div class="card"><h1><b>Big Red</b> Racing</h1><p id="load_msg">Cargando…</p></div></div>
+
+<div class="screen" id="pause" hidden><div class="card">
+  <h1>Pausa</h1>
+  <button class="main" id="p_resume">Continuar</button>
+  <button id="p_restart" style="width:100%;margin-top:8px">Reiniciar carrera</button>
+  <button class="optbtn" style="width:100%;margin-top:8px">Opciones</button>
+  <button id="p_menu" style="width:100%;margin-top:8px">Salir al menú</button>
+</div></div>
+
+<div class="screen" id="hud" hidden>
+  <div id="phuds"></div>
+  <div id="trackinfo"></div>
+  <div id="help">Teclado: ↑ acelerar · ↓ frenar/atrás · ←→ girar · Espacio freno de mano · J/L/K mirar · Mayús/N nitro · E/Q subir/bajar (helicóptero) · C cámara · R recolocar · Esc pausa<br>
+  Mando: RT/A acelerar · LT/X frenar · stick izq. girar · stick der. mirar · B/RB freno de mano · LB nitro · cruceta subir/bajar · Y recolocar · View cámara · Start pausa</div>
+</div>
+<template id="phud_t"><div class="phud"><div class="tags"></div><div class="hudin">
+  <div class="race"><div class="lap"><small class="pname"></small><small>POS</small><span class="h_pos">–</span> <small style="margin-left:10px">VUELTA</small><span class="h_lap">1/3</span></div>
+    <div class="row">Tiempo <b class="h_time">0:00.00</b></div><div class="row">Esta vuelta <b class="h_cur">0:00.00</b></div><div class="row">Mejor vuelta <b class="h_best">–</b></div></div>
+  <div class="msg" hidden></div><div class="wrong" hidden>SENTIDO CONTRARIO</div>
+  <canvas class="mini" width="380" height="380"></canvas>
+  <div class="bottom"><div class="nitrobox"><small>NITRO</small><span class="h_nitro">–</span></div><div class="speedbox"><canvas class="gauge" width="240" height="240"></canvas><span class="speed">0</span><small>km/h</small></div></div>
+  <div class="done" hidden></div>
+</div></div></template>
+<div id="results" hidden><div class="card">
+  <h1 id="r_title">Carrera terminada</h1><table id="r_list"></table><p id="r_rec"></p>
+  <button class="main" id="r_again">Repetir</button><button id="r_menu" style="width:100%;margin-top:8px">Menú</button>
+</div></div>
+<div id="photo" hidden><b>Modo foto</b><span class="small">WASD/stick: mover · ratón/stick der.: mirar · Q/E: subir/bajar · Mayús: rápido</span>
+  <label>Exposición <input id="ph_exp" type="range" min="-100" max="100" value="0"></label><label>Enfoque <input id="ph_dof" type="range" min="0" max="100" value="0"></label>
+  <label><input id="ph_hud" type="checkbox"> Mostrar marcador</label><button id="ph_shot">Guardar foto</button><button id="ph_exit">Salir (F)</button></div>
+<div id="fps"></div><div id="netbar" hidden></div>
+
+<script src="js/brrdata.js"></script>
+<script src="js/model3dw.js"></script>
+<script src="js/level.js"></script>
+<script src="js/vehicle.js"></script>
+<script src="js/race.js"></script>
+<script src="js/ai.js"></script>
+<script src="js/replay.js"></script>
+<script src="js/props.js"></script>
+<script src="js/effects.js"></script>
+<script src="js/audio.js"></script>
+<script src="js/render.js"></script>
+<script src="js/net.js"></script>
+<script src="js/p2p.js"></script>
+<script src="js/front.js"></script>
+<script src="js/origmenu.js"></script>
+<script src="js/horns.js"></script>
+<script src="js/main.js"></script>
+</body></html>

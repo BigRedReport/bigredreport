@@ -1,0 +1,24 @@
+# Crea (o actualiza) las etiquetas que usa la web para el estado de los fallos.
+name: Etiquetas de los fallos
+on:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/etiquetas.yml']
+  workflow_dispatch:
+permissions:
+  issues: write
+jobs:
+  etiquetas:
+    runs-on: ubuntu-latest
+    steps:
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          gh label create "fallo"        --color d73a4a --description "Reporte de fallo"          --force
+          gh label create "por revisar"  --color cfd3d7 --description "Pendiente de revisar"      --force
+          gh label create "aceptado"     --color 1d76db --description "Fallo confirmado"          --force
+          gh label create "investigando" --color fbca04 --description "Se está investigando"      --force
+          gh label create "arreglado"    --color 0e8a16 --description "Arreglado en una versión"  --force
+          gh label create "duplicado"    --color bfbfbf --description "Ya estaba reportado"       --force
+          gh label create "descartado"   --color b60205 --description "No es un fallo o no se puede reproducir" --force
