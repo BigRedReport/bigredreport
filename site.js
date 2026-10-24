@@ -1,0 +1,82 @@
+// Big Red Report: navegación, reporte de fallos (GitHub Issues) y clasificaciones de contrarreloj (en directo)
+(function () {
+  const $ = id => document.getElementById(id);
+  const esc = t => String(t == null ? '' : t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+  // repositorio: se deduce de la dirección (usuario.github.io/repo) y si no, el del proyecto
+  let REPO = 'BigRedReport/bigredreport';
+  try { const h = location.hostname, m = h.match(/^([^.]+)\.github\.io$/i); if (m) { const seg = location.pathname.split('/').filter(Boolean)[0]; REPO = m[1] + '/' + (seg && !/\.html?$/.test(seg) ? seg : m[1] + '.github.io'); } } catch (e) { }
+  for (const a of document.querySelectorAll('a[href^="https://github.com/BigRedReport/bigredreport"]')) a.href = 'https://github.com/' + REPO;
+
+  // navegación: resalta la sección visible
+  const links = [...document.querySelectorAll('.top nav a')];
+  const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
+  const onScroll = () => { let cur = secs[0]; for (const s of secs) if (s.getBoundingClientRect().top < 120) cur = s; links.forEach(a => a.classList.toggle('on', a.getAttribute('href') === '#' + cur.id)); };
+  addEventListener('scroll', onScroll, { passive: true }); onScroll();
+
+  // ---------- fallos ----------
+  try { $('b_browser').value = (navigator.userAgent.match(/(Edg|OPR|Chrome|Firefox|Safari)\/[\d.]+/) || [''])[0] + ' · ' + (navigator.platform || ''); } catch (e) { }
+  $('bugform').addEventListener('submit', e => {
+    e.preventDefault(); const m = $('b_msg'); m.className = 'msg';
+    const title = $('b_title').value.trim(), desc = $('b_desc').value.trim();
+    if (!title || !desc) { m.className = 'msg err'; m.textContent = 'Escribe al menos el resumen y la descripción.'; return; }
+    const q = new URLSearchParams({ template: 'fallo.yml', title, donde: $('b_area').value, circuito: $('b_track').value.trim(), descripcion: desc, pasos: $('b_steps').value.trim(), navegador: $('b_browser').value.trim() });
+    window.open('https://github.com/' + REPO + '/issues/new?' + q.toString(), '_blank', 'noopener');
+    m.className = 'msg ok'; m.textContent = 'Se ha abierto GitHub en otra pestaña: revisa y pulsa «Create». Aparecerá aquí en unos minutos.';
+  });
+  // estado según las etiquetas del fallo en GitHub
+  const ST = { pend: ['Por revisar', 's-pend'], acc: ['Aceptado', 's-acc'], inv: ['Investigando', 's-inv'], fix: ['Arreglado', 's-fix'], rej: ['Descartado', 's-rej'], dup: ['Duplicado', 's-dup'] };
+  const stOf = is => { const L = is.labels.map(l => l.name.toLowerCase());
+    if (L.includes('arreglado')) return 'fix'; if (L.includes('duplicado')) return 'dup'; if (L.includes('descartado')) return 'rej';
+    if (L.includes('investigando')) return 'inv'; if (L.includes('aceptado')) return 'acc'; return is.state === 'closed' ? 'rej' : 'pend'; };
+  const field = (body, name) => { const m = (body || '').match(new RegExp('### ' + name + '\\s*\\n+([\\s\\S]*?)(?=\\n### |$)')); const v = m ? m[1].trim() : ''; return v === '_No response_' ? '' : v; };
+  let bugs = [], filter = 'all';
+  for (const b of document.querySelectorAll('.filters button')) b.onclick = () => { filter = b.dataset.f; document.querySelectorAll('.filters button').forEach(x => x.setAttribute('aria-pressed', String(x === b))); render(); };
+  const fmt = iso => { try { return new Date(iso).toLocaleDateString('es-ES', { day: 'numeric', month: 'short', year: 'numeric' }); } catch (e) { return ''; } };
+  function render() {
+    const list = bugs.filter(b => filter === 'all' || (filter === 'pend' && b.st === 'pend') || (filter === 'open' && (b.st === 'acc' || b.st === 'inv')) || (filter === 'fix' && b.st === 'fix') || (filter === 'rej' && (b.st === 'rej' || b.st === 'dup')));
+    if (!list.length) { $('board').innerHTML = '<div class="empty">' + (bugs.length ? 'No hay fallos con este estado.' : 'Aún no hay fallos enviados. Usa el formulario para mandar el primero.') + '</div>'; return; }
+    $('board').innerHTML = list.map(b => `<article class="bug ${ST[b.st][1]}"><div class="t"><b><a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.title)}</a></b><span class="pill">${ST[b.st][0]}</span></div>
+      <div class="meta">#${b.n} · ${esc(b.donde || '')}${b.circuito ? ' · ' + esc(b.circuito) : ''} · ${fmt(b.created)} · ${esc(b.user)}${b.comments ? ' · ' + b.comments + ' comentarios' : ''}</div>
+      <p>${esc((b.desc || '').slice(0, 400))}${(b.desc || '').length > 400 ? '…' : ''}</p></article>`).join('');
+  }
+  fetch('https://api.github.com/repos/' + REPO + '/issues?state=all&per_page=100', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(L => { bugs = L.filter(i => !i.pull_request).map(i => ({ n: i.number, url: i.html_url, title: i.title, user: i.user ? i.user.login : '', created: i.created_at, comments: i.comments, st: stOf(i),
+      donde: field(i.body, 'Dónde'), circuito: field(i.body, 'Circuito / vehículo'), desc: field(i.body, 'Descripción') || i.body })); render(); })
+    .catch(() => { $('board').innerHTML = '<div class="empty">No se ha podido cargar la lista ahora mismo. <a href="https://github.com/' + REPO + '/issues" target="_blank" rel="noopener">Ver los fallos en GitHub</a>.</div>'; });
+
+  // ---------- clasificaciones: el juego las guarda como mensajes retenidos en un buzón público MQTT ----------
+  const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+  const T = 'bigredracing/v1/lb/', te = new TextEncoder(), td = new TextDecoder();
+  const VEH = { JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable', PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
+  const str = s => { const b = te.encode(s); return [b.length >> 8, b.length & 255, ...b]; };
+  const len = n => { const o = []; do { let d = n % 128; n = Math.floor(n / 128); if (n) d |= 128; o.push(d); } while (n); return o; };
+  let ws = null, buf = new Uint8Array(0), pid = 1, ready = false, cur = null; const rows = {};
+  const send = (h, body) => { if (ws && ws.readyState === 1) ws.send(new Uint8Array([h, ...len(body.length), ...body])); };
+  function parse() { for (;;) { const b = buf; if (b.length < 2) return; let mul = 1, n = 0, i = 1, d; do { if (i >= b.length) return; d = b[i++]; n += (d & 127) * mul; mul *= 128; } while (d & 128);
+    if (b.length < i + n) return; const h = b[0], body = b.subarray(i, i + n); buf = b.slice(i + n); const type = h >> 4;
+    if (type === 2) { ready = true; if (cur) sub(cur); }
+    else if (type === 3) { const tl = (body[0] << 8) | body[1], topic = td.decode(body.subarray(2, 2 + tl)); let o = 2 + tl; if ((h >> 1) & 3) o += 2;
+      let r = []; try { r = JSON.parse(td.decode(body.subarray(o))) || []; } catch (e) { } rows[topic.slice(T.length)] = Array.isArray(r) ? r : []; if (topic.slice(T.length) === cur) draw(); } } }
+  function connect(k = 0) {
+    if (k >= BROKERS.length) { $('lb_st').textContent = 'No se ha podido conectar con el servidor de clasificaciones.'; return; }
+    try { ws = new WebSocket(BROKERS[k], 'mqtt'); } catch (e) { return connect(k + 1); }
+    ws.binaryType = 'arraybuffer'; const to = setTimeout(() => { if (!ready) { try { ws.close(); } catch (e) { } connect(k + 1); } }, 6000);
+    ws.onopen = () => send(0x10, [...str('MQTT'), 4, 0x02, 0, 60, ...str('brrweb' + Math.random().toString(36).slice(2, 10))]);
+    ws.onmessage = ev => { const d = new Uint8Array(ev.data), b = new Uint8Array(buf.length + d.length); b.set(buf); b.set(d, buf.length); buf = b; parse(); };
+    ws.onerror = () => { clearTimeout(to); if (!ready) connect(k + 1); };
+    setInterval(() => send(0xC0, []), 25000);
+  }
+  function sub(lv) { const id = pid++ & 0xffff; send(0x82, [id >> 8, id & 255, ...str(T + lv), 0]); }
+  function draw() {
+    const R = rows[cur]; const tb = $('lb_t').tBodies[0];
+    if (!R) { tb.innerHTML = '<tr><td colspan="5" class="empty">Cargando…</td></tr>'; return; }
+    if (!R.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">Aún no hay tiempos en este circuito. ¡Sé el primero!</td></tr>'; return; }
+    const f = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2); };
+    tb.innerHTML = R.slice(0, 50).map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.name || '?')}</td><td>${esc(VEH[r.veh] || r.veh || '')}</td><td>${f(+r.lap)}</td><td>${r.t ? new Date(r.t).toLocaleDateString('es-ES') : ''}</td></tr>`).join('');
+  }
+  $('lb_lv').onchange = () => { cur = $('lb_lv').value; draw(); if (ready && !rows[cur]) { sub(cur); setTimeout(() => { if (!rows[cur]) { rows[cur] = []; draw(); } }, 3000); } };
+  cur = $('lb_lv').value; draw(); connect();
+  setTimeout(() => { if (ready && !rows[cur]) { rows[cur] = []; draw(); } }, 4000);
+})();

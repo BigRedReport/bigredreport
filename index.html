@@ -1,0 +1,356 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="description" content="Big Red Report: port de fans de Big Red Racing (1995) para ordenadores modernos. Novedades, clasificaciones y reporte de fallos.">
+<meta property="og:title" content="Big Red Report"><meta property="og:description" content="Big Red Racing (1995) en ordenadores modernos: online, pantalla partida, rivales originales."><meta property="og:image" content="img/dirt2.jpg">
+<title>Big Red Report</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: pista de carreras — una banda a cuadros diagonal cruza la cabecera; las secciones son "boxes" del paddock en una columna de 1080px */
+:root{
+  --bg:#f3f2ef; --panel:#ffffff; --ink:#18151b; --mut:#5d5862; --line:#dcd8d2;
+  --red:#d81f17; --redink:#b3150e; --yellow:#e9a800; --asph:#2a272d;
+  --ok:#1f8a4c; --warn:#b97800; --bad:#b3261e; --info:#2d5fb8;
+  --f-display:"Racing Sans One","Arial Black",Impact,sans-serif;
+  --f-body:"Barlow","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  --f-mono:"JetBrains Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#131115; --panel:#1c1a1f; --ink:#f1ede7; --mut:#a59fa9; --line:#2f2b33;
+  --red:#ee2a1f; --redink:#ff6a5e; --yellow:#ffc21a; --asph:#0c0b0d;
+  --ok:#43c27a; --warn:#e6a531; --bad:#ff6b5f; --info:#79a6ff; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#131115; --panel:#1c1a1f; --ink:#f1ede7; --mut:#a59fa9; --line:#2f2b33;
+  --red:#ee2a1f; --redink:#ff6a5e; --yellow:#ffc21a; --asph:#0c0b0d;
+  --ok:#43c27a; --warn:#e6a531; --bad:#ff6b5f; --info:#79a6ff; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--ink);font:400 16px/1.6 var(--f-body);margin:0}
+body::before{content:"";position:fixed;inset:0 0 auto;height:env(safe-area-inset-top,0px);z-index:10;background:var(--asph)}
+.wrap{max-width:1080px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+h1,h2,h3{text-wrap:balance;margin:0}
+h2{font:400 clamp(30px,5vw,44px)/1.05 var(--f-display);letter-spacing:.5px}
+h3{font-weight:700;font-size:19px}
+a{color:var(--redink)}
+:focus-visible{outline:3px solid var(--yellow);outline-offset:2px}
+.mono{font-family:var(--f-mono);font-size:13px}
+.eyebrow{font:600 12px/1 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:var(--mut)}
+
+/* barra superior */
+.top{position:sticky;top:env(safe-area-inset-top,0px);z-index:9;background:var(--asph);color:#f1ede7}
+.top .wrap{display:flex;align-items:center;gap:18px;padding-block:10px;flex-wrap:wrap}
+.brand{font:400 24px/1 var(--f-display);color:#fff;text-decoration:none;letter-spacing:.5px}
+.brand b{color:var(--red);font-weight:400}
+.top nav{display:flex;gap:4px;flex-wrap:wrap;margin-left:auto}
+.top nav a{color:#d9d4cf;text-decoration:none;font-weight:600;font-size:14px;padding:7px 11px;border-radius:6px}
+.top nav a:hover,.top nav a.on{background:#ffffff14;color:#fff}
+
+/* cabecera */
+.hero{background:var(--asph);color:#f1ede7;position:relative;overflow:hidden}
+.hero .wrap{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:32px;align-items:center;padding-block:44px 64px;position:relative;z-index:1}
+.hero h1{font:400 clamp(48px,9vw,96px)/.9 var(--f-display);letter-spacing:1px}
+.hero h1 span{display:block;color:var(--red)}
+.hero p{color:#cfc9c3;max-width:46ch;font-size:18px}
+.flag{position:absolute;left:-10%;right:-10%;bottom:18px;height:26px;transform:rotate(-2deg);
+  background:repeating-conic-gradient(#f1ede7 0 25%,#111 0 50%) 0 0/26px 26px;opacity:.9}
+.shot{border-radius:10px;overflow:hidden;border:3px solid #f1ede7;box-shadow:0 18px 40px #0008;transform:rotate(1.2deg);background:#000}
+.shot img{display:block;width:100%;height:auto}
+.badges{display:flex;gap:8px;flex-wrap:wrap;margin:18px 0 22px}
+.badge{font:600 12px/1 var(--f-mono);letter-spacing:.05em;border:1px solid #ffffff40;border-radius:999px;padding:7px 11px;color:#e9e3dc}
+.cta{display:inline-flex;align-items:center;gap:8px;background:var(--red);color:#fff;font-weight:700;text-decoration:none;padding:12px 18px;border-radius:8px;border:0;font-size:16px;cursor:pointer;font-family:inherit}
+.cta.ghost{background:transparent;border:1px solid #ffffff55}
+.ctas{display:flex;gap:10px;flex-wrap:wrap}
+
+section{padding-block:56px}
+section+section{border-top:1px solid var(--line)}
+.head{display:flex;align-items:end;justify-content:space-between;gap:16px;flex-wrap:wrap;margin-bottom:22px}
+.head p{color:var(--mut);margin:6px 0 0;max-width:62ch}
+
+/* galería */
+.gallery{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px}
+.gallery figure{margin:0;position:relative;border-radius:8px;overflow:hidden;background:#000}
+.gallery img{display:block;width:100%;aspect-ratio:16/9;object-fit:cover}
+.gallery figcaption{position:absolute;left:0;bottom:0;right:0;padding:16px 8px 6px;font:600 12px/1.2 var(--f-mono);color:#fff;background:linear-gradient(transparent,#000c)}
+.intro{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:28px;margin-top:28px}
+.intro p{margin:0 0 12px;max-width:62ch}
+.facts{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:15px;align-content:start;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.facts dt{color:var(--mut);font:600 12px/1.9 var(--f-mono);text-transform:uppercase;letter-spacing:.08em}
+.facts dd{margin:0}
+
+/* descargas */
+.dl{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.dlc{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:18px;display:flex;flex-direction:column;gap:6px}
+.dlc .st{font:600 12px/1 var(--f-mono);color:var(--warn);text-transform:uppercase;letter-spacing:.1em}
+.note{background:var(--panel);border-left:4px solid var(--yellow);padding:12px 16px;border-radius:6px;margin-top:14px;color:var(--ink);font-size:15px}
+
+/* mejoras */
+.feat{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.fcard{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px 18px}
+.fcard h3{display:flex;align-items:center;gap:10px}
+.fcard h3 .n{font:600 12px/1 var(--f-mono);color:var(--mut);margin-left:auto}
+.fcard ul{margin:8px 0 0;padding-left:18px}
+.fcard li{margin:4px 0}
+.fcard li b{font-weight:600}
+
+/* noticias */
+.news{display:grid;gap:14px}
+.post{display:grid;grid-template-columns:140px minmax(0,1fr);gap:18px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px}
+.post time{font:600 13px/1.4 var(--f-mono);color:var(--mut)}
+.post .ver{display:inline-block;margin-top:6px;font:600 12px/1 var(--f-mono);background:var(--red);color:#fff;padding:5px 8px;border-radius:4px}
+.post h3{margin-bottom:6px}
+.post ul{margin:6px 0 0;padding-left:18px}
+
+/* fallos */
+.bugs{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:18px;align-items:start}
+form{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:18px;display:grid;gap:10px}
+label{font-weight:600;font-size:14px;display:grid;gap:4px}
+input,select,textarea{font:inherit;font-size:15px;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:7px;padding:9px 11px;width:100%}
+textarea{min-height:92px;resize:vertical}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.msg{font-size:14px;min-height:1.4em}
+.msg.ok{color:var(--ok)}.msg.err{color:var(--bad)}
+.board{display:grid;gap:10px}
+.filters{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:4px}
+.filters button{font:600 13px/1 var(--f-body);background:var(--panel);color:var(--ink);border:1px solid var(--line);border-radius:999px;padding:8px 12px;cursor:pointer}
+.filters button[aria-pressed="true"]{background:var(--ink);color:var(--bg);border-color:var(--ink)}
+.bug{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px 16px;border-left:5px solid var(--st,var(--line))}
+.bug .t{display:flex;gap:10px;align-items:baseline;flex-wrap:wrap}
+.bug .t b{font-size:16px}
+.pill{font:600 11px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;padding:5px 8px;border-radius:999px;color:#fff;background:var(--st,var(--mut));margin-left:auto}
+.bug .meta{font:400 12px/1.4 var(--f-mono);color:var(--mut);margin:4px 0 6px}
+.bug p{margin:4px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.bug .reply{background:var(--bg);border-radius:6px;padding:8px 10px;font-size:14px;margin-top:8px}
+.mod{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed var(--line)}
+.mod button{font:600 13px/1 var(--f-body);border:1px solid var(--line);background:var(--bg);color:var(--ink);border-radius:6px;padding:7px 10px;cursor:pointer}
+.mod input{flex:1 1 180px;width:auto;padding:6px 9px;font-size:14px}
+.empty{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:22px;color:var(--mut);text-align:center}
+.s-pend{--st:var(--mut)} .s-acc{--st:var(--info)} .s-inv{--st:var(--warn)} .s-fix{--st:var(--ok)} .s-rej{--st:var(--bad)} .s-dup{--st:var(--mut)}
+
+/* clasificaciones */
+.lbwrap{display:grid;gap:12px;max-width:760px}
+.lbwrap select{max-width:340px}
+.lbt{width:100%;border-collapse:collapse;background:var(--panel);border:1px solid var(--line);border-radius:10px;overflow:hidden;font-size:15px}
+.lbt th,.lbt td{padding:8px 12px;text-align:left;border-bottom:1px solid var(--line)}
+.lbt th{font:600 12px/1 var(--f-mono);text-transform:uppercase;letter-spacing:.08em;color:var(--mut)}
+.lbt td:nth-child(4){font-variant-numeric:tabular-nums;font-weight:700}
+.lbt tr:first-child td:first-child{color:var(--yellow)}
+.lbt .empty{border:0;text-align:center}
+.bug a{color:inherit}
+
+/* faq + pie */
+.faq{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.faq details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
+.faq summary{font-weight:700;cursor:pointer}
+.faq p{margin:8px 0 0;color:var(--mut)}
+footer{background:var(--asph);color:#bdb6af;font-size:14px}
+footer .wrap{padding-block:26px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
+footer b{color:#fff}
+
+@media (max-width:860px){
+  .hero .wrap,.intro,.bugs{grid-template-columns:1fr}
+  .gallery{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .gallery figure:first-child{grid-column:span 2}
+  .feat,.dl,.faq{grid-template-columns:1fr}
+  .post{grid-template-columns:1fr;gap:6px}
+  .shot{transform:none}
+}
+@media (max-width:480px){.row2{grid-template-columns:1fr}.top nav{margin-left:0}}
+@media (prefers-reduced-motion:no-preference){.shot{transition:transform .3s}.shot:hover{transform:rotate(0) scale(1.01)}}
+</style>
+</head><body>
+
+<header class="top"><div class="wrap">
+  <a class="brand" href="#inicio">BIG RED <b>REPORT</b></a>
+  <nav aria-label="Secciones">
+    <a href="#inicio">Inicio</a><a href="#descargar">Descargar</a><a href="#mejoras">Mejoras</a><a href="#noticias">Noticias</a><a href="#clasificaciones">Clasificaciones</a><a href="#fallos">Reportar fallo</a><a href="#faq">Preguntas</a>
+  </nav>
+</div></header>
+
+<div class="hero" id="inicio">
+  <div class="wrap">
+    <div>
+      <div class="eyebrow" style="color:#b9b2ab">Port de fans · Big Red Racing (1995)</div>
+      <h1>Big Red <span>Report</span></h1>
+      <div class="badges"><span class="badge">25 circuitos</span><span class="badge">20 vehículos</span><span class="badge">Hasta 12 online</span><span class="badge">Pantalla partida hasta 8</span></div>
+      <p>El juego de carreras más loco de 1995, de jeeps a lanchas, helicópteros y buggies en Marte, ahora en ordenadores modernos: alta resolución, luces y sombras actuales, mandos de hoy, online y los rivales originales del juego.</p>
+      <div class="ctas"><a class="cta" href="#descargar">Descargar</a><a class="cta ghost" href="#mejoras">Qué hemos hecho</a></div>
+    </div>
+    <figure class="shot"><img loading="lazy" src="img/dirt2.jpg" alt="Un jeep y un quad derrapando en una colina de tierra del circuito de Inglaterra"></figure>
+  </div>
+  <div class="flag" aria-hidden="true"></div>
+</div>
+
+<main>
+<section><div class="wrap">
+  <div class="gallery">
+    <figure><img loading="lazy" src="img/water2.jpg" alt="Lanchas y aerodeslizadores en un río"><figcaption>Río · lanchas</figcaption></figure>
+    <figure><img loading="lazy" src="img/moon2.jpg" alt="Jet car en el desierto rojo de Marte"><figcaption>Marte · jet car</figcaption></figure>
+    <figure><img loading="lazy" src="img/snow1.jpg" alt="Máquinas quitanieves en el Ártico"><figcaption>Ártico · nieve</figcaption></figure>
+    <figure><img loading="lazy" src="img/city1.jpg" alt="Coche pequeño corriendo en una ciudad"><figcaption>Ciudad · Australia</figcaption></figure>
+    <figure><img loading="lazy" src="img/menu.jpg" alt="Menú principal nuevo del port"><figcaption>Menú nuevo</figcaption></figure>
+  </div>
+  <div class="intro">
+    <div>
+      <p><b>Big Red Racing</b> salió en 1995 para DOS y Windows 95, de Big Red Software. Era un caos maravilloso de 25 circuitos por todo el mundo (y fuera de él) con vehículos que no tenían nada que ver entre sí: un Mini, un monster truck, una excavadora, una lancha neumática o un helicóptero.</p>
+      <p>Este port lee <b>tu propia copia del juego</b> y lo hace funcionar en un ordenador de hoy sin emulador: todo se dibuja de nuevo, con las texturas, modelos, sonidos y música originales del CD. Por eso no incluye ningún archivo del juego: hace falta el original.</p>
+    </div>
+    <dl class="facts">
+      <dt>Estado</dt><dd>En desarrollo · versión de prueba</dd>
+      <dt>Funciona en</dt><dd>Chrome y Edge (navegador). Versión para Windows más adelante</dd>
+      <dt>Necesitas</dt><dd>La carpeta BIGRED del juego original (y la imagen del CD para la música)</dd>
+      <dt>Rivales</dt><dd>Las carreras grabadas del juego original, como en 1995</dd>
+      <dt>Online</dt><dd>Sin servidor: quien crea la partida hace de anfitrión</dd>
+      <dt>Código</dt><dd><a id="gh_link" href="https://github.com/BigRedReport/bigredreport">GitHub</a></dd>
+    </dl>
+  </div>
+</div></section>
+
+<section id="descargar"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Descargas</div><h2>Descargar</h2><p>Todavía no hay descarga pública. Cuando esté lista aparecerá aquí y en el repositorio del proyecto.</p></div></div>
+  <div class="dl">
+    <div class="dlc"><span class="st">Próximamente</span><h3>Versión navegador</h3><p class="mono">Un .zip con BigRedRacing.html: se abre con Chrome o Edge.</p></div>
+    <div class="dlc"><span class="st">Más adelante</span><h3>Versión Windows</h3><p class="mono">Un programa que se instala, con servidor online incluido.</p></div>
+    <div class="dlc"><span class="st">Próximamente</span><h3>Código fuente</h3><p class="mono">En GitHub, con licencia libre. Sin archivos del juego original.</p></div>
+  </div>
+  <p class="note">Para jugar hace falta <b>tu copia original</b> de Big Red Racing: el port no incluye ni va a distribuir los datos del juego (circuitos, coches, música…).</p>
+</div></section>
+
+<section id="mejoras"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Lo que hemos hecho al juego</div><h2>Mejoras</h2><p>Lista actualizada de todo lo añadido y mejorado respecto al original.</p></div></div>
+  <div class="feat">
+    <div class="fcard"><h3>Gráficos <span class="n">9</span></h3><ul>
+      <li><b>Resolución moderna</b> con escala ajustable, resolución automática y <b>antialiasing</b> FXAA.</li>
+      <li><b>Iluminación nueva</b> con sol, cielo y sombras, o la original de 1995; se cambia en plena carrera para comparar.</li>
+      <li><b>Campo de visión y distancia de dibujado</b> ampliados; cámara sin temblores.</li>
+      <li><b>Agua con olas y reflejos</b> y los colores animados del original.</li>
+      <li><b>Luces de freno</b> sacadas de los propios modelos originales.</li>
+      <li><b>Pilotos visibles</b> conduciendo, con el personaje elegido.</li>
+      <li>Polvo, salpicaduras, marcas de derrape, chispas y llamas del nitro, con cantidad ajustable.</li>
+      <li>Pantallas <b>ultrapanorámicas</b> (21:9, 32:9) y cualquier frecuencia (144 Hz o más) con física a paso fijo.</li>
+      <li>Texturas pixeladas originales o suavizadas.</li></ul></div>
+    <div class="fcard"><h3>Cámaras y marcador <span class="n">5</span></h3><ul>
+      <li>Cámaras de <b>persecución</b> (cerca, lejos, alta), <b>cabina</b>, <b>parachoques</b> y <b>televisión</b> con las del circuito original.</li>
+      <li><b>Modo foto</b>: carrera congelada, cámara libre, exposición, desenfoque y guardar la imagen.</li>
+      <li>Marcador configurable: velocímetro digital o de aguja, tamaño, y cada parte se puede ocultar.</li>
+      <li>Nombres sobre los coches.</li>
+      <li>Minimapa con la trazada real de cada circuito.</li></ul></div>
+    <div class="fcard"><h3>Rivales <span class="n">5</span></h3><ul>
+      <li><b>Los rivales originales</b>: el juego reproduce las carreras grabadas por Big Red en cada circuito, igual que en 1995.</li>
+      <li><b>IA nueva</b> opcional que sigue las trazadas grabadas del original con físicas propias.</li>
+      <li>Hasta 11 rivales.</li>
+      <li>Los rivales pitan si les golpeas, al caer de un salto o si vuelcan, y a veces te contestan.</li>
+      <li>Cada circuito solo permite sus vehículos, como el original.</li></ul></div>
+    <div class="fcard"><h3>Conducción <span class="n">6</span></h3><ul>
+      <li>Físicas con suspensión por rueda, agarre por superficie y nitro.</li>
+      <li>Saltos con rebote natural al caer.</li>
+      <li>Choques entre coches con la forma real de cada vehículo.</li>
+      <li><b>Mandos modernos</b> con <b>vibración</b> según golpes, aterrizajes y suelo.</li>
+      <li><b>Modo libre</b>: cualquier vehículo en cualquier circuito.</li>
+      <li>Recolocar en el último control pasado.</li></ul></div>
+    <div class="fcard"><h3>Multijugador <span class="n">5</span></h3><ul>
+      <li><b>Pantalla partida</b> de 2 a 8 jugadores.</li>
+      <li><b>Online sin servidor</b>: partida con código, pública o privada, hasta 12 jugadores; se puede empezar solo con la máquina.</li>
+      <li>Modos: una carrera, lista de carreras, campeonato, circuito al azar y votación.</li>
+      <li>Chat de texto y chat de voz.</li>
+      <li>Logos y bocinas propios que ven y oyen los demás.</li></ul></div>
+    <div class="fcard"><h3>Sonido <span class="n">5</span></h3><ul>
+      <li>Música original del CD y narraciones de cada circuito.</li>
+      <li><b>Tus propias canciones</b> como banda sonora, o mezcladas con las originales.</li>
+      <li>Volúmenes separados: música, voces, efectos, motores, menús y ambiente.</li>
+      <li><b>Sonido en 3D</b> y eco en los túneles.</li>
+      <li><b>31 bocinas</b>: normales, sirenas, animales, cachondas y las muestras graciosas del juego original, o una tuya.</li></ul></div>
+    <div class="fcard"><h3>Menús y perfiles <span class="n">5</span></h3><ul>
+      <li><b>Menú nuevo</b> manejable con el mando, y el <b>menú original de 1995</b> recreado.</li>
+      <li>Campeonato con las 7 series originales y <b>contrarreloj</b> con clasificación online.</li>
+      <li><b>Perfiles</b> con sus propios ajustes, récords y campeonato.</li>
+      <li><b>Estadísticas</b> del piloto y tabla de récords por circuito y vehículo.</li>
+      <li>Pausa automática al cambiar de ventana.</li></ul></div>
+    <div class="fcard"><h3>Personalización y mods <span class="n">4</span></h3><ul>
+      <li>6 pilotos, 13 logos originales y 6 colores de escudería.</li>
+      <li><b>Logo propio</b>: cualquier imagen tuya, en alta resolución, pintada en tu coche.</li>
+      <li><b>Mods</b>: carpetas que cambian texturas, coches o sonidos, con activar y desactivar.</li>
+      <li>Compatible con el parche oficial v2.25.</li></ul></div>
+  </div>
+</div></section>
+
+<section id="noticias"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Diario de desarrollo</div><h2>Noticias</h2></div></div>
+  <div class="news">
+    <article class="post"><div><time datetime="2026-10-24">24 oct 2026</time><br><span class="ver">Bocinas y modo foto</span></div><div>
+      <h3>31 bocinas, cámaras de televisión, modo foto y sonido en 3D</h3>
+      <p>Una tanda grande de mejoras rápidas antes de atacar a los rivales.</p>
+      <ul><li>Bocinas normales, sirenas, animales, cachondas y las muestras graciosas del propio juego original, o una tuya.</li>
+      <li>Cámaras nuevas, incluidas las de televisión de cada circuito original, y modo foto.</li>
+      <li>Modo libre, marcador configurable, vibración del mando, perfiles y estadísticas.</li>
+      <li>Mezcla de audio por canales, tus propias canciones, sonido en 3D y eco en los túneles.</li></ul></div></article>
+    <article class="post"><div><time datetime="2026-10-24">24 oct 2026</time><br><span class="ver">Online y menú nuevo</span></div><div>
+      <h3>Online sin servidor, menú nuevo y logos propios</h3>
+      <p>Crear una partida ya no necesita instalar nada: tu juego hace de servidor y te da un código para tus amigos.</p>
+      <ul><li>Partidas públicas o privadas, hasta 12 jugadores, con modos de varias carreras y votación.</li>
+      <li>Menú principal nuevo, todo manejable con el mando.</li>
+      <li>Logo propio en alta resolución pintado en el coche, y pilotos visibles conduciendo.</li>
+      <li>Pantalla partida hasta 8 jugadores, agua con olas y reflejos, luces de freno.</li></ul></div></article>
+    <article class="post"><div><time datetime="2026-10-24">24 oct 2026</time><br><span class="ver">Rivales originales</span></div><div>
+      <h3>Descubierta la IA original: eran carreras grabadas</h3>
+      <p>Leyendo el ejecutable de Windows 95 vimos que los rivales de Big Red Racing no conducían: cada circuito trae 6 carreras completas grabadas por los programadores, y el juego las reproduce acelerándolas o frenándolas según tu posición.</p>
+      <ul><li>El port ya usa esas grabaciones como rivales.</li><li>La IA nueva sigue sus trazadas con físicas propias.</li><li>Revisado también el parche oficial v2.25: no cambia circuitos ni rivales.</li></ul></div></article>
+    <article class="post"><div><time datetime="2026-10-23">23 oct 2026</time><br><span class="ver">Primeras versiones</span></div><div>
+      <h3>El juego arranca en un ordenador moderno</h3>
+      <p>Los 25 circuitos, los 20 vehículos, la música del CD y el menú original funcionando en el navegador, con iluminación moderna y pantalla partida.</p></div></article>
+  </div>
+</div></section>
+
+<section id="clasificaciones"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Contrarreloj</div><h2>Clasificaciones</h2><p>Las mejores vueltas de la contrarreloj en cada circuito, en directo desde el juego. Se envían solas al terminar una contrarreloj con conexión a Internet.</p></div></div>
+  <div class="lbwrap">
+    <label for="lb_lv">Circuito<select id="lb_lv"><option value="RIG1">Kenia · RIG1</option><option value="RIG3">Irlanda · RIG3</option><option value="RIG4">España · RIG4</option><option value="CHOPPER1">Alemania · CHOPPER1</option><option value="CHOPPER2">Noruega · CHOPPER2</option><option value="CHOPPER3">Hawaii · CHOPPER3</option><option value="DIRT2">Inglaterra · DIRT2</option><option value="RUF1">Chile · RUF1</option><option value="WATER1">Usa · WATER1</option><option value="CITY1">Australia · CITY1</option><option value="DIRT3">Méjico · DIRT3</option><option value="RUF2">Egipto · RUF2</option><option value="WATER3">China · WATER3</option><option value="CITY2">Usa · CITY2</option><option value="DIRT1">Japón · DIRT1</option><option value="SNOW1">Ártico · SNOW1</option><option value="SNOW3">Rusia · SNOW3</option><option value="CITY4">Italia · CITY4</option><option value="MOON1">Marte · MOON1</option><option value="MOON2">Venus · MOON2</option><option value="SNOW2">Escocia · SNOW2</option><option value="WATER2">India · WATER2</option><option value="RUF3">Francia · RUF3</option><option value="MOON3">Luna · MOON3</option></select></label>
+    <div id="lb_st" class="mono"></div>
+    <table class="lbt" id="lb_t"><thead><tr><th>#</th><th>Piloto</th><th>Vehículo</th><th>Vuelta</th><th>Fecha</th></tr></thead><tbody><tr><td colspan="5" class="empty">Cargando…</td></tr></tbody></table>
+  </div>
+</div></section>
+
+<section id="fallos"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Ayúdanos a mejorarlo</div><h2>Reportar un fallo</h2><p>Los fallos se guardan en el repositorio del proyecto en GitHub (hace falta una cuenta gratuita). Cada uno se revisa y se acepta o se descarta antes de investigarlo, y aquí puedes ver en qué estado está.</p></div></div>
+  <div class="bugs">
+    <form id="bugform" novalidate>
+      <label for="b_title">Qué pasa (resumen)<input id="b_title" maxlength="120" required placeholder="p. ej. En City 4 el coche atraviesa el túnel"></label>
+      <div class="row2">
+        <label for="b_area">Dónde<select id="b_area">
+          <option>En carrera</option><option>Un circuito concreto</option><option>Menú nuevo</option><option>Menú original</option><option>Online</option><option>Pantalla partida</option><option>Mandos</option><option>Sonido o música</option><option>Gráficos</option><option>Otro</option></select></label>
+        <label for="b_track">Circuito / vehículo<input id="b_track" maxlength="60" placeholder="p. ej. CITY4 · Mini"></label>
+      </div>
+      <label for="b_desc">Descripción<textarea id="b_desc" maxlength="2000" required placeholder="Qué esperabas que pasara y qué pasó en realidad"></textarea></label>
+      <label for="b_steps">Cómo reproducirlo (opcional)<textarea id="b_steps" maxlength="1500" placeholder="1. Elige… 2. Ve a… 3. …"></textarea></label>
+      <label for="b_browser">Navegador y sistema<input id="b_browser" maxlength="80"></label>
+      <button class="cta" type="submit" id="b_send">Continuar en GitHub</button>
+      <div class="msg" id="b_msg" role="status">Se abrirá GitHub con todo rellenado: solo tienes que pulsar «Create».</div>
+    </form>
+    <div>
+      <div class="filters" role="group" aria-label="Filtrar por estado">
+        <button type="button" data-f="all" aria-pressed="true">Todos</button><button type="button" data-f="pend" aria-pressed="false">Por revisar</button><button type="button" data-f="open" aria-pressed="false">Aceptados</button><button type="button" data-f="fix" aria-pressed="false">Arreglados</button><button type="button" data-f="rej" aria-pressed="false">Descartados</button>
+      </div>
+      <div class="board" id="board"><div class="empty">Cargando los fallos enviados…</div></div>
+    </div>
+  </div>
+</div></section>
+
+<section id="faq"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Lo típico</div><h2>Preguntas</h2></div></div>
+  <div class="faq">
+    <details><summary>¿Necesito el juego original?</summary><p>Sí. El port lee los archivos de tu copia (la carpeta BIGRED y, para la música, la imagen del CD). No incluye ni distribuye ningún archivo del juego.</p></details>
+    <details><summary>¿Es un proyecto oficial?</summary><p>No. Es un proyecto de fans sin relación con Big Red Software, Domark ni los actuales dueños de los derechos del juego.</p></details>
+    <details><summary>¿En qué ordenadores funciona?</summary><p>De momento en Chrome o Edge en cualquier ordenador reciente. Más adelante habrá una versión para Windows.</p></details>
+    <details><summary>¿Sirve el parche v2.25 del original?</summary><p>Sí, puedes copiar sus archivos en tu carpeta BIGRED. Solo cambia textos y arregla fallos del ejecutable original; los circuitos y rivales son los mismos.</p></details>
+    <details><summary>¿Cómo juego online con amigos?</summary><p>Multijugador → Online → Crear partida, y pásales el código. Ellos lo escriben en Unirse. No hace falta abrir puertos.</p></details>
+    <details><summary>¿Puedo hacer mods?</summary><p>Sí: una carpeta con archivos con el mismo nombre que los del juego (texturas .TM, modelos .3DW, sonidos .WAV…). Se cargan desde Menú → Mods.</p></details>
+  </div>
+</div></section>
+</main>
+
+<footer><div class="wrap">
+  <div><b>Big Red Report</b> · port de fans de Big Red Racing (1995) · <a style="color:#fff" href="https://github.com/BigRedReport/bigredreport">GitHub</a></div>
+  <div>Big Red Racing es © de sus respectivos dueños. Este sitio no distribuye archivos del juego.</div>
+</div></footer>
+
+<script src="site.js"></script>
+</body></html>
