@@ -112,7 +112,7 @@
       for (const ch of str) { if (ch === ' ') { w += big ? 9 : 5; continue; } const s = big ? this.wibs[0][glyphIndex(ch, WIBS_EXTRA)] : this.sml[glyphIndex(ch, SML_EXTRA)]; w += s ? (big ? s.w - 1 : (s.a || s.w)) : 6; }
       return w;
     }
-    drawString(buf, str, x, y, font, level, wib, phase) {
+    drawString(buf, str, x, y, font, level, wib, phase) { if (BRR.t) str = BRR.t(str);
       const big = font === 5, lh = big ? 22 : 10; let cx = x;
       const remap = this.coltab ? c => this.coltab[Math.min(15, Math.max(0, level)) * 256 + c] : null;
       let k = 0;

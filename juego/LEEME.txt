@@ -67,6 +67,10 @@ Notas
 - La primera vez que corres en un circuito con rivales tarda unos segundos en "Preparar a los pilotos";
   después se guarda y carga al instante.
 
+Idiomas
+- Español, inglés, francés, alemán, italiano y portugués. Al abrirlo usa el idioma del navegador; se cambia en
+  Opciones → Juego → Idioma (al momento, sin reiniciar).
+
 Rivales
 - Opciones → Juego → "Aspecto de los rivales": colores RGB y bocinas al azar (por defecto) o los colores de
   equipo del original. El color propio (Piloto y escudería → Color RGB) pinta también a tu piloto.

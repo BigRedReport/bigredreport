@@ -290,7 +290,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
       </div><div class="rcol">
       <div class="grid2"><div><label class="row">Tu vehículo</label><div class="vpick"><button id="n_vprev">◀</button><canvas id="n_vcv" width="160" height="110"></canvas><button id="n_vnext">▶</button></div><div class="small" id="n_vname" style="text-align:center"></div><select id="n_veh" hidden></select></div><div><label class="row">Tu equipo</label><select id="n_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select>
         <label class="small" style="display:block;margin:12px 0"><input type="checkbox" id="n_ready"> ¡Listo!</label></div></div>
-      <div id="n_chat"></div><div style="display:flex;gap:6px"><input id="n_msg" class="inp" placeholder="Escribe un mensaje…"><button id="n_send">Enviar</button><button id="n_mic" title="Chat de voz">🎤 Micro: no</button></div>
+      <div id="n_chat" data-notr></div><div style="display:flex;gap:6px"><input id="n_msg" class="inp" placeholder="Escribe un mensaje…"><button id="n_send">Enviar</button><button id="n_mic" title="Chat de voz">🎤 Micro: no</button></div>
       <button id="n_start" class="main">Empezar carrera</button>
       <button id="n_leave" style="width:100%;margin-top:8px">Salir de la partida</button>
       </div>
@@ -347,6 +347,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
     <div class="opt"><span>Sonido en 3D</span><input id="o_spatial" type="checkbox"><span></span></div>
   </div>
   <div class="opage" data-op="j" hidden>
+    <div class="opt"><span>Idioma</span><select id="o_lang" data-notr></select><span></span></div>
     <div class="opt"><span>Rivales</span><select id="o_origai"><option value="1">Originales (carreras grabadas del juego)</option><option value="0">IA nueva</option></select><span></span></div>
     <div class="opt"><span>Aspecto de los rivales</span><select id="o_rivLook"><option value="aleatorio">Colores RGB y bocinas al azar</option><option value="clasico">Colores de equipo (como el original)</option></select><span></span></div>
     <div class="opt"><span>Vibración del mando</span><select id="o_rumble"><option value="0">No</option><option value="0.5">Suave</option><option value="1">Normal</option><option value="1.5">Fuerte</option></select><span></span></div>
@@ -392,6 +393,8 @@ input[type=range]{width:100%;accent-color:var(--red)}
   <label><input id="ph_hud" type="checkbox"> Mostrar marcador</label><button id="ph_shot">Guardar foto</button><button id="ph_exit">Salir (F)</button></div>
 <div id="fps"></div><div id="netbar" hidden></div>
 
+<script src="js/lang.js"></script>
+<script src="js/i18n.js"></script>
 <script src="js/brrdata.js"></script>
 <script src="js/model3dw.js"></script>
 <script src="js/level.js"></script>

@@ -14,6 +14,7 @@ Lo que falta para la versión final del port, **en orden de prioridad**. Se va t
 - [x] Cámaras nuevas (también las de televisión del original), modo foto y marcador configurable
 - [x] Sonido: mezcla por canales, sonido en 3D, eco en túneles y música propia
 - [x] Perfiles, estadísticas y récords; mods básicos (sustituir archivos)
+- [x] Juego en 6 idiomas: español, inglés, francés, alemán, italiano y portugués (la web, con traducción automática)
 
 ## 1. Online más sólido
 - [x] Predicción e interpolación mejores de los coches de los demás
@@ -69,6 +70,15 @@ Lo que falta para la versión final del port, **en orden de prioridad**. Se va t
 ## 10. Sonido
 - [ ] Motores mejorados (más muestras y transiciones suaves)
 - [ ] Banda sonora remasterizada (si se consigue)
+
+## 11. Realidad virtual
+- [ ] Jugar con gafas de realidad virtual desde el navegador (WebXR: Quest, PC VR), cabina con vista 3D real
+
+## 12. Android
+- [ ] Cargar los archivos del juego en el móvil (el navegador de Android no deja elegir carpetas: con un .zip de la carpeta BIGRED o con una app)
+- [ ] Controles táctiles en pantalla (y mando Bluetooth)
+- [ ] App instalable (PWA o APK) que recuerde los archivos del juego
+- Viable: el juego ya funciona en el navegador; lo más difícil es el rendimiento en móviles modestos
 
 ## Pendientes de comprobar o pequeños
 - [ ] La IA nueva en el primer circuito de Marte sigue lenta

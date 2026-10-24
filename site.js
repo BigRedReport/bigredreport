@@ -8,6 +8,11 @@
   try { const h = location.hostname, m = h.match(/^([^.]+)\.github\.io$/i); if (m) { const seg = location.pathname.split('/').filter(Boolean)[0]; REPO = m[1] + '/' + (seg && !/\.html?$/.test(seg) ? seg : m[1] + '.github.io'); } } catch (e) { }
   for (const a of document.querySelectorAll('a[href^="https://github.com/BigRedReport/bigredreport"]')) a.href = 'https://github.com/' + REPO;
 
+  // idioma: la web está en español; los demás idiomas se sirven con la traducción automática de Google
+  try { const sel = $('langsel'), m = location.hostname.match(/translate\.goog$/) ? new URLSearchParams(location.search).get('_x_tr_tl') : null;
+    sel.value = m || 'es';
+    sel.onchange = () => { const l = sel.value, base = 'https://bigredreport.github.io/bigredreport/';
+      location.href = l === 'es' ? base : 'https://bigredreport-github-io.translate.goog/bigredreport/?_x_tr_sl=es&_x_tr_tl=' + l + '&_x_tr_hl=' + l; }; } catch (e) { }
   // navegación: resalta la sección visible
   const links = [...document.querySelectorAll('.top nav a')];
   const secs = links.map(a => document.querySelector(a.getAttribute('href'))).filter(Boolean);
