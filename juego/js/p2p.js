@@ -76,33 +76,42 @@
     create(o) {
       this.leave(true);
       const me = { id: this.id, name: this.name, data: o.data || {}, self: true };
-      this.host = { id: this.id, name: String(o.name || this.name).slice(0, 30), pub: o.pub !== false, pass: o.pass || '', max: Math.max(2, Math.min(12, o.max | 0 || 6)), state: 'lobby', info: o.info || {}, members: new Map([[me.id, me]]), hostM: me };
+      this.host = { id: this.id, name: String(o.name || this.name).slice(0, 30), pub: o.pub !== false, pass: o.pass || '', max: Math.max(2, Math.min(12, o.max | 0 || 6)), state: o.state || 'lobby', info: o.info || {}, members: new Map([[me.id, me]]), hostM: me, banned: new Set(o.banned || []) };
+      this.lastRoom = null; this.migrating = null;
       this.adT = setInterval(() => this.advertise(), 5000); this.advertise(); this.roomUpdate();
+      clearInterval(this.pingT); this.pingT = setInterval(() => { const h = this.host; if (h) for (const m of h.members.values()) if (!m.self && !m.lost) this.toMember(m, { t: 'ping' }); }, 1500);   // latido: los demás notan enseguida si el anfitrión desaparece
     }
     roomInfo() { const r = this.host; return { id: r.id, name: r.name, players: r.members.size, max: r.max, state: r.state, info: r.info || {}, host: r.hostM.name, pass: !!r.pass, ts: Date.now() }; }
     advertise() { const r = this.host; if (!r || !this.connected) return; this.mq.pub(T + 'rooms/' + r.id, r.pub ? JSON.stringify(this.roomInfo()) : '', true); }
     toMember(m, msg) { if (m.self) setTimeout(() => this.recv(msg), 0); else if (m.ch && m.ch.readyState === 'open') try { m.ch.send(JSON.stringify(msg)); } catch (e) { } }
-    roomUpdate() { const r = this.host, info = this.roomInfo(), mem = [...r.members.values()].map(m => ({ id: m.id, name: m.name, host: m === r.hostM, data: m.data || {} }));
+    roomUpdate() { const r = this.host, info = { ...this.roomInfo(), pub: r.pub, secret: r.pass, banned: [...r.banned] }, mem = [...r.members.values()].map(m => ({ id: m.id, name: m.name, host: m === r.hostM, data: m.data || {}, lost: !!m.lost }));
       for (const m of r.members.values()) this.toMember(m, { t: 'room', room: info, you: m.id, members: mem }); }
     hostMsg(m, msg) {   // lo mismo que onMsg de server/brr-server.js
       const r = this.host; if (!r) return;
       switch (msg.t) {
         case 'data': m.data = Object.assign(m.data || {}, msg.data || {}); this.roomUpdate(); break;
         case 'info': if (m === r.hostM) { r.info = msg.info || {}; if (msg.state) r.state = msg.state; this.roomUpdate(); this.advertise(); } break;
-        case 'chat': for (const o of r.members.values()) this.toMember(o, { t: 'chat', from: m.name, text: String(msg.text || '').slice(0, 200) }); break;
+        case 'chat': for (const o of r.members.values()) this.toMember(o, { t: 'chat', from: m.name, id: m.id, text: String(msg.text || '').slice(0, 200) }); break;
         case 'g': { const out = { t: 'g', from: m.id, d: msg.d }; for (const o of r.members.values()) if (o !== m && (!msg.to || o.id === msg.to)) this.toMember(o, out); break; }
-        case 'leave': this.dropMember(m); break;
+        case 'leave': m.left = true; this.dropMember(m); break;
+        case 'kick': if (m === r.hostM) { const v = r.members.get(msg.id); if (v && !v.self) { r.banned.add(v.id); this.toMember(v, { t: 'closed', why: 'El anfitrión te ha expulsado de la partida', kicked: 1 }); setTimeout(() => this.dropMember(v, true), 300); } } break;
       }
     }
-    dropMember(m) { const r = this.host; if (!r || !r.members.has(m.id) || m.self) return; r.members.delete(m.id); try { m.pc && m.pc.close(); } catch (e) { }
+    // si se corta sin despedirse, se le guarda el sitio 30 s por si vuelve (reconexión)
+    dropMember(m, now) { const r = this.host; if (!r || !r.members.has(m.id) || m.self || r.members.get(m.id) !== m) return;
+      if (!now && !m.left) { if (m.lost) return; m.lost = Date.now(); this.roomUpdate(); m.lostT = setTimeout(() => { if (m.lost) this.dropMember(m, true); }, 30000); return; }
+      r.members.delete(m.id); clearTimeout(m.lostT); try { m.pc && m.pc.close(); } catch (e) { }
       for (const o of r.members.values()) this.toMember(o, { t: 'left', id: m.id }); this.roomUpdate(); this.advertise(); }
     async onSig(s) {
       if (s.type === 'error') { this.emit('error', { t: 'error', msg: s.msg }); this.joining = null; return; }
       if (this.host && s.type === 'offer') {   // alguien quiere entrar
         const r = this.host;
-        if (r.pass && r.pass !== s.pass) return this.sig(s.from, { type: 'error', msg: 'Contraseña incorrecta' });
-        if (r.members.size >= r.max) return this.sig(s.from, { type: 'error', msg: 'La partida está llena' });
-        const m = { id: s.from, name: String(s.name || 'Piloto').slice(0, 20), data: s.data || {} };
+        if (r.banned.has(s.from)) return this.sig(s.from, { type: 'error', msg: 'No puedes entrar en esta partida' });
+        const old = r.members.get(s.from);   // vuelve alguien que se había cortado (o el resto tras cambiar de anfitrión): conserva su sitio
+        if (r.pass && r.pass !== s.pass && !old) return this.sig(s.from, { type: 'error', msg: 'Contraseña incorrecta' });
+        if (r.members.size >= r.max && !old) return this.sig(s.from, { type: 'error', msg: 'La partida está llena' });
+        if (old) { clearTimeout(old.lostT); try { old.pc && old.pc.close(); } catch (e) { } r.members.delete(s.from); }
+        const m = { id: s.from, name: String(s.name || 'Piloto').slice(0, 20), data: (old && old.data) || s.data || {} };
         const pc = new RTCPeerConnection(ICE); m.pc = pc; this.links.set(s.from, pc);
         pc.onicecandidate = e => { if (e.candidate) this.sig(s.from, { type: 'ice', c: e.candidate }); };
         pc.ondatachannel = e => { const ch = e.channel; m.ch = ch;
@@ -118,24 +127,50 @@
       else if (s.type === 'ice') await pc.addIceCandidate(s.c).catch(() => { });
     }
     // ---------- como jugador: entrar en la partida de otro ----------
-    async join(code, pass, data) {
-      code = String(code || '').trim().toUpperCase(); if (!code) return; this.leave(true);
-      if (code === this.id) return;
+    async join(code, pass, data, quiet) {
+      code = String(code || '').trim().toUpperCase(); if (!code) return; this.leave(true, quiet);
+      if (code === this.id) return; this.joinArgs = { code, pass, data };
       const pc = new RTCPeerConnection(ICE), ch = pc.createDataChannel('brr', { ordered: true });
       this.links.set(code, pc); this.joining = code;
       pc.onicecandidate = e => { if (e.candidate) this.sig(code, { type: 'ice', c: e.candidate }); };
-      ch.onopen = () => { this.ch = ch; this.joining = null; };
-      ch.onmessage = ev => { try { this.recv(JSON.parse(ev.data)); } catch (e) { } };
-      ch.onclose = () => { if (this.ch === ch) { this.ch = null; if (this.room) { this.room = null; this.members = []; this.emit('closed', { t: 'closed', why: 'Se ha perdido la conexión con el anfitrión' }); } } };
+      ch.onopen = () => { this.ch = ch; this.joining = null; this.lastRx = Date.now(); clearInterval(this.wdT);
+        this.wdT = setInterval(() => { if (this.ch !== ch) { clearInterval(this.wdT); return; } if (Date.now() - this.lastRx > 7000) { clearInterval(this.wdT); this.ch = null; try { ch.close(); } catch (e) { } if (this.room && !this.closedOk) this.lostHost(); } }, 1000);
+        if (this.reconnecting) { this.reconnecting = null; this.emit('netstate', { ok: true, msg: 'Conexión recuperada' }); } };
+      ch.onmessage = ev => { this.lastRx = Date.now(); try { this.recv(JSON.parse(ev.data)); } catch (e) { } };
+      ch.onclose = () => { if (this.ch !== ch) return; this.ch = null; if (this.room && !this.closedOk) this.lostHost(); };
       const o = await pc.createOffer(); await pc.setLocalDescription(o);
       this.sig(code, { type: 'offer', sdp: pc.localDescription, name: this.name, pass, data });
-      setTimeout(() => { if (this.joining === code) { this.joining = null; this.emit('error', { t: 'error', msg: 'No se ha podido conectar con esa partida (¿código correcto? A veces los routers bloquean la conexión directa).' }); } }, 15000);
+      setTimeout(() => { if (this.joining === code) { this.joining = null; if (!quiet) this.emit('error', { t: 'error', msg: 'No se ha podido conectar con esa partida (¿código correcto? A veces los routers bloquean la conexión directa).' }); else this.emit('joinfail', { code }); } }, quiet ? 6000 : 15000);
     }
     recv(m) {   // mensajes del "servidor" (el anfitrión)
-      if (m.t === 'room') { this.room = m.room; this.members = m.members; }
-      if (m.t === 'closed') { this.room = null; this.members = []; }
+      if (m.t === 'ping') return;
+      if (m.t === 'room') { this.room = m.room; this.members = m.members; this.lastRoom = { room: m.room, members: m.members }; this.closedOk = false; }
+      if (m.t === 'closed') { if (m.kicked) { this.closedOk = true; this.room = null; this.members = []; this.lastRoom = null; this.emit('closed', m); return; }
+        this.lostHost(true); return; }   // el anfitrión se va: otro ocupa su lugar
       this.emit(m.t, m);
     }
+    // se ha perdido el anfitrión: primero se intenta volver a conectar; si no vuelve (o se ha ido), el siguiente jugador pasa a ser anfitrión
+    lostHost(gone) {
+      const L = this.lastRoom; if (!L) { this.room = null; this.members = []; this.emit('closed', { t: 'closed', why: 'Se ha perdido la conexión con el anfitrión' }); return; }
+      const oldHost = (L.members.find(x => x.host) || {}).id, rest = L.members.filter(x => x.id !== oldHost && !x.lost).map(x => x.id).sort();
+      const migrate = () => {
+        const nh = rest[0]; if (!nh) { this.room = null; this.members = []; this.lastRoom = null; this.emit('closed', { t: 'closed', why: 'La partida se ha cerrado' }); return; }
+        const nm = (L.members.find(x => x.id === nh) || {}).name || '?'; this.emit('netstate', { ok: false, msg: 'El anfitrión se ha ido: ' + nm + ' pasa a ser el anfitrión…', migrate: nh });
+        if (nh === this.id) {
+          const R = L.room, me = L.members.find(x => x.id === this.id) || {};
+          this.create({ name: R.name, pub: R.pub !== false, pass: R.secret || '', max: R.max, info: R.info, state: R.state, banned: R.banned, data: me.data });
+          this.emit('becamehost', { prevMembers: L.members.filter(x => x.id !== oldHost && x.id !== this.id) });
+        } else { let n = 0; const tryJoin = () => { if (this.ch || this.host || ++n > 8) { if (!this.ch && !this.host) { this.room = null; this.lastRoom = null; this.emit('closed', { t: 'closed', why: 'No se ha podido seguir en la partida' }); } return; }
+            const me = L.members.find(x => x.id === this.id) || {}; this.join(nh, L.room.secret || '', me.data, true); setTimeout(tryJoin, 3500); }; setTimeout(tryJoin, 1500); }
+      };
+      if (gone) return migrate();
+      // reconexión: unos intentos con el mismo anfitrión antes de dar la partida por perdida
+      this.reconnecting = Date.now(); this.emit('netstate', { ok: false, msg: 'Se ha cortado la conexión con el anfitrión. Reconectando…' });
+      let n = 0; const again = () => { if (this.ch || !this.reconnecting) return; if (++n > 3) { this.reconnecting = null; return migrate(); }
+        const a = this.joinArgs; if (a) this.join(a.code, a.pass, a.data, true); setTimeout(again, 3000); };
+      setTimeout(again, 800);
+    }
+    kick(id) { this.send({ t: 'kick', id }); }
     send(msg) {
       if (msg.t === 'lbget' || msg.t === 'lbput') return this.lb(msg);
       if (this.host) return this.hostMsg(this.host.hostM, msg);
@@ -145,12 +180,13 @@
     info(info, state) { this.send({ t: 'info', info, state }); }
     chat(text) { this.send({ t: 'chat', text }); }
     game(d, to) { this.send({ t: 'g', d, to }); }
-    leave(silent) {
-      if (this.host) { const r = this.host; for (const m of r.members.values()) if (!m.self) { this.toMember(m, { t: 'closed', why: 'El anfitrión ha cerrado la partida' }); setTimeout(() => { try { m.pc.close(); } catch (e) { } }, 300); }
-        clearInterval(this.adT); if (this.connected) this.mq.pub(T + 'rooms/' + r.id, '', true); this.host = null; }
+    leave(silent, keepRoom) {
+      if (!keepRoom) { this.lastRoom = null; this.reconnecting = null; this.closedOk = true; }
+      if (this.host) { const r = this.host; for (const m of r.members.values()) if (!m.self) { this.toMember(m, { t: 'closed', why: 'El anfitrión se ha ido' }); setTimeout(() => { try { m.pc.close(); } catch (e) { } }, 300); }
+        clearInterval(this.adT); clearInterval(this.pingT); if (this.connected) this.mq.pub(T + 'rooms/' + r.id, '', true); this.host = null; }
       else if (this.ch) { try { this.ch.send(JSON.stringify({ t: 'leave' })); } catch (e) { } const c = this.ch; this.ch = null; setTimeout(() => { try { c.close(); } catch (e) { } }, 200); }
       for (const pc of this.links.values()) if (!silent) try { pc.close(); } catch (e) { }
-      this.links.clear(); this.room = null; this.members = [];
+      this.links.clear(); if (!keepRoom) { this.room = null; this.members = []; }
       if (!silent) this.emit('left', { t: 'left', id: this.id });
     }
     // ---------- clasificación de contrarreloj: un mensaje "retenido" por circuito en el buzón público ----------
@@ -176,6 +212,7 @@
     get connected() { return this.cur.connected; } get isHost() { return this.cur.isHost; }
     connect(url, name) { if (url && /^wss?:\/\//.test(url)) { this.use('server'); return this.srv.connect(url, name); } this.use('p2p'); return this.p2p.connect(null, name); }
     list() { this.cur.list(); } create(o) { this.cur.create(o); } join(id, pass, data) { this.cur.join(id, pass, data); } leave() { this.cur.leave(); }
+    kick(id) { this.cur.kick ? this.cur.kick(id) : this.cur.send({ t: 'kick', id }); }
     data(d) { this.cur.data(d); } info(i, s) { this.cur.info(i, s); } chat(t) { this.cur.chat(t); } game(d, to) { this.cur.game(d, to); } send(m) { this.cur.send(m); }
   };
 })();

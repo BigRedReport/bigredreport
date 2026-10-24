@@ -116,7 +116,7 @@
 
     progress('terreno');
     const H = find(mapn + '.MPH'), C = find(mapn + '.MPC'), T = find(mapn + '.CHT');
-    const mt = script.match(/texes\s+(\w+?)(\d)\s+(\d+)/);
+    const mt = script.match(/^\s*texes\s+(\w+?)(\d)\s+(\d+)/m);
     const pages = []; for (let k = 0; k < +mt[3]; k++) pages.push(find(`${mt[1]}${+mt[2] + k}.TM`));
     const mb = new BRR.MeshBuilder(pal), mbT = new BRR.MeshBuilder(pal);   // objetos / terreno
     // atlas del terreno: cada baldosa de 32x32 con 8 px de borde replicado (evita mezclar baldosas al hacer mipmaps)
@@ -248,7 +248,7 @@
     const hx = t => { const m = t.trim().match(/^(-?)&?([0-9A-Fa-f]+)$/); if (!m) return NaN; return (m[1] ? -1 : 1) * parseInt(m[2], t.includes('&') ? 16 : 10); };
     const fixcams = [...script.matchAll(/^\s*fixcam\s+([^,;\n]+),([^,;\n]+),([^,;\s]+)/gm)].map(m => { const x = hx(m[1]), y = hx(m[2]), z = hx(m[3]);
       return isFinite(x + y + z) ? [x * S, groundAt(x, z) - y * S, -z * S] : null; }).filter(Boolean);
-    const g = script.match(/grid\s+&([0-9A-Fa-f]+),\s*&([0-9A-Fa-f]+),\s*&([0-9A-Fa-f]+)/);
+    const g = script.match(/^\s*grid\s+&([0-9A-Fa-f]+),\s*&([0-9A-Fa-f]+),\s*&([0-9A-Fa-f]+)/m);   // solo líneas activas (RIG1 tiene otra comentada)
     const gx = parseInt(g[1], 16), gz = parseInt(g[2], 16), ga = parseInt(g[3], 16) * 2 * Math.PI / 65536;
 
     // recorrido (MAP.CSE): registros de 16 bytes, i32 x, i32 z, 4×i16

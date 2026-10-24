@@ -16,10 +16,10 @@ Lo que falta para la versión final del port, **en orden de prioridad**. Se va t
 - [x] Perfiles, estadísticas y récords; mods básicos (sustituir archivos)
 
 ## 1. Online más sólido
-- [ ] Predicción e interpolación mejores de los coches de los demás
-- [ ] Reconexión automática si se cae alguien
-- [ ] Migración de anfitrión si el que creó la partida se va
-- [ ] Expulsar jugadores y bloquear usuarios
+- [x] Predicción e interpolación mejores de los coches de los demás
+- [x] Reconexión automática si se cae alguien
+- [x] Migración de anfitrión si el que creó la partida se va
+- [x] Expulsar jugadores y bloquear usuarios
 - [ ] Límites de tamaño y formato para logos y bocinas propios
 
 ## 2. Físicas originales

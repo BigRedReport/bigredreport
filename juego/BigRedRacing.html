@@ -97,6 +97,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .vopt{display:flex;align-items:center;gap:8px;width:100%;margin:4px 0;text-align:left}.vopt img{width:80px;aspect-ratio:16/10;object-fit:cover;border-radius:6px}
 #pane_online.inroom{grid-template-columns:1fr}#pane_online.inroom>.tlist{display:none}#pane_online.inroom #n_room{max-width:none}
 .roomgrid{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}.rcol{min-width:0}@media (max-width:900px){.roomgrid{grid-template-columns:1fr}}
+.mbtn{padding:2px 7px;font-size:12px;margin-left:4px}
 .vpick{display:flex;align-items:center;gap:4px}.vpick canvas{flex:1;min-width:0;width:100%;aspect-ratio:16/11;background:#0d1016;border:1px solid var(--line);border-radius:8px}.vpick button{padding:8px 6px}
 .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}.hgrid button{text-align:left;font-size:13px;padding:8px 10px}.hgrid button.on{background:var(--red);border-color:var(--red)}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}.stats div{background:#0d1016;border:1px solid var(--line);border-radius:8px;padding:8px 10px}.stats b{display:block;font-size:22px}.stats span{font-size:12px;color:var(--mut)}
@@ -347,6 +348,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
   </div>
   <div class="opage" data-op="j" hidden>
     <div class="opt"><span>Rivales</span><select id="o_origai"><option value="1">Originales (carreras grabadas del juego)</option><option value="0">IA nueva</option></select><span></span></div>
+    <div class="opt"><span>Aspecto de los rivales</span><select id="o_rivLook"><option value="aleatorio">Colores RGB y bocinas al azar</option><option value="clasico">Colores de equipo (como el original)</option></select><span></span></div>
     <div class="opt"><span>Vibración del mando</span><select id="o_rumble"><option value="0">No</option><option value="0.5">Suave</option><option value="1">Normal</option><option value="1.5">Fuerte</option></select><span></span></div>
     <div class="opt"><span>Pausa al cambiar de ventana</span><input id="o_autopause" type="checkbox"><span></span></div>
     <p class="small">Atajos: <b>O</b> (o Select+Y en el mando) cambia entre iluminación original y moderna en plena carrera · <b>F</b> (o Select+X) modo foto · <b>C</b> / View: cámara.</p>

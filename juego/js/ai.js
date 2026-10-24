@@ -238,7 +238,7 @@
     // others: los demás coches (para adelantar o embestir); player: el coche del jugador (rubber banding)
     control(dt, others = [], playerScore = null) {
       const car = this.car, race = this.race, P = this.P, inp = { steer: 0, throttle: 0, brake: 0, handbrake: false, pitchAir: 0 };
-      if (race.phase === 'countdown') { inp.handbrake = true; return inp; }
+      if (race.phase === 'countdown') { inp.handbrake = true; this.startLane = null; return inp; }
       if (race.phase === 'finished') { inp.brake = 0.5; return inp; }
       const line = this.line || (this.line = BRR.buildAILine(car.lvl, race, BRR.aiMode(car)));
       let pj = BRR.aiProject(line, car.p, this.li); if (pj.d > 900) pj = BRR.aiProject(line, car.p, null); this.li = pj.i;
@@ -259,12 +259,17 @@
       this.laneT -= dt;
       if (this.laneT <= 0) { this.laneT = 2 + Math.random() * 4; this.laneTarget = Math.max(-0.7, Math.min(0.7, this.baseLane + (Math.random() - .5) * 2 * P.laneJitter)); }
       let lane = this.laneTarget + turnSign * P.cut * Math.min(1, turn * 1.5) * 0.8;
+      // salida limpia: los primeros segundos cada uno mantiene su fila de la parrilla y nadie va a por nadie (sin peloteras)
+      const clean = race.t < 6;
+      if (this.startLane == null) { const d0 = V.sub(car.p, here.p); this.startLane = Math.max(-0.9, Math.min(0.9, (d0[0] * -here.t[2] + d0[2] * here.t[0]) / Math.max(1.5, half))); this.lane = this.startLane; }
+      if (clean) { const k = Math.max(0, (race.t - 3.5) / 2.5); lane = this.startLane * (1 - k) + lane * k; }
       // tráfico: adelantar al de delante o, si es agresivo, ir a por él
       let blockSpeed = null;
       for (const o of others) {
         if (o === car) continue;
         const d = V.sub(o.p, car.p), ahead = V.dot(d, here.t), side = d[0] * -here.t[2] + d[2] * here.t[0];
         if (ahead > 0 && ahead < 14 + v * 0.6 && Math.abs(side) < 3.2) {
+          if (clean) { if (ahead < 9 && Math.abs(side) < 2.4) blockSpeed = Math.max(0, V.dot(o.v, here.t) - 0.5); continue; }   // en la salida: levantar el pie, no embestir
           if (P.aggro > 0.6 && o.isPlayer && Math.random() < P.aggro * dt * 3) lane = (side / Math.max(1, half)) * 0.9;   // ir a por el jugador
           else if (Math.random() < P.overtake) lane = (side > 0 ? -1 : 1) * 0.55;          // abrirse para adelantar
           else blockSpeed = Math.max(0, V.dot(o.v, here.t) - 1);                             // quedarse detrás
@@ -378,7 +383,8 @@
   // choques entre coches (esferas de carrocería)
   // choques entre coches con cajas orientadas (la caja real de cada vehículo, no esferas): separación por el eje de menor
   // penetración (teorema del eje separador en planta) y rebote; los rivales grabados empujan como si pesaran muchísimo
-  BRR.carCollisions = function (cars) {
+  // soft: en la salida los toques solo separan (sin rebote ni trompos) para que no se forme una pelotera
+  BRR.carCollisions = function (cars, soft) {
     const box = c => { const R = c.R, b = c.def.box, ctr = V.add(c.p, BRR.mv(R, b.c)), f = V.norm([R[0][2], 0, R[2][2]]), r = [f[2], 0, -f[0]]; return { ctr, f, r, h: b.h }; };
     for (let i = 0; i < cars.length; i++) for (let j = i + 1; j < cars.length; j++) {
       const A = cars[i], B = cars[j], dx = A.p[0] - B.p[0], dz = A.p[2] - B.p[2]; if (A.kinematic && B.kinematic) continue;
@@ -396,7 +402,8 @@
       A.p = V.madd(A.p, n, pen * kA); B.p = V.madd(B.p, n, -pen * kB);
       const vrel = V.dot(V.sub(A.v, B.v), n);
       if (vrel < 0) {
-        const iA = A.kinematic ? 0 : 1 / A.m, iB = B.kinematic ? 0 : 1 / B.m, jj = -1.25 * vrel / (iA + iB);
+        const iA = A.kinematic ? 0 : 1 / A.m, iB = B.kinematic ? 0 : 1 / B.m, jj = -(soft ? 1 : 1.25) * vrel / (iA + iB);
+        if (soft) { if (!A.kinematic) A.applyImpulse(V.mul(n, jj), [0, 0, 0], 0); if (!B.kinematic) B.applyImpulse(V.mul(n, -jj), [0, 0, 0], 0); continue; }
         const mid = V.mul(V.add(a.ctr, bb.ctr), 0.5);
         if (!A.kinematic) A.applyImpulse(V.mul(n, jj), V.sub(mid, A.p), 0.2); if (!B.kinematic) B.applyImpulse(V.mul(n, -jj), V.sub(mid, B.p), 0.2);
         // rozamiento lateral entre carrocerías (se frotan, no se pegan)

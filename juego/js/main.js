@@ -6,7 +6,7 @@
   try { R = new BRR.Renderer(canvas); } catch (e) { $('err').textContent = e.message; return; }
 
   // ---------- opciones ----------
-  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'nearest', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '0', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', autopause: true, horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
+  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'nearest', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '0', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', rivLook: 'aleatorio', autopause: true, horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
   let opt = { ...DEF };
   // perfiles: cada uno guarda sus ajustes, récords, campeonato y estadísticas aparte (claves con @perfil)
   let PROF = ''; try { PROF = localStorage.getItem('brr_profile') || ''; } catch (e) { }
@@ -24,7 +24,7 @@
     for (const k of ['scale', 'fov', 'far']) { const el = $('o_' + k); el.value = opt[k]; el.oninput = () => { opt[k] = +el.value; sync(); resize(); save(); }; }
     for (const k of ['vsfx', 'vmusic', 'vvoice', 'vmaster', 'vengine', 'vui', 'vamb']) { const el = $('o_' + k); el.value = opt[k]; const sv = () => { const v = $('o_' + k + '_v'); if (v) v.textContent = opt[k] + '%'; }; sv(); el.oninput = () => { opt[k] = +el.value; sv(); applyVol(); save(); }; }
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
-    for (const k of ['aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    for (const k of ['aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
     for (const k of ['hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
@@ -137,10 +137,12 @@
   // personajes: cuerpo (BLOKE/WOMAN + color del equipo) y cabeza (HEAD1x, 2, 3, 4x, 5, 6) de CHARSCN con su paleta (DRIVER.RAW)
   const CHARS = [{ b: 'BLOKE', h: 'HEAD1', v: 1 }, { b: 'BLOKE', h: 'HEAD2' }, { b: 'BLOKE', h: 'HEAD3' }, { b: 'WOMAN', h: 'HEAD4', v: 1 }, { b: 'WOMAN', h: 'HEAD5' }, { b: 'BLOKE', h: 'HEAD6' }];
   let charArc = null, charPal = null; const charCache = new Map();
-  async function charMesh(ci, color, dirty, headOnly) {
-    const key = [ci, color, dirty, headOnly].join(); if (charCache.has(key)) return charCache.get(key);
+  // el color del equipo en los pilotos es la gama 32 + 16·equipo de su paleta: con color propio se cambia esa gama
+  const charPalFor = (team, paint) => paint ? BRR.paintPal(charPal, [], paint, 32 + 16 * team) : charPal;
+  async function charMesh(ci, color, dirty, headOnly, paint) {
+    const key = [ci, color, dirty, headOnly, paint || ''].join(); if (charCache.has(key)) return charCache.get(key);
     if (!charArc) { charArc = await files.archive('CHARSCN.SCN'); charPal = BRR.pal6(charArc.get('DRIVER.RAW').subarray(0, 768)); }
-    const c = CHARS[ci % CHARS.length], A = charArc, mb = new BRR.MeshBuilder(charPal), tm = n => A.get(n + '.TM');
+    const c = CHARS[ci % CHARS.length], A = charArc, mb = new BRR.MeshBuilder(charPalFor(color, paint)), tm = n => A.get(n + '.TM');
     const head = BRR.parse3DW(A.get(c.h + (c.v ? color : '') + '.3DW'));
     let top = 0;
     if (!headOnly) { const body = BRR.parse3DW(A.get(c.b + (dirty ? 'B' : '') + color + '.3DW')); top = Math.min(...body.verts.filter(Boolean).map(v => v[1])); mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), tm); }
@@ -152,8 +154,8 @@
   }
   // cabeza del piloto elegido para llevarla en el coche (en el sitio "head" del vehículo), a tamaño real (~30 cm)
   const driverCache = new Map();
-  async function driverHead(ci, team) {
-    const key = ci + '_' + team; if (driverCache.has(key)) return driverCache.get(key);
+  async function driverHead(ci, team, paint) {
+    const key = ci + '_' + team + '_' + (paint || ''); if (driverCache.has(key)) return driverCache.get(key);
     let out = null;
     try {
       if (!charArc) { charArc = await files.archive('CHARSCN.SCN'); charPal = BRR.pal6(charArc.get('DRIVER.RAW').subarray(0, 768)); }
@@ -167,7 +169,7 @@
       const k = 0.3 / Math.max(1e-3, hmx[1] - hmn[1]), cx = (hmn[0] + hmx[0]) / 2, cz = (hmn[2] + hmx[2]) / 2;
       const place = g => [(g[0] - cx) * k, (g[1] - hmn[1]) * k - 0.2, (g[2] - cz) * k];
       const torso = { ...body, faces: body.faces.filter(f => f.idx.some(i => body.verts[i] && bxf(body.verts[i])[1] >= waist)) };
-      const mb = new BRR.MeshBuilder(charPal), tm = n => A.get(n + '.TM');
+      const mb = new BRR.MeshBuilder(charPalFor(team, paint)), tm = n => A.get(n + '.TM');
       mb.addModel(torso, v => place(bxf(v)), tm); mb.addModel(head, v => place(hxf(v)), tm);
       out = R.upload(mb);
     } catch (e) { console.warn('piloto', e); }
@@ -197,12 +199,12 @@
       charThumb: async (ci, color, dirty) => { const m = await charMesh(ci, color, dirty, false), cv = document.createElement('canvas');
         return { frame: a => R.thumb(m.up, { size: 192, yaw: Math.PI + a, pitch: -0.12, dist: m.size * 3.1, target: [0, m.cy, 0], canvas: cv }) }; },
       tournNext: () => { const T = tget() || tnew(); if (T.over) return null; return front.tracks.find(x => x.id === front.series[T.series].use[T.idx]); },
-      carThumb: async (veh, team, level) => {
-        const key = veh + team + level; let up = vehCache.get(key);
+      carThumb: async (veh, team, level, paint) => {
+        const key = veh + team + level + (paint || ''); let up = vehCache.get(key);
         if (!up) {
           const A = await files.archive(level + '.LEV'), colk = [...A.keys()].find(k => k.endsWith('.COL'));
           const fake = { pal: BRR.pal6((colk ? A.get(colk) : (await files.archive('ALWAYS.WAP')).get('DEFAULT.COL')).subarray(0, 768)), find: n => A.get(n) || null };
-          const d = await BRR.loadVehicle(files, veh, fake, team);
+          const d = await BRR.loadVehicle(files, veh, fake, team, { paint: hexRGB(paint) });
           if (!R.L) R.setEnvironment([-0.35, 0.75, 0.55], [0.62, 0.7, 0.82]);
           // carrocería + ruedas (en su sitio, apoyadas) + piezas decorativas (hélices, orugas, timones)
           const parts = d.wheels.map((w, i) => d.wheelMeshes[i] ? { b: R.upload(d.wheelMeshes[i]), W: BRR.M4.fromRT([[1, 0, 0], [0, 1, 0], [0, 0, 1]], w.c) } : null).filter(Boolean);
@@ -301,7 +303,7 @@
     $('d_lb').hidden = !tt; if (tt) refreshLB();
   }
   // perfil: piloto (6 personajes del original) y escudería (13 logos × 6 colores)
-  async function charURL(ci, team) { const k = 'ch' + ci + '_' + team; if (front[k]) return front[k]; const m = await charMesh(ci, team, false, false);
+  async function charURL(ci, team) { const pt = hexRGB(opt.paint), k = 'ch' + ci + '_' + team + '_' + (opt.paint || ''); if (front[k]) return front[k]; const m = await charMesh(ci, team, false, false, pt);
     return front[k] = R.thumb(m.up, { size: 128, yaw: Math.PI + 0.35, pitch: -0.1, dist: m.size * 2.0, target: [0, m.cy, 0] }); }
   async function renderProfile() {
     if (!front) return; const team = opt.team || 1; $('pf_name').value = opt.netName || '';
@@ -340,6 +342,17 @@
   // estadísticas que se van sumando mientras se conduce
   const statAcc = { km: 0, t: 0, veh: null };
   function statsFlush() { if (!statAcc.t) return; const a = { ...statAcc }; statAcc.km = 0; statAcc.t = 0; statsAdd(S => { S.km = (S.km || 0) + a.km; S.time = (S.time || 0) + a.t; S.veh = S.veh || {}; if (a.veh) S.veh[a.veh] = (S.veh[a.veh] || 0) + a.km + 0.001; }); }
+  // rivales con color RGB y bocina al azar (opción "Aspecto de los rivales"); los colores se separan entre sí y del jugador
+  const hueOf = h => { const c = hexRGB(h); if (!c) return null; const [r, g, b] = c.map(x => x / 255), mx = Math.max(r, g, b), mn = Math.min(r, g, b), d = mx - mn; if (d < 0.15) return null;
+    return (mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60; };
+  const hslHex = (h, s2, l) => { const f = n => { const k = (n + h / 30) % 12, a = s2 * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); }; return '#' + f(0) + f(8) + f(4); };
+  function rivalLooks(n, avoid) {
+    const out = [], hues = avoid.filter(x => x != null), horns = BRR.HORNS.map(x => x.id).filter(x => x !== 'propia').sort(() => Math.random() - 0.5);
+    for (let k = 0; k < n; k++) { let best = 0, bd = -1;
+      for (let t = 0; t < 40; t++) { const h = Math.random() * 360, d = Math.min(360, ...hues.map(q => Math.min(Math.abs(h - q), 360 - Math.abs(h - q)))); if (d > bd) { bd = d; best = h; } }
+      hues.push(best); out.push({ paint: hslHex(best, 0.7 + Math.random() * 0.3, 0.42 + Math.random() * 0.16), horn: horns[k % horns.length] }); }
+    return out; }
+  const carCol = c => c.paintHex || TEAM[c.team].c;
   const hexRGB = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
   // bocinas
   function renderHorns() {
@@ -381,7 +394,7 @@
   }
   $('pf_name').onchange = () => { opt.netName = $('pf_name').value.trim().slice(0, 20); BRR_net.p2p && (BRR_net.p2p.name = opt.netName || 'Piloto'); save(); renderHomeProf(); };
   let spinT = 0;
-  async function profSpin(team) { const tok = ++spinT; let m; try { m = await charMesh(opt.char || 0, team, false, false); } catch (e) { return; } const cv = $('pf_view'), g = cv.getContext('2d'); let a = 0;
+  async function profSpin(team) { const tok = ++spinT; let m; try { m = await charMesh(opt.char || 0, team, false, false, hexRGB(opt.paint)); } catch (e) { return; } const cv = $('pf_view'), g = cv.getContext('2d'); let a = 0;
     const step = () => { if (tok !== spinT || view !== 'profile' || state !== 'menu') return; a += 0.03; const im = R.thumb(m.up, { size: 192, yaw: Math.PI + a, pitch: -0.1, dist: m.size * 2.2, target: [0, m.cy, 0], canvas: document.createElement('canvas') });
       g.clearRect(0, 0, cv.width, cv.height); g.drawImage(im, 0, 0, cv.width, cv.height); setTimeout(step, 50); }; step(); }
   // logo propio (PNG/JPG del jugador), guardado en el navegador como imagen de 40×40
@@ -585,7 +598,7 @@
       let def0 = null;
       for (let i = 0; i < nPlayers; i++) {
         const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : null, paint: hexRGB(opt.paint) } : {}); if (!def0) def0 = d;
-        const c = new BRR.Car(d, lvl); c.team = teams[i % 6]; c.isPlayer = true; c.human = i; c.headDraw = await driverHead(i === 0 ? (opt.char || 0) : (i % 6), teams[i % 6]);
+        const c = new BRR.Car(d, lvl); c.team = teams[i % 6]; c.isPlayer = true; c.human = i; if (i === 0 && opt.paint) c.paintHex = opt.paint; c.headDraw = await driverHead(i === 0 ? (opt.char || 0) : (i % 6), teams[i % 6], i === 0 ? hexRGB(opt.paint) : null);
         const h = newHuman(i, c, new BRR.Race(lvl, laps || lvl.laps), teams[i % 6]); h.draw = R.upload(d.mesh); humans.push(h);
       }
       car = humans[0].car; race = humans[0].race;
@@ -598,8 +611,8 @@
         for (const e of net.order) {
           if (e.id === net.myId) continue;
           $('load_msg').textContent = 'Cargando ' + (e.name || 'rival') + '…';
-          const t = e.team || 1, d = await BRR.loadVehicle(files, e.veh || veh, lvl, t, { logo: e.logo != null ? await logoRGBAOf(e.logo) : null, logoHi: typeof e.logo === 'string' ? await logoHiOf(e.logo) : null, paint: hexRGB(e.paint) }), c = new BRR.Car(d, lvl); c.team = t; c.headDraw = await driverHead(e.char != null ? e.char : t - 1, t);
-          const rr = new BRR.Race(lvl, laps || lvl.laps), ent = { id: e.id, name: e.name, car: c, race: rr, ai: null, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, isAI: !!e.ai };
+          const t = e.team || 1, d = await BRR.loadVehicle(files, e.veh || veh, lvl, t, { logo: e.logo != null ? await logoRGBAOf(e.logo) : null, logoHi: typeof e.logo === 'string' ? await logoHiOf(e.logo) : null, paint: hexRGB(e.paint) }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = e.paint || null; c.headDraw = await driverHead(e.char != null ? e.char : t - 1, t, hexRGB(e.paint));
+          const rr = new BRR.Race(lvl, laps || lvl.laps), ent = { id: e.id, name: e.name, car: c, race: rr, ai: null, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, isAI: !!e.ai, hornType: e.horn || null };
           if (e.ai && net.role === 'host') ent.ai = new BRR.AIDriver(c, rr, (skill) * (0.97 + 0.03 * Math.random()), lanes[ak % lanes.length], e.profile || profiles[ak % profiles.length]);
           else { ent.remote = true; c.puppet = true; ent.race = puppetRace(ent, laps || lvl.laps); }
           if (e.ai) ak++;
@@ -608,6 +621,7 @@
       }
       // rivales originales: reproducen las carreras grabadas del juego (como en 1995); si se piden más, el resto con la IA nueva
       replayBand = null;
+      const looks = !net && opt.rivLook !== 'clasico' ? rivalLooks(12, [hueOf(opt.paint || TEAM[humans[0].team].c), ...humans.slice(1).map(h => hueOf(TEAM[h.team].c))]) : [];
       const recs = !net && opt.origAI !== false ? BRR.loadReplays(lvl) : [];
       if (recs.length) {
         const free = Math.max(0, Math.max(6, lvl.gridSlots.length) - nPlayers);
@@ -619,10 +633,11 @@
         for (const rec of recs) {
           $('load_msg').textContent = 'Cargando rivales… ' + (rivals.length + 1) + '/' + nR;
           let t = rec.team + 1; if (used.has(t)) t = [1, 2, 3, 4, 5, 6].find(x => !used.has(x)) || t; used.add(t);
-          const vn = cars[rec.veh] || veh, d = await BRR.loadVehicle(files, files.path(vn + '.VHC') ? vn : veh, lvl, t), c = new BRR.Car(d, lvl); c.team = t; c.headDraw = await driverHead(t - 1, t);
+          const lk = looks[rivals.length] || {}, pt = hexRGB(lk.paint);
+          const vn = cars[rec.veh] || veh, d = await BRR.loadVehicle(files, files.path(vn + '.VHC') ? vn : veh, lvl, t, { paint: pt }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.headDraw = await driverHead(t - 1, t, pt);
           const rr = new BRR.Race(lvl, laps || lvl.laps);
           per.push(BRR.replayPace(rec) * BRR.S / (0.88 * c.topSpeed));
-          rivals.push({ car: c, race: rr, ai: null, replay: new BRR.ReplayDriver(c, rr, rec, replayBand, 0.23), draw: R.upload(d.mesh), dd: vehDraw(d), inp: null });
+          rivals.push({ car: c, race: rr, ai: null, replay: new BRR.ReplayDriver(c, rr, rec, replayBand, 0.23), draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, hornType: lk.horn || null });
         }
         per.sort((a, b) => a - b); const T = Math.max(0.12, Math.min(0.4, per[per.length >> 1]));
         for (const r of rivals) if (r.replay) r.replay.period = T;
@@ -634,10 +649,11 @@
         for (const rec of allRecs) { const sl = lvl.gridSlots[rec.slot] || [0, 0, 0]; const L = BRR.replayLine(lvl, rec, gx + rt[0] * sl[0] + fw[0] * sl[1], gz + rt[1] * sl[0] + fw[1] * sl[1], (lvl.start.a16 || 0) + (sl[2] || 0), Tn); if (L) recLines.push(L); } }
       for (let k = rivals.length; k < (net ? 0 : nR); k++) {
         $('load_msg').textContent = 'Cargando rivales… ' + (k + 1) + '/' + nR;
-        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t), c = new BRR.Car(d, lvl); c.team = t; c.headDraw = await driverHead(t - 1, t);
+        const lk = looks[k] || {}, pt = hexRGB(lk.paint);
+        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t, { paint: pt }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.headDraw = await driverHead(t - 1, t, pt);
         const rr = new BRR.Race(lvl, laps || lvl.laps), ai = new BRR.AIDriver(c, rr, skill * (0.97 + 0.03 * Math.random()), lanes[k], profiles[k]);
         if (recLines.length) ai.line = recLines[k % recLines.length];
-        rivals.push({ car: c, race: rr, ai, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null });
+        rivals.push({ car: c, race: rr, ai, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, hornType: lk.horn || null });
       }
       const firstAI = rivals.find(r => r.ai); if (firstAI) { const md = BRR.aiMode(firstAI.car);
         if (!(lvl.aiLines || {})[md] && !(await BRR.loadAILine(lvl, md))) { $('load_msg').textContent = 'Preparando a los pilotos (solo la primera vez)…'; await new Promise(r => setTimeout(r, 30)); BRR.buildAILine(lvl, firstAI.race, md); BRR.saveAILine(lvl, md); } }
@@ -745,7 +761,7 @@
       if (paused) continue;
       if (c.landed && surf === 'agua') audio.play('GEN/SPLASH.WAV', { vol: Math.min(1, c.landed / 8) });
       if (c.nitroT <= 0 && S2.nitroOn) audio.play('GEN/NOTTURB.WAV', { vol: 0.7 }); S2.nitroOn = c.nitroT > 0;
-      if (c.lastHit > 3) { const b = snd.bangs[Math.random() * snd.bangs.length | 0]; if (b) audio.play(b, { vol: Math.min(1, c.lastHit / 12) });
+      if (c.lastHit > 3) { const B = snd.bangs || [], b = B[Math.random() * B.length | 0]; if (b) audio.play(b, { vol: Math.min(1, c.lastHit / 12) });
         if (c.lastHit > 9) { const v = snd.pickVoice('CRASH') || snd.pickVoice('CRAS'); if (v) audio.voice(v); } }
       c.lastHit = 0;
       if (c.landed) { audio.play('GEN/BIG.WAV', { vol: Math.min(1, c.landed / 10) }); c.landed = 0;
@@ -855,10 +871,10 @@
       const nx = gt.num === h.race.expected; g.fillStyle = gt.num === 0 ? '#fff' : nx ? '#ffd23f' : 'rgba(255,255,255,.35)';
       g.beginPath(); g.arc(X(gt.c), Y(gt.c), nx ? 6 : 3.5, 0, 7); g.fill(); if (nx) { g.strokeStyle = '#000'; g.lineWidth = 1.5; g.stroke(); }
     }
-    const dot = c2 => { g.fillStyle = TEAM[c2.team].c; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(X(c2.p), Y(c2.p), 6, 0, 7); g.fill(); g.stroke(); };
+    const dot = c2 => { g.fillStyle = carCol(c2); g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(X(c2.p), Y(c2.p), 6, 0, 7); g.fill(); g.stroke(); };
     for (const r of rivals) dot(r.car); for (const o of humans) if (o !== h) dot(o.car);
     const cc = h.car, f = cc.forward(), a = Math.atan2(f[0], -f[2]);
-    g.save(); g.translate(X(cc.p), Y(cc.p)); g.rotate(a); g.fillStyle = TEAM[cc.team].c; g.strokeStyle = '#fff'; g.lineWidth = 2;
+    g.save(); g.translate(X(cc.p), Y(cc.p)); g.rotate(a); g.fillStyle = carCol(cc); g.strokeStyle = '#fff'; g.lineWidth = 2;
     g.beginPath(); g.moveTo(0, -8); g.lineTo(6, 6); g.lineTo(-6, 6); g.closePath(); g.fill(); g.stroke(); g.restore();
   }
 
@@ -889,6 +905,7 @@
   // pausa automática al cambiar de ventana o de pestaña (o al suspender el ordenador)
   const autoPause = () => { if (opt.autopause !== false && state === 'race' && !netRace && !photo) togglePause(); };
   document.addEventListener('visibilitychange', () => { if (document.hidden) autoPause(); }); addEventListener('blur', autoPause);
+  addEventListener('pagehide', () => { try { if (BRR_net.room) BRR_net.leave(); } catch (e) { } });   // al cerrar la pestaña se avisa a los demás (el anfitrión pasa el testigo)
   // ---------- modo foto: la carrera se congela y la cámara vuela libre ----------
   let photo = null;
   function togglePhoto() {
@@ -968,7 +985,7 @@
       h.padPrev = {}; gp.buttons.forEach((x, i) => h.padPrev[i] = x.pressed);
     }
     if (h.i === 0 && window.BRR_TEST_INPUT) Object.assign(inp, window.BRR_TEST_INPUT);
-    if (h.race.phase === 'countdown') { inp.throttle = 0; inp.handbrake = true; }
+    if (h.race.phase === 'countdown') { inp.throttle = 0; inp.brake = 0; inp.nitro = false; inp.climb = 0; inp.handbrake = true; }   // en la cuenta atrás no se mueve (ni marcha atrás)
     if (h.race.phase === 'finished') { inp.throttle = 0; inp.brake = 0.4; inp.steer = 0; }
     h.inp = inp; return inp;
   }
@@ -998,14 +1015,24 @@
     }
   }
   function netGo() { netWait = false; netWaitT = 0; for (const h of humans) h.race.reset(); for (const r of rivals) { r.race.reset(); if (r.ai) r.ai.reset(); } $('netbar').hidden = true; last = performance.now(); }
+  // coches de los demás: se dibujan 0,12 s "en el pasado" interpolando entre los dos últimos estados recibidos (movimiento suave
+  // aunque la red tenga tirones); si falta información, se extrapola con su velocidad un máximo de 0,3 s
+  const NET_DELAY = 0.12;
+  function netPush(e, d, now) { const b = e.buf || (e.buf = []); b.push({ ...d, time: now }); while (b.length > 8) b.shift(); e.tgt = b[b.length - 1]; }
   function puppets(dt) {
-    const now = performance.now() / 1000;
-    for (const r of rivals) { if (!r.remote || !r.tgt) continue; const t = r.tgt, c = r.car, age = Math.min(0.3, now - t.time), k = Math.min(1, dt * 12);
-      const tp = [t.p[0] + t.v[0] * age, t.p[1] + t.v[1] * age, t.p[2] + t.v[2] * age];
+    const now = performance.now() / 1000, rt = now - NET_DELAY;
+    for (const r of rivals) { if (!r.remote || !r.buf || !r.buf.length) continue; const B = r.buf, c = r.car;
+      let a = null, b = null; for (let i = B.length - 1; i > 0; i--) if (B[i - 1].time <= rt && B[i].time >= rt) { a = B[i - 1]; b = B[i]; break; }
+      let tp, q, v, st, n;
+      if (a && b) { const u = (rt - a.time) / Math.max(1e-3, b.time - a.time); tp = a.p.map((x, i) => x + (b.p[i] - x) * u);
+        let qb = b.q; if (a.q[0] * qb[0] + a.q[1] * qb[1] + a.q[2] * qb[2] + a.q[3] * qb[3] < 0) qb = qb.map(x => -x);
+        q = a.q.map((x, i) => x + (qb[i] - x) * u); v = a.v.map((x, i) => x + (b.v[i] - x) * u); st = (a.st || 0) + ((b.st || 0) - (a.st || 0)) * u; n = b.n; }
+      else { const L = B[B.length - 1], age = Math.max(0, Math.min(0.3, rt - L.time)); tp = [L.p[0] + L.v[0] * age, L.p[1] + L.v[1] * age, L.p[2] + L.v[2] * age]; q = L.q; v = L.v; st = L.st || 0; n = L.n; }
+      const k = Math.min(1, dt * 20);
       if (V.len(V.sub(tp, c.p)) > 15) c.p = tp; else c.p = V.add(c.p, V.mul(V.sub(tp, c.p), k));
-      let q = t.q; if (c.q[0] * q[0] + c.q[1] * q[1] + c.q[2] * q[2] + c.q[3] * q[3] < 0) q = q.map(x => -x);
+      if (c.q[0] * q[0] + c.q[1] * q[1] + c.q[2] * q[2] + c.q[3] * q[3] < 0) q = q.map(x => -x);
       const nq = c.q.map((x, i) => x + (q[i] - x) * k), l = Math.hypot(...nq) || 1; c.q = nq.map(x => x / l);
-      c.v = t.v; c.steerAng = t.st || 0; c.nitroT = t.n ? 0.1 : 0;
+      c.v = v; c.steerAng = st; c.nitroT = n ? 0.1 : 0;
       const sp = V.dot(c.v, c.forward()); for (const w of c.W) { w.spin += sp / (w.radius || 0.3) * dt; w.len = 0.3; }
     }
   }
@@ -1020,8 +1047,8 @@
     const now = performance.now() / 1000;
     if (d.k === 'loaded') netLoaded.add(m.from);
     else if (d.k === 'go') { if (netRace.role !== 'host') netGo(); }
-    else if (d.k === 's') { const e = netEnt(m.from); if (e) { e.tgt = { ...d, time: now }; e.sc = d.sc; e.fin = d.f; } }
-    else if (d.k === 'ai') { for (const a of d.a || []) { const e = netEnt(a.id); if (e && e.remote) { e.tgt = { ...a, time: now }; e.sc = a.sc; e.fin = a.f; } } }
+    else if (d.k === 's') { const e = netEnt(m.from); if (e) { netPush(e, d, now); e.sc = d.sc; e.fin = d.f; } }
+    else if (d.k === 'ai') { for (const a of d.a || []) { const e = netEnt(a.id); if (e && e.remote) { netPush(e, a, now); e.sc = a.sc; e.fin = a.f; } } }
   });
   BRR_net.on('closed', m => { if (netRace && state === 'race') { netRace.lost = true; $('netbar').hidden = false; $('netbar').textContent = m.why || 'Partida cerrada'; } netRenderRoom(); });
   BRR_net.on('disconnect', () => { $('n_status').textContent = 'Desconectado (se reintentará al volver a Online).'; $('n_room').hidden = true; if (netRace && state === 'race') { $('netbar').hidden = false; $('netbar').textContent = 'Conexión perdida con el servidor'; } });
@@ -1104,7 +1131,25 @@
   const sendChat = () => { const t = $('n_msg').value.trim(); if (!t) return; BRR_net.chat(t); $('n_msg').value = ''; };
   $('n_send').onclick = sendChat;
   $('n_msg').addEventListener('keydown', e => { if (e.key === 'Enter') { e.preventDefault(); sendChat(); } e.stopPropagation(); });
-  BRR_net.on('chat', m => { const c = $('n_chat'); c.insertAdjacentHTML('beforeend', `<div><b>${esc(m.from)}:</b> ${esc(m.text)}</div>`); c.scrollTop = c.scrollHeight; if (audio && view === 'online') audio.play('SAMPLES/BEEP3.WAV', { vol: 0.3 }); });
+  // ---------- red: avisos de reconexión y cambio de anfitrión; silenciar y expulsar ----------
+  const muted = new Set();
+  BRR_net.on('netstate', m => { $('n_status').textContent = m.msg; if (state === 'race' || state === 'results') { $('netbar').hidden = false; $('netbar').textContent = m.msg; if (m.ok) setTimeout(() => { if ($('netbar').textContent === m.msg) $('netbar').hidden = true; }, 3000); }
+    if (m.ok && micStream) for (const x of BRR_net.members) if (x.id !== BRR_net.id && !peers.has(x.id) && !muted.has(x.id)) rtcCall(x.id); });
+  BRR_net.on('becamehost', ev => {
+    if (netRace && ev && ev.prevMembers) { const keep = new Set(ev.prevMembers.map(x => x.id)); for (const r of rivals) if (!r.isAI && r.id && !keep.has(r.id)) { r.buf = null; r.car.p = [0, -500, 0]; r.car.v = [0, 0, 0]; r.gone = true; } }
+    $('netbar').hidden = false; $('netbar').textContent = 'Ahora eres el anfitrión de la partida'; setTimeout(() => { $('netbar').hidden = true; }, 4000);
+    if (netRace) { netRace.role = 'host'; const skill = [0, 0.86, 0.95, 1.0, 1.06][opt.diff] || 0.95;
+      // los rivales de la máquina los llevaba el anfitrión anterior: ahora los conduce este ordenador
+      rivals.forEach((r, k) => { if (r.isAI && r.remote) { r.remote = false; r.buf = null; r.car.puppet = false;
+        // su "carrera" era la de una marioneta: se crea una de verdad con los controles que ya llevaba pasados
+        const pr = r.race, rr = new BRR.Race(lvl, pr.laps || lvl.laps), done = Math.max(0, Math.floor(pr.score ? pr.score() : 0)), N = rr.maxNum + 1, e0 = rr.expected;
+        rr.phase = 'race'; rr.cd = 0; rr.t = humans[0] ? humans[0].race.t : 0; rr.passed = done; rr.expected = (e0 + done) % N; rr.lap = Math.floor((done + (e0 === 0 ? N : e0) - 1) / N); rr.lapStart = rr.t; rr.armed = true; r.race = rr;
+        r.ai = new BRR.AIDriver(r.car, r.race, skill, [-0.4, 0.4, 0, -0.2, 0.2][k % 5], ['experto', 'agresivo', 'imprevisible', 'prudente', 'torpe'][k % 5]); r.race.phase = 'race'; } }); }
+    if (micStream) setTimeout(() => { for (const x of BRR_net.members) if (x.id !== BRR_net.id && !peers.has(x.id)) rtcCall(x.id); }, 3000);
+    netRenderRoom();
+  });
+  BRR_net.on('left', m => { if (!m || !m.id || !netRace) return; const r = rivals.find(x => x.id === m.id && !x.isAI); if (r) { r.buf = null; r.car.p = [0, -500, 0]; r.car.v = [0, 0, 0]; } });
+  BRR_net.on('chat', m => { if (m.id && muted.has(m.id)) return; const c = $('n_chat'); c.insertAdjacentHTML('beforeend', `<div><b>${esc(m.from)}:</b> ${esc(m.text)}</div>`); c.scrollTop = c.scrollHeight; if (audio && view === 'online') audio.play('SAMPLES/BEEP3.WAV', { vol: 0.3 }); });
   $('n_leave').onclick = () => { BRR_net.leave(); $('n_room').hidden = true; $('n_chat').innerHTML = ''; BRR_net.list(); };
   BRR_net.on('room', () => netRenderRoom());
   BRR_net.on('left', () => netRenderRoom());
@@ -1119,7 +1164,9 @@
     $('n_codebox').innerHTML = `<span class="small">Código para tus amigos:</span><br><span class="code">${esc(r.id)}</span> <button id="n_copy">Copiar</button>`;
     $('n_copy').onclick = () => { try { navigator.clipboard.writeText(r.id); $('n_copy').textContent = '¡Copiado!'; } catch (e) { } };
     const pts = info.pts || {};
-    $('n_members').innerHTML = BRR_net.members.map(m => `<div class="mrow">${headImg(m.data.team || 1, 24)}<b>${esc(m.name)}</b>${m.host ? ' 👑' : ''} <span class="small">${VEH_NAMES[m.data.veh] || m.data.veh || ''}</span>${pts[m.id] ? ` <span class="small">${pts[m.id]} pts</span>` : ''} <span style="margin-left:auto">${m.data.ready || m.host ? '✅' : '⏳'}</span></div>`).join('');
+    $('n_members').innerHTML = BRR_net.members.map(m => `<div class="mrow">${headImg(m.data.team || 1, 24)}<b>${esc(m.name)}</b>${m.host ? ' 👑' : ''}${m.lost ? ' <span class="small" style="color:#ffd23f">reconectando…</span>' : ''} <span class="small">${VEH_NAMES[m.data.veh] || m.data.veh || ''}</span>${pts[m.id] ? ` <span class="small">${pts[m.id]} pts</span>` : ''} <span style="margin-left:auto">${m.data.ready || m.host ? '✅' : '⏳'}</span>${m.id !== BRR_net.id ? `<button class="mbtn" data-mute="${m.id}" title="No ver sus mensajes ni oír su voz">${muted.has(m.id) ? '🔇' : '🔈'}</button>${host ? `<button class="mbtn" data-kick="${m.id}" title="Expulsar de la partida">✖</button>` : ''}` : ''}</div>`).join('');
+    for (const b of $('n_members').querySelectorAll('[data-mute]')) b.onclick = () => { const id = b.dataset.mute; if (muted.has(id)) muted.delete(id); else { muted.add(id); rtcClose(id); } netRenderRoom(); };
+    for (const b of $('n_members').querySelectorAll('[data-kick]')) b.onclick = () => { if (b.dataset.sure !== '1') { b.dataset.sure = '1'; b.textContent = '¿Seguro?'; return; } BRR_net.kick(b.dataset.kick); };
     const lv = info.level || T[0].id, t = tById(lv);
     $('n_timg').src = (t && t.view) || ''; $('n_tname').textContent = tLabel(lv); $('n_levelinfo').textContent = t ? (t.desc || '') : '';
     const n = (info.maps || []).length;
@@ -1147,9 +1194,9 @@
   // selector de vehículo con el coche girando en 3D (como en el menú original, en pequeño)
   let vpThumb = null, vpKey = '', vpA = 0, vpRun = false;
   async function vpickLoad() {
-    const v = $('n_veh').value, lv = (BRR_net.room && BRR_net.room.info && BRR_net.room.info.level) || opt.level, key = v + '_' + $('n_team').value + '_' + lv;
+    const v = $('n_veh').value, lv = (BRR_net.room && BRR_net.room.info && BRR_net.room.info.level) || opt.level, key = v + '_' + $('n_team').value + '_' + lv + (opt.paint || '');
     $('n_vname').textContent = VEH_NAMES[v] || v || ''; if (!v || key === vpKey || !orig) return; vpKey = key;
-    try { vpThumb = await orig.h.carThumb(v, +$('n_team').value, lv); } catch (e) { vpThumb = null; }
+    try { vpThumb = await orig.h.carThumb(v, +$('n_team').value, lv, opt.paint); } catch (e) { vpThumb = null; }
     if (!vpRun) { vpRun = true; const step = () => { if (view !== 'online' || state !== 'menu' || $('n_room').hidden) { vpRun = false; return; }
         if (vpThumb) { const cv = $('n_vcv'), g = cv.getContext('2d'), im = vpThumb.frame(vpA += 0.025); g.clearRect(0, 0, cv.width, cv.height); const sz = Math.min(cv.width, cv.height * 1.25); g.drawImage(im, (cv.width - sz) / 2, (cv.height - sz) / 2 - 5, sz, sz); }
         setTimeout(() => requestAnimationFrame(step), 40); }; step(); }
@@ -1183,7 +1230,8 @@
     const t = tById(info.level), cars = (t && t.cars && t.cars.length) ? t.cars : ['JEEP'];
     for (const p of players) if (!cars.includes(p.veh)) p.veh = cars[0];
     const used = new Set(players.map(p => p.team)), free = [1, 2, 3, 4, 5, 6].filter(x => !used.has(x)), prof = ['experto', 'agresivo', 'imprevisible', 'prudente', 'torpe'];
-    const ais = Array.from({ length: Math.min(info.ai || 0, 12 - players.length) }, (_, k) => ({ id: 'ai' + k, ai: true, name: 'IA ' + (k + 1), team: free[k % Math.max(1, free.length)] || (k % 6) + 1, veh: cars[k % cars.length], profile: prof[k % 5] }));
+    const aiLooks = opt.rivLook !== 'clasico' ? rivalLooks(12, players.map(e => hueOf(e.paint || TEAM[e.team || 1].c))) : [];
+    const ais = Array.from({ length: Math.min(info.ai || 0, 12 - players.length) }, (_, k) => ({ id: 'ai' + k, ai: true, name: 'IA ' + (k + 1), team: free[k % Math.max(1, free.length)] || (k % 6) + 1, veh: cars[k % cars.length], profile: prof[k % 5], ...(aiLooks[k] || {}) }));
     const d = { k: 'start', level: info.level, laps: info.laps || 0, diff: info.diff || 2, order: [...ais, ...players.reverse()] };
     BRR_net.info(info, 'racing'); BRR_net.game(d); netStart(d);
   }
@@ -1205,6 +1253,7 @@
   function rtcClose(id) { const P = peers.get(id); if (!P) return; try { P.pc.close(); } catch (e) { } if (P.audio) P.audio.srcObject = null; peers.delete(id); }
   async function rtcCall(id) { rtcClose(id); const P = rtcPeer(id); const o = await P.pc.createOffer({ offerToReceiveAudio: true }); await P.pc.setLocalDescription(o); BRR_net.game({ k: 'rtc', sdp: P.pc.localDescription }, id); }
   async function rtcSignal(from, d) {
+    if (muted.has(from)) return;
     try {
       if (d.sdp && d.sdp.type === 'offer') { rtcClose(from); const P = rtcPeer(from); await P.pc.setRemoteDescription(d.sdp); const a = await P.pc.createAnswer(); await P.pc.setLocalDescription(a); BRR_net.game({ k: 'rtc', sdp: P.pc.localDescription }, from); }
       else if (d.sdp && d.sdp.type === 'answer') { const P = peers.get(from); if (P) await P.pc.setRemoteDescription(d.sdp); }
@@ -1275,6 +1324,8 @@
       R.draw(wd, BRR.M4.fromRT(mm3(Rm, mm3(Ry, Rx)), V.add(c.p, BRR.mv(Rm, cc))));
     });
   }
+  // primeros segundos tras la salida: choques suaves entre coches
+  const softStart = () => { const r0 = humans[0] && humans[0].race; return !!r0 && r0.phase === 'race' && r0.t < 4.5; };
   const camDist = p => Math.min(...humans.map(h => Math.hypot(p[0] - h.cam.pos[0], p[2] - h.cam.pos[2])));
   // bocinas: el jugador con H / L3 / R3; la máquina pita si la golpeas, al caer de un salto grande o si vuelca
   const RIVAL_HORNS = ['normal', 'aguda', 'grave', 'payaso', 'pato', 'claxon', 'camion'];
@@ -1315,7 +1366,7 @@
   function propSound(hit) {
     if (!audio || !audio.ctx) return;
     const d = camDist(hit.o.pos); if (d > 120) return;
-    const f = /CONE/.test(hit.o.name) ? 'GEN/CONE.WAV' : hit.o.cls === 4 ? 'GEN/SPLAT.WAV' : 'GEN/SIGN.WAV';
+    const f = /CONE/.test(hit.o.name) ? 'GEN/CONE.WAV' : hit.o.cls === 4 || BRR.isCritter(hit.o) ? 'GEN/SPLAT.WAV' : 'GEN/SIGN.WAV';
     audio.play(f, { vol: Math.min(1, hit.speed / 15) * Math.max(0.15, 1 - d / 120), pos: hit.o.pos });
   }
   // ---------- posiciones ----------
@@ -1353,7 +1404,7 @@
     for (const { c, n } of list) { if (!n) continue; const p = [c.p[0], c.p[1] + 2.2, c.p[2]], m = VP;
       const x = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], y = m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
       if (w <= 0.5 || w > 150) continue; const sx = (x / w * 0.5 + 0.5) * 100, sy = (1 - (y / w * 0.5 + 0.5)) * 100; if (sx < -5 || sx > 105 || sy < -5 || sy > 105) continue;
-      out.push(`<div class="ntag" style="left:${sx}%;top:${sy}%;color:${TEAM[c.team].c};opacity:${Math.max(0.35, 1 - w / 150)}">${esc(n)}</div>`); }
+      out.push(`<div class="ntag" style="left:${sx}%;top:${sy}%;color:${carCol(c)};opacity:${Math.max(0.35, 1 - w / 150)}">${esc(n)}</div>`); }
     box.innerHTML = out.join('');
   }
   // sonido en 3D: el oyente es la cámara del jugador (con pantalla partida no hay oyente único) · eco en los túneles · viento
@@ -1428,11 +1479,11 @@
       for (const r of rivals) if (r.ai) r.inp = r.ai.control(dt, allCars, null);   // ritmo: lo pone el pelotón (packFrame)
       const tB = performance.now();
       acc += dt; let n = 0;
-      while (acc >= DT) { for (const h of humans) h.car.step(DT, h.inp); for (const r of rivals) if (!r.remote && !r.replay) r.car.step(DT, r.inp); acc -= DT; if (++n % 3 === 0) BRR.carCollisions(allCars); }
+      while (acc >= DT) { for (const h of humans) h.car.step(DT, h.inp); for (const r of rivals) if (!r.remote && !r.replay) r.car.step(DT, r.inp); acc -= DT; if (++n % 3 === 0) BRR.carCollisions(allCars, softStart()); }
       if (replayBand && replayBand.age == null) replayBand.age = 0; if (replayBand) replayBand.age += dt;
       packFrame(dt);
       for (const r of rivals) if (r.replay) r.replay.update(dt);
-      BRR.carCollisions(allCars); const tC = performance.now(); const P = BRR.PERF || (BRR.PERF = { ai: 0, phys: 0, n: 0 }); P.ai += tB - tA; P.phys += tC - tB; P.n++;
+      BRR.carCollisions(allCars, softStart()); const tC = performance.now(); const P = BRR.PERF || (BRR.PERF = { ai: 0, phys: 0, n: 0 }); P.ai += tB - tA; P.phys += tC - tB; P.n++;
       for (const h of humans) { h.race.update(dt, h.car); handleEvents(h); }
       for (const r of rivals) { if (r.remote) continue; r.race.update(dt, r.car); r.race.ev.length = 0; }
       if (netRace) netFrame(dt);
@@ -1493,5 +1544,5 @@
     window.BRR_STATE = { p: car.p, v: car.v, speed: car.speed(), grounded: car.grounded, up: car.R[1][1] };
   }
   requestAnimationFrame(frame);
-  window.BRR_DEBUG = { get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net };
+  window.BRR_DEBUG = { get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

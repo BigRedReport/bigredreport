@@ -67,6 +67,11 @@ Notas
 - La primera vez que corres en un circuito con rivales tarda unos segundos en "Preparar a los pilotos";
   después se guarda y carga al instante.
 
+Rivales
+- Opciones → Juego → "Aspecto de los rivales": colores RGB y bocinas al azar (por defecto) o los colores de
+  equipo del original. El color propio (Piloto y escudería → Color RGB) pinta también a tu piloto.
+- Salida limpia: los primeros segundos los rivales mantienen su fila y los toques no hacen trompear.
+
 Online (sin instalar nada)
 - Multijugador → Online. Pon tu nombre en "Piloto y escudería".
 - CREAR PARTIDA: elige nombre, pública o privada, contraseña, jugadores y modo:
@@ -79,6 +84,10 @@ Online (sin instalar nada)
   Los logos (también los propios) se ven en los coches de todos.
 - Entre carreras se vuelve solo a la sala; en lista/campeonato/azar la siguiente empieza sola a los 12 s,
   en votación cuando termina la votación. Se suman puntos (10-6-4-3-2-1) y se ve la clasificación.
+- Si se te corta la conexión, el juego vuelve a entrar solo (te guarda el sitio 30 s). Si el anfitrión se va o
+  se le cae, otro jugador pasa a ser anfitrión y la carrera sigue (con los rivales de la máquina incluidos).
+- En la lista de la sala: 🔇 silencia el chat y la voz de un jugador; el anfitrión puede expulsar (✖), y el
+  expulsado ya no puede volver a esa partida.
 - Cómo funciona: para encontrarse se usa un buzón público de mensajes en Internet (gratuito) y luego los
   juegos se conectan directamente entre sí. Algunos routers muy cerrados pueden impedir la conexión directa;
   en ese caso se puede usar un servidor dedicado (abajo).
