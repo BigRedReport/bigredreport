@@ -134,8 +134,10 @@
       const yRec = -(s[1] + this.off[1]) * S, low = this.low, fly = c.K && c.K.fly;
       let y = yRec - this.hOff, n = null;
       if (!fly) {
-        const top = Math.max(y, lvl.terrain(x, z)) + 2.5, hit = BRR.raycast(lvl, [x, top, z], [0, -1, 0], 12);
-        const gy = hit ? top - hit.t : lvl.terrain(x, z), want = gy - low;
+        // en los túneles el suelo está por debajo de la colina: se busca desde la altura grabada, no desde el terreno (si no, el coche sale por encima del monte)
+        const inTun = (lvl.tunnel && lvl.tunnel(x, z)) || y < lvl.terrain(x, z) - 2.5;
+        const top = inTun ? y + 2.2 : Math.max(y, lvl.terrain(x, z)) + 2.5, hit = BRR.raycast(lvl, [x, top, z], [0, -1, 0], inTun ? 6 : 12);
+        const gy = hit ? top - hit.t : (inTun ? y + low : lvl.terrain(x, z)), want = gy - low;
         if (y < want + 0.6) { y = want; n = hit && hit.n && hit.n[1] > 0.4 ? hit.n : null; if (!n) { const nn = [0, 1, 0]; lvl.terrain(x, z, nn); n = nn; } }   // en el suelo: pegado
         else y = Math.max(y, want);
       } else y = yRec - this.hOff;

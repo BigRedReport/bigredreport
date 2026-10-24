@@ -128,7 +128,16 @@
     const body = parseM(vname + team) || parseM(name + team) || parseM(vname + '1') || parseM(name + '1');
     if (!body) throw new Error('No encuentro el modelo de ' + name);
     const findTM = n => find(n + '.TM');
-    const mb = new BRR.MeshBuilder(lvl.pal);
+    // pintura propia (color RGB): la gama de 16 tonos del color del equipo se cambia por la del color elegido, con las mismas luces y sombras
+    let pal = lvl.pal;
+    if (extra.paint) { const P = lvl.pal, lum = c => 0.3 * P[c * 3] + 0.59 * P[c * 3 + 1] + 0.11 * P[c * 3 + 2] + 1;
+      const sat = c => { const r = P[c * 3], g = P[c * 3 + 1], b = P[c * 3 + 2], mx = Math.max(r, g, b); return mx > 60 ? (mx - Math.min(r, g, b)) / mx : 0; };
+      const cnt = new Map(); for (const f of body.faces) if (!f.tex && f.color != null && f.cond == null) cnt.set(f.color, (cnt.get(f.color) || 0) + f.idx.length);
+      const c0 = [...cnt].sort((a, b) => b[1] * (sat(b[0]) > 0.3 ? 6 : 1) - a[1] * (sat(a[0]) > 0.3 ? 6 : 1))[0];
+      if (c0) { pal = new Uint8Array(P); const base = c0[0] & ~15, l0 = lum(c0[0]), [R0, G0, B0] = extra.paint;
+        for (let c = base; c < base + 16; c++) { const k = lum(c) / l0; pal[c * 3] = Math.min(255, R0 * k); pal[c * 3 + 1] = Math.min(255, G0 * k); pal[c * 3 + 2] = Math.min(255, B0 * k); }
+        body.paint = extra.paint.slice(); } }
+    const mb = new BRR.MeshBuilder(pal);
     mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), findTM);
     // hojas de textura que llevan el hueco del logo de este equipo (JDSH, MDSH, TRDH...): las que usa alguna cara dentro del hueco
     const slotX = 136 + ((team - 1) % 3) * 40, slotY = 112 + (((team - 1) / 3) | 0) * 40, slotTex = new Set();

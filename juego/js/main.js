@@ -310,9 +310,13 @@
     $('pf_chars').innerHTML = chars.join('');
     const logos = []; for (let i = 0; i < 13; i++) logos.push(`<div class="pitem${(opt.logo || 0) === i ? ' on' : ''}" tabindex="0" data-l="${i}"><img src="${orig ? await orig.logoURL(i, team).catch(() => '') : ''}"></div>`);
     logos.push(`<div class="pitem${opt.logo === 'custom' ? ' on' : ''}" tabindex="0" data-custom="1" title="Tu propio logo (PNG)">${opt.customLogo ? `<img src="${opt.customLogo}" style="background:${TEAM[team].c}">` : '<div style="font-size:42px;line-height:72px">＋</div>'}<div>Logo propio</div></div>`);
+    logos.push(`<div class="pitem${opt.paint ? ' on' : ''}" tabindex="0" data-paint="1" title="Color propio (RGB)"><div style="height:40px;border-radius:8px;background:${opt.paint || 'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)'}"></div>${opt.paint ? 'Color propio' : 'Color RGB…'}</div>`);
     logos.push(...[1, 2, 3, 4, 5, 6].map(t => `<div class="pitem${team === t ? ' on' : ''}" tabindex="0" data-t="${t}" style="background:${TEAM[t].c}55"><div style="height:40px;border-radius:8px;background:${TEAM[t].c}"></div>${TEAM[t].n}</div>`));
     $('pf_logos').innerHTML = logos.join('');
     for (const el of document.querySelectorAll('#pane_profile .pitem')) el.onclick = () => { sfx('BEEP4');
+      if (el.dataset.paint) { const inp = document.createElement('input'); inp.type = 'color'; inp.value = opt.paint || TEAM[opt.team || 1].c;
+        inp.oninput = inp.onchange = () => { opt.paint = inp.value; save(); renderProfile(); renderHomeProf(); }; inp.click(); return; }
+      if (el.dataset.t != null) opt.paint = null;   // elegir un color de equipo quita el color propio
       if (el.dataset.custom) { const inp = document.createElement('input'); inp.type = 'file'; inp.accept = 'image/*';
         inp.onchange = async () => { const f = inp.files[0]; if (!f) return; const im = new Image(); im.src = URL.createObjectURL(f); await im.decode();
           const cv = document.createElement('canvas'); cv.width = cv.height = 40; const g = cv.getContext('2d'), k = Math.min(40 / im.width, 40 / im.height);
@@ -336,6 +340,7 @@
   // estadísticas que se van sumando mientras se conduce
   const statAcc = { km: 0, t: 0, veh: null };
   function statsFlush() { if (!statAcc.t) return; const a = { ...statAcc }; statAcc.km = 0; statAcc.t = 0; statsAdd(S => { S.km = (S.km || 0) + a.km; S.time = (S.time || 0) + a.t; S.veh = S.veh || {}; if (a.veh) S.veh[a.veh] = (S.veh[a.veh] || 0) + a.km + 0.001; }); }
+  const hexRGB = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
   // bocinas
   function renderHorns() {
     $('pf_horns').innerHTML = BRR.HORNS.map(h => `<button data-h="${h.id}" class="${opt.horn === h.id ? 'on' : ''}"${h.id === 'propia' && !customHornOk ? ' disabled title="Carga antes tu sonido"' : ''}>${h.hold ? '🔊 ' : '🎺 '}${esc(h.n)}</button>`).join('');
@@ -579,7 +584,7 @@
       const teams = [team, ...[1, 2, 3, 4, 5, 6].filter(t => t !== team)];
       let def0 = null;
       for (let i = 0; i < nPlayers; i++) {
-        const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : null } : {}); if (!def0) def0 = d;
+        const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : null, paint: hexRGB(opt.paint) } : {}); if (!def0) def0 = d;
         const c = new BRR.Car(d, lvl); c.team = teams[i % 6]; c.isPlayer = true; c.human = i; c.headDraw = await driverHead(i === 0 ? (opt.char || 0) : (i % 6), teams[i % 6]);
         const h = newHuman(i, c, new BRR.Race(lvl, laps || lvl.laps), teams[i % 6]); h.draw = R.upload(d.mesh); humans.push(h);
       }
@@ -593,7 +598,7 @@
         for (const e of net.order) {
           if (e.id === net.myId) continue;
           $('load_msg').textContent = 'Cargando ' + (e.name || 'rival') + '…';
-          const t = e.team || 1, d = await BRR.loadVehicle(files, e.veh || veh, lvl, t, { logo: e.logo != null ? await logoRGBAOf(e.logo) : null, logoHi: typeof e.logo === 'string' ? await logoHiOf(e.logo) : null }), c = new BRR.Car(d, lvl); c.team = t; c.headDraw = await driverHead(e.char != null ? e.char : t - 1, t);
+          const t = e.team || 1, d = await BRR.loadVehicle(files, e.veh || veh, lvl, t, { logo: e.logo != null ? await logoRGBAOf(e.logo) : null, logoHi: typeof e.logo === 'string' ? await logoHiOf(e.logo) : null, paint: hexRGB(e.paint) }), c = new BRR.Car(d, lvl); c.team = t; c.headDraw = await driverHead(e.char != null ? e.char : t - 1, t);
           const rr = new BRR.Race(lvl, laps || lvl.laps), ent = { id: e.id, name: e.name, car: c, race: rr, ai: null, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, isAI: !!e.ai };
           if (e.ai && net.role === 'host') ent.ai = new BRR.AIDriver(c, rr, (skill) * (0.97 + 0.03 * Math.random()), lanes[ak % lanes.length], e.profile || profiles[ak % profiles.length]);
           else { ent.remote = true; c.puppet = true; ent.race = puppetRace(ent, laps || lvl.laps); }
@@ -731,8 +736,12 @@
       let slip = 0; const cnt = {}; let nc = 0;
       for (const w of c.W) if (w.contact) { slip = Math.max(slip, w.slip); let t = w.surface || 'asfalto'; if (t === 'tierra' && w.green) t = 'hierba'; cnt[t] = (cnt[t] || 0) + 1; nc++; }
       const spd = Math.abs(c.speed()), surf = nc ? Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] : null;
-      for (const [k, l] of Object.entries(S2.skidL || {})) l && l.set(paused || k !== surf ? 0 : Math.min(0.7, slip * 1.6) * Math.min(1, spd / 6) * mix, 1);
-      for (const [k, l] of Object.entries(S2.groundL || {})) l && l.set(paused || k !== surf ? 0 : Math.min(0.5, spd / 40) * (c.K.fly ? 0 : 1) * mix, 0.8 + Math.min(0.5, spd / 60));
+      // derrape: solo cuando de verdad se derrapa durante un rato (no el deslizamiento normal de las ruedas)
+      const sk = slip > 0.32 && spd > 5; S2.skidT = sk ? (S2.skidT || 0) + dt : Math.max(0, (S2.skidT || 0) - dt * 3);
+      const skV = S2.skidT > 0.35 ? Math.min(0.6, (slip - 0.32) * 1.8) * Math.min(1, (S2.skidT - 0.35) * 4) * Math.min(1, spd / 10) : 0;
+      for (const [k, l] of Object.entries(S2.skidL || {})) l && l.set(paused || k !== surf ? 0 : skV * mix, 1);
+      // rodadura sobre el suelo (grava, arena, nieve...): suave y solo con velocidad; no debe sonar a derrape
+      for (const [k, l] of Object.entries(S2.groundL || {})) l && l.set(paused || k !== surf ? 0 : Math.min(0.22, Math.max(0, spd - 4) / 90) * (c.K.fly ? 0 : 1) * mix, 0.8 + Math.min(0.5, spd / 60));
       if (paused) continue;
       if (c.landed && surf === 'agua') audio.play('GEN/SPLASH.WAV', { vol: Math.min(1, c.landed / 8) });
       if (c.nitroT <= 0 && S2.nitroOn) audio.play('GEN/NOTTURB.WAV', { vol: 0.7 }); S2.nitroOn = c.nitroT > 0;
@@ -1027,7 +1036,7 @@
   function netTracks() { return front ? front.tracks : []; }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const myLogo = () => opt.logo === 'custom' ? opt.customLogo || null : (typeof opt.logo === 'number' ? opt.logo : null);
-  const myData = () => ({ team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0 });
+  const myData = () => ({ team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, paint: opt.paint || null });
   const tById = id => netTracks().find(x => x.id === id);
   const tLabel = id => { const t = tById(id); return t ? (t.place || t.id) + ' · ' + t.id : id || '?'; };
   $('n_url').value = opt.netUrl && /^wss?:/.test(opt.netUrl) ? opt.netUrl : '';
@@ -1170,7 +1179,7 @@
   }
   function netLaunch() {
     const r = BRR_net.room; if (!r || !BRR_net.isHost) return; const info = r.info || {};
-    const players = BRR_net.members.map(m => ({ id: m.id, name: m.name, team: m.data.team || 1, veh: m.data.veh, logo: m.data.logo || null, char: m.data.char || 0 }));
+    const players = BRR_net.members.map(m => ({ id: m.id, name: m.name, team: m.data.team || 1, veh: m.data.veh, logo: m.data.logo || null, char: m.data.char || 0, paint: m.data.paint || null }));
     const t = tById(info.level), cars = (t && t.cars && t.cars.length) ? t.cars : ['JEEP'];
     for (const p of players) if (!cars.includes(p.veh)) p.veh = cars[0];
     const used = new Set(players.map(p => p.team)), free = [1, 2, 3, 4, 5, 6].filter(x => !used.has(x)), prof = ['experto', 'agresivo', 'imprevisible', 'prudente', 'torpe'];
@@ -1394,7 +1403,7 @@
       updatePositions(dt);
       if (humans[0] && humans[0].race.phase === 'race') { statAcc.km += Math.abs(humans[0].car.speed()) * dt / 1000; statAcc.t += dt; statAcc.veh = humans[0].car.def.name; }
       for (const hit of props.update(dt, allCars)) propSound(hit);
-      for (const c of allCars) if (c.nitroT > 0) fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -6), c.v);
+      for (const c of allCars) if (c.nitroT > 0) fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v);
       humans.forEach(h => fx.car(h.car, dt, 'p' + h.i)); rivals.forEach((r, k) => { if (camDist(r.car.p) < 160) fx.car(r.car, dt, 'r' + k); });
       for (const c of allCars) { if ((c.lastHit || 0) > 4) { fx.sparks(V.add(c.p, V.mul(c.forward(), 1.5)), Math.min(25, c.lastHit * 2 * (+opt.parts || 1) | 0));
           if (!c.isPlayer && audio && audio.ctx && snd.bangs && camDist(c.p) < 90) { const b = snd.bangs[Math.random() * snd.bangs.length | 0]; if (b) audio.play(b, { vol: Math.min(0.8, c.lastHit / 14) * (1 - camDist(c.p) / 90), pos: c.p }); } }

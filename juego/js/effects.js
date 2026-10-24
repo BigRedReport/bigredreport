@@ -32,9 +32,10 @@ void main(){ float a=vcol.a;
       }
     }
     flame(p, back, v) {   // llamarada del nitro
-      for (let k = 0; k < 2; k++) this.parts.push({ p: [p[0] + (Math.random() - .5) * .2, p[1] + (Math.random() - .5) * .2, p[2] + (Math.random() - .5) * .2],
-        v: [v[0] * 0.7 + back[0] + (Math.random() - .5), v[1] * 0.7 + Math.random() * 0.6, v[2] * 0.7 + back[2] + (Math.random() - .5)],
-        col: k ? [1, 0.55, 0.12, 0.9] : [0.55, 0.75, 1, 0.8], size: 0.28, life: 0.22 + Math.random() * 0.12, age: 0, grow: 1.2, solid: true });
+      // llama fina: núcleo azul pequeño y una cola naranja corta
+      for (let k = 0; k < 2; k++) this.parts.push({ p: [p[0] + (Math.random() - .5) * .06, p[1] + (Math.random() - .5) * .06, p[2] + (Math.random() - .5) * .06],
+        v: [v[0] * 0.85 + back[0] * 0.8 + (Math.random() - .5) * 0.3, v[1] * 0.85 + Math.random() * 0.2, v[2] * 0.85 + back[2] * 0.8 + (Math.random() - .5) * 0.3],
+        col: k ? [1, 0.55, 0.12, 0.85] : [0.55, 0.75, 1, 0.8], size: k ? 0.11 : 0.08, life: (k ? 0.13 : 0.08) + Math.random() * 0.05, age: 0, grow: 0.5, solid: true });
     }
     sparks(p, n = 12) {
       for (let k = 0; k < n; k++) this.parts.push({ p: p.slice(), v: [(Math.random() - .5) * 9, Math.random() * 6, (Math.random() - .5) * 9], col: [1, 0.85 - Math.random() * .3, 0.3, 1], size: 0.12, life: 0.35 + Math.random() * .3, age: 0, grow: 0, grav: 1, solid: true });
