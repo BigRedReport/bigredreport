@@ -76,7 +76,7 @@
     .catch(() => { $('c_list').innerHTML = '<div class="empty">No se han podido cargar ahora mismo. <a href="https://github.com/' + REPO + '/issues/1" target="_blank" rel="noopener">Verlos en GitHub</a>.</div>'; });
 
   // ---------- clasificaciones: el juego las guarda como mensajes retenidos en un buzón público MQTT ----------
-  const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
+  const BROKERS = window.BRR_BROKERS || ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
   const T = 'bigredracing/v1/lb/', te = new TextEncoder(), td = new TextDecoder();
   const VEH = { JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable', PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
   const str = s => { const b = te.encode(s); return [b.length >> 8, b.length & 255, ...b]; };
@@ -85,8 +85,9 @@
   const send = (h, body) => { if (ws && ws.readyState === 1) ws.send(new Uint8Array([h, ...len(body.length), ...body])); };
   function parse() { for (;;) { const b = buf; if (b.length < 2) return; let mul = 1, n = 0, i = 1, d; do { if (i >= b.length) return; d = b[i++]; n += (d & 127) * mul; mul *= 128; } while (d & 128);
     if (b.length < i + n) return; const h = b[0], body = b.subarray(i, i + n); buf = b.slice(i + n); const type = h >> 4;
-    if (type === 2) { ready = true; if (cur) sub(cur); }
+    if (type === 2) { ready = true; if (cur) sub(cur); visitStart(); }
     else if (type === 3) { const tl = (body[0] << 8) | body[1], topic = td.decode(body.subarray(2, 2 + tl)); let o = 2 + tl; if ((h >> 1) & 3) o += 2;
+      if (topic === VT) { visitGot(td.decode(body.subarray(o))); continue; }
       let r = []; try { r = JSON.parse(td.decode(body.subarray(o))) || []; } catch (e) { } rows[topic.slice(T.length)] = Array.isArray(r) ? r : []; if (topic.slice(T.length) === cur) draw(); } } }
   function connect(k = 0) {
     if (k >= BROKERS.length) { $('lb_st').textContent = 'No se ha podido conectar con el servidor de clasificaciones.'; return; }
@@ -97,6 +98,14 @@
     ws.onerror = () => { clearTimeout(to); if (!ready) connect(k + 1); };
     setInterval(() => send(0xC0, []), 25000);
   }
+  // ---------- contador de visitas (como los de las webs de los 2000): el número se guarda en el mismo buzón público ----------
+  const VT = 'bigredracing/v1/stats/visitas'; let vDone = false, vT = null;
+  function visitShow(n) { const el = $('visits'); if (!el) return; const d = String(n).padStart(6, '0'); el.innerHTML = [...d].map(c => `<span>${c}</span>`).join(''); el.title = n + ' visitas'; }
+  function visitGot(txt) { if (vDone) return; vDone = true; clearTimeout(vT);
+    let n = parseInt(txt, 10) || 0; const day = new Date().toISOString().slice(0, 10); let seen = null; try { seen = localStorage.getItem('brr_visit'); } catch (e) { }
+    if (seen !== day) { n++; try { localStorage.setItem('brr_visit', day); } catch (e) { } send(0x31, [...str(VT), ...te.encode(String(n))]); }   // una visita por persona y día
+    visitShow(n); }
+  function visitStart() { if (vDone) return; const id = pid++ & 0xffff; send(0x82, [id >> 8, id & 255, ...str(VT), 0]); vT = setTimeout(() => visitGot('0'), 5000); }
   function sub(lv) { const id = pid++ & 0xffff; send(0x82, [id >> 8, id & 255, ...str(T + lv), 0]); }
   function draw() {
     const R = rows[cur]; const tb = $('lb_t').tBodies[0];

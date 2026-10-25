@@ -1,6 +1,6 @@
 # Hoja de ruta de Big Red Report
 
-Lo que falta para la versión final del port, **ordenado de lo más rápido y fácil a lo más largo y difícil**. Se va tachando según se termina.
+Lo que falta para la versión final del port, **en bloques, del más rápido al más largo**. Se va tachando según se termina.
 ¿Has visto un fallo? Repórtalo en [Issues](../../issues) o desde la [web](https://bigredreport.github.io/bigredreport/#fallos).
 
 ## Hecho hasta ahora
@@ -18,50 +18,60 @@ Lo que falta para la versión final del port, **ordenado de lo más rápido y f�
 - [x] Juego en 6 idiomas (la web, con traducción automática)
 - [x] Web: descargas con contador, noticias, clasificaciones, fallos y comentarios
 - [x] Pilotos con cabeza y cuerpo a elegir por separado; logos originales con el color RGB
+- [x] Controles a gusto, 21 logros, ayudas de conducción, colores para daltonismo y menús grandes
+- [x] Comentarista con más frases, aviso automático de fallos e instalable desde el navegador
+- [x] Pantalla de inicio con PRESS START y la portada nueva
+- [x] Donaciones (Ko-fi y PayPal) en la web, en GitHub y en el juego
 
-## Rápido (poco tiempo cada uno)
-- [ ] Afinar la IA nueva en el primer circuito de Marte (mejorada, sigue algo lenta)
-- [x] Redefinir controles de teclado y mando
-- [x] Logros («gana sin nitro», «aplasta 10 ovejas»…)
-- [x] Accesibilidad: modo para daltónicos, texto más grande, ayudas de dirección y frenada para principiantes
-- [x] Más frases del comentarista con las voces originales (adelantamientos, choques, última vuelta)
-- [x] Aviso de fallos automático: si el juego da un error, ofrecer mandarlo a la web con los datos rellenos
-- [x] Instalable desde el navegador (app que recuerda la carpeta del juego y funciona sin conexión)
-
-## Medio (una o dos sesiones cada uno)
-- [ ] Modo libre + acrobacias en uno: sin cronómetro de vueltas, y un botón que pone una rampa (las marrones de los circuitos de ciudad) pegada al suelo unos metros por delante; una por jugador, solo en este modo
+## Bloque 1 · Modo libre y diversión (rápido)
+- [ ] Modo libre + acrobacias en uno: sin cronómetro de vueltas y con un botón que pone una rampa (las marrones de los circuitos de ciudad) pegada al suelo unos metros por delante; una por jugador, solo en este modo
+- [ ] Desafíos de acrobacias: puntos por saltos, vueltas de campana y aterrizajes
 - [ ] Pilotos nuevos con el estilo del original: niño y gordo
+
+## Bloque 2 · Competir (medio)
 - [ ] Fantasmas descargables y retos semanales iguales para todos
-- [ ] Modo clásico auténtico: resolución, distancia, iluminación, marcador y sonido como en 1995
 - [ ] Repeticiones: guardar la carrera, verla con las cámaras de televisión y exportarla a vídeo
+- [ ] Modo espectador en online
+
+## Bloque 3 · Ambiente (medio)
 - [ ] Clima y horas del día: lluvia, niebla, amanecer, atardecer
 - [ ] Efectos modernos: oclusión ambiental y reflejos
-- [ ] Modo espectador en online
-- [ ] Android: cargar el juego desde un .zip, controles táctiles y app instalable
-- [ ] Editor de decoración: metalizados, vinilos y capas de pegatinas, que se vean en online
-- [ ] Social: amigos, invitaciones y revancha inmediata
-- [ ] Garaje con mejoras (motor, ruedas, nitro) pagadas con lo ganado en el campeonato
 - [ ] Motores con mejor sonido (más muestras y transiciones suaves)
-- [ ] Versión para Windows, Linux y Steam Deck: programa instalable con servidor online incluido y lanzador sencillo (carpeta del juego, opciones, donaciones y Jugar)
+
+## Bloque 4 · Nostalgia (medio)
+- [ ] Modo clásico auténtico: resolución, distancia, iluminación, marcador y sonido como en 1995
+
+## Bloque 5 · Mi coche (medio)
+- [ ] Editor de decoración: metalizados, vinilos y capas de pegatinas, que se vean en online
+- [ ] Garaje con mejoras (motor, ruedas, nitro) pagadas con lo ganado en el campeonato
+
+## Bloque 6 · Social (medio)
+- [ ] Amigos, invitaciones y revancha inmediata
+- [ ] Ligas y eventos en servidores dedicados
+
+## Bloque 7 · Plataformas (medio-largo)
+- [ ] Windows, Linux y Steam Deck: programa instalable con servidor online incluido y lanzador sencillo (carpeta del juego, opciones, donaciones y Jugar)
 - [ ] Volantes, pedales y cambio de marchas; force feedback si es posible
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
-- [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
-- [ ] Desafíos de acrobacias (puntos por saltos y vueltas de campana)
-
-## Largo (varias sesiones)
-- [ ] Clasificaciones verificadas, separadas entre juego original, con mods y experimental
-- [ ] Daños visuales en los vehículos
-- [ ] Mods de verdad: coches y circuitos nuevos en formatos normales (glTF, OBJ, imagen de alturas)
-- [ ] Gestor de mods con perfiles, dependencias y avisos de incompatibilidad
-- [ ] Generador automático de rutas de IA para circuitos nuevos
-- [ ] Editor de circuitos (controles, rutas, objetos, superficies)
-- [ ] Documentación de formatos y ejemplos (SDK) y catálogo comunitario
-- [ ] Ligas y eventos en servidores dedicados
+- [ ] Android: cargar el juego desde un .zip, controles táctiles y app instalable
 - [ ] Publicación en lanzadores de ports (PortMaster, Lutris…): depende de que acepten el port
 
-## Lo más difícil
+## Bloque 8 · Modos locos (largo)
+- [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
+- [ ] Daños visuales en los vehículos
+
+## Bloque 9 · Creadores (largo)
+- [ ] Coches y circuitos nuevos en formatos normales (glTF, OBJ, imagen de alturas), gestor de mods y catálogo
+- [ ] Editor de circuitos y generador automático de rutas de IA
+- [ ] Documentación de formatos y ejemplos (SDK)
+- [ ] Clasificaciones verificadas, separadas entre juego original, con mods y experimental
+
+## Bloque 10 · Física original (lo más difícil)
 - [ ] Manejo del juego de 1995 leído del ejecutable original, como opción (ingeniería inversa)
 - [ ] Mezclar a gusto: gráficos modernos con física antigua, y al revés
+
+## Pendientes
+- [ ] Afinar la IA nueva en el primer circuito de Marte (mejorada, sigue algo lenta)
 
 ## Depende de material externo
 - [ ] Texturas en alta resolución (hay que redibujarlas)

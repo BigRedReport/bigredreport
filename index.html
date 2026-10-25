@@ -1,7 +1,7 @@
 <!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="description" content="Big Red Report: port de fans de Big Red Racing (1995) para ordenadores modernos. Novedades, clasificaciones y reporte de fallos.">
-<meta property="og:title" content="Big Red Report"><meta property="og:description" content="Big Red Racing (1995) en ordenadores modernos: online, pantalla partida, rivales originales."><meta property="og:image" content="img/dirt2.jpg">
+<meta property="og:title" content="Big Red Report"><meta property="og:image" content="https://bigredreport.github.io/bigredreport/img/portada.jpg"><meta name="twitter:card" content="summary_large_image"><meta property="og:description" content="Big Red Racing (1995) en ordenadores modernos: online, pantalla partida, rivales originales.">
 <title>Big Red Report</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Racing+Sans+One&family=Barlow:ital,wght@0,400;0,500;0,600;0,700;1,600&family=JetBrains+Mono:wght@400;600&display=swap">
@@ -138,6 +138,8 @@ textarea{min-height:92px;resize:vertical}
 .cmt img{width:40px;height:40px;border-radius:50%}
 .cmt .who{font-weight:700}.cmt .who small{font-weight:400;color:var(--mut);margin-left:8px}
 .cmt p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
+/* donaciones */
+.donate{display:flex;gap:24px;align-items:center;flex-wrap:wrap}.donate>div{flex:1;min-width:240px;display:flex;flex-wrap:wrap;gap:10px;align-items:center}.donate img{background:#fff;border-radius:12px;padding:8px;border:1px solid var(--line)}
 /* hoja de ruta */
 .road{margin:0;padding:0;list-style:none;counter-reset:r;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .road li{counter-increment:r;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px 52px;position:relative}
@@ -160,6 +162,14 @@ textarea{min-height:92px;resize:vertical}
 .faq details{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 16px}
 .faq summary{font-weight:700;cursor:pointer}
 .faq p{margin:8px 0 0;color:var(--mut)}
+.retro{background:#000;border-top:3px ridge #c0c0c0;border-bottom:3px ridge #c0c0c0}
+.retro .wrap{display:flex;gap:18px;align-items:center;justify-content:center;flex-wrap:wrap;padding-block:14px}
+.rbox{display:flex;align-items:center;gap:10px;background:#111;border:2px outset #c0c0c0;padding:6px 10px}
+.rlab{font:700 13px "Comic Sans MS","Comic Sans",cursive;color:#ffff00;text-shadow:1px 1px 0 #f00}
+.odo{display:flex;gap:2px}.odo span{display:inline-block;width:22px;height:30px;line-height:30px;text-align:center;background:linear-gradient(#222,#000 50%,#222);color:#39ff14;font:700 22px "Courier New",monospace;text-shadow:0 0 6px #39ff14;border:1px solid #444;border-radius:2px}
+.rmarq{overflow:hidden;white-space:nowrap;flex:1;min-width:220px;max-width:640px;color:#00ffff;font:700 13px "Comic Sans MS","Comic Sans",cursive;border:2px inset #808080;padding:4px 0;background:#000080}
+.rmarq span{display:inline-block;padding-left:100%;animation:marq 22s linear infinite}@keyframes marq{to{transform:translateX(-100%)}}
+@media (prefers-reduced-motion:reduce){.rmarq span{animation:none;padding-left:8px}}
 footer{background:var(--asph);color:#bdb6af;font-size:14px}
 footer .wrap{padding-block:26px;display:flex;gap:16px;justify-content:space-between;flex-wrap:wrap}
 footer b{color:#fff}
@@ -181,7 +191,7 @@ footer b{color:#fff}
   <div class="brandbox"><a class="brand" href="#inicio">BIG RED <b>REPORT</b></a>
   <div id="langs" role="group" aria-label="Idioma / Language"></div></div>
   <nav aria-label="Secciones">
-    <a href="#inicio">Inicio</a><a href="#descargar">Descargar</a><a href="#mejoras">Mejoras</a><a href="#noticias">Noticias</a><a href="#hoja">Hoja de ruta</a><a href="#clasificaciones">Clasificaciones</a><a href="#fallos">Reportar fallo</a><a href="#comentarios">Comentarios</a><a href="#faq">Preguntas</a>
+    <a href="#inicio">Inicio</a><a href="#descargar">Descargar</a><a href="#mejoras">Mejoras</a><a href="#noticias">Noticias</a><a href="#hoja">Hoja de ruta</a><a href="#clasificaciones">Clasificaciones</a><a href="#fallos">Reportar fallo</a><a href="#comentarios">Comentarios</a><a href="#apoyar">Apoyar</a><a href="#faq">Preguntas</a>
   </nav>
 </div></header>
 
@@ -192,9 +202,9 @@ footer b{color:#fff}
       <h1>Big Red <span>Report</span></h1>
       <div class="badges"><span class="badge">25 circuitos</span><span class="badge">20 vehículos</span><span class="badge">Hasta 12 online</span><span class="badge">Pantalla partida hasta 8</span></div>
       <p>El juego de carreras más loco de 1995, de jeeps a lanchas, helicópteros y buggies en Marte, ahora en ordenadores modernos: alta resolución, luces y sombras actuales, mandos de hoy, online y los rivales originales del juego.</p>
-      <div class="ctas"><a class="cta" href="#descargar">Descargar</a><a class="cta ghost" href="#mejoras">Qué hemos hecho</a></div>
+      <div class="ctas"><a class="cta" href="juego/BigRedRacing.html">Jugar ahora</a><a class="cta ghost" href="#descargar">Descargar</a><a class="cta ghost" href="#apoyar">❤ Apoyar</a></div>
     </div>
-    <figure class="shot"><img loading="lazy" src="img/dirt2.jpg" alt="Un jeep y un quad derrapando en una colina de tierra del circuito de Inglaterra"></figure>
+    <figure class="shot"><img src="img/portada.jpg" alt="Portada de Big Red Report: el piloto gritando al volante de un jeep rojo"></figure>
   </div>
   <div class="flag" aria-hidden="true"></div>
 </div>
@@ -237,64 +247,72 @@ footer b{color:#fff}
 <section id="mejoras"><div class="wrap">
   <div class="head"><div><div class="eyebrow">Lo que hemos hecho al juego</div><h2>Mejoras</h2><p>Lista actualizada de todo lo añadido y mejorado respecto al original.</p></div></div>
   <div class="feat">
-    <div class="fcard"><h3>Gráficos <span class="n">9</span></h3><ul>
+    <div class="fcard"><h3>Gráficos <span class="n">8</span></h3><ul>
       <li><b>Resolución moderna</b> con escala ajustable, resolución automática y <b>antialiasing</b> FXAA.</li>
       <li><b>Iluminación nueva</b> con sol, cielo y sombras, o la original de 1995; se cambia en plena carrera para comparar.</li>
-      <li><b>Campo de visión y distancia de dibujado</b> ampliados; cámara sin temblores.</li>
+      <li><b>Suelo suavizado</b>, sin las «placas» cuadradas, y bordes del césped sin dientes de sierra.</li>
+      <li><b>Humo de neumáticos</b>, polvo que se queda flotando y nube al aterrizar de un salto.</li>
       <li><b>Agua con olas y reflejos</b> y los colores animados del original.</li>
-      <li><b>Luces de freno</b> sacadas de los propios modelos originales.</li>
-      <li><b>Pilotos visibles</b> conduciendo, con el personaje elegido.</li>
-      <li>Polvo, salpicaduras, marcas de derrape, chispas y llamas del nitro, con cantidad ajustable.</li>
-      <li>Pantallas <b>ultrapanorámicas</b> (21:9, 32:9) y cualquier frecuencia (144 Hz o más) con física a paso fijo.</li>
-      <li>Texturas pixeladas originales o suavizadas.</li></ul></div>
-    <div class="fcard"><h3>Cámaras y marcador <span class="n">5</span></h3><ul>
-      <li>Cámaras de <b>persecución</b> (cerca, lejos, alta), <b>cabina</b>, <b>parachoques</b> y <b>televisión</b> con las del circuito original.</li>
+      <li><b>Luces de freno</b> y <b>pilotos visibles</b> conduciendo.</li>
+      <li>Campo de visión y distancia de dibujado ampliados; pantallas <b>ultrapanorámicas</b> y cualquier frecuencia.</li>
+      <li>Imágenes del menú <b>mejoradas en HD</b> (o pixeladas como el original).</li>
+    </ul></div>
+    <div class="fcard"><h3>Cámaras y marcador <span class="n">4</span></h3><ul>
+      <li>Cámaras de <b>persecución</b>, <b>cabina</b>, <b>parachoques</b> y <b>televisión</b> con las del circuito original.</li>
       <li><b>Modo foto</b>: carrera congelada, cámara libre, exposición, desenfoque y guardar la imagen.</li>
       <li>Marcador configurable: velocímetro digital o de aguja, tamaño, y cada parte se puede ocultar.</li>
-      <li>Nombres sobre los coches.</li>
-      <li>Minimapa con la trazada real de cada circuito.</li></ul></div>
+      <li>Nombres sobre los coches y minimapa con la trazada real.</li>
+    </ul></div>
     <div class="fcard"><h3>Rivales <span class="n">5</span></h3><ul>
-      <li><b>Los rivales originales</b>: el juego reproduce las carreras grabadas por Big Red en cada circuito, igual que en 1995.</li>
-      <li><b>IA nueva</b> opcional que sigue las trazadas grabadas del original con físicas propias.</li>
-      <li>Hasta 11 rivales que corren <b>en pelotón</b> contigo: adelantamientos y choques toda la carrera.</li>
-      <li>Los rivales pitan si les golpeas, al caer de un salto o si vuelcan, y a veces te contestan.</li>
-      <li>Cada circuito solo permite sus vehículos, como el original.</li></ul></div>
-    <div class="fcard"><h3>Conducción <span class="n">6</span></h3><ul>
+      <li><b>Los rivales originales</b>: las carreras grabadas por Big Red en cada circuito, igual que en 1995.</li>
+      <li><b>IA nueva</b> opcional que sigue las trazadas del original con físicas propias.</li>
+      <li>Hasta 11 rivales <b>en pelotón</b> contigo, con <b>salidas limpias</b> y adelantamientos toda la carrera.</li>
+      <li>Rivales con <b>color, bocina y nombre de equipo</b> al azar (o los colores del original).</li>
+      <li>Pitan si les golpeas, al caer de un salto o si vuelcan, y a veces te contestan.</li>
+    </ul></div>
+    <div class="fcard"><h3>Conducción <span class="n">5</span></h3><ul>
       <li>Físicas con suspensión por rueda, agarre por superficie y nitro.</li>
-      <li>Saltos con rebote natural al caer.</li>
       <li>Choques entre coches con la forma real de cada vehículo.</li>
-      <li><b>Mandos modernos</b> con <b>vibración</b> según golpes, aterrizajes y suelo.</li>
+      <li><b>Controles a tu gusto</b> en teclado y mando, con <b>vibración</b>.</li>
+      <li><b>Ayudas de conducción</b> para empezar: dirección, frenada y recolocar solo.</li>
       <li><b>Modo libre</b>: cualquier vehículo en cualquier circuito.</li>
-      <li>Recolocar en el último control pasado.</li></ul></div>
+    </ul></div>
     <div class="fcard"><h3>Multijugador <span class="n">5</span></h3><ul>
       <li><b>Pantalla partida</b> de 2 a 8 jugadores.</li>
-      <li><b>Online sin servidor</b>: partida con código, pública o privada, hasta 12 jugadores; se puede empezar solo con la máquina.</li>
-      <li>Modos: una carrera, lista de carreras, campeonato, circuito al azar y votación.</li>
-      <li>Chat de texto y chat de voz.</li>
-      <li>Logos y bocinas propios que ven y oyen los demás.</li></ul></div>
-    <div class="fcard"><h3>Sonido <span class="n">5</span></h3><ul>
-      <li>Música original del CD y narraciones de cada circuito.</li>
+      <li><b>Online sin servidor</b> hasta 12: partida con código, pública o privada, también solo con la máquina.</li>
+      <li><b>Reconexión automática</b>, <b>cambio de anfitrión</b> si se va, expulsar y silenciar jugadores.</li>
+      <li>Modos: una carrera, lista, campeonato, circuito al azar y votación.</li>
+      <li>Chat de texto y de voz; logos, colores y bocinas que ven y oyen los demás.</li>
+    </ul></div>
+    <div class="fcard"><h3>Sonido <span class="n">4</span></h3><ul>
+      <li>Música original del CD y narraciones de cada circuito; el locutor comenta adelantamientos, última vuelta y más.</li>
       <li><b>Tus propias canciones</b> como banda sonora, o mezcladas con las originales.</li>
-      <li>Volúmenes separados: música, voces, efectos, motores, menús y ambiente.</li>
-      <li><b>Sonido en 3D</b> y eco en los túneles.</li>
-      <li><b>31 bocinas</b>: normales, sirenas, animales, cachondas y las muestras graciosas del juego original, o una tuya.</li></ul></div>
+      <li>Volúmenes separados, <b>sonido en 3D</b> y eco en los túneles.</li>
+      <li><b>Más de 35 bocinas</b>: normales, sirenas, cachondas, animales, clips y las del juego original, o una tuya.</li>
+    </ul></div>
     <div class="fcard"><h3>Menús y perfiles <span class="n">5</span></h3><ul>
-      <li><b>Menú nuevo</b> manejable con el mando, y el <b>menú original de 1995</b> recreado.</li>
-      <li>Campeonato con las 7 series originales y <b>contrarreloj</b> con clasificación online.</li>
-      <li><b>Perfiles</b> con sus propios ajustes, récords y campeonato.</li>
-      <li><b>Estadísticas</b> del piloto y tabla de récords por circuito y vehículo.</li>
-      <li>Pausa automática al cambiar de ventana.</li></ul></div>
+      <li>Pantalla de inicio con <b>PRESS START</b> y <b>menú nuevo</b> manejable con el mando; también el <b>menú original de 1995</b>.</li>
+      <li>Campeonato con las 7 series y <b>contrarreloj</b> con clasificación online.</li>
+      <li><b>21 logros</b>, perfiles, estadísticas y récords por circuito.</li>
+      <li><b>6 idiomas</b>, colores para daltonismo y menús más grandes.</li>
+      <li><b>Instalable como aplicación</b> desde la web y aviso automático de fallos.</li>
+    </ul></div>
     <div class="fcard"><h3>Personalización y mods <span class="n">4</span></h3><ul>
-      <li>6 pilotos, 13 logos originales, 6 colores de escudería y <b>color RGB propio</b>.</li>
-      <li><b>Logo propio</b>: cualquier imagen tuya, en alta resolución, pintada en tu coche.</li>
-      <li><b>Mods</b>: carpetas que cambian texturas, coches o sonidos, con activar y desactivar.</li>
-      <li>Compatible con el parche oficial v2.25.</li></ul></div>
+      <li>Piloto con <b>cabeza y cuerpo</b> a elegir por separado.</li>
+      <li><b>Nombre de equipo</b> libre, logos originales y nuevos, <b>logo propio</b> y <b>color RGB</b> en coche, piloto y nombre.</li>
+      <li>Tu vehículo dando vueltas al elegir circuito.</li>
+      <li><b>Mods</b>: carpetas que cambian texturas, coches o sonidos; compatible con el parche oficial v2.25.</li>
+    </ul></div>
   </div>
 </div></section>
 
 <section id="noticias"><div class="wrap">
   <div class="head"><div><div class="eyebrow">Diario de desarrollo</div><h2>Noticias</h2></div></div>
   <div class="news">
+    <article class="post"><div><time datetime="2026-10-25">25 oct 2026</time><br><span class="ver">0.12</span></div><div>
+      <h3>Portada nueva, PRESS START y donaciones</h3>
+      <p>El juego arranca con la portada de Big Red Report y su PRESS START; al pulsarlo entra directo al menú con la música si ya elegiste la carpeta otra vez. Y si quieres apoyar el proyecto, ya hay Ko-fi y PayPal en la web, en GitHub y en el menú del juego.</p>
+      <ul><li>Web renovada: lista de mejoras al día, hoja de ruta en bloques y portada nueva.</li></ul></div></article>
     <article class="post"><div><time datetime="2026-10-25">25 oct 2026</time><br><span class="ver">0.11</span></div><div>
       <h3>Controles a tu gusto, logros y ayudas</h3>
       <p>Cambia cualquier tecla o botón del mando (Opciones → Controles), consigue 21 logros y, si empiezas, activa las ayudas de conducción. El piloto ya se monta con la cabeza y el cuerpo que quieras.</p>
@@ -355,22 +373,17 @@ footer b{color:#fff}
 </div></section>
 
 <section id="hoja"><div class="wrap">
-  <div class="head"><div><div class="eyebrow">Lo que viene</div><h2>Hoja de ruta</h2><p>Lo que falta para la versión final, de lo más rápido a lo más largo. La lista completa, con lo que se va tachando, está en <a href="https://github.com/BigRedReport/bigredreport/blob/main/ROADMAP.md">GitHub</a>.</p></div></div>
+  <div class="head"><div><div class="eyebrow">Lo que viene</div><h2>Hoja de ruta</h2><p>Lo que falta para la versión final, en bloques del más rápido al más largo. La lista completa, con lo que se va tachando, está en <a href="https://github.com/BigRedReport/bigredreport/blob/main/ROADMAP.md">GitHub</a>.</p></div></div>
   <ol class="road">
-    <li><b>Retoques rápidos</b><span>hecho: controles a gusto, logros, accesibilidad, comentarista, avisos de fallos, instalable · falta: IA de Marte</span></li>
-    <li><b>Modo libre con rampas</b><span>sin cronómetro, para hacer el tonto: pon una rampa delante de ti donde quieras</span></li>
-    <li><b>Pilotos nuevos</b><span>niño y gordo, con el estilo del original</span></li>
-    <li><b>Fantasmas y retos semanales</b><span>contra los tiempos de otros, los mismos retos para todos</span></li>
-    <li><b>Modo clásico de 1995</b><span>resolución, distancia, luz, marcador y sonido como entonces</span></li>
-    <li><b>Repeticiones</b><span>guardar carreras, verlas con las cámaras de TV y exportarlas a vídeo</span></li>
-    <li><b>Clima y horas del día</b><span>lluvia, niebla, amanecer y atardecer; reflejos</span></li>
-    <li><b>Espectador y social</b><span>mirar partidas online, amigos, invitaciones y revancha</span></li>
-    <li><b>Android</b><span>cargar el juego desde un .zip, controles táctiles y app instalable</span></li>
-    <li><b>Decoración y garaje</b><span>metalizados, vinilos y pegatinas; mejoras pagadas con el campeonato</span></li>
-    <li><b>Windows, Linux y Steam Deck</b><span>programa instalable, volantes y pedales, realidad virtual</span></li>
-    <li><b>Modos nuevos</b><span>objetos y misiles tipo Mario Kart, acrobacias</span></li>
-    <li><b>Comunidad</b><span>clasificaciones verificadas, ligas, lanzadores de ports</span></li>
-    <li><b>Daños y mods de verdad</b><span>daños visuales, coches y circuitos nuevos, editor de circuitos, catálogo</span></li>
+    <li><b>Modo libre y diversión</b><span>rampas donde quieras, desafíos de acrobacias, pilotos niño y gordo</span></li>
+    <li><b>Competir</b><span>fantasmas, retos semanales, repeticiones y modo espectador</span></li>
+    <li><b>Ambiente</b><span>clima y horas del día, reflejos, mejor sonido de motores</span></li>
+    <li><b>Nostalgia</b><span>modo clásico como en 1995</span></li>
+    <li><b>Mi coche</b><span>editor de decoración y garaje con mejoras</span></li>
+    <li><b>Social</b><span>amigos, invitaciones, revancha y ligas</span></li>
+    <li><b>Plataformas</b><span>Windows, Linux y Steam Deck con lanzador, volantes, realidad virtual y Android</span></li>
+    <li><b>Modos locos</b><span>objetos y misiles tipo Mario Kart, daños visuales</span></li>
+    <li><b>Creadores</b><span>coches y circuitos nuevos, editor de circuitos, catálogo, clasificaciones verificadas</span></li>
     <li><b>Física original</b><span>el manejo de 1995 sacado del ejecutable, como opción</span></li>
   </ol>
 </div></section>
@@ -415,6 +428,16 @@ footer b{color:#fff}
   <div id="c_list" class="comments"><div class="empty">Cargando comentarios…</div></div>
 </div></section>
 
+<section id="apoyar"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Donaciones</div><h2>Apoya el proyecto</h2><p>Big Red Report es y será <b>gratis</b>, sin anuncios ni nada que comprar. Si quieres echar una mano con la web, los servidores online y las herramientas, cualquier euro ayuda. Las donaciones no dan ninguna ventaja en el juego.</p></div></div>
+  <div class="donate">
+    <div><a class="cta" href="https://ko-fi.com/bigredreport" target="_blank" rel="noopener">☕ Invitar a un café en Ko-fi</a>
+    <a class="cta ghost" href="https://www.paypal.com/qrcodes/managed/83d53320-fe9b-4270-a29c-1b47e031181d?utm_source=consweb_more" target="_blank" rel="noopener" style="color:var(--ink);border-color:var(--line)">PayPal</a>
+    <p class="note">Ko-fi acepta tarjeta y PayPal sin crear cuenta. Desde el móvil, escanea el código para abrir PayPal.</p></div>
+    <img src="img/paypal_qr.png" alt="Código QR para donar con PayPal" width="170" height="170">
+  </div>
+</div></section>
+
 <section id="faq"><div class="wrap">
   <div class="head"><div><div class="eyebrow">Lo típico</div><h2>Preguntas</h2></div></div>
   <div class="faq">
@@ -428,6 +451,10 @@ footer b{color:#fff}
 </div></section>
 </main>
 
+<div class="retro"><div class="wrap">
+  <div class="rbox"><span class="rlab">Visitantes</span><span id="visits" class="odo"><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span></span></div>
+  <div class="rmarq"><span>★ ¡Gracias por pasarte por Big Red Report! ★ Firma en los comentarios ★ Mejor visto a 800×600 con el volumen alto ★</span></div>
+</div></div>
 <footer><div class="wrap">
   <div><b>Big Red Report</b> · port de fans de Big Red Racing (1995) · <a style="color:#fff" href="https://github.com/BigRedReport/bigredreport">GitHub</a></div>
   <div>Big Red Racing es © de sus respectivos dueños. Este sitio no distribuye archivos del juego.</div>

@@ -103,13 +103,21 @@
     $('dirinput').click();
   };
   $('dirinput').onchange = e => useFiles([...e.target.files]);
+  let lastDir = null;
   (async () => {
     try {
-      const h = window.showDirectoryPicker && await idbGet('dir');
+      const h = lastDir = window.showDirectoryPicker && await idbGet('dir');
       if (h) { $('again').hidden = false; $('again').textContent = 'Usar la carpeta de la última vez (' + h.name + ')';
         $('again').onclick = async () => { if (await h.requestPermission({ mode: 'read' }) === 'granted') useFiles(await filesFromHandle(h)); }; }
     } catch (e) { }
   })();
+  // pantalla de inicio (PRESS START): al pulsar, si ya se eligió la carpeta otra vez, se entra directo al menú con su música
+  { let gone = false;
+    const go1 = async () => { if (gone || $('title').hidden) return; gone = true; $('t_press').style.animation = 'none';
+      try { if (lastDir && (await lastDir.queryPermission({ mode: 'read' }) === 'granted' || await lastDir.requestPermission({ mode: 'read' }) === 'granted')) { await useFiles(await filesFromHandle(lastDir)); if (audio) { audio.init && audio.init(); menuMusic(); } return; } } catch (e) { }
+      if (state === 'folder') show('folder'); };
+    $('title').onclick = go1; addEventListener('keydown', e => { if (!$('title').hidden && !e.repeat) go1(); });
+    const padT = () => { if ($('title').hidden) return; if (pads().some(g => g.buttons.some(b => b.pressed))) go1(); else requestAnimationFrame(padT); }; requestAnimationFrame(padT); }
 
   const LEVEL_NAMES = { CITY: 'Ciudad', DIRT: 'Tierra', MOON: 'Marte', WATER: 'Río', SNOW: 'Nieve', RUF: 'Desierto', RIG: 'Plataforma', CHOPPER: 'Helicóptero', TEST: 'Prueba' };
   const VEH_NAMES = { JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable',
@@ -307,6 +315,7 @@
   function go(v, silent) {
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
+    if (v === 'donate') { $('donate').hidden = false; setTimeout(() => navFocusFirst($('donate')), 0); return; }
     if (v === 'exit') { show('bye'); state = 'bye'; if (audio) audio.stopMusic(); try { window.close(); } catch (e) { } return; }
     if (v === 'back') v = (VIEWS[view] || {}).back || 'home';
     const W = VIEWS[v]; if (!W) return; view = v;
@@ -318,6 +327,7 @@
     if (globeT) { globeT.drawn = false; globeT.start(); } if (globeD) { globeD.drawn = false; globeD.start(); }
     setTimeout(() => navFocusFirst(W.pane === 'home' ? $(W.col) : $('pane_' + W.pane)), 0);
   }
+  $('dn_close').onclick = () => { $('donate').hidden = true; }; $('donate').onclick = e => { if (e.target.id === 'donate') $('donate').hidden = true; };
   $('m_back').onclick = () => { sfx('BEEP2'); go('back'); };
   for (const b of document.querySelectorAll('.hbtn')) b.onclick = () => { sfx(b.dataset.go === 'back' ? 'BEEP2' : 'BEEP4'); go(b.dataset.go); };
   $('bye_back').onclick = () => { state = 'menu'; show('menu'); go('home'); menuMusic(); };

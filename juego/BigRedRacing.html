@@ -93,6 +93,19 @@ input[type=range]{width:100%;accent-color:var(--red)}
 @keyframes achin{from{opacity:0;transform:translate(-50%,-14px)}}#achtoast[hidden]{display:none}
 #errbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9999;background:rgba(40,12,12,.95);border:1px solid #e23b3b;border-radius:10px;padding:8px 12px;font-size:13px;display:flex;gap:10px;align-items:center}#errbar[hidden]{display:none}#errbar a{color:#ffd23f;font-weight:700}#errbar button{background:none;border:0;color:#ccc;cursor:pointer;padding:0 4px}
 #menu,#optpanel .card,#results .card,#pause .card{zoom:var(--uiz,1)}
+#title{position:fixed;inset:0;z-index:50;background:#fff url(title.jpg) center/contain no-repeat;cursor:pointer;display:block}
+#title[hidden]{display:none}
+#title .tpress{position:absolute;left:50%;bottom:3.2%;transform:translateX(-50%);font:900 clamp(20px,3.4vw,40px)/1 system-ui;letter-spacing:.16em;color:#ff2a2a;background:rgba(0,0,0,.88);padding:.45em .9em;border-radius:12px;border:2px solid #ff2a2a;box-shadow:0 6px 24px #0007;animation:tblink 1.2s ease-in-out infinite;white-space:nowrap}
+#title .tfoot{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;font-size:12px;color:#222;background:#fffd;padding:2px 10px;border-radius:6px}
+@keyframes tblink{50%{opacity:.55}}
+#donate{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center}#donate[hidden]{display:none}
+#donate .card{max-width:560px;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}#donate h2{margin:0 0 8px}
+.dnrow{display:flex;gap:16px;align-items:center;justify-content:space-between;margin:14px 0}.dnrow>div{display:flex;flex-direction:column;gap:10px;flex:1}.dnrow img{border-radius:10px;background:#fff;padding:6px}
+.dnb{display:block;text-align:center;padding:12px 14px;border-radius:10px;font-weight:800;text-decoration:none;color:#fff}.dnb.kofi{background:#29abe0}.dnb.pp{background:#003087}
+.hbtn.dnt{color:#ff6b81}
+@media (max-height:720px){.hbtn{font-size:18px;padding:9px 20px}.hbtn.small2{font-size:14px;padding:7px 14px}.hcol{gap:7px}}
+.hrow{display:flex;gap:8px;flex-wrap:wrap}.hrow .hbtn{flex:1 1 auto;width:auto;min-width:0;margin:0}
+.mfoot{pointer-events:none}.mfoot a,.mfoot button{pointer-events:auto}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .psub{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9aa4b2;margin:10px 0 6px}.psub:first-of-type{margin-top:2px}
 .pcolors{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
@@ -154,7 +167,9 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 </head><body>
 <canvas id="c"></canvas><div id="err"></div>
 
-<div class="screen" id="folder"><div class="card">
+<div class="screen" id="title"><div class="tpress" id="t_press">PRESS START</div></div>
+
+<div class="screen" id="folder" hidden><div class="card">
   <h1><b>Big Red</b> Racing</h1>
   <p>Este remake usa los archivos de tu copia original. Elige la carpeta del juego que contiene <b>BIGRED</b> e <b>IMAGE.img</b> (así tendrás también la música del CD), o directamente la carpeta BIGRED.</p>
   <button class="main" id="pick">Elegir carpeta BIGRED</button>
@@ -177,8 +192,9 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="profile">Piloto y escudería</button>
         <button class="hbtn" data-go="options">Opciones</button>
         <button class="hbtn" data-go="mods">Mods</button>
-        <button class="hbtn small2" data-go="orig">Menú original (1995)</button>
-        <button class="hbtn small2" data-go="exit">Salir</button>
+        <div class="hrow"><button class="hbtn small2" data-go="orig">Menú original (1995)</button>
+        <button class="hbtn small2 dnt" data-go="donate">❤ Apoyar el proyecto</button>
+        <button class="hbtn small2" data-go="exit">Salir</button></div>
       </div>
       <div class="hcol" id="h_single" hidden>
         <button class="hbtn" data-go="quick">Carrera rápida</button>
@@ -420,6 +436,16 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <label><input id="ph_hud" type="checkbox"> Mostrar marcador</label><button id="ph_shot">Guardar foto</button><button id="ph_exit">Salir (F)</button></div>
 <div id="fps"></div><div id="netbar" hidden></div>
 
+<div id="donate" hidden><div class="card">
+  <h2>❤ Apoya Big Red Report</h2>
+  <p>El port es y será <b>gratis</b>, sin anuncios ni nada que comprar. Si quieres echar una mano con la web, los servidores online y las herramientas, cualquier euro ayuda.</p>
+  <div class="dnrow"><div><a class="dnb kofi" href="https://ko-fi.com/bigredreport" target="_blank" rel="noopener">☕ Invitar a un café en Ko-fi</a><a class="dnb pp" href="https://www.paypal.com/qrcodes/managed/83d53320-fe9b-4270-a29c-1b47e031181d?utm_source=consweb_more" target="_blank" rel="noopener">PayPal</a></div>
+  <img src="paypal_qr.png" alt="Código QR de PayPal" width="150" height="150"></div>
+  <p class="small">Ko-fi acepta tarjeta y PayPal sin crear cuenta. El QR abre PayPal desde el móvil.</p>
+  <button id="dn_close">Cerrar</button>
+</div></div>
+<div id="achtoast" hidden></div>
+<div id="errbar" hidden></div>
 <script src="js/lang.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/brrdata.js"></script>
@@ -441,6 +467,5 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/horns_data.js"></script>
 <script src="js/horns.js"></script>
 <script src="js/main.js"></script>
-<div id="achtoast" hidden></div>
-<div id="errbar" hidden></div>
+
 </body></html>

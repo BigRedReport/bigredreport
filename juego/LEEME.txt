@@ -78,6 +78,11 @@ Gráficos nuevos
 - Opciones → Gráficos → Texturas "Suavizadas": además se escala el suelo (bordes del césped sin dientes de sierra).
 - Opciones → Gráficos → Imágenes del menú: mejoradas (escalado HD), suavizadas o pixeladas como el original.
 
+Inicio y apoyo
+- Al abrirlo sale la portada con PRESS START (tecla, clic o botón del mando). Si ya elegiste la carpeta antes,
+  entra directo al menú con la música.
+- Menú principal → "Apoyar el proyecto": Ko-fi y PayPal. El juego es y será gratis.
+
 Controles, logros y ayudas
 - Opciones → Controles: cambia cualquier tecla (un jugador o los dos de pantalla partida) o botón del mando.
 - Opciones → Juego: ayudas de conducción (suaves o fuertes), colores para daltonismo y tamaño de los menús.
