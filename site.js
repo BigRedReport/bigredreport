@@ -136,4 +136,3 @@
   cur = $('lb_lv').value; draw(); connect();
   setTimeout(() => { if (ready && !rows[cur]) { rows[cur] = []; draw(); } }, 4000);
 })();
-
