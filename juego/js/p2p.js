@@ -8,7 +8,7 @@
 
   // límites del contenido propio que llega por la red: logos (formato y tamaño), color, piloto, vehículo y nombre
   const cleanData = d => { const o = {}; if (!d || typeof d !== 'object') return o;
-    for (const k of ['team', 'char']) if (d[k] != null) { const v = d[k] | 0; if (v >= 0 && v <= 12) o[k] = v; }
+    for (const k of ['team', 'char', 'head', 'body']) if (d[k] != null) { const v = d[k] | 0; if (v >= 0 && v <= 12) o[k] = v; }
     if (typeof d.veh === 'string' && /^[A-Z0-9_]{1,12}$/i.test(d.veh)) o.veh = d.veh.toUpperCase();
     if (d.ready != null) o.ready = !!d.ready;
     if (typeof d.teamName === 'string') o.teamName = d.teamName.replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 24); else if (d.teamName === null) o.teamName = null;

@@ -11,18 +11,14 @@
     { id: 'claxon', n: 'Claxon antiguo (¡auuga!)' }, { id: 'payaso', n: 'Bocina de payaso' }, { id: 'cucaracha', n: 'La cucaracha' },
     { id: 'trombon', n: 'Trombón triste' }, { id: 'boing', n: 'Muelle (boing)' }, { id: 'silbato', n: 'Silbato de émbolo' },
     { id: 'laser', n: 'Láser' }, { id: 'bici', n: 'Timbre de bici' },
-    { id: 'u:airhorn', n: 'Bocina de aire' }, { id: 'u:bicycle', n: 'Bicicleta' }, { id: 'u:mgs', n: 'Alerta (MGS)' }, { id: 'u:extra_life', n: 'Vida extra' }, { id: 'u:cash', n: 'Caja registradora' },
-    { id: 'u:punch', n: 'Puñetazo' }, { id: 'u:throwing_s', n: 'Lanzamiento' }, { id: 'u:aaaah', n: '¡Aaaah!' }, { id: 'u:oh_my_god', n: 'Oh my God' }, { id: 'u:sparta', n: 'This is Sparta!' },
-    { id: 'u:hello_mf', n: 'Hello MF' }, { id: 'u:surprise_mf', n: 'Surprise MF' }, { id: 'u:move_b', n: 'Move B' }, { id: 'u:smoke_w', n: 'Smoke W' }, { id: 'u:mercadona', n: 'Mercadona' },
-    { id: 'u:sheep', n: 'Oveja (beee)' }, { id: 'u:cow', n: 'Vaca (muu)' }, { id: 'u:kittie', n: 'Gatito (miau)' }, { id: 'u:goat', n: 'Cabra' }, { id: 'u:monkey', n: 'Mono' },
     { id: 's:FART1', n: 'Pedo (del juego)' }, { id: 's:FART2', n: 'Pedo largo (del juego)' }, { id: 's:BURP1', n: 'Eructo (del juego)' },
     { id: 's:LAUGH', n: 'Risa (del juego)' }, { id: 's:PARROT', n: 'Loro (del juego)' }, { id: 's:BABY', n: 'Bebé (del juego)' },
     { id: 's:HEY', n: '¡Hey! (del juego)' }, { id: 's:OOH', n: '¡Ooh! (del juego)' }, { id: 's:SPIT', n: 'Escupitajo (del juego)' },
     { id: 'propia', n: 'Bocina propia' },
   ];
   // si no está el paquete de clips (horns_data.js), esas bocinas no aparecen
-  if (!BRR.HORN_CLIPS) BRR.HORNS = BRR.HORNS.filter(h => !h.id.startsWith('u:'));
-  else BRR.HORNS = BRR.HORNS.filter(h => !h.id.startsWith('u:') || BRR.HORN_CLIPS[h.id.slice(2)]);
+  // bocinas de clips (horns_data.js trae la lista y los sonidos): van antes de las del juego original
+  { const at = BRR.HORNS.findIndex(h => h.id.startsWith('s:')); BRR.HORNS.splice(at, 0, ...(BRR.HORN_CLIP_LIST || []).filter(h => BRR.HORN_CLIPS && BRR.HORN_CLIPS[h.id]).map(h => ({ id: 'u:' + h.id, n: h.n }))); }
   BRR.hornInfo = id => BRR.HORNS.find(h => h.id === id) || BRR.HORNS[0];
   // bocinas que se quitaron: quien las tuviera pasa a la nueva equivalente
   BRR.HORN_RENAMED = { gato: 'u:kittie', vaca: 'u:cow', cerdo: 'u:goat', rana: 'u:monkey', pato: 'u:sheep' };
@@ -122,15 +118,18 @@
   // id: tipo de bocina · pitch: variación por coche · vol · o.dur: para las continuas, cuánto dura (null = hasta stop) · o.custom: AudioBuffer propio
   BRR.playHorn = function (A, id, pitch = 1, vol = 0.8, o = {}) {
     if (!A || !A.ctx) return null; const info = BRR.hornInfo(id);
-    let dest = null; if (o.pos && A.spatial) { dest = A.panner(o.pos); dest.connect(A.gHorn || A.gSfx); } A._hornDest = dest;
+    let dest = null; if (o.pos && A.spatial) { dest = A.panner(o.pos); dest.connect(A.gHorn || A.gSfx); }
+    // todo suena a través de un volumen propio: así se puede cortar al volver a pulsar (vuelve a empezar)
+    const wrap = A.ctx.createGain(); wrap.connect(dest || A.gHorn || A.gSfx); A._hornDest = wrap;
+    const cut = () => { try { const t = A.ctx.currentTime; wrap.gain.cancelScheduledValues(t); wrap.gain.setValueAtTime(wrap.gain.value, t); wrap.gain.linearRampToValueAtTime(0, t + 0.03); setTimeout(() => { try { wrap.disconnect(); } catch (e) { } }, 80); } catch (e) { } };
     try {
       if (id === 'propia' || id.startsWith('s:') || id.startsWith('u:')) {
         const go = async () => { const b = id === 'propia' ? A.customHorn : id.startsWith('u:') ? await clip(A, id.slice(2)).catch(() => null) : await A.buf('SAMPLES/' + id.slice(2) + '.WAV'); if (!b) return SYN.normal(A, pitch, vol).stop(0.3);
-          const s = A.ctx.createBufferSource(), g = A.ctx.createGain(); s.buffer = b; s.playbackRate.value = id === 'propia' || id.startsWith('u:') ? 1 : pitch; g.gain.value = vol; s.connect(g); g.connect(dest || A.gHorn || A.gSfx); s.start(); };
-        go(); return { stop() { }, oneShot: true };
+          if (h.cut) return; const s = A.ctx.createBufferSource(), g = A.ctx.createGain(); s.buffer = b; s.playbackRate.value = id === 'propia' || id.startsWith('u:') ? 1 : pitch; g.gain.value = vol; s.connect(g); g.connect(wrap); s.start(); };
+        const h = { stop() { }, cut() { h.cut = true; cut(); }, oneShot: true }; go(); return h;
       }
-      if (info.hold) { const h = SYN[id](A, pitch, vol); if (o.dur) h.stop(o.dur); return h; }
-      ONE[id](A, pitch, vol); return { stop() { }, oneShot: true };
+      if (info.hold) { const h = SYN[id](A, pitch, vol); if (o.dur) h.stop(o.dur); h.cut = () => { try { h.stop(0.02); } catch (e) { } cut(); }; return h; }
+      ONE[id](A, pitch, vol); return { stop() { }, cut, oneShot: true };
     } catch (e) { console.warn('bocina', e); return null; } finally { A._hornDest = null; }
   };
 })();

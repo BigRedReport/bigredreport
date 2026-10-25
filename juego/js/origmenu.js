@@ -241,13 +241,17 @@
       const im = new Image(); im.src = url; return g => { if (im.complete) g.drawImage(im, x, y, w, h); };
     }
     // logotipo de la escudería como imagen (para el menú moderno): panel del color + dibujo del logo, con la paleta de LOGOSCN
-    async logoURL(logo, team) {
+    async logoURL(logo, team, paint) {
       const S = await this.scene('LOGOSCN'); if (!S.rawData || !S.sprites.length) return null;
       const pal = BRR.pal6(S.rawData.subarray(0, 768)), p = S.sprites[13 + (team - 1) * 5], l = S.sprites[logo]; if (!l) return null;
       const w = p ? p.w : l.w + 16, h = p ? p.h : l.h + 16, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
       const g = cv.getContext('2d'), im = g.createImageData(w, h);
       const put = (sp, ox, oy) => { if (!sp) return; for (let j = 0; j < sp.h; j++) for (let i = 0; i < sp.w; i++) { const c = sp.px[j * sp.w + i]; if (!c) continue; const x = ox + i, y = oy + j; if (x < 0 || y < 0 || x >= w || y >= h) continue; const k = (y * w + x) * 4; im.data[k] = pal[c * 3]; im.data[k + 1] = pal[c * 3 + 1]; im.data[k + 2] = pal[c * 3 + 2]; im.data[k + 3] = 255; } };
-      put(p, 0, 0); put(l, 8, 8); g.putImageData(im, 0, 0); return cv.toDataURL();
+      put(p, 0, 0);
+      // color propio (RGB): el panel toma ese color conservando sus luces y sombras
+      if (paint) { const d = im.data; let ref = 0, n = 0; for (let k = 0; k < d.length; k += 4) if (d[k + 3]) { ref += 0.3 * d[k] + 0.59 * d[k + 1] + 0.11 * d[k + 2]; n++; } ref = ref / Math.max(1, n) || 128;
+        for (let k = 0; k < d.length; k += 4) if (d[k + 3]) { const f = (0.3 * d[k] + 0.59 * d[k + 1] + 0.11 * d[k + 2]) / ref; d[k] = Math.min(255, paint[0] * f); d[k + 1] = Math.min(255, paint[1] * f); d[k + 2] = Math.min(255, paint[2] * f); } }
+      put(l, 8, 8); g.putImageData(im, 0, 0); return cv.toDataURL();
     }
     // logo i en RGBA 40×40 (transparente donde no hay dibujo), para pintarlo en los coches
     async logoRGBA(i) {

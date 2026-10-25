@@ -86,6 +86,12 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .hprof img.hbody{width:72px;height:96px;object-fit:cover;object-position:center 30%;border-radius:10px}
 .dteam{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
 #d_vcv{width:150px;height:100px;background:radial-gradient(ellipse at 50% 70%,#ffffff18,transparent 70%);border:1px solid var(--line);border-radius:10px;flex:none}
+.klist{display:grid;grid-template-columns:1fr auto auto;gap:6px 8px;align-items:center;margin:8px 0}.klist button{min-width:118px;padding:6px 8px;font-size:13px}.klist button.wait{border-color:var(--red);animation:kblink 1s infinite}@keyframes kblink{50%{opacity:.5}}
+.achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.ach{display:flex;gap:10px;align-items:center;background:#111;border-radius:10px;padding:8px 10px;opacity:.45}.ach.on{opacity:1;background:#1c1f2a}.ach .ai{font-size:24px}.ach b{display:block;font-size:13px}.ach span{font-size:11px;color:#9aa4b2}
+#achtoast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:60;display:flex;gap:12px;align-items:center;background:rgba(14,17,25,.95);border:1px solid #ffd23f;border-radius:12px;padding:10px 16px;box-shadow:0 8px 30px #0008;animation:achin .35s ease-out;transition:opacity .4s,transform .4s;pointer-events:none}
+#achtoast.out{opacity:0;transform:translate(-50%,-14px)}#achtoast .ai{font-size:30px}#achtoast small{display:block;color:#ffd23f;font-size:11px;text-transform:uppercase;letter-spacing:.08em}#achtoast b{display:block}#achtoast span{font-size:12px;color:#9aa4b2}
+@keyframes achin{from{opacity:0;transform:translate(-50%,-14px)}}#achtoast[hidden]{display:none}
+#menu,#optpanel .card,#results .card,#pause .card{zoom:var(--uiz,1)}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .psub{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9aa4b2;margin:10px 0 6px}.psub:first-of-type{margin-top:2px}
 .pcolors{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
@@ -189,7 +195,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   </section>
   <section id="pane_profile" class="pane" hidden>
     <div class="tlist">
-      <div class="series"><h3>Piloto</h3><div id="pf_chars" class="pgrid"></div></div>
+      <div class="series"><h3>Piloto</h3><div class="psub">Cabeza</div><div id="pf_heads" class="pgrid pcolors"></div><div class="psub">Cuerpo</div><div id="pf_chars" class="pgrid"></div></div>
       <div class="series"><h3>Nombre del equipo</h3><input id="pf_tname" class="inp" maxlength="24"></div>
       <div class="series"><h3>Escudería (logo y color)</h3><div class="psub">Logo</div><div id="pf_logos" class="pgrid"></div><div class="psub">Color</div><div id="pf_colors" class="pgrid pcolors"></div></div>
       <div class="series"><h3>Bocina <small>H en el teclado · L3/R3 en el mando</small></h3><div id="pf_horns" class="hgrid"></div>
@@ -199,6 +205,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <div class="grid3"><select id="pf_prof"></select><button id="pf_pnew">Nuevo perfil</button><button id="pf_pdel">Borrar este perfil</button></div>
         <div id="pf_pnewrow" hidden style="margin-top:8px" class="grid2"><input id="pf_pname" class="inp" maxlength="16" placeholder="Nombre del perfil"><button id="pf_pok" class="main">Crear y cambiar</button></div></div>
       <div class="series"><h3>Estadísticas</h3><div id="pf_stats" class="stats"></div></div>
+      <div class="series"><h3>Logros <small id="pf_achn"></small></h3><div id="pf_ach" class="achs"></div></div>
       <div class="series"><h3>Récords</h3><div id="pf_recs" class="small"></div></div>
     </div>
     <aside class="detail"><div class="dbody" style="text-align:center"><canvas id="pf_view" width="260" height="260" style="max-width:100%"></canvas><h2 id="pf_title"></h2><p class="small">El piloto y la escudería se usan en carrera rápida, campeonato, contrarreloj y online.</p></div></aside>
@@ -308,7 +315,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 </div>
 
 <div id="optpanel" hidden><div class="card optcard"><h2 style="margin:0 0 6px">Opciones</h2>
-<nav class="otabs"><button data-ot="g" class="on">Gráficos</button><button data-ot="c">Cámara y HUD</button><button data-ot="s">Sonido</button><button data-ot="j">Juego</button></nav>
+<nav class="otabs"><button data-ot="g" class="on">Gráficos</button><button data-ot="c">Cámara y HUD</button><button data-ot="s">Sonido</button><button data-ot="j">Juego</button><button data-ot="k">Controles</button></nav>
 <div id="options">
   <div class="opage" data-op="g">
     <div class="opt"><span>Escala de render</span><input id="o_scale" type="range" min="50" max="200" step="25"><span id="o_scale_v"></span></div>
@@ -354,10 +361,19 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <p class="small"><button id="o_mymusic_clear">Quitar mis canciones</button> Se guardan en el navegador; MP3, OGG, WAV o M4A.</p>
     <div class="opt"><span>Sonido en 3D</span><input id="o_spatial" type="checkbox"><span></span></div>
   </div>
+  <div class="opage" data-op="k" hidden>
+    <div class="opt"><span>Configurar</span><select id="k_layout"><option value="all">Teclado (un jugador)</option><option value="A">Teclado: jugador 1 (pantalla partida)</option><option value="B">Teclado: jugador 2 (pantalla partida)</option><option value="pad">Mando</option></select><span></span></div>
+    <div id="k_list" class="klist"></div>
+    <p class="small" id="k_hint">Pulsa una casilla y después la tecla o el botón que quieras. Supr la deja vacía, Esc cancela.</p>
+    <button id="k_reset">Restablecer los de fábrica</button>
+  </div>
   <div class="opage" data-op="j" hidden>
     <div class="opt"><span>Idioma</span><select id="o_lang" data-notr></select><span></span></div>
     <div class="opt"><span>Rivales</span><select id="o_origai"><option value="1">Originales (carreras grabadas del juego)</option><option value="0">IA nueva</option></select><span></span></div>
     <div class="opt"><span>Aspecto de los rivales</span><select id="o_rivLook"><option value="aleatorio">Colores RGB y bocinas al azar</option><option value="clasico">Colores de equipo (como el original)</option></select><span></span></div>
+    <div class="opt"><span>Ayudas de conducción</span><select id="o_assist"><option value="0">No</option><option value="1">Suaves</option><option value="2">Fuertes</option></select><span></span></div>
+    <div class="opt"><span>Colores para daltonismo</span><select id="o_cb"><option value="no">No</option><option value="deu">Deuteranopía / protanopía (rojo-verde)</option><option value="tri">Tritanopía (azul-amarillo)</option></select><span></span></div>
+    <div class="opt"><span>Tamaño de los menús</span><select id="o_uiz"><option value="100">Normal</option><option value="115">Grande</option><option value="130">Muy grande</option></select><span></span></div>
     <div class="opt"><span>Vibración del mando</span><select id="o_rumble"><option value="0">No</option><option value="0.5">Suave</option><option value="1">Normal</option><option value="1.5">Fuerte</option></select><span></span></div>
     <div class="opt"><span>Pausa al cambiar de ventana</span><input id="o_autopause" type="checkbox"><span></span></div>
     <p class="small">Atajos: <b>O</b> (o Select+Y en el mando) cambia entre iluminación original y moderna en plena carrera · <b>F</b> (o Select+X) modo foto · <b>C</b> / View: cámara.</p>
@@ -422,4 +438,5 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/horns_data.js"></script>
 <script src="js/horns.js"></script>
 <script src="js/main.js"></script>
+<div id="achtoast" hidden></div>
 </body></html>
