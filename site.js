@@ -90,19 +90,24 @@
   const send = (h, body) => { if (ws && ws.readyState === 1) ws.send(new Uint8Array([h, ...len(body.length), ...body])); };
   function parse() { for (;;) { const b = buf; if (b.length < 2) return; let mul = 1, n = 0, i = 1, d; do { if (i >= b.length) return; d = b[i++]; n += (d & 127) * mul; mul *= 128; } while (d & 128);
     if (b.length < i + n) return; const h = b[0], body = b.subarray(i, i + n); buf = b.slice(i + n); const type = h >> 4;
-    if (type === 2) { ready = true; if (cur) sub(cur); visitStart(); clearInterval(pingTimer); pingTimer = setInterval(() => send(0xC0, []), 25000); }
-    else if (type === 9) { const id = (body[0] << 8) | body[1]; if (id === visitPid && !vDone) vT = setTimeout(() => visitGot('0'), 1200); }
+    if (type === 2) { ready = true; if (cur) sub(cur); $('lb_st').textContent = ''; clearTimeout(retryTimer); clearInterval(pingTimer); pingTimer = setInterval(() => send(0xC0, []), 25000); }
     else if (type === 3) { const tl = (body[0] << 8) | body[1], topic = td.decode(body.subarray(2, 2 + tl)); let o = 2 + tl; if ((h >> 1) & 3) o += 2;
-      if (topic === VT) { visitGot(td.decode(body.subarray(o))); continue; }
       let r = []; try { r = JSON.parse(td.decode(body.subarray(o))) || []; } catch (e) { } rows[topic.slice(T.length)] = Array.isArray(r) ? r : []; if (topic.slice(T.length) === cur) draw(); } } }
+  let retryTimer = null;
   function connect(k = 0) {
-    if (k >= BROKERS.length) { $('lb_st').textContent = 'No se ha podido conectar con el servidor de clasificaciones.'; visitUnavailable(); return; }
+    if (k >= BROKERS.length) {
+      $('lb_st').textContent = 'No se ha podido conectar con el servidor de clasificaciones. Reintentando…';
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => { buf = new Uint8Array(0); connect(0); }, 15000);
+      return;
+    }
     const b = BROKERS[k], broker = typeof b === 'string' ? { url: b } : b;
+    buf = new Uint8Array(0);
     try { ws = new WebSocket(broker.url, 'mqtt'); } catch (e) { return connect(k + 1); }
     const socket = ws;
     let failed = false;
-    const nextBroker = () => { if (failed || ready) return; failed = true; clearTimeout(to); connect(k + 1); };
-    ws.binaryType = 'arraybuffer'; const to = setTimeout(() => { if (!ready) { try { socket.close(); } catch (e) { } nextBroker(); } }, 6000);
+    const nextBroker = () => { if (failed || ready) return; failed = true; clearTimeout(to); try { socket.close(); } catch (e) { } connect(k + 1); };
+    ws.binaryType = 'arraybuffer'; const to = setTimeout(() => { if (!ready) nextBroker(); }, 6000);
     ws.onopen = () => {
       const auth = broker.user != null, flags = 0x02 | (auth ? 0xC0 : 0);
       const payload = [...str('brrweb' + Math.random().toString(36).slice(2, 10))];
@@ -111,19 +116,17 @@
     };
     ws.onmessage = ev => { const d = new Uint8Array(ev.data), b = new Uint8Array(buf.length + d.length); b.set(buf); b.set(d, buf.length); buf = b; parse(); };
     ws.onerror = nextBroker;
-    ws.onclose = nextBroker;
-
+    ws.onclose = () => {
+      clearTimeout(to);
+      if (socket !== ws) return;
+      clearInterval(pingTimer);
+      if (!ready) return nextBroker();
+      ready = false;
+      $('lb_st').textContent = 'Se ha interrumpido la conexión. Reintentando…';
+      clearTimeout(retryTimer);
+      retryTimer = setTimeout(() => { buf = new Uint8Array(0); connect(0); }, 15000);
+    };
   }
-  // ---------- contador de visitas (como los de las webs de los 2000): el número se guarda en el mismo buzón público ----------
-  const VT = 'bigredracing/v1/stats/visitas'; let vDone = false, vT = null, visitPid = null;
-  function visitShow(n) { const el = $('visits'); if (!el) return; const d = String(n).padStart(6, '0'), old = [...el.children].map(x => x.textContent).join('');
-    el.innerHTML = [...d].map((c, i) => `<span${old[i] !== c ? ' class="tick"' : ''}>${c}</span>`).join(''); el.title = n.toLocaleString('es-ES') + ' visitas'; }
-  function visitUnavailable() { const el = $('visits'); if (!el) return; el.innerHTML = Array.from('------', c => '<span>' + c + '</span>').join(''); el.title = 'Contador temporalmente no disponible'; }
-  function visitGot(txt) { if (vDone) return; vDone = true; clearTimeout(vT);
-    let n = parseInt(txt, 10) || 0; const day = new Date().toISOString().slice(0, 10); let seen = null; try { seen = localStorage.getItem('brr_visit'); } catch (e) { }
-    if (seen !== day) { n++; try { localStorage.setItem('brr_visit', day); } catch (e) { } send(0x31, [...str(VT), ...te.encode(String(n))]); }   // una visita por persona y día
-    visitShow(n); }
-  function visitStart() { if (vDone) return; const id = pid++ & 0xffff; visitPid = id; send(0x82, [id >> 8, id & 255, ...str(VT), 0]); vT = setTimeout(visitUnavailable, 5000); }
   function sub(lv) { const id = pid++ & 0xffff; send(0x82, [id >> 8, id & 255, ...str(T + lv), 0]); }
   function draw() {
     const R = rows[cur]; const tb = $('lb_t').tBodies[0];
