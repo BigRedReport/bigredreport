@@ -1,6 +1,6 @@
 # Big Red Report
 
-[Español](README.md) · **English:** [README.en.md](README.en.md)
+**Español** · [English](README.en.md)
 
 ![Big Red Report](img/portada.jpg)
 
