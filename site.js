@@ -90,13 +90,14 @@
   const send = (h, body) => { if (ws && ws.readyState === 1) ws.send(new Uint8Array([h, ...len(body.length), ...body])); };
   function parse() { for (;;) { const b = buf; if (b.length < 2) return; let mul = 1, n = 0, i = 1, d; do { if (i >= b.length) return; d = b[i++]; n += (d & 127) * mul; mul *= 128; } while (d & 128);
     if (b.length < i + n) return; const h = b[0], body = b.subarray(i, i + n); buf = b.slice(i + n); const type = h >> 4;
-    if (type === 2) { ready = true; if (cur) sub(cur); $('lb_st').textContent = ''; clearTimeout(retryTimer); clearInterval(pingTimer); pingTimer = setInterval(() => send(0xC0, []), 25000); }
+    if (type === 2) { ready = true; if (cur) sub(cur); $('lb_st').textContent = ''; if (cur) { rows[cur] = undefined; draw(); } clearTimeout(retryTimer); clearInterval(pingTimer); pingTimer = setInterval(() => send(0xC0, []), 25000); }
     else if (type === 3) { const tl = (body[0] << 8) | body[1], topic = td.decode(body.subarray(2, 2 + tl)); let o = 2 + tl; if ((h >> 1) & 3) o += 2;
       let r = []; try { r = JSON.parse(td.decode(body.subarray(o))) || []; } catch (e) { } rows[topic.slice(T.length)] = Array.isArray(r) ? r : []; if (topic.slice(T.length) === cur) draw(); } } }
   let retryTimer = null;
   function connect(k = 0) {
     if (k >= BROKERS.length) {
       $('lb_st').textContent = 'No se ha podido conectar con el servidor de clasificaciones. Reintentando…';
+      $('lb_t').tBodies[0].innerHTML = '<tr><td colspan="5" class="empty">Sin conexión con el servidor. Reintentando…</td></tr>';
       clearTimeout(retryTimer);
       retryTimer = setTimeout(() => { buf = new Uint8Array(0); connect(0); }, 15000);
       return;
@@ -123,6 +124,7 @@
       if (!ready) return nextBroker();
       ready = false;
       $('lb_st').textContent = 'Se ha interrumpido la conexión. Reintentando…';
+      $('lb_t').tBodies[0].innerHTML = '<tr><td colspan="5" class="empty">Sin conexión con el servidor. Reintentando…</td></tr>';
       clearTimeout(retryTimer);
       retryTimer = setTimeout(() => { buf = new Uint8Array(0); connect(0); }, 15000);
     };
