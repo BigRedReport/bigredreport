@@ -100,7 +100,8 @@
   }
   // ---------- contador de visitas (como los de las webs de los 2000): el número se guarda en el mismo buzón público ----------
   const VT = 'bigredracing/v1/stats/visitas'; let vDone = false, vT = null;
-  function visitShow(n) { const el = $('visits'); if (!el) return; const d = String(n).padStart(6, '0'); el.innerHTML = [...d].map(c => `<span>${c}</span>`).join(''); el.title = n + ' visitas'; }
+  function visitShow(n) { const el = $('visits'); if (!el) return; const d = String(n).padStart(6, '0'), old = [...el.children].map(x => x.textContent).join('');
+    el.innerHTML = [...d].map((c, i) => `<span${old[i] !== c ? ' class="tick"' : ''}>${c}</span>`).join(''); el.title = n.toLocaleString('es-ES') + ' visitas'; }
   function visitGot(txt) { if (vDone) return; vDone = true; clearTimeout(vT);
     let n = parseInt(txt, 10) || 0; const day = new Date().toISOString().slice(0, 10); let seen = null; try { seen = localStorage.getItem('brr_visit'); } catch (e) { }
     if (seen !== day) { n++; try { localStorage.setItem('brr_visit', day); } catch (e) { } send(0x31, [...str(VT), ...te.encode(String(n))]); }   // una visita por persona y día

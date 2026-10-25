@@ -1,6 +1,6 @@
 # Hoja de ruta de Big Red Report
 
-Lo que falta para la versión final del port, **en bloques, del más rápido al más largo**. Se va tachando según se termina.
+Lo que falta para la versión final del port, **en bloques, del más rápido y fácil al más largo y difícil**. Se va tachando según se termina.
 ¿Has visto un fallo? Repórtalo en [Issues](../../issues) o desde la [web](https://bigredreport.github.io/bigredreport/#fallos).
 
 ## Hecho hasta ahora
@@ -28,24 +28,24 @@ Lo que falta para la versión final del port, **en bloques, del más rápido al 
 - [ ] Desafíos de acrobacias: puntos por saltos, vueltas de campana y aterrizajes
 - [ ] Pilotos nuevos con el estilo del original: niño y gordo
 
-## Bloque 2 · Competir (medio)
-- [ ] Fantasmas descargables y retos semanales iguales para todos
-- [ ] Repeticiones: guardar la carrera, verla con las cámaras de televisión y exportarla a vídeo
-- [ ] Modo espectador en online
+## Bloque 2 · Nostalgia (rápido-medio)
+- [ ] Modo clásico auténtico: resolución, distancia, iluminación, marcador y sonido como en 1995
 
 ## Bloque 3 · Ambiente (medio)
 - [ ] Clima y horas del día: lluvia, niebla, amanecer, atardecer
 - [ ] Efectos modernos: oclusión ambiental y reflejos
 - [ ] Motores con mejor sonido (más muestras y transiciones suaves)
 
-## Bloque 4 · Nostalgia (medio)
-- [ ] Modo clásico auténtico: resolución, distancia, iluminación, marcador y sonido como en 1995
+## Bloque 4 · Competir (medio)
+- [ ] Fantasmas descargables y retos semanales iguales para todos
+- [ ] Repeticiones: guardar la carrera, verla con las cámaras de televisión y exportarla a vídeo
+- [ ] Modo espectador en online
 
 ## Bloque 5 · Mi coche (medio)
 - [ ] Editor de decoración: metalizados, vinilos y capas de pegatinas, que se vean en online
 - [ ] Garaje con mejoras (motor, ruedas, nitro) pagadas con lo ganado en el campeonato
 
-## Bloque 6 · Social (medio)
+## Bloque 6 · Social (medio-largo)
 - [ ] Amigos, invitaciones y revancha inmediata
 - [ ] Ligas y eventos en servidores dedicados
 
