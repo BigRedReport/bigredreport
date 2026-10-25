@@ -88,9 +88,10 @@ input[type=range]{width:100%;accent-color:var(--red)}
 #d_vcv{width:150px;height:100px;background:radial-gradient(ellipse at 50% 70%,#ffffff18,transparent 70%);border:1px solid var(--line);border-radius:10px;flex:none}
 .klist{display:grid;grid-template-columns:1fr auto auto;gap:6px 8px;align-items:center;margin:8px 0}.klist button{min-width:118px;padding:6px 8px;font-size:13px}.klist button.wait{border-color:var(--red);animation:kblink 1s infinite}@keyframes kblink{50%{opacity:.5}}
 .achs{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:8px}.ach{display:flex;gap:10px;align-items:center;background:#111;border-radius:10px;padding:8px 10px;opacity:.45}.ach.on{opacity:1;background:#1c1f2a}.ach .ai{font-size:24px}.ach b{display:block;font-size:13px}.ach span{font-size:11px;color:#9aa4b2}
-#achtoast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:60;display:flex;gap:12px;align-items:center;background:rgba(14,17,25,.95);border:1px solid #ffd23f;border-radius:12px;padding:10px 16px;box-shadow:0 8px 30px #0008;animation:achin .35s ease-out;transition:opacity .4s,transform .4s;pointer-events:none}
+#achtoast{position:fixed;top:18px;left:50%;transform:translateX(-50%);z-index:9999;display:flex;gap:12px;align-items:center;background:rgba(14,17,25,.95);border:1px solid #ffd23f;border-radius:12px;padding:10px 16px;box-shadow:0 8px 30px #0008;animation:achin .35s ease-out;transition:opacity .4s,transform .4s;pointer-events:none}
 #achtoast.out{opacity:0;transform:translate(-50%,-14px)}#achtoast .ai{font-size:30px}#achtoast small{display:block;color:#ffd23f;font-size:11px;text-transform:uppercase;letter-spacing:.08em}#achtoast b{display:block}#achtoast span{font-size:12px;color:#9aa4b2}
 @keyframes achin{from{opacity:0;transform:translate(-50%,-14px)}}#achtoast[hidden]{display:none}
+#errbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:9999;background:rgba(40,12,12,.95);border:1px solid #e23b3b;border-radius:10px;padding:8px 12px;font-size:13px;display:flex;gap:10px;align-items:center}#errbar[hidden]{display:none}#errbar a{color:#ffd23f;font-weight:700}#errbar button{background:none;border:0;color:#ccc;cursor:pointer;padding:0 4px}
 #menu,#optpanel .card,#results .card,#pause .card{zoom:var(--uiz,1)}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
 .psub{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9aa4b2;margin:10px 0 6px}.psub:first-of-type{margin-top:2px}
@@ -149,7 +150,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 #n_members .mrow{display:flex;align-items:center;gap:8px;padding:4px 0}
 #n_chat{height:180px;overflow:auto;background:#0d1016;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;margin:8px 0 6px}
 #netbar{position:fixed;left:50%;transform:translateX(-50%);top:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 14px;font-size:13px;z-index:5;pointer-events:none}
-</style></head><body>
+</style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#e23b3b"><link rel="icon" href="icon-192.png">
+</head><body>
 <canvas id="c"></canvas><div id="err"></div>
 
 <div class="screen" id="folder"><div class="card">
@@ -333,6 +335,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <div class="opt"><span>Mostrar FPS</span><input id="o_fps" type="checkbox"><span></span></div>
     <p class="small">La física va siempre a 240 pasos por segundo, sea cual sea la frecuencia de tu pantalla. La sincronización vertical la decide el navegador.</p>
     <button id="o_full" style="width:100%">Pantalla completa</button>
+    <button id="o_install" style="width:100%;margin-top:6px" hidden>📲 Instalar como aplicación</button>
   </div>
   <div class="opage" data-op="c" hidden>
     <div class="opt"><span>Cámara</span><select id="o_cam"><option value="cerca">Persecución cerca</option><option value="lejos">Persecución lejos</option><option value="alta">Persecución alta</option><option value="capo">Cabina</option><option value="parachoques">Parachoques</option><option value="tv">Televisión (cámaras del original)</option></select><span></span></div>
@@ -439,4 +442,5 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/horns.js"></script>
 <script src="js/main.js"></script>
 <div id="achtoast" hidden></div>
+<div id="errbar" hidden></div>
 </body></html>

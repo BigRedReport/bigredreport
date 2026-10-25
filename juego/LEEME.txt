@@ -78,6 +78,12 @@ Gráficos nuevos
 - Opciones → Gráficos → Texturas "Suavizadas": además se escala el suelo (bordes del césped sin dientes de sierra).
 - Opciones → Gráficos → Imágenes del menú: mejoradas (escalado HD), suavizadas o pixeladas como el original.
 
+Controles, logros y ayudas
+- Opciones → Controles: cambia cualquier tecla (un jugador o los dos de pantalla partida) o botón del mando.
+- Opciones → Juego: ayudas de conducción (suaves o fuertes), colores para daltonismo y tamaño de los menús.
+- Piloto y escudería: cabeza y cuerpo por separado, logros conseguidos (21).
+- En la versión web, Opciones → Gráficos → "Instalar como aplicación" (funciona sin conexión).
+
 Idiomas
 - Español, inglés, francés, alemán, italiano y portugués. Al abrirlo usa el idioma del navegador; se cambia en
   Opciones → Juego → Idioma (al momento, sin reiniciar).

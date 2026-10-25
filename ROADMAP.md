@@ -17,17 +17,19 @@ Lo que falta para la versión final del port, **ordenado de lo más rápido y f�
 - [x] Perfiles, estadísticas y récords; mods básicos (sustituir archivos)
 - [x] Juego en 6 idiomas (la web, con traducción automática)
 - [x] Web: descargas con contador, noticias, clasificaciones, fallos y comentarios
+- [x] Pilotos con cabeza y cuerpo a elegir por separado; logos originales con el color RGB
 
 ## Rápido (poco tiempo cada uno)
-- [ ] Afinar la IA nueva en el primer circuito de Marte (mejorada, falta medir el último cambio)
-- [ ] Redefinir controles de teclado y mando
-- [ ] Logros («gana sin nitro», «aplasta 10 ovejas»…)
-- [ ] Accesibilidad: modo para daltónicos, texto más grande, ayudas de dirección y frenada para principiantes
-- [ ] Más frases del comentarista con las voces originales (adelantamientos, choques, última vuelta)
-- [ ] Aviso de fallos automático: si el juego da un error, ofrecer mandarlo a la web con los datos rellenos
-- [ ] Instalable desde el navegador (app que recuerda la carpeta del juego y funciona sin conexión)
+- [ ] Afinar la IA nueva en el primer circuito de Marte (mejorada, sigue algo lenta)
+- [x] Redefinir controles de teclado y mando
+- [x] Logros («gana sin nitro», «aplasta 10 ovejas»…)
+- [x] Accesibilidad: modo para daltónicos, texto más grande, ayudas de dirección y frenada para principiantes
+- [x] Más frases del comentarista con las voces originales (adelantamientos, choques, última vuelta)
+- [x] Aviso de fallos automático: si el juego da un error, ofrecer mandarlo a la web con los datos rellenos
+- [x] Instalable desde el navegador (app que recuerda la carpeta del juego y funciona sin conexión)
 
 ## Medio (una o dos sesiones cada uno)
+- [ ] Modo libre + acrobacias en uno: sin cronómetro de vueltas, y un botón que pone una rampa (las marrones de los circuitos de ciudad) pegada al suelo unos metros por delante; una por jugador, solo en este modo
 - [ ] Pilotos nuevos con el estilo del original: niño y gordo
 - [ ] Fantasmas descargables y retos semanales iguales para todos
 - [ ] Modo clásico auténtico: resolución, distancia, iluminación, marcador y sonido como en 1995
@@ -40,11 +42,11 @@ Lo que falta para la versión final del port, **ordenado de lo más rápido y f�
 - [ ] Social: amigos, invitaciones y revancha inmediata
 - [ ] Garaje con mejoras (motor, ruedas, nitro) pagadas con lo ganado en el campeonato
 - [ ] Motores con mejor sonido (más muestras y transiciones suaves)
-- [ ] Versión para Windows, Linux y Steam Deck: programa instalable con servidor online incluido
+- [ ] Versión para Windows, Linux y Steam Deck: programa instalable con servidor online incluido y lanzador sencillo (carpeta del juego, opciones, donaciones y Jugar)
 - [ ] Volantes, pedales y cambio de marchas; force feedback si es posible
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
 - [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
-- [ ] Acrobacias y desafíos
+- [ ] Desafíos de acrobacias (puntos por saltos y vueltas de campana)
 
 ## Largo (varias sesiones)
 - [ ] Clasificaciones verificadas, separadas entre juego original, con mods y experimental

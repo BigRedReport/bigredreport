@@ -863,11 +863,11 @@
       if (e.type === 'go') { flash(h, '¡YA!', 1, 'big'); if (first && audio) audio.play('SAMPLES/BEEP4.WAV'); }
       if (e.type === 'check') { flash(h, `Control ${e.num}/${e.of}  ·  ${fmt(e.split)}`, 2); if (audio) audio.play('GEN/CHECKPOI.WAV'); }
       if (e.type === 'missed') { flash(h, '¡Te has saltado un control! Vuelve atrás', 2.5, 'warn'); if (audio) audio.play('GEN/CHCKMIS.WAV'); }
-      if (e.type === 'wrong') { if (audio) audio.play('GEN/WRGWAY.WAV'); }
+      if (e.type === 'wrong') { if (audio) audio.play('GEN/WRGWAY.WAV'); if (h === humans[0]) say(['WRONG', 'WRGWAY', 'BACKW'], 0.7, false); }
       if (e.type === 'lap') {
         const rec = getRec(h), best = !rec.lap || e.lapTime < rec.lap; if (best) { rec.lap = e.lapTime; ST.set(recKey(h), JSON.stringify(rec)); }
         flash(h, `Vuelta ${e.lap}: ${fmt(e.lapTime)}${best ? '  ·  ¡récord!' : ''}${e.final ? '  ·  ÚLTIMA VUELTA' : ''}`, 3);
-        if (audio) audio.play(e.final ? 'GEN/FINLAP.WAV' : 'GEN/LAPCOM.WAV');
+        if (audio) audio.play(e.final ? 'GEN/FINLAP.WAV' : 'GEN/LAPCOM.WAV'); if (e.final && h === humans[0]) setTimeout(() => say(['LASTLAP', 'LAST', 'FINAL'], 0.9), 900); else if (best && h === humans[0]) say(['RECORD', 'FAST', 'BEST'], 0.5, false);
       }
       if (e.type === 'finish') humanFinished(h, e);
     }
@@ -1507,10 +1507,17 @@
   }
   // ---------- posiciones ----------
   let order = [], leader = null, leaderT = 0;
+  // comentarista: voces del CD por nombre (se prueban varios); si no hay una concreta, a veces un comentario general
+  function say(prefs, chance = 1, general = true) {
+    if (!audio || !snd.pickVoice || Math.random() > chance) return; const now = performance.now() / 1000; if (now < (snd.sayT || 0)) return;
+    let v = null; for (const p of prefs) if ((v = snd.pickVoice(p))) break; if (!v && general && Math.random() < 0.4) v = snd.pickVoice('GENRAL');
+    if (v) { audio.voice(v); snd.sayT = now + 6; snd.nextGeneral = Math.max(snd.nextGeneral || 0, 12); }
+  }
   function updatePositions(dt) {
     const all = [...humans.map(h => ({ car: h.car, race: h.race, h })), ...rivals];
     order = all.map(o => ({ o, s: o.race.finishT != null ? 1e6 - o.race.finishT : o.race.score() })).sort((a, b) => b.s - a.s).map(x => x.o);
-    for (const h of humans) { const pos = order.findIndex(o => o.h === h) + 1; h.q('h_pos').textContent = order.length > 1 ? `${pos}/${order.length}` : '–'; }
+    for (const h of humans) { const pos = order.findIndex(o => o.h === h) + 1; h.q('h_pos').textContent = order.length > 1 ? `${pos}/${order.length}` : '–';
+      if (!h.done) { if (race.phase === 'race' && race.t > 5 && h.pos && order.length > 1 && humans.length === 1) { if (pos < h.pos) say(['OVERTAK', 'OVERTK', 'PASS', 'OVER'], 0.55); else if (pos > h.pos) say(['PASSED', 'BEHIND', 'LOSE'], 0.25, false); } h.pos = pos; } }
     const lt = order[0].car.team; leaderT += dt;
     if (race.phase === 'race' && race.t > 6 && lt !== leader && leaderT > 4 && order.length > 1 && snd.pickVoice) {
       leaderT = 0; const v = snd.pickVoice(TEAM[lt].v); if (v && audio) audio.voice(v);
@@ -1609,7 +1616,7 @@
     if (netWait && state === 'race') { netFrame(dt); for (const h of humans) { readInput(h, 0); h.race.phase = 'countdown'; h.race.cd = 3.6; } }
     else if (photo) { photoFrame(dt); }
     else if (state === 'race' || state === 'results') {
-      for (const h of humans) { const inp = readInput(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; } h.nPrev = inp.nitro; }
+      for (const h of humans) { const inp = readInput(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
       for (const r of rivals) if (r.inp && r.inp.nitro && r.car.fireNitro()) nitroFx(r.car);
       const ps = Math.max(...humans.map(h => h.race.score())), tA = performance.now();
       for (const r of rivals) if (r.ai) r.inp = r.ai.control(dt, allCars, null);   // ritmo: lo pone el pelotón (packFrame)
@@ -1680,5 +1687,22 @@
     window.BRR_STATE = { p: car.p, v: car.v, speed: car.speed(), grounded: car.grounded, up: car.R[1][1] };
   }
   requestAnimationFrame(frame);
-  window.BRR_DEBUG = { get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  // ---------- aviso de fallos: si algo falla, se ofrece mandarlo al tablero de fallos de la web con los datos ya puestos ----------
+  { const seen = new Set();
+    const report = (msg, stack) => {
+      msg = String(msg || 'Error'); if (seen.has(msg) || seen.size > 5 || /ResizeObserver|Script error/.test(msg)) return; seen.add(msg);
+      const el = $('errbar'); if (!el) return;
+      const where = netRace ? 'Online' : humans.length > 1 ? 'Pantalla partida' : state === 'race' ? 'En carrera' : orig && orig.on ? 'Menú original' : 'Menú nuevo';
+      const q = new URLSearchParams({ template: 'fallo.yml', title: 'Error: ' + msg.slice(0, 80), donde: where, circuito: lvl ? lvl.name + (car ? ' · ' + car.def.name : '') : '',
+        descripcion: 'El juego avisó de un error.\n\n```\n' + msg + '\n' + String(stack || '').split('\n').slice(0, 8).join('\n') + '\n```', navegador: navigator.userAgent.slice(0, 160) });
+      el.innerHTML = `<span>⚠️ Algo ha fallado.</span> <a target="_blank" rel="noopener" href="https://github.com/BigRedReport/bigredreport/issues/new?${q}">Enviar el aviso</a> <button aria-label="Cerrar">✕</button>`;
+      el.hidden = false; el.querySelector('button').onclick = () => { el.hidden = true; }; setTimeout(() => { el.hidden = true; }, 20000);
+    };
+    addEventListener('error', e => report(e.message, e.error && e.error.stack));
+    addEventListener('unhandledrejection', e => report(e.reason && (e.reason.message || e.reason), e.reason && e.reason.stack)); }
+  // instalable como app (solo en la versión web; abriendo el archivo directamente no se puede)
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
+  let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
+  $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
+  window.BRR_DEBUG = { achUnlock, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

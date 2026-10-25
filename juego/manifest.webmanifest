@@ -1,0 +1,21 @@
+{
+ "name": "Big Red Racing (port)",
+ "short_name": "Big Red Racing",
+ "start_url": "./BigRedRacing.html",
+ "display": "fullscreen",
+ "background_color": "#0e1119",
+ "theme_color": "#e23b3b",
+ "icons": [
+  {
+   "src": "icon-192.png",
+   "sizes": "192x192",
+   "type": "image/png"
+  },
+  {
+   "src": "icon-512.png",
+   "sizes": "512x512",
+   "type": "image/png",
+   "purpose": "any maskable"
+  }
+ ]
+}
