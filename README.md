@@ -9,7 +9,8 @@ Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores mod
 🌐 **Web:** https://bigredreport.github.io/bigredreport/
 
 - ▶️ **Jugar en el navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html (se puede instalar como aplicación)
-- ⬇️ **Descargar:** [última versión (Releases)](https://github.com/BigRedReport/bigredreport/releases/latest)
+- 🪟 **Windows:** [BigRedReport-Windows.zip](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip) · 🐧 **Linux:** [BigRedReport-Linux.tar.gz](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz)
+- ⬇️ **Todas las descargas:** [última versión (Releases)](https://github.com/BigRedReport/bigredreport/releases/latest)
 - 🗺️ **Hoja de ruta:** [ROADMAP.md](ROADMAP.md)
 - 🐞 **Fallos:** pestaña *Issues* (plantilla «Reportar un fallo») o el formulario de la web
 - 💬 **Comentarios:** [en la web](https://bigredreport.github.io/bigredreport/#comentarios)
@@ -22,12 +23,12 @@ Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores mod
 - **Multijugador:** pantalla partida hasta 8 y online sin servidor hasta 12, con reconexión, cambio de anfitrión, chat de texto y de voz.
 - **Tu escudería:** cabeza y cuerpo del piloto, nombre de equipo, logos (también propios), color RGB y más de 35 bocinas.
 - **Para todos:** controles a gusto, ayudas de conducción, colores para daltonismo, 6 idiomas y 21 logros.
-- **Extras:** cámaras de televisión, modo foto, contrarreloj con clasificación online, modo libre, perfiles y mods.
+- **Extras:** cámaras de televisión, modo foto, contrarreloj con clasificación online, modo libre con rampas y acrobacias, perfiles y mods.
 
 ## Cómo jugar
 
 1. Necesitas tu **copia original** de Big Red Racing (la carpeta `BIGRED`; si está la imagen del CD, también suena su música).
-2. Abre el juego en la web (Chrome o Edge) o descarga el zip y abre `BigRedRacing.html`.
+2. Descarga el programa para Windows o Linux (descomprime y abre `BigRedReport`), o juega en la web (Chrome o Edge).
 3. Pulsa **PRESS START** y elige la carpeta del juego.
 
 ## Código
