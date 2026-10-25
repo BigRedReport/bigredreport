@@ -78,6 +78,12 @@ Gráficos nuevos
 - Opciones → Gráficos → Texturas "Suavizadas": además se escala el suelo (bordes del césped sin dientes de sierra).
 - Opciones → Gráficos → Imágenes del menú: mejoradas (escalado HD), suavizadas o pixeladas como el original.
 
+Modo libre (acrobacias)
+- Un jugador → Modo libre: cualquier vehículo en cualquier circuito, sin cronómetro. Con la T (o la cruceta ←
+  del mando) pones una rampa unos metros por delante; saltos, mortales y vueltas de campana suman puntos
+  (y combos si encadenas). Tu récord de puntos se guarda por circuito.
+- Versión para Windows y Linux: en la web (Descargar) o en GitHub (Releases).
+
 Inicio y apoyo
 - Al abrirlo sale la portada con PRESS START (tecla, clic o botón del mando). Si ya elegiste la carpeta antes,
   entra directo al menú con la música.

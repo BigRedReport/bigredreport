@@ -24,9 +24,9 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [x] Donaciones (Ko-fi y PayPal) en la web, en GitHub y en el juego
 
 ## Bloque 1 · Modo libre y diversión (rápido)
-- [ ] Modo libre + acrobacias en uno: sin cronómetro de vueltas y con un botón que pone una rampa (las marrones de los circuitos de ciudad) pegada al suelo unos metros por delante; una por jugador, solo en este modo
-- [ ] Desafíos de acrobacias: puntos por saltos, vueltas de campana y aterrizajes
-- [ ] Pilotos nuevos con el estilo del original: niño y gordo
+- [x] Modo libre + acrobacias en uno: sin cronómetro de vueltas y con un botón que pone una rampa (las marrones de los circuitos de ciudad) pegada al suelo unos metros por delante; una por jugador, solo en este modo
+- [x] Desafíos de acrobacias: puntos por saltos, vueltas de campana y aterrizajes
+- [x] Pilotos nuevos con el estilo del original: niño y gordo
 
 ## Bloque 2 · Nostalgia (rápido-medio)
 - [ ] Modo clásico auténtico: resolución, distancia, iluminación, marcador y sonido como en 1995
@@ -50,7 +50,8 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Ligas y eventos en servidores dedicados
 
 ## Bloque 7 · Plataformas (medio-largo)
-- [ ] Windows, Linux y Steam Deck: programa instalable con servidor online incluido y lanzador sencillo (carpeta del juego, opciones, donaciones y Jugar)
+- [x] Windows y Linux: programa con lanzador (carpeta del juego, opciones, servidor online, donaciones y Jugar)
+- [ ] Steam Deck (probar y ajustar controles)
 - [ ] Volantes, pedales y cambio de marchas; force feedback si es posible
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
 - [ ] Android: cargar el juego desde un .zip, controles táctiles y app instalable

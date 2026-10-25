@@ -1,4 +1,6 @@
-# Publica una versión (Release) con el zip del port cada vez que cambia el archivo VERSION.
+# Publica una versión (Release) cada vez que cambia el archivo VERSION:
+#  1) el zip del port para el navegador
+#  2) el programa para Windows y Linux (Electron), construido aquí mismo con el código de juego/ y escritorio/
 # El número de descargas de los Releases es el que muestra la web.
 name: Publicar versión
 on:
@@ -22,3 +24,54 @@ jobs:
           else
             gh release create "$V" descargas/BigRedRacing_port.zip --title "Big Red Report ${V#v}" --notes-file NOTAS.md --latest
           fi
+
+  escritorio:
+    needs: publicar
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            platform: win32
+            asset: BigRedReport-Windows.zip
+          - os: ubuntu-latest
+            platform: linux
+            asset: BigRedReport-Linux.tar.gz
+    runs-on: ${{ matrix.os }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Preparar
+        run: |
+          V="$(tr -d ' \r\n' < VERSION)"
+          mkdir -p escritorio/game && cp -r juego/. escritorio/game/
+          cd escritorio && npm pkg set version="$V" && npm install --no-audit --no-fund
+      - name: Construir
+        working-directory: escritorio
+        run: |
+          ICON=""; if [ "${{ matrix.platform }}" = "win32" ]; then ICON="--icon=icon.ico"; fi
+          npx electron-packager . BigRedReport --platform=${{ matrix.platform }} --arch=x64 --out=dist --overwrite --asar $ICON \
+            --ignore="^/dist" --ignore="^/icon.ico" --ignore="^/LEEME.txt" --ignore="^/BigRedReport.sh" \
+            --app-copyright="Port de fans · Big Red Racing es de sus respectivos dueños"
+          D="dist/BigRedReport-${{ matrix.platform }}-x64"
+          cp LEEME.txt "$D/"
+          if [ "${{ matrix.platform }}" = "linux" ]; then cp BigRedReport.sh "$D/" && chmod +x "$D/BigRedReport.sh" "$D/BigRedReport"; fi
+          mv "$D" dist/BigRedReport
+      - name: Empaquetar (Windows)
+        if: matrix.platform == 'win32'
+        working-directory: escritorio/dist
+        shell: pwsh
+        run: Compress-Archive -Path BigRedReport -DestinationPath ${{ matrix.asset }}
+      - name: Empaquetar (Linux)
+        if: matrix.platform == 'linux'
+        working-directory: escritorio/dist
+        run: tar -czf ${{ matrix.asset }} BigRedReport
+      - name: Subir a la versión
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "v$(tr -d ' \r\n' < VERSION)" "escritorio/dist/${{ matrix.asset }}" --clobber

@@ -1,0 +1,14 @@
+Big Red Report (Windows / Linux)
+=================================
+
+1. Descomprime la carpeta donde quieras.
+2. Windows: abre BigRedReport.exe · Linux: abre ./BigRedReport (o BigRedReport.sh).
+3. En el lanzador pulsa "Elegir carpeta…" y elige la carpeta de tu copia de Big Red Racing
+   (la que contiene BIGRED, y la imagen del CD IMAGE.img si quieres la música original).
+4. Pulsa JUGAR.
+
+En Opciones del lanzador: pantalla completa, tamaño de la ventana, idioma y servidor online
+dedicado (opcional). Todo lo demás está dentro del juego, en Opciones.
+
+El programa lee los archivos de tu copia y no incluye ni distribuye datos del juego.
+Web: https://bigredreport.github.io/bigredreport/

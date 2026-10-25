@@ -1,0 +1,19 @@
+{
+  "name": "big-red-report",
+  "productName": "Big Red Report",
+  "version": "0.13.0",
+  "description": "Port de fans de Big Red Racing (1995) para ordenadores modernos",
+  "main": "main.js",
+  "author": "Big Red Report",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "pack:win": "electron-packager . BigRedReport --platform=win32 --arch=x64 --out=dist --overwrite --asar --ignore=^/dist",
+    "pack:linux": "electron-packager . BigRedReport --platform=linux --arch=x64 --out=dist --overwrite --asar --ignore=^/dist"
+  },
+  "devDependencies": {
+    "electron": "33.2.1",
+    "@electron/packager": "18.3.6"
+  }
+}

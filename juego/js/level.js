@@ -79,6 +79,18 @@
       }
     }
     finish() { this.T = new Float32Array(this.t); this.t = null; }
+    // triángulos que se ponen y se quitan en plena carrera (la rampa del modo libre): cada clave tiene su hueco fijo
+    setDyn(key, tris, tag) {
+      this.dyn = this.dyn || {}; let d = this.dyn[key];
+      if (d) this.unDyn(d);
+      else { const base = this.T.length / 9, nt = new Float32Array(this.T.length + tris.length * 9); nt.set(this.T); this.T = nt; d = this.dyn[key] = { base, n: tris.length, cells: [] }; for (let i = 0; i < tris.length; i++) this.tags[base + i] = tag; }
+      const cs = this.cs;
+      tris.slice(0, d.n).forEach((t, i) => { const id = d.base + i; this.T.set([...t[0], ...t[1], ...t[2]], id * 9);
+        const x0 = Math.floor(Math.min(t[0][0], t[1][0], t[2][0]) / cs), x1 = Math.floor(Math.max(t[0][0], t[1][0], t[2][0]) / cs), z0 = Math.floor(Math.min(t[0][2], t[1][2], t[2][2]) / cs), z1 = Math.floor(Math.max(t[0][2], t[1][2], t[2][2]) / cs);
+        for (let ix = x0; ix <= x1; ix++) for (let iz = z0; iz <= z1; iz++) { const k = this.key(ix, iz); let l = this.grid.get(k); if (!l) this.grid.set(k, l = []); l.push(id); d.cells.push(k, id); } });
+    }
+    unDyn(d) { for (let i = 0; i < d.cells.length; i += 2) { const l = this.grid.get(d.cells[i]); if (l) { const j = l.indexOf(d.cells[i + 1]); if (j >= 0) l.splice(j, 1); } } d.cells = []; }
+    clearDyn() { for (const k in this.dyn || {}) this.unDyn(this.dyn[k]); }
     query(x0, z0, x1, z1, out) {
       const cs = this.cs, seen = out.seen || (out.seen = new Set()); seen.clear(); out.length = 0;
       for (let ix = Math.floor(x0 / cs); ix <= Math.floor(x1 / cs); ix++)

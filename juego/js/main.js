@@ -111,9 +111,19 @@
         $('again').onclick = async () => { if (await h.requestPermission({ mode: 'read' }) === 'granted') useFiles(await filesFromHandle(h)); }; }
     } catch (e) { }
   })();
+  // versión de escritorio (Windows/Linux): los archivos se leen del disco a través del programa, sin elegir carpeta en el navegador
+  const NAT = window.BRR_NATIVE;
+  async function nativeFiles() {
+    if (!NAT) return null; const L = await NAT.list(); if (!L || !L.some(f => /\.LEV$/i.test(f.rel))) return null;
+    const mk = (f, s, e) => ({ size: e - s, arrayBuffer: () => NAT.read(f.rel, s, e), slice: (a = 0, b = e - s) => mk(f, s + Math.max(0, a), s + Math.min(b, e - s)) });
+    return L.map(f => Object.assign(mk(f, 0, f.size), { name: f.rel.split('/').pop(), webkitRelativePath: f.rel }));
+  }
+  if (NAT) { try { const l = new URLSearchParams(location.search).get('lang'); if (l && BRR.LANGS[l] && BRR.lang() !== l) BRR.setLang(l); } catch (e) { }
+    $('pick').onclick = async () => { const d = await NAT.pickDir(); if (!d) return; const L = await nativeFiles(); if (L) useFiles(L); else $('folder_msg').textContent = 'En esa carpeta no hay circuitos (.LEV). Elige la carpeta BIGRED del juego.'; }; }
   // pantalla de inicio (PRESS START): al pulsar, si ya se eligió la carpeta otra vez, se entra directo al menú con su música
   { let gone = false;
     const go1 = async () => { if (gone || $('title').hidden) return; gone = true; $('t_press').style.animation = 'none';
+      if (NAT) { try { const L = await nativeFiles(); if (L) { await useFiles(L); if (audio) { audio.init && audio.init(); menuMusic(); } return; } } catch (e) { } show('folder'); return; }
       try { if (lastDir && (await lastDir.queryPermission({ mode: 'read' }) === 'granted' || await lastDir.requestPermission({ mode: 'read' }) === 'granted')) { await useFiles(await filesFromHandle(lastDir)); if (audio) { audio.init && audio.init(); menuMusic(); } return; } } catch (e) { }
       if (state === 'folder') show('folder'); };
     $('title').onclick = go1; addEventListener('keydown', e => { if (!$('title').hidden && !e.repeat) go1(); });
@@ -168,7 +178,17 @@
   // personajes: cuerpo (BLOKE/WOMAN + color del equipo) y cabeza (HEAD1x, 2, 3, 4x, 5, 6) de CHARSCN con su paleta (DRIVER.RAW)
   const CHARS = [{ b: 'BLOKE', h: 'HEAD1', v: 1 }, { b: 'BLOKE', h: 'HEAD2' }, { b: 'BLOKE', h: 'HEAD3' }, { b: 'WOMAN', h: 'HEAD4', v: 1 }, { b: 'WOMAN', h: 'HEAD5' }, { b: 'BLOKE', h: 'HEAD6' }];
   // cabeza y cuerpo por separado: cualquier cabeza con cualquier cuerpo
-  const BODIES = ['BLOKE', 'WOMAN'];
+  const BODIES = ['BLOKE', 'WOMAN', 'BLOKE:kid', 'BLOKE:fat'];
+  // cuerpos nuevos con el estilo del original: se sacan del cuerpo de hombre deformándolo (niño: bajito y cabezón; grande: ancho y con barriga)
+  function morphBody(m, mod) {
+    if (!mod) return m; const V0 = m.verts.filter(Boolean), y0 = Math.min(...V0.map(v => v[1])), y1 = Math.max(...V0.map(v => v[1])), H = y1 - y0 || 1, hip = y0 + H * 0.5, legH = y1 - hip;
+    const verts = m.verts.map(v => { if (!v) return v; const d = y1 - v[1], t = (v[1] - y0) / H;
+      if (mod === 'kid') { const dn = d <= legH ? d * 0.62 : legH * 0.62 + (d - legH) * 0.8; return [v[0] * 0.86, y1 - dn, v[2] * 0.86]; }
+      if (mod === 'fat') { const k = t < 0.12 ? 1.2 : t < 0.55 ? 1.5 : 1.25, kz = t < 0.12 ? 1.15 : t < 0.25 ? 1.6 : t < 0.58 ? 2.3 : 1.25; return [v[0] * k, v[1] + (t < 0.55 ? H * 0.02 : 0), v[2] * kz]; }
+      return v; });
+    return { ...m, verts };
+  }
+  const headScale = mod => mod === 'kid' ? 1.22 : mod === 'fat' ? 1.06 : 1;
   const charOf = ci => ci && typeof ci === 'object' ? ci : CHARS[(ci | 0) % CHARS.length];
   const specOf = (head, body) => { const H = CHARS[(head | 0) % CHARS.length]; return { h: H.h, v: H.v, b: BODIES[(body | 0) % BODIES.length] }; };
   const myHead = () => opt.head != null ? opt.head : (opt.char || 0), myBody = () => opt.body != null ? opt.body : Math.max(0, BODIES.indexOf(CHARS[(opt.char || 0) % 6].b));
@@ -181,11 +201,11 @@
     const key = [JSON.stringify(ci), color, dirty, headOnly, paint || ''].join(); if (charCache.has(key)) return charCache.get(key);
     if (!charArc) { charArc = await files.archive('CHARSCN.SCN'); charPal = BRR.pal6(charArc.get('DRIVER.RAW').subarray(0, 768)); }
     const c = charOf(ci), A = charArc, mb = new BRR.MeshBuilder(charPalFor(color, paint)), tm = n => A.get(n + '.TM');
-    const head = BRR.parse3DW(A.get(c.h + (c.v ? color : '') + '.3DW'));
+    const head = BRR.parse3DW(A.get(c.h + (c.v ? color : '') + '.3DW')), [bf, mod] = c.b.split(':'), hs = headScale(mod);
     let top = 0;
-    if (!headOnly) { const body = BRR.parse3DW(A.get(c.b + (dirty ? 'B' : '') + color + '.3DW')); top = Math.min(...body.verts.filter(Boolean).map(v => v[1])); mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), tm); }
+    if (!headOnly) { const body = morphBody(BRR.parse3DW(A.get(bf + (dirty ? 'B' : '') + color + '.3DW')), mod); top = Math.min(...body.verts.filter(Boolean).map(v => v[1])); mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), tm); }
     const hb = Math.max(...head.verts.filter(Boolean).map(v => v[1]));
-    mb.addModel(head, v => BRR.toGL(v[0], v[1] + top - hb + 1, v[2]), tm);
+    mb.addModel(head, v => BRR.toGL(v[0] * hs, (v[1] - hb) * hs + top + 1, v[2] * hs), tm);
     if (!R.L) R.setEnvironment([-0.35, 0.75, 0.55], [0.62, 0.7, 0.82]);
     const out = { up: R.upload(mb), size: (headOnly ? head.radius * 1.2 : (Math.abs(top) + 18)) * BRR.S, cy: headOnly ? 0 : (Math.abs(top) + 14) * 0.5 * BRR.S };
     charCache.set(key, out); return out;
@@ -197,10 +217,10 @@
     let out = null;
     try {
       if (!charArc) { charArc = await files.archive('CHARSCN.SCN'); charPal = BRR.pal6(charArc.get('DRIVER.RAW').subarray(0, 768)); }
-      const c = charOf(ci), A = charArc, head = BRR.parse3DW(A.get(c.h + (c.v ? team : '') + '.3DW')), body = BRR.parse3DW(A.get(c.b + team + '.3DW'));
+      const c = charOf(ci), A = charArc, head = BRR.parse3DW(A.get(c.h + (c.v ? team : '') + '.3DW')), [bf, mod] = c.b.split(':'), hs = headScale(mod), body = morphBody(BRR.parse3DW(A.get(bf + team + '.3DW')), mod);
       // como en el menú: la cabeza encima del cuerpo; en el coche solo se ve de cintura para arriba
       const top = Math.min(...body.verts.filter(Boolean).map(v => v[1])), hb = Math.max(...head.verts.filter(Boolean).map(v => v[1]));
-      const hxf = v => BRR.toGL(v[0], v[1] + top - hb + 1, v[2]), bxf = v => BRR.toGL(v[0], v[1], v[2]);
+      const hxf = v => BRR.toGL(v[0] * hs, (v[1] - hb) * hs + top + 1, v[2] * hs), bxf = v => BRR.toGL(v[0], v[1], v[2]);
       const H = head.verts.filter(Boolean).map(hxf), B = body.verts.filter(Boolean).map(bxf);
       const hmn = [0, 1, 2].map(a => Math.min(...H.map(g => g[a]))), hmx = [0, 1, 2].map(a => Math.max(...H.map(g => g[a])));
       const bmn = Math.min(...B.map(g => g[1])), bmx = Math.max(...B.map(g => g[1])), waist = bmn + (bmx - bmn) * 0.5;
@@ -316,7 +336,7 @@
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
     if (v === 'donate') { $('donate').hidden = false; setTimeout(() => navFocusFirst($('donate')), 0); return; }
-    if (v === 'exit') { show('bye'); state = 'bye'; if (audio) audio.stopMusic(); try { window.close(); } catch (e) { } return; }
+    if (v === 'exit') { show('bye'); state = 'bye'; if (audio) audio.stopMusic(); try { window.close(); } catch (e) { } if (NAT) setTimeout(() => window.close(), 300); return; }
     if (v === 'back') v = (VIEWS[view] || {}).back || 'home';
     const W = VIEWS[v]; if (!W) return; view = v;
     for (const p of ['home', 'quick', 'tourn', 'online', 'mods', 'profile']) $('pane_' + p).hidden = p !== W.pane;
@@ -352,7 +372,7 @@
     $('pf_title').textContent = myTeamName() || (opt.paint ? 'Tu escudería' : 'Escudería ' + TEAM[team].n); $('pf_tname').value = opt.teamName || ''; $('pf_tname').placeholder = 'Equipo ' + TEAM[team].n; $('pf_title').style.color = carColOpt();
     const heads = []; for (let i = 0; i < CHARS.length; i++) heads.push(`<div class="pitem${myHead() === i ? ' on' : ''}" tabindex="0" data-hd="${i}"><img src="${await headURL(specOf(i, myBody()), team).catch(() => '')}"></div>`);
     $('pf_heads').innerHTML = heads.join('');
-    const chars = []; for (let i = 0; i < BODIES.length; i++) chars.push(`<div class="pitem${myBody() === i ? ' on' : ''}" tabindex="0" data-bd="${i}"><img src="${await charURL(specOf(myHead(), i), team).catch(() => '')}"><div>${['Hombre', 'Mujer', 'Niño', 'Grande'][i] || 'Cuerpo ' + (i + 1)}</div></div>`);
+    const chars = []; for (let i = 0; i < BODIES.length; i++) chars.push(`<div class="pitem${myBody() === i ? ' on' : ''}" tabindex="0" data-bd="${i}"><img src="${await charURL(specOf(myHead(), i), team).catch(() => '')}"><div>${['Hombre', 'Mujer', 'Niño', 'Grandullón'][i] || 'Cuerpo ' + (i + 1)}</div></div>`);
     $('pf_chars').innerHTML = chars.join('');
     const logos = []; for (let i = 0; i < 13; i++) logos.push(`<div class="pitem${(opt.logo || 0) === i ? ' on' : ''}" tabindex="0" data-l="${i}"><img src="${orig ? await orig.logoURL(i, team, hexRGB(opt.paint)).catch(() => '') : ''}"></div>`);
     for (const L of BRR.LOGOS_EXTRA || []) logos.push(`<div class="pitem${opt.logo === 'x:' + L.id ? ' on' : ''}" tabindex="0" data-x="${L.id}" title="${esc(L.n)}"><img src="${L.src}" style="background:${carColOpt()};image-rendering:auto"></div>`);
@@ -778,6 +798,7 @@
   // parrilla: plazas del script (lateral, atrás, giro); los jugadores salen detrás
   function groundY(x, z) { const h = BRR.raycast(lvl, [x, 200, z], [0, -1, 0], 400); return h ? 200 - h.t : lvl.terrain(x, z); }
   function placeGrid() {
+    if (lvl.collider.clearDyn) lvl.collider.clearDyn(); for (const h of humans) { h.ramp = null; h.stunt = null; }
     const S = BRR.S, a = -lvl.start.yaw, gx = lvl.start.x / S, gz = -lvl.start.z / S;
     const fw = [Math.sin(a), Math.cos(a)], rt = [Math.cos(a), -Math.sin(a)];
     const all = netRace ? netRace.order.map(e => e.id === netRace.myId ? humans[0].car : (rivals.find(r => r.id === e.id) || {}).car).filter(Boolean) : [...rivals.map(r => r.car), ...humans.map(h => h.car).reverse()];
@@ -1042,13 +1063,13 @@
     humans.forEach((h, i) => { h.ctl = i < kbN ? { kb: kbN === 1 ? 'all' : (i === 0 ? 'A' : 'B'), pad: null } : { kb: null, pad: P[pi] ? P[pi++].index : null }; });
   }
   const KB = {
-    all: { up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'], left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], hb: ['Space'], nitro: ['ShiftLeft', 'KeyN'], horn: ['KeyH'], cam: ['KeyC'], reset: ['KeyR'], climb: ['KeyE'], dive: ['KeyQ'], lookL: ['KeyJ'], lookR: ['KeyL'], lookB: ['KeyK'] },
-    A: { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], hb: ['Space'], nitro: ['ShiftLeft'], horn: ['KeyH'], cam: ['KeyC'], reset: ['KeyR'], climb: ['KeyE'], dive: ['KeyQ'], lookL: [], lookR: [], lookB: [] },
-    B: { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], hb: ['ControlRight'], nitro: ['Enter', 'ShiftRight'], horn: ['Numpad0', 'Backslash'], cam: [], reset: ['Backspace'], climb: ['PageUp'], dive: ['PageDown'], lookL: [], lookR: [], lookB: [] },
+    all: { up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'], left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], hb: ['Space'], nitro: ['ShiftLeft', 'KeyN'], horn: ['KeyH'], cam: ['KeyC'], reset: ['KeyR'], ramp: ['KeyT'], climb: ['KeyE'], dive: ['KeyQ'], lookL: ['KeyJ'], lookR: ['KeyL'], lookB: ['KeyK'] },
+    A: { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], hb: ['Space'], nitro: ['ShiftLeft'], horn: ['KeyH'], cam: ['KeyC'], reset: ['KeyR'], ramp: ['KeyT'], climb: ['KeyE'], dive: ['KeyQ'], lookL: [], lookR: [], lookB: [] },
+    B: { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], hb: ['ControlRight'], nitro: ['Enter', 'ShiftRight'], horn: ['Numpad0', 'Backslash'], cam: [], reset: ['Backspace'], ramp: ['Numpad1', 'Period'], climb: ['PageUp'], dive: ['PageDown'], lookL: [], lookR: [], lookB: [] },
   };
   // controles a gusto (Opciones → Controles): se guardan en opt.keys / opt.pad y se aplican encima de los de fábrica
   const KB_DEF = JSON.parse(JSON.stringify(KB));
-  const PAD_DEF = { throttle: [7, 0], brake: [6, 2], hb: [1, 5], nitro: [4], horn: [10, 11], reset: [3], cam: [8], climb: [12], dive: [13] };
+  const PAD_DEF = { throttle: [7, 0], brake: [6, 2], hb: [1, 5], nitro: [4], horn: [10, 11], reset: [3], cam: [8], ramp: [14], climb: [12], dive: [13] };
   let PAD = { ...PAD_DEF };
   function applyBindings() {
     for (const L of Object.keys(KB_DEF)) for (const a of Object.keys(KB_DEF[L])) KB[L][a] = ((opt.keys || {})[L] || {})[a] || KB_DEF[L][a].slice();
@@ -1057,8 +1078,8 @@
   applyBindings();
   // pantalla de controles
   const K_ACT = [['up', 'Acelerar'], ['down', 'Frenar / marcha atrás'], ['left', 'Girar a la izquierda'], ['right', 'Girar a la derecha'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'],
-    ['cam', 'Cámara'], ['reset', 'Recolocar'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)'], ['lookL', 'Mirar a la izquierda'], ['lookR', 'Mirar a la derecha'], ['lookB', 'Mirar atrás']];
-  const P_ACT = [['throttle', 'Acelerar'], ['brake', 'Frenar / marcha atrás'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'], ['reset', 'Recolocar'], ['cam', 'Cámara'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)']];
+    ['cam', 'Cámara'], ['reset', 'Recolocar'], ['ramp', 'Poner rampa (modo libre)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)'], ['lookL', 'Mirar a la izquierda'], ['lookR', 'Mirar a la derecha'], ['lookB', 'Mirar atrás']];
+  const P_ACT = [['throttle', 'Acelerar'], ['brake', 'Frenar / marcha atrás'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'], ['reset', 'Recolocar'], ['cam', 'Cámara'], ['ramp', 'Poner rampa (modo libre)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)']];
   const PAD_N = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Menú', 'L3', 'R3', 'Cruceta ↑', 'Cruceta ↓', 'Cruceta ←', 'Cruceta →'];
   const keyName = c => !c ? '—' : c.startsWith('Key') ? c.slice(3) : c.startsWith('Digit') ? c.slice(5) : c.startsWith('Numpad') ? 'Num ' + c.slice(6) : ({ ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Espacio', ShiftLeft: 'Mayús izq.', ShiftRight: 'Mayús dcha.', ControlLeft: 'Ctrl izq.', ControlRight: 'Ctrl dcha.', AltLeft: 'Alt', AltRight: 'Alt Gr', Enter: 'Intro', Backspace: 'Retroceso', Backslash: '\\', PageUp: 'Re Pág', PageDown: 'Av Pág', Tab: 'Tab' }[c] || c);
   let kWait = null;
@@ -1087,7 +1108,7 @@
       h.steerKb += (kbSteer - h.steerKb) * Math.min(1, dt * (kbSteer ? 6 : 10)); inp.steer = h.steerKb;
       inp.throttle = any(K.up) ? 1 : 0; inp.brake = any(K.down) ? 1 : 0; inp.handbrake = any(K.hb); inp.pitchAir = inp.throttle - inp.brake;
       if (any(K.lookL) || any(K.lookR)) inp.lookX = (any(K.lookR) ? 1 : 0) - (any(K.lookL) ? 1 : 0); if (any(K.lookB)) inp.lookX = 1;
-      if (any(K.nitro)) inp.nitro = true; if (K.horn && any(K.horn)) inp.horn = true; if (any(K.climb) || any(K.dive)) inp.climb = (any(K.climb) ? 1 : 0) - (any(K.dive) ? 1 : 0);
+      if (K.ramp && any(K.ramp)) inp.ramp = true; if (any(K.nitro)) inp.nitro = true; if (K.horn && any(K.horn)) inp.horn = true; if (any(K.climb) || any(K.dive)) inp.climb = (any(K.climb) ? 1 : 0) - (any(K.dive) ? 1 : 0);
     }
     const gp = ctl.pad != null ? pads().find(g => g.index === ctl.pad) : null;
     if (gp) {
@@ -1098,7 +1119,7 @@
       inp.throttle = Math.max(inp.throttle, bv(PAD.throttle)); inp.brake = Math.max(inp.brake, bv(PAD.brake));
       inp.handbrake = inp.handbrake || bp(PAD.hb); inp.pitchAir = dz(gp.axes[1] || 0) * -1 || inp.pitchAir;
       inp.lookX = dz(gp.axes[2] || 0, 0.15) || inp.lookX; inp.lookY = dz(gp.axes[3] || 0, 0.15);   // stick derecho: mirar alrededor
-      if (bp(PAD.nitro)) inp.nitro = true;
+      if (bp(PAD.nitro)) inp.nitro = true; if (bp(PAD.ramp)) inp.ramp = true;
       if (bp(PAD.horn)) inp.horn = true;
       if (bp(PAD.climb) || bp(PAD.dive)) inp.climb = (bp(PAD.climb) ? 1 : 0) - (bp(PAD.dive) ? 1 : 0);
       const edge = i => pressed(i) && !h.padPrev[i];
@@ -1119,6 +1140,49 @@
   setInterval(() => { const P = pads(); $('pad').textContent = P.length ? 'Mandos: ' + P.map(g => g.id.replace(/\(.*?\)/g, '').trim().slice(0, 28)).join(' · ') : 'Mando: conéctalo y pulsa un botón para que el navegador lo detecte.'; }, 1500);
 
   // recolocar: en el último control pasado, mirando hacia el siguiente (o en la salida)
+  // ---------- modo libre: rampa que pone cada jugador y acrobacias con puntos ----------
+  let rampDef = null;
+  async function loadRamp() {
+    if (rampDef !== null) return rampDef;
+    try { const A = await files.archive('CITY1.LEV'), m = BRR.parse3DW(A.get('RAMP.3DW')), colk = [...A.keys()].find(k => k.endsWith('.COL'));
+      const pal = BRR.pal6((colk ? A.get(colk) : (await files.archive('ALWAYS.WAP')).get('DEFAULT.COL')).subarray(0, 768)), mb = new BRR.MeshBuilder(pal), tris = [];
+      mb.addModel(m, v => BRR.toGL(v[0], v[1], v[2]), n => A.get(n + '.TM'), (a, b, c) => tris.push([a, b, c]));
+      // eje de subida de la rampa (de lo bajo a lo alto) y su base
+      const P = tris.flat(), mn = [0, 1, 2].map(i => Math.min(...P.map(q => q[i]))), mx = [0, 1, 2].map(i => Math.max(...P.map(q => q[i]))), top = P.reduce((a, q) => q[1] > a[1] ? q : a);
+      const c = [(mn[0] + mx[0]) / 2, mn[1], (mn[2] + mx[2]) / 2], ax = (mx[0] - mn[0]) > (mx[2] - mn[2]) ? [Math.sign(top[0] - c[0]) || 1, 0, 0] : [0, 0, Math.sign(top[2] - c[2]) || 1];
+      rampDef = { up: R.upload(mb), tris: tris.map(t => t.map(q => V.sub(q, c))), ax, len: Math.max(mx[0] - mn[0], mx[2] - mn[2]) };
+    } catch (e) { console.warn('rampa', e); rampDef = false; }
+    return rampDef;
+  }
+  async function placeRamp(h) {
+    const D = await loadRamp(); if (!D) return; const c = h.car, f0 = c.forward(), f = V.norm([f0[0], 0, f0[2]]);
+    const dist = Math.max(9, Math.min(28, 9 + Math.abs(c.speed()) * 0.45)) + D.len / 2, p = [c.p[0] + f[0] * dist, 0, c.p[2] + f[2] * dist];
+    const n = [0, 1, 0]; p[1] = lvl.terrain(p[0], p[2], n);
+    const fw = V.norm(V.sub(f, V.mul(n, V.dot(f, n)))), rt = V.norm([fw[2] * n[1] - fw[1] * n[2], fw[0] * n[2] - fw[2] * n[0], fw[1] * n[0] - fw[0] * n[1]]);
+    // matriz: el eje de subida del modelo apunta a donde va el coche, su "arriba" sigue al suelo
+    const A = D.ax, side = [A[2], 0, -A[0]];
+    const M = [[0, 0, 0], [0, 0, 0], [0, 0, 0]]; for (let i = 0; i < 3; i++) for (let j = 0; j < 3; j++) M[i][j] = rt[i] * side[j] + n[i] * (j === 1 ? 1 : 0) + fw[i] * A[j];
+    h.ramp = { R: M, p: [p[0], p[1] - 0.05, p[2]], up: D.up };
+    lvl.collider.setDyn('ramp' + h.i, D.tris.map(t => t.map(q => V.add(h.ramp.p, BRR.mv(M, q)))), 'RAMP');
+    if (audio) audio.play('GEN/SIGN.WAV', { vol: 0.6 }); flash(h, 'Rampa', 1);
+  }
+  function stuntFrame(h, dt) {
+    const c = h.car, S = h.stunt || (h.stunt = { pts: 0, best: 0, air: 0, pitch: 0, roll: 0, yaw: 0, combo: 0 });
+    if (h.race.phase !== 'race') return;
+    const onG = c.W.some(w => w.contact), R = c.R, right = [R[0][0], R[1][0], R[2][0]], fwd = [R[0][2], R[1][2], R[2][2]], up = [R[0][1], R[1][1], R[2][1]];
+    if (!onG) { S.air += dt; S.pitch += V.dot(c.w, right) * dt; S.roll += V.dot(c.w, fwd) * dt; S.yaw += V.dot(c.w, up) * dt; return; }
+    if (S.air > 0.6) {
+      const turns = a => Math.floor((Math.abs(a) + 0.6) / (2 * Math.PI)), flips = turns(S.pitch), rolls = turns(S.roll), spins = turns(S.yaw), upright = up[1] > 0.6;
+      if (upright) {
+        let pts = Math.round(S.air * 120) + flips * 600 + rolls * 500 + spins * 250; S.combo++; pts = Math.round(pts * (1 + Math.min(4, S.combo - 1) * 0.25));
+        const what = [flips && (flips > 1 ? flips + ' mortales' : 'Mortal'), rolls && (rolls > 1 ? rolls + ' vueltas de campana' : 'Vuelta de campana'), spins && (spins > 1 ? spins + ' trompos en el aire' : 'Trompo en el aire')].filter(Boolean);
+        S.pts += pts; flash(h, (what.length ? what.join(' + ') : 'Salto ' + S.air.toFixed(1) + ' s') + '  +' + pts + (S.combo > 1 ? '  ×' + S.combo : ''), 2, 'big');
+        if (h.i === 0 && flips + rolls >= 1) achUnlock('vuelco');
+        const k = 'brr_stunt_' + lvl.name, best = +(ST.get(k) || 0); if (S.pts > best && h.i === 0) { ST.set(k, String(S.pts)); S.rec = true; }
+      } else { S.combo = 0; flash(h, '¡Aterrizaje fallido!', 1.5, 'warn'); }
+    } else if (S.air < 0.05 && Math.abs(c.speed()) < 2) S.combo = 0;
+    S.air = 0; S.pitch = S.roll = S.yaw = 0;
+  }
   // ayudas de conducción (principiantes): corrige un poco la dirección hacia la trazada, frena antes de las curvas y
   // recoloca solo si te quedas atascado o fuera de la pista
   function assist(h, inp, dt, lv) {
@@ -1626,7 +1690,7 @@
     if (netWait && state === 'race') { netFrame(dt); for (const h of humans) { readInput(h, 0); h.race.phase = 'countdown'; h.race.cd = 3.6; } }
     else if (photo) { photoFrame(dt); }
     else if (state === 'race' || state === 'results') {
-      for (const h of humans) { const inp = readInput(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
+      for (const h of humans) { const inp = readInput(h, dt); if (freeMode && inp.ramp && !h.rampPrev && h.race.phase === 'race') placeRamp(h); h.rampPrev = !!inp.ramp; if (freeMode) stuntFrame(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
       for (const r of rivals) if (r.inp && r.inp.nitro && r.car.fireNitro()) nitroFx(r.car);
       const ps = Math.max(...humans.map(h => h.race.score())), tA = performance.now();
       for (const r of rivals) if (r.ai) r.inp = r.ai.control(dt, allCars, null);   // ritmo: lo pone el pelotón (packFrame)
@@ -1671,7 +1735,7 @@
       }
       R.viewRect = [vx, vy, vw, vh];
       R.begin(cam.pos, view, proj, far, lvl.sky);
-      R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far);
+      R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far); for (const q of humans) if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p));
       for (const hh of humans) drawCar(hh.car, hh.draw, hh === h && ['capo', 'parachoques'].includes(h.camMode || opt.cam));
       for (const r of rivals) { const d2 = (r.car.p[0] - cam.pos[0]) ** 2 + (r.car.p[2] - cam.pos[2]) ** 2; if (d2 < far * far) drawCar(r.car, r.draw, false, r.dd); }
       fx.draw(BRR.M4.mul(proj, view), cam.pos, view, far, R.fogUsed || lvl.sky);
@@ -1680,9 +1744,11 @@
       const kmh = Math.round(Math.abs(c.speed()) * 3.6); h.q('speed').textContent = kmh; if (opt.speedo === 'ana') drawGauge(h, kmh, c);
       if (opt.hnames) nameTags(h, BRR.M4.mul(proj, view), vw, vh); else if (h.tagsOn) { h.q('tags').innerHTML = ''; h.tagsOn = false; }
       h.q('h_lap').textContent = rc.phase === 'finished' ? 'META' : freeMode ? 'LIBRE' : `${Math.min(rc.lap + 1, rc.laps)}/${rc.laps}`;
-      h.q('h_time').textContent = fmt(rc.t); h.q('h_cur').textContent = fmt(rc.t - rc.lapStart);
+      if (h.freeLbl !== freeMode) { h.freeLbl = freeMode; const rows = h.hud.querySelectorAll('.race .row'), L = freeMode ? ['Puntos ', 'Combo ', 'Récord '] : ['Tiempo ', 'Esta vuelta ', 'Mejor vuelta ']; rows.forEach((r, i) => { r.firstChild.nodeValue = L[i]; }); }
+      if (freeMode) { const S = h.stunt || {}, best = +(ST.get('brr_stunt_' + lvl.name) || 0); h.q('h_time').textContent = (S.pts || 0) + ' pts'; h.q('h_cur').textContent = S.combo > 1 ? '×' + S.combo : '–'; h.q('h_best').textContent = best + ' pts'; }
+      else { h.q('h_time').textContent = fmt(rc.t); h.q('h_cur').textContent = fmt(rc.t - rc.lapStart); }
       const rec = getRec(h), bl = rc.lapTimes.length ? Math.min(...rc.lapTimes) : null;
-      h.q('h_best').textContent = fmt(bl != null && (!rec.lap || bl < rec.lap) ? bl : rec.lap);
+      if (!freeMode) h.q('h_best').textContent = fmt(bl != null && (!rec.lap || bl < rec.lap) ? bl : rec.lap);
       h.q('wrong').hidden = !rc.wrong;
       h.q('h_nitro').textContent = '▮'.repeat(Math.max(0, c.nitros | 0)) || '–'; h.q('nitrobox').classList.toggle('on', c.nitroT > 0);
       if (h.msgT > 0) { h.msgT -= dt; if (h.msgT <= 0) h.q('msg').hidden = true; }
@@ -1714,5 +1780,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

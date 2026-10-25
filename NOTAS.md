@@ -1,9 +1,11 @@
 Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la carpeta BIGRED).
 
-**Cómo jugar:** descomprime el zip y abre `BigRedRacing.html` en Chrome o Edge, o juega en la web (también se puede instalar como aplicación): https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html
+**Descargas**
+- **Windows:** `BigRedReport-Windows.zip` → descomprime y abre `BigRedReport.exe`.
+- **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport` (o `BigRedReport.sh`).
+- **Navegador:** `BigRedRacing_port.zip` → abre `BigRedRacing.html` en Chrome o Edge, o juega en https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html
 
-**Novedades de la 0.12**
-- Pantalla de inicio con la portada nueva y PRESS START.
-- Botón «Apoyar el proyecto» (Ko-fi y PayPal). El juego es y será gratis.
-
-**De la 0.11:** controles a gusto, 21 logros, ayudas de conducción, accesibilidad, cabeza y cuerpo por separado, comentarista, aviso de fallos e instalable.
+**Novedades de la 0.13**
+- Programa para Windows y Linux con lanzador: carpeta del juego, pantalla, idioma, servidor online propio y apoyo al proyecto.
+- Modo libre = modo acrobacias: sin cronómetro, rampa donde quieras (T o cruceta ←) y puntos por saltos, mortales y vueltas de campana.
+- Pilotos nuevos: niño y grandullón.

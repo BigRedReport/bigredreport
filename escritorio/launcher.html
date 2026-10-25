@@ -1,0 +1,97 @@
+<!doctype html>
+<html lang="es"><head><meta charset="utf-8"><title>Big Red Report</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' file:; img-src 'self' file: data:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' file:">
+<style>
+:root{--bg:#14121a;--panel:#1d1a24;--line:#302b38;--ink:#f1ede7;--mut:#a59fa9;--red:#e2231a;--redink:#ff5a4e;--mono:ui-monospace,Menlo,Consolas,monospace}
+*{box-sizing:border-box}html,body{margin:0;height:100%;background:var(--bg);color:var(--ink);font:15px/1.45 system-ui,"Segoe UI",sans-serif}
+.app{display:grid;grid-template-columns:minmax(300px,44%) 1fr;height:100%}
+.art{background:#fff url(game/title.jpg) center/cover no-repeat;position:relative}
+.art::after{content:"";position:absolute;inset:0;background:linear-gradient(90deg,transparent 70%,var(--bg))}
+.side{display:flex;flex-direction:column;padding:22px 26px;gap:14px;overflow:auto}
+h1{margin:0;font-size:26px;letter-spacing:.02em}h1 b{color:var(--red)}
+.ver{font:12px var(--mono);color:var(--mut)}
+nav{display:flex;gap:6px;flex-wrap:wrap}nav button{background:transparent;border:1px solid var(--line);color:var(--mut);padding:7px 12px;border-radius:8px;font:600 13px system-ui;cursor:pointer}
+nav button.on{background:var(--panel);color:var(--ink);border-color:#4a4352}
+.page{display:none;flex-direction:column;gap:12px}.page.on{display:flex}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+.lab{font:600 11px var(--mono);letter-spacing:.12em;text-transform:uppercase;color:var(--mut);margin-bottom:6px}
+.path{font:13px var(--mono);word-break:break-all}.ok{color:#5ad17a}.bad{color:var(--redink)}
+button.big{background:var(--red);color:#fff;border:0;border-radius:12px;padding:16px;font:900 22px system-ui;letter-spacing:.12em;cursor:pointer;box-shadow:0 8px 24px #e2231a44}
+button.big:disabled{background:#3a3440;color:#8a8291;box-shadow:none;cursor:not-allowed}
+button.sec{background:#2a2531;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:8px 12px;font:600 13px system-ui;cursor:pointer}
+.row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:6px 0}
+select,input[type=number]{background:#2a2531;color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:14px system-ui}
+.small{font-size:12px;color:var(--mut)}
+.dn{display:flex;gap:14px;align-items:center}.dn img{width:140px;height:140px;border-radius:10px;background:#fff;padding:6px}
+.dnb{display:block;text-align:center;padding:12px;border-radius:10px;font-weight:800;color:#fff;text-decoration:none;margin-bottom:8px;cursor:pointer;border:0;width:100%;font-size:15px}
+.kofi{background:#29abe0}.pp{background:#003087}
+a{color:var(--redink)}
+@media (max-width:820px){.app{grid-template-columns:1fr}.art{height:200px}.art::after{background:linear-gradient(transparent 60%,var(--bg))}}
+</style></head>
+<body><div class="app">
+<div class="art" role="img" aria-label="Portada de Big Red Report"></div>
+<div class="side">
+  <div><h1>BIG RED <b>REPORT</b></h1><div class="ver" id="ver"></div></div>
+  <nav><button data-p="play" class="on">Jugar</button><button data-p="opt">Opciones</button><button data-p="don">❤ Apoyar</button><button data-p="about">Acerca de</button></nav>
+
+  <section class="page on" id="p_play">
+    <div class="card"><div class="lab">Carpeta del juego</div><div class="path" id="dir">—</div><div class="small" id="dirst"></div>
+      <div style="margin-top:10px"><button class="sec" id="pick">Elegir carpeta…</button></div></div>
+    <button class="big" id="play" disabled>JUGAR</button>
+    <p class="small">Necesitas tu copia original de Big Red Racing: elige la carpeta que contiene <b>BIGRED</b> (y la imagen del CD, <b>IMAGE.img</b>, para la música) o directamente la carpeta BIGRED.</p>
+  </section>
+
+  <section class="page" id="p_opt">
+    <div class="card">
+      <div class="row"><span>Pantalla completa</span><input type="checkbox" id="o_full"></div>
+      <div class="row"><span>Tamaño de la ventana</span><select id="o_size"><option value="1280x720">1280 × 720</option><option value="1600x900">1600 × 900</option><option value="1920x1080">1920 × 1080</option><option value="2560x1440">2560 × 1440</option></select></div>
+      <div class="row"><span>Idioma</span><select id="o_lang"><option value="">Automático</option><option value="es">Español</option><option value="en">English</option><option value="fr">Français</option><option value="de">Deutsch</option><option value="it">Italiano</option><option value="pt">Português</option></select></div>
+    </div>
+    <div class="card">
+      <div class="row"><span>Servidor online dedicado en este ordenador</span><input type="checkbox" id="o_srv"></div>
+      <div class="row"><span>Puerto</span><input type="number" id="o_port" min="1024" max="65535" style="width:100px"></div>
+      <p class="small">Para jugar online no hace falta: las partidas funcionan sin servidor. Actívalo si quieres tu propio servidor (los demás lo añaden en Online → Servidor dedicado como ws://TU_IP:PUERTO).</p>
+    </div>
+    <p class="small">El resto de opciones (gráficos, sonido, controles…) están dentro del juego, en Opciones.</p>
+  </section>
+
+  <section class="page" id="p_don">
+    <div class="card"><p style="margin-top:0">Big Red Report es y será <b>gratis</b>. Si quieres echar una mano con la web, los servidores y las herramientas, cualquier euro ayuda.</p>
+      <div class="dn"><div style="flex:1"><button class="dnb kofi" data-url="https://ko-fi.com/bigredreport">☕ Invitar a un café en Ko-fi</button>
+        <button class="dnb pp" data-url="https://www.paypal.com/qrcodes/managed/83d53320-fe9b-4270-a29c-1b47e031181d?utm_source=consweb_more">PayPal</button></div>
+        <img src="game/paypal_qr.png" alt="Código QR de PayPal"></div></div>
+  </section>
+
+  <section class="page" id="p_about">
+    <div class="card"><p style="margin-top:0">Port de fans de <b>Big Red Racing</b> (Big Red Software, 1995) para ordenadores modernos.</p>
+      <p>Web: <a href="#" data-url="https://bigredreport.github.io/bigredreport/">bigredreport.github.io/bigredreport</a><br>
+      Código y versiones: <a href="#" data-url="https://github.com/BigRedReport/bigredreport">github.com/BigRedReport/bigredreport</a><br>
+      Novedades y descargas: <a href="#" data-url="https://github.com/BigRedReport/bigredreport/releases/latest">última versión</a></p>
+      <p class="small">El programa lee los archivos de tu copia y no incluye ni distribuye datos del juego. Proyecto de fans sin relación con los dueños de los derechos.</p></div>
+  </section>
+</div></div>
+<script src="game/js/lang.js"></script><script src="game/js/i18n.js"></script>
+<script>
+const N = window.BRR_NATIVE, $ = id => document.getElementById(id);
+for (const b of document.querySelectorAll('nav button')) b.onclick = () => { for (const x of document.querySelectorAll('nav button')) x.classList.toggle('on', x === b); for (const p of document.querySelectorAll('.page')) p.classList.toggle('on', p.id === 'p_' + b.dataset.p); };
+for (const a of document.querySelectorAll('[data-url]')) a.onclick = e => { e.preventDefault(); N.openUrl(a.dataset.url); };
+async function refresh() {
+  const c = await N.getCfg(); $('ver').textContent = 'Versión ' + c.version + ' · ' + ({ win32: 'Windows', linux: 'Linux', darwin: 'macOS' }[c.platform] || c.platform);
+  $('dir').textContent = c.dir || 'Sin elegir';
+  const st = c.dir ? await N.checkDir() : { ok: false };
+  $('dirst').className = 'small ' + (st.ok ? 'ok' : 'bad');
+  $('dirst').textContent = !c.dir ? 'Elige la carpeta de tu copia del juego.' : st.ok ? '✓ Juego encontrado' + (st.cd ? ' · con la música del CD' : ' · sin la imagen del CD (no habrá música original)') : '✗ En esa carpeta no está Big Red Racing (no hay circuitos .LEV)';
+  $('play').disabled = !st.ok;
+  $('o_full').checked = !!c.fullscreen; $('o_size').value = c.width + 'x' + c.height; $('o_lang').value = c.lang || ''; $('o_srv').checked = !!c.server; $('o_port').value = c.port || 7777;
+}
+$('pick').onclick = async () => { await N.pickDir(); refresh(); };
+$('play').onclick = () => N.play();
+$('o_full').onchange = () => N.setCfg({ fullscreen: $('o_full').checked });
+$('o_size').onchange = () => { const [w, h] = $('o_size').value.split('x').map(Number); N.setCfg({ width: w, height: h }); };
+$('o_lang').onchange = () => { const l = $('o_lang').value; N.setCfg({ lang: l }); try { if (l) BRR.setLang(l); else { localStorage.removeItem('brr_lang'); location.reload(); } } catch (e) { } };
+$('o_srv').onchange = () => N.setCfg({ server: $('o_srv').checked });
+$('o_port').onchange = () => N.setCfg({ port: Math.max(1024, Math.min(65535, +$('o_port').value || 7777)) });
+addEventListener('keydown', e => { if (e.key === 'Enter' && !$('play').disabled) N.play(); });
+refresh();
+</script>
+</body></html>
