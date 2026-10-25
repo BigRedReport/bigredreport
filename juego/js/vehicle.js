@@ -217,6 +217,7 @@
 
   // ---------- física ----------
   const SPEED_K = 30 / 35000;   // unidades de velocidad del script -> m/s (35000 ≈ 108 km/h)
+  BRR.SPEED_K = SPEED_K;
   const curve = (rows, spd) => { // fuerza (0..~650) según la velocidad del script
     for (let i = 0; i < rows.length - 1; i++) {
       const [s0, f0] = rows[i], [s1, f1] = rows[i + 1];
@@ -276,7 +277,7 @@
       this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * 10);
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
       const K = this.K, L0 = K.L0, nW = this.W.length; let grounded = 0, wetN = 0;
-      const throttle = inp.throttle, brake = inp.brake;
+      const throttle = inp.throttle, brake = inp.brake; this.thr = throttle;
       // marcha: adelante, freno o atrás
       let drive = 0;
       if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m;

@@ -67,6 +67,17 @@ Notas
 - La primera vez que corres en un circuito con rivales tarda unos segundos en "Preparar a los pilotos";
   después se guarda y carga al instante.
 
+Escudería
+- Piloto y escudería: nombre del equipo (el que quieras; los rivales eligen uno al azar), logos del juego y
+  logos nuevos, logo propio y color RGB (pinta coche, piloto y nombre). Bocinas: sintetizadas, del juego y clips.
+- Al elegir circuito se ve tu vehículo dando vueltas junto al nombre del equipo.
+
+Gráficos nuevos
+- Suelo suavizado (sin "placas"), humo de neumáticos al derrapar o quemar rueda, polvo que se queda flotando y
+  nube al aterrizar de un salto.
+- Opciones → Gráficos → Texturas "Suavizadas": además se escala el suelo (bordes del césped sin dientes de sierra).
+- Opciones → Gráficos → Imágenes del menú: mejoradas (escalado HD), suavizadas o pixeladas como el original.
+
 Idiomas
 - Español, inglés, francés, alemán, italiano y portugués. Al abrirlo usa el idioma del navegador; se cambia en
   Opciones → Juego → Idioma (al momento, sin reiniciar).

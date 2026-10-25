@@ -13,15 +13,15 @@
       if (!gl) throw new Error('Este navegador no tiene WebGL2');
       this.canvas = canvas;
       const VS = `#version 300 es
-in vec3 p; in vec2 uv; in vec3 col; in float lay; uniform mat4 VP; uniform mat4 W; uniform mat4 LVP; uniform vec3 cam; uniform float layK;
-out vec2 vuv; out vec3 vcol; out vec3 wp; out vec4 lp; out float vwat;
-void main(){ vec4 w=W*vec4(p,1.); vuv=uv; vcol=col; wp=w.xyz; lp=LVP*w; vwat=lay<-0.5?1.:0.;
+in vec3 p; in vec2 uv; in vec3 col; in float lay; in vec3 nrm; uniform mat4 VP; uniform mat4 W; uniform mat4 LVP; uniform vec3 cam; uniform float layK;
+out vec2 vuv; out vec3 vcol; out vec3 wp; out vec4 lp; out float vwat; out vec3 vn;
+void main(){ vec4 w=W*vec4(p,1.); vn=mat3(W)*nrm; vuv=uv; vcol=col; wp=w.xyz; lp=LVP*w; vwat=lay<-0.5?1.:0.;
   // capas: caras coplanarias posteriores se acercan un poco a la cámara (sustituye al orden de pintado del original)
   vec3 tc=cam-w.xyz; float d=length(tc); if(lay>0.) w.xyz+=tc/max(d,1e-3)*lay*layK*(0.003+d*0.00035);
   gl_Position=VP*w; }`;
       const FS = `#version 300 es
 precision highp float; precision highp sampler2DShadow;
-in vec2 vuv; in vec3 vcol; in vec3 wp; in vec4 lp; in float vwat;
+in vec2 vuv; in vec3 vcol; in vec3 wp; in vec4 lp; in float vwat; in vec3 vn;
 uniform float time; uniform vec3 animPal[16]; uniform int animN; uniform float animStep;
 uniform sampler2D T; uniform sampler2DShadow SM; uniform int useTex; uniform int mode; uniform int shadows; uniform float smTexel;
 uniform vec3 cam; uniform float far; uniform vec3 fogc; uniform vec3 L; uniform vec3 sunC; uniform vec3 skyC; uniform vec3 gndC; uniform float glow;
@@ -36,7 +36,8 @@ float shadow(vec3 n){
 void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) discard;
   // colores animados del original (palanim): el alfa guarda la posición en el ciclo
   if(useTex==1 && animN>0 && c.a<0.99){ int i=int(floor(c.a*255.+.5))-200; if(i>=0 && i<animN){ c.rgb=animPal[(i+int(animStep))%animN]; } c.a=1.; }
-  vec3 n=normalize(cross(dFdx(wp),dFdy(wp))); if(dot(n,cam-wp)<0.) n=-n;
+  // normal: suave si la malla la trae (terreno), si no la de la cara
+  vec3 n; if(dot(vn,vn)>0.25) n=normalize(vn); else { n=normalize(cross(dFdx(wp),dFdy(wp))); if(dot(n,cam-wp)<0.) n=-n; }
   float d=length(wp-cam); vec3 rgb;
   if(glow>0.){ float f=clamp((d-far*.55)/(far*.45),0.,1.); o=vec4(mix(c.rgb*glow,fogc,f*.7),1.); return; }   // luces: sin sombreado
   if(mode==0){ float l=.66+.34*abs(dot(n,normalize(vec3(.4,.85,.3)))); rgb=c.rgb*l;
@@ -62,7 +63,7 @@ void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
   // niebla atmosférica + desvanecido al final de la distancia de dibujado
   float f=1.-exp(-d*2.2/far); f=max(f*.75,clamp((d-far*.7)/(far*.3),0.,1.));
   o=vec4(mix(rgb,fogc,f),1.); }`;
-      this.pr = prog(gl, VS, FS, ['p', 'uv', 'col', 'lay']);
+      this.pr = prog(gl, VS, FS, ['p', 'uv', 'col', 'lay', 'nrm']); gl.vertexAttrib3f(4, 0, 0, 0);
       this.U = uniforms(gl, this.pr, ['VP', 'W', 'LVP', 'T', 'SM', 'useTex', 'mode', 'shadows', 'smTexel', 'cam', 'far', 'fogc', 'layK', 'L', 'sunC', 'skyC', 'gndC', 'glow', 'time', 'animPal', 'animN', 'animStep']);
       // pase de sombras (solo profundidad, con recorte por transparencia para árboles y vallas)
       this.dpr = prog(gl, `#version 300 es
@@ -152,6 +153,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
         if (g.uv) put(1, g.uv, 2); else gl.vertexAttrib2f(1, 0, 0);
         if (g.col) put(2, g.col, 3); else gl.vertexAttrib3f(2, 1, 1, 1);
         if (g.lay && g.lay.length) put(3, g.lay, 1); else gl.vertexAttrib1f(3, 0);
+        if (g.nrm && g.nrm.length === g.pos.length) put(4, g.nrm, 3);
         out.push({ vao, n: g.pos.length / 3, tex });
       }
       gl.bindVertexArray(null);

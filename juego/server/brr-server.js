@@ -4,6 +4,18 @@
 // o en un hosting), los demás lo añaden en "Online → Servidor" y ven su lista de partidas.
 'use strict';
 const http = require('http'), crypto = require('crypto'), fs = require('fs'), path = require('path');
+
+  // límites del contenido propio que llega por la red: logos (formato y tamaño), color, piloto, vehículo y nombre
+const cleanData = d => { const o = {}; if (!d || typeof d !== 'object') return o;
+    for (const k of ['team', 'char']) if (d[k] != null) { const v = d[k] | 0; if (v >= 0 && v <= 12) o[k] = v; }
+    if (typeof d.veh === 'string' && /^[A-Z0-9_]{1,12}$/i.test(d.veh)) o.veh = d.veh.toUpperCase();
+    if (d.ready != null) o.ready = !!d.ready;
+    if (typeof d.teamName === 'string') o.teamName = d.teamName.replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 24); else if (d.teamName === null) o.teamName = null;
+    if (typeof d.paint === 'string' && /^#[0-9a-f]{6}$/i.test(d.paint)) o.paint = d.paint; else if (d.paint === null) o.paint = null;
+    if (typeof d.logo === 'number' && d.logo >= 0 && d.logo < 64) o.logo = d.logo | 0;
+    else if (typeof d.logo === 'string' && d.logo.length <= 200000 && /^data:image\/(png|webp|jpeg);base64,[A-Za-z0-9+/=]+$/.test(d.logo)) o.logo = d.logo;
+    else if ('logo' in d) o.logo = null;
+    return o; };
 // clasificaciones de contrarreloj por circuito (se guardan en clasificaciones.json junto al servidor)
 const LBF = path.join(__dirname, 'clasificaciones.json'); let LB = {}; try { LB = JSON.parse(fs.readFileSync(LBF, 'utf8')); } catch (e) { }
 let lbSaveT = null; const lbSave = () => { clearTimeout(lbSaveT); lbSaveT = setTimeout(() => { try { fs.writeFileSync(LBF, JSON.stringify(LB)); } catch (e) { } }, 2000); };
@@ -27,6 +39,7 @@ function parse(c) {
     const op = b[0] & 15, masked = b[1] & 128; let len = b[1] & 127, o = 2;
     if (len === 126) { if (b.length < 4) return; len = b.readUInt16BE(2); o = 4; }
     else if (len === 127) { if (b.length < 10) return; len = Number(b.readBigUInt64BE(2)); o = 10; }
+    if (len > 512 * 1024) { c.sock.destroy(); return; }   // mensajes de más de 512 KB: fuera
     const mo = o; if (masked) o += 4; if (b.length < o + len) return;
     let p = b.subarray(o, o + len); if (masked) { const m = b.subarray(mo, mo + 4); p = Buffer.from(p); for (let i = 0; i < p.length; i++) p[i] ^= m[i & 3]; }
     c.buf = b.subarray(o + len);
@@ -61,17 +74,17 @@ function onMsg(c, m) {
     case 'create': {
       leave(c); const id = crypto.randomBytes(3).toString('hex').toUpperCase();
       const r = { id, name: String(m.name || c.name + ' ').slice(0, 30), host: c, pub: m.pub !== false, pass: m.pass || '', max: Math.max(2, Math.min(12, m.max | 0 || 6)), members: new Set([c]), state: 'lobby', info: m.info || {} };
-      rooms.set(id, r); c.room = r; c.data = m.data || {}; roomUpdate(r); break;
+      rooms.set(id, r); c.room = r; c.data = cleanData(m.data); roomUpdate(r); break;
     }
     case 'join': {
       const r = rooms.get(String(m.id || '').toUpperCase());
       if (!r) return send(c, { t: 'error', msg: 'No existe esa partida' });
       if (r.pass && r.pass !== m.pass) return send(c, { t: 'error', msg: 'Contraseña incorrecta' });
       if (r.members.size >= r.max) return send(c, { t: 'error', msg: 'La partida está llena' });
-      leave(c); r.members.add(c); c.room = r; c.data = m.data || {}; roomUpdate(r); break;
+      leave(c); r.members.add(c); c.room = r; c.data = cleanData(m.data); roomUpdate(r); break;
     }
     case 'leave': leave(c); send(c, { t: 'left', id: c.id }); break;
-    case 'data': if (c.room) { c.data = Object.assign(c.data || {}, m.data || {}); roomUpdate(c.room); } break;
+    case 'data': if (c.room) { c.data = Object.assign(c.data || {}, cleanData(m.data)); roomUpdate(c.room); } break;
     case 'info': if (c.room && c.room.host === c) { c.room.info = m.info || {}; if (m.state) c.room.state = m.state; roomUpdate(c.room); } break;
     case 'chat': if (c.room) for (const o of c.room.members) send(o, { t: 'chat', from: c.name, text: String(m.text || '').slice(0, 200) }); break;
     // reenvío de la carrera: a todos (menos el que lo manda) o a uno concreto

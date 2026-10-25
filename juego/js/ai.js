@@ -199,13 +199,22 @@
     } catch (e) { }
   };
   // velocidad máxima en cada punto: agarre lateral en curva y distancia de frenada hasta la siguiente curva
+  const SURF_MU = { asfalto: 1.0, tierra: 0.9, arena: 0.78, nieve: 0.7, agua: 0.6 };
   BRR.aiProfile = function (line, car, P) {
     const N = line.N, st = line.step, vtop = car.topSpeed * P.pace * (car.K.fly ? 1.1 : 1);
     const mu = (car.K.fly ? 2.5 : car.K.boat ? 0.6 : car.K.thrust ? 0.55 : 1.0) * P.corner, out = new Float32Array(N);
     for (let i = 0; i < N; i++) {
       const a = line.pts[(i - 5 + N) % N].t, b = line.pts[(i + 5) % N].t, ang = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[2] * b[2])));
-      const k = ang / (10 * st); out[i] = Math.min(vtop, Math.sqrt(mu * 9.81 / Math.max(k, 1e-5)));
+      // agarre del suelo en ese punto (arena, nieve... agarran menos que el asfalto): la curva se toma más despacio
+      let ms = 1; if (!car.K.fly && !car.K.floats && car.lvl && car.lvl.surface) { const p = line.pts[i].p, sf = car.lvl.surface(p[0], p[2]); ms = SURF_MU[sf ? sf.type : 'asfalto'] || 0.95; }
+      const k = ang / (10 * st); out[i] = Math.min(vtop, Math.sqrt(mu * ms * 9.81 / Math.max(k, 1e-5)));
     }
+    // límite de la dirección: a más velocidad, menos ángulo de giro (como en el original); no se puede entrar a una curva
+    // más rápido de lo que deja girar el volante a esa velocidad
+    if (!car.K.fly && !car.K.yaw && car.def && car.def.steer) { const L = car.wheelBase, kmax = [], SK = BRR.SPEED_K || 1;
+      for (let v = 0; v <= 70; v++) { const def = car.def, sp = v / SK, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (sp - s1) / (s2 - s1))); kmax.push(Math.tan((a1 + (a2 - a1) * tt) / 0x280 * 0.55) / L); }
+      for (let i = 0; i < N; i++) { const a = line.pts[(i - 5 + N) % N].t, b = line.pts[(i + 5) % N].t, ang = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[2] * b[2]))), k = ang / (10 * st) * 1.25;
+        let v = Math.min(70, Math.floor(out[i])); while (v > 7 && kmax[v] < k) v--; out[i] = Math.min(out[i], Math.max(7, v)); } }
     const brake = 6.5 * Math.min(1.2, P.corner);
     for (let pass = 0; pass < 2; pass++) for (let i = N - 1; i >= 0; i--) { const j = (i + 1) % N; out[i] = Math.min(out[i], Math.sqrt(out[j] * out[j] + 2 * brake * st)); }
     for (let i = 0; i < N; i++) out[i] = Math.max(7, out[i]);
@@ -321,17 +330,27 @@
       // velocidad objetivo: el perfil en este punto y un poco por delante (reacción), con rubber banding
       const i0 = Math.floor(s / line.step), N = line.N; let vp = 1e9; for (let k = 0; k <= 3; k++) vp = Math.min(vp, this.vprof[(i0 + k) % N]);
       let vt = vp * this.skill * this.rubber;
-      if (Math.abs(err) > 0.9) vt = Math.min(vt, 9);
+      // muy desviado (cruzado o mirando hacia atrás): frenar de verdad para poder girar; si no hay manera, maniobra
+      const ae = Math.abs(err);
+      if (ae > 0.45 && v > 8) vt = Math.min(vt, Math.max(6, v * (1.3 - ae)));   // no consigue seguir la curva: levantar y frenar ya
+      if (ae > 0.9) vt = Math.min(vt, Math.max(4, 9 - (ae - 0.9) * 5));
+      // aprende: si se pasa en una curva, la próxima vuelta llega más despacio a ese tramo
+      if (ae > 0.8 && !this.overT && this.vprof) { this.overT = 3; const N0 = line.N, back = Math.round(45 / line.step);
+        for (let k = 0; k <= back; k++) { const j = ((i0 - k) % N0 + N0) % N0; this.vprof[j] = Math.max(7, this.vprof[j] * (0.86 + 0.14 * k / back)); } }
+      if (this.overT) this.overT = Math.max(0, this.overT - dt);
+      this.crossT = ae > 1.5 ? (this.crossT || 0) + dt : 0;
+      if (this.crossT > 1.6 && !(this.revT > 0)) { this.crossT = 0; if (this.hidden()) this.recover(s); else { this.revT = 1.1; this.revSteer = Math.sign(err) || 1; } }
       if (blockSpeed != null) vt = Math.min(vt, Math.max(8, blockSpeed));
+      this.dbg = { err: +err.toFixed(2), vt: +vt.toFixed(1), lat: +latOff.toFixed(1), look: +look.toFixed(1), blk: blockSpeed, half: +half.toFixed(1) };
       inp.throttle = v < vt ? 1 : (v < vt + 2 ? 0.3 : 0);
-      inp.brake = v > vt + 3 ? Math.min(1, (v - vt) / 6) : 0;
+      inp.brake = v > vt + (ae > 0.9 ? 1 : 3) ? Math.min(1, (v - vt) / 6 + (ae > 0.9 ? 0.3 : 0)) : 0;
       // nitro en las rectas
       if (turn < 0.12 && v > 14 && !this.mistake && Math.random() < dt * 0.06 * (1 + P.aggro) * (this.rubber > 1 ? 2 : 1)) inp.nitro = true;
       if (this.mistake === 'tarde') { inp.brake = 0; inp.throttle = 1; }
       if (this.mistake === 'volantazo') inp.steer = Math.max(-1, Math.min(1, inp.steer + this.mistakeDir * 0.6));
       if (this.mistake === 'duda') { inp.throttle = 0.2; inp.brake = 0; }
       // atascos: marcha atrás; si sigue, recolocar
-      if (this.revT > 0) { this.revT -= dt; inp.throttle = 0; inp.brake = 1; inp.steer = -Math.sign(err) || 1; return inp; }
+      if (this.revT > 0) { this.revT -= dt; inp.throttle = 0; inp.brake = 1; inp.steer = -(this.revSteer || Math.sign(err) || 1); if (this.revT <= 0) this.revSteer = 0; return inp; }
       this.stuckT += dt;
       // fuera de la vista del jugador se recoloca antes (sin que se note)
       const hidden = this.hidden();

@@ -11,7 +11,29 @@
     if (!d || d.length < 64768) return null;
     const c = document.createElement('canvas'); c.width = 320; c.height = 200; const g = c.getContext('2d'), im = g.createImageData(320, 200);
     for (let i = 0; i < 64000; i++) { const p = d[768 + i] * 3; im.data[i * 4] = (d[p] & 63) * 255 / 63; im.data[i * 4 + 1] = (d[p + 1] & 63) * 255 / 63; im.data[i * 4 + 2] = (d[p + 2] & 63) * 255 / 63; im.data[i * 4 + 3] = 255; }
-    g.putImageData(im, 0, 0); return c.toDataURL();
+    g.putImageData(im, 0, 0);
+    return BRR.menuImg === 'hd' ? BRR.upscaleURL(c) : c.toDataURL();
+  };
+  // escalado de pixel art (Scale2x/EPX, ×2): redondea los bordes de letras y siluetas sin emborronar;
+  // luego el navegador lo muestra suavizado
+  function scale2x(src, w, h) {
+    const dst = new Uint32Array(w * h * 4), W2 = w * 2;
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const P = src[y * w + x], A = y > 0 ? src[(y - 1) * w + x] : P, B = x < w - 1 ? src[y * w + x + 1] : P, C = x > 0 ? src[y * w + x - 1] : P, D = y < h - 1 ? src[(y + 1) * w + x] : P;
+      let o0 = P, o1 = P, o2 = P, o3 = P;
+      if (C === A && C !== D && A !== B) o0 = A; if (A === B && A !== C && B !== D) o1 = B; if (D === C && D !== B && C !== A) o2 = C; if (B === D && B !== A && D !== C) o3 = D;
+      const i = y * 2 * W2 + x * 2; dst[i] = o0; dst[i + 1] = o1; dst[i + W2] = o2; dst[i + W2 + 1] = o3;
+    }
+    return dst;
+  }
+  BRR.scale2xRGBA = (u8, w, h) => new Uint8Array(scale2x(new Uint32Array(u8.buffer, u8.byteOffset, w * h), w, h).buffer);
+  BRR.upscaleURL = function (c) {
+    try {
+      const w = c.width, h = c.height, src = new Uint32Array(c.getContext('2d').getImageData(0, 0, w, h).data.buffer.slice(0));
+      const s2 = scale2x(src, w, h), o = document.createElement('canvas'); o.width = w * 2; o.height = h * 2;
+      const g = o.getContext('2d'), im = g.createImageData(w * 2, h * 2); new Uint32Array(im.data.buffer).set(s2); g.putImageData(im, 0, 0);
+      return o.toDataURL();
+    } catch (e) { return c.toDataURL(); }
   };
   // ficheros de textos: bloque = línea en blanco, ID, líneas "@..." de posición y el texto (\ = salto de línea)
   function parseStrings(txt) {

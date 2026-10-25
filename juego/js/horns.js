@@ -11,13 +11,28 @@
     { id: 'claxon', n: 'Claxon antiguo (¡auuga!)' }, { id: 'payaso', n: 'Bocina de payaso' }, { id: 'cucaracha', n: 'La cucaracha' },
     { id: 'trombon', n: 'Trombón triste' }, { id: 'boing', n: 'Muelle (boing)' }, { id: 'silbato', n: 'Silbato de émbolo' },
     { id: 'laser', n: 'Láser' }, { id: 'bici', n: 'Timbre de bici' },
-    { id: 'gato', n: 'Gato (miau)' }, { id: 'vaca', n: 'Vaca (muu)' }, { id: 'cerdo', n: 'Cerdo (oink)' }, { id: 'rana', n: 'Rana (croac)' }, { id: 'pato', n: 'Pato (cuac)' },
+    { id: 'u:airhorn', n: 'Bocina de aire' }, { id: 'u:bicycle', n: 'Bicicleta' }, { id: 'u:mgs', n: 'Alerta (MGS)' }, { id: 'u:extra_life', n: 'Vida extra' }, { id: 'u:cash', n: 'Caja registradora' },
+    { id: 'u:punch', n: 'Puñetazo' }, { id: 'u:throwing_s', n: 'Lanzamiento' }, { id: 'u:aaaah', n: '¡Aaaah!' }, { id: 'u:oh_my_god', n: 'Oh my God' }, { id: 'u:sparta', n: 'This is Sparta!' },
+    { id: 'u:hello_mf', n: 'Hello MF' }, { id: 'u:surprise_mf', n: 'Surprise MF' }, { id: 'u:move_b', n: 'Move B' }, { id: 'u:smoke_w', n: 'Smoke W' }, { id: 'u:mercadona', n: 'Mercadona' },
+    { id: 'u:sheep', n: 'Oveja (beee)' }, { id: 'u:cow', n: 'Vaca (muu)' }, { id: 'u:kittie', n: 'Gatito (miau)' }, { id: 'u:goat', n: 'Cabra' }, { id: 'u:monkey', n: 'Mono' },
     { id: 's:FART1', n: 'Pedo (del juego)' }, { id: 's:FART2', n: 'Pedo largo (del juego)' }, { id: 's:BURP1', n: 'Eructo (del juego)' },
     { id: 's:LAUGH', n: 'Risa (del juego)' }, { id: 's:PARROT', n: 'Loro (del juego)' }, { id: 's:BABY', n: 'Bebé (del juego)' },
     { id: 's:HEY', n: '¡Hey! (del juego)' }, { id: 's:OOH', n: '¡Ooh! (del juego)' }, { id: 's:SPIT', n: 'Escupitajo (del juego)' },
     { id: 'propia', n: 'Bocina propia' },
   ];
+  // si no está el paquete de clips (horns_data.js), esas bocinas no aparecen
+  if (!BRR.HORN_CLIPS) BRR.HORNS = BRR.HORNS.filter(h => !h.id.startsWith('u:'));
+  else BRR.HORNS = BRR.HORNS.filter(h => !h.id.startsWith('u:') || BRR.HORN_CLIPS[h.id.slice(2)]);
   BRR.hornInfo = id => BRR.HORNS.find(h => h.id === id) || BRR.HORNS[0];
+  // bocinas que se quitaron: quien las tuviera pasa a la nueva equivalente
+  BRR.HORN_RENAMED = { gato: 'u:kittie', vaca: 'u:cow', cerdo: 'u:goat', rana: 'u:monkey', pato: 'u:sheep' };
+  // clips incluidos en el port (horns_data.js): se decodifican la primera vez que suenan
+  async function clip(A, k) {
+    A._clips = A._clips || {}; if (A._clips[k]) return A._clips[k];
+    const src = BRR.HORN_CLIPS && BRR.HORN_CLIPS[k]; if (!src) return null;
+    const bin = atob(src.slice(src.indexOf(',') + 1)), u8 = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return A._clips[k] = await A.ctx.decodeAudioData(u8.buffer);
+  }
 
   // nodos auxiliares
   function out(A, vol, dest) { const c = A.ctx, g = c.createGain(); g.gain.value = 0; g.connect(dest || A._hornDest || A.gHorn || A.gSfx); return g; }
@@ -109,9 +124,9 @@
     if (!A || !A.ctx) return null; const info = BRR.hornInfo(id);
     let dest = null; if (o.pos && A.spatial) { dest = A.panner(o.pos); dest.connect(A.gHorn || A.gSfx); } A._hornDest = dest;
     try {
-      if (id === 'propia' || id.startsWith('s:')) {
-        const go = async () => { const b = id === 'propia' ? A.customHorn : await A.buf('SAMPLES/' + id.slice(2) + '.WAV'); if (!b) return SYN.normal(A, pitch, vol).stop(0.3);
-          const s = A.ctx.createBufferSource(), g = A.ctx.createGain(); s.buffer = b; s.playbackRate.value = id === 'propia' ? 1 : pitch; g.gain.value = vol; s.connect(g); g.connect(dest || A.gHorn || A.gSfx); s.start(); };
+      if (id === 'propia' || id.startsWith('s:') || id.startsWith('u:')) {
+        const go = async () => { const b = id === 'propia' ? A.customHorn : id.startsWith('u:') ? await clip(A, id.slice(2)).catch(() => null) : await A.buf('SAMPLES/' + id.slice(2) + '.WAV'); if (!b) return SYN.normal(A, pitch, vol).stop(0.3);
+          const s = A.ctx.createBufferSource(), g = A.ctx.createGain(); s.buffer = b; s.playbackRate.value = id === 'propia' || id.startsWith('u:') ? 1 : pitch; g.gain.value = vol; s.connect(g); g.connect(dest || A.gHorn || A.gSfx); s.start(); };
         go(); return { stop() { }, oneShot: true };
       }
       if (info.hold) { const h = SYN[id](A, pitch, vol); if (o.dur) h.stop(o.dur); return h; }

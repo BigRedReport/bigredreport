@@ -130,7 +130,9 @@
         atlas[o] = pal[c * 3]; atlas[o + 1] = pal[c * 3 + 1]; atlas[o + 2] = pal[c * 3 + 2]; atlas[o + 3] = palA && c >= palA[1] && c <= palA[2] ? 200 + c - palA[1] : 255;   // colores animados del original (alfa = índice)
       }
     }
-    mbT.textures.set('TERRENO', { w: AW, h: AH, data: atlas, terrain: true });
+    // texturas suavizadas: el suelo se escala ×2 con Scale2x (redondea los dientes de sierra de los bordes del césped y la arena)
+    if (BRR.texHD && BRR.scale2xRGBA) { const up = BRR.scale2xRGBA(atlas, AW, AH); mbT.textures.set('TERRENO', { w: AW * 2, h: AH * 2, data: up, terrain: true }); }
+    else mbT.textures.set('TERRENO', { w: AW, h: AH, data: atlas, terrain: true });
     // tipo de superficie por baldosa según su color medio (asfalto, tierra, arena, nieve, agua)
     const classify = (r, g, b) => {
       const mx = Math.max(r, g, b), mn = Math.min(r, g, b), sat = mx ? (mx - mn) / mx : 0;
@@ -158,6 +160,9 @@
     }
     const hgt = new Float32Array(256 * 256); for (let i = 0; i < 65536; i++) hgt[i] = H[i] * HSTEP * S;
     const corner = (x, z) => [x * CELL * S, hgt[(z & 255) * 256 + (x & 255)], -z * CELL * S];
+    // normal suave en cada esquina (diferencias centradas del mapa de alturas): el suelo se ve redondeado, sin "placas"
+    const hAt = (x, z) => hgt[(Math.max(0, Math.min(255, z))) * 256 + Math.max(0, Math.min(255, x))];
+    const vnorm = (x, z) => { const gx = (hAt(x + 1, z) - hAt(x - 1, z)) / (2 * CELL * S), gz = (hAt(x, z + 1) - hAt(x, z - 1)) / (2 * CELL * S), l = Math.hypot(gx, 1, gz); return [-gx / l, 1 / l, gz / l]; };
     // túneles: zona alrededor de los objetos *TUNN*; ahí las casillas "sin baldosa" (255) son la boca del túnel (agujero en el terreno)
     const tunnel = new Uint8Array(65536);
     { const shl0 = find(mapn + '.SHL'), dat0 = find(mapn + '.DAT'), nm = [];
@@ -170,15 +175,15 @@
     for (let z = 0; z < 255; z++) for (let x = 0; x < 255; x++) {
       const code = C[z * 256 + x], tile = T[512 + code];
       if (isHole(z * 256 + x)) continue;   // boca del túnel: sin terreno
-      const P = [corner(x, z), corner(x + 1, z), corner(x + 1, z + 1), corner(x, z + 1)];
+      const P = [corner(x, z), corner(x + 1, z), corner(x + 1, z + 1), corner(x, z + 1)], Nn = [vnorm(x, z), vnorm(x + 1, z), vnorm(x + 1, z + 1), vnorm(x, z + 1)];
       const order = [0, 1, 2, 0, 2, 3];   // sentido antihorario visto desde arriba
       if (tile === 255 || (tile / 48 | 0) >= pages.length) {
         const g = mbT.group('COLOR'), c = T[code];
-        for (const k of order) { g.pos.push(...P[k]); g.lay.push(0); g.col.push(pal[c * 3] / 255, pal[c * 3 + 1] / 255, pal[c * 3 + 2] / 255); }
+        g.nrm = g.nrm || []; for (const k of order) { g.pos.push(...P[k]); g.nrm.push(...Nn[k]); g.lay.push(0); g.col.push(pal[c * 3] / 255, pal[c * 3 + 1] / 255, pal[c * 3 + 2] / 255); }
       } else {
         const g = mbT.group('TERRENO'), u0 = (tile % 16) * 48 + 8, v0 = (tile / 16 | 0) * 48 + 8;
         const UV = [[u0, v0], [u0 + 32, v0], [u0 + 32, v0 + 32], [u0, v0 + 32]]; g.tiles = g.tiles || [];
-        for (const k of order) { g.pos.push(...P[k]); g.lay.push(0); g.uv.push(UV[k][0] / AW, UV[k][1] / AH); g.tiles.push(tile); }
+        g.nrm = g.nrm || []; for (const k of order) { g.pos.push(...P[k]); g.nrm.push(...Nn[k]); g.lay.push(0); g.uv.push(UV[k][0] / AW, UV[k][1] / AH); g.tiles.push(tile); }
       }
     }
 

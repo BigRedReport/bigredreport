@@ -6,7 +6,7 @@
   try { R = new BRR.Renderer(canvas); } catch (e) { $('err').textContent = e.message; return; }
 
   // ---------- opciones ----------
-  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'nearest', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '0', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', rivLook: 'aleatorio', autopause: true, horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
+  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'nearest', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '0', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', rivLook: 'aleatorio', menuImg: 'hd', autopause: true, horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
   let opt = { ...DEF };
   // perfiles: cada uno guarda sus ajustes, récords, campeonato y estadísticas aparte (claves con @perfil)
   let PROF = ''; try { PROF = localStorage.getItem('brr_profile') || ''; } catch (e) { }
@@ -14,6 +14,10 @@
   const ST = { get: k => { try { return localStorage.getItem(pkey(k)); } catch (e) { return null; } }, set: (k, v) => { try { localStorage.setItem(pkey(k), v); } catch (e) { } },
     keys: () => { try { return Object.keys(localStorage).filter(k => PROF ? k.endsWith('@' + PROF) : !k.includes('@')).map(k => PROF ? k.slice(0, -PROF.length - 1) : k); } catch (e) { return []; } } };
   try { Object.assign(opt, JSON.parse(ST.get('brr_opt') || (PROF ? localStorage.getItem('brr_opt') : null) || '{}')); } catch (e) { }
+  if (BRR.HORN_RENAMED && BRR.HORN_RENAMED[opt.horn]) opt.horn = BRR.HORN_RENAMED[opt.horn];
+  if (!BRR.HORNS.some(h => h.id === opt.horn)) opt.horn = 'normal';
+  if (typeof opt.logo === 'string' && opt.logo.startsWith('x:') && !(BRR.LOGOS_EXTRA || []).some(l => 'x:' + l.id === opt.logo)) opt.logo = 0;
+  BRR.texHD = opt.filter !== 'nearest';   BRR.menuImg = opt.menuImg || 'hd'; document.body.classList.toggle('img-pixel', BRR.menuImg === 'pixel');
   const save = () => ST.set('brr_opt', JSON.stringify(opt));
   function bindOptions() {
     const sync = () => {
@@ -25,12 +29,12 @@
     for (const k of ['vsfx', 'vmusic', 'vvoice', 'vmaster', 'vengine', 'vui', 'vamb']) { const el = $('o_' + k); el.value = opt[k]; const sv = () => { const v = $('o_' + k + '_v'); if (v) v.textContent = opt[k] + '%'; }; sv(); el.oninput = () => { opt[k] = +el.value; sv(); applyVol(); save(); }; }
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
     { const el = $('o_lang'); el.innerHTML = Object.entries(BRR.LANGS).map(([k, n]) => `<option value="${k}">${n}</option>`).join(''); el.value = BRR.lang(); el.onchange = () => BRR.setLang(el.value); }
-    for (const k of ['aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    for (const k of ['aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
     for (const k of ['hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
     R.fxaa = opt.aa === '1';
-    for (const k of ['filter', 'cam']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; if (k === 'filter') R.setFilterAll(opt.filter); if (k === 'cam') for (const h of humans) { h.camMode = null; h.cam.init = h.cam.posInit = false; } save(); }; }
+    for (const k of ['filter', 'cam']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; if (k === 'filter') { R.setFilterAll(opt.filter); BRR.texHD = opt.filter !== 'nearest'; } if (k === 'cam') for (const h of humans) { h.camMode = null; h.cam.init = h.cam.posInit = false; } save(); }; }
     $('o_light').value = opt.light; $('o_light').onchange = () => { opt.light = $('o_light').value; R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0); save(); };
     $('o_shadows').value = opt.shadows; $('o_shadows').onchange = () => { opt.shadows = +$('o_shadows').value; R.setShadows(R.mode ? opt.shadows : 0); save(); };
     $('o_fps').checked = opt.fps; $('o_fps').onchange = () => { opt.fps = $('o_fps').checked; save(); };
@@ -121,6 +125,18 @@
     const list = qmode === 'free' || !own.length ? BRR.VEHICLES.filter(n => files.has(n + '.VHC')) : own; list.forEach(n => add(vs, n));
     vs.value = list.includes(keep) ? keep : list[0] || keep;
     if (!vs.value) vs.selectedIndex = 0;
+    qvLoad();
+  }
+  // vehículo elegido dando vueltas junto al nombre del equipo (pantalla de elegir circuito)
+  let qvThumb = null, qvKey = '', qvA = 0, qvRun = false;
+  async function qvLoad() {
+    const v = $('m_veh').value, t = +$('m_team').value || 1, lv = $('m_level').value, key = v + '_' + t + '_' + lv + (opt.paint || '');
+    if (!v || !lv || !orig || !front) return; if (key !== qvKey) { qvKey = key; try { qvThumb = await orig.h.carThumb(v, t, lv, t === (opt.team || 1) ? opt.paint : null); } catch (e) { qvThumb = null; } }
+    if (qvRun) return; qvRun = true;
+    const step = () => { if (state !== 'menu' || $('pane_quick').hidden) { qvRun = false; return; }
+      const cv = $('d_vcv'); if (qvThumb && cv) { const g = cv.getContext('2d'), im = qvThumb.frame(qvA += 0.025); g.clearRect(0, 0, cv.width, cv.height); const sz = Math.min(cv.width, cv.height * 1.3); g.drawImage(im, (cv.width - sz) / 2, (cv.height - sz) / 2 - 4, sz, sz); }
+      setTimeout(() => requestAnimationFrame(step), 40); };
+    step();
   }
   function buildMenu() {
     const ls = $('m_level'); ls.innerHTML = '';
@@ -181,8 +197,8 @@
     for (let t = 1; t <= 6; t++) { const m = await charMesh(t - 1, t, false, true); front.heads[t] = R.thumb(m.up, { size: 128, yaw: Math.PI + 0.4, pitch: -0.12, dist: m.size * 3.4, target: [0, 0, 0] }); }
   }
   const headImg = (team, sz = 22) => front && front.heads && front.heads[team] ? `<img src="${front.heads[team]}" style="width:${sz}px;height:${sz}px;vertical-align:middle;margin-right:6px;background:${TEAM[team].c}33;border-radius:50%">` : `<span class="dot" style="background:${TEAM[team].c}"></span>`;
-  function showTeamHead() { const t = +$('m_team').value; $('d_head').innerHTML = headImg(t, 54) + '<b style="color:' + TEAM[t].c + '">Equipo ' + TEAM[t].n + '</b>'; }
-  $('m_team').addEventListener('change', showTeamHead);
+  function showTeamHead() { const t = +$('m_team').value, mine = t === (opt.team || 1); $('d_head').innerHTML = headImg(t, 54) + '<b style="color:' + (mine && opt.paint ? opt.paint : TEAM[t].c) + '">' + (t === (opt.team || 1) && myTeamName() ? esc(myTeamName()) : 'Equipo ' + TEAM[t].n) + '</b>'; }
+  $('m_team').addEventListener('change', showTeamHead); $('m_team').addEventListener('change', qvLoad); $('m_veh').addEventListener('change', qvLoad);
   // ---------- menú original (pantallas .SCN del juego) ----------
   let orig = null, fromOrig = false;
   async function startOrigMenu() {
@@ -216,7 +232,7 @@
         const cv = document.createElement('canvas');
         return { frame: a => { const all = [...up.body]; R.thumb(all, { size: 192, yaw: a, pitch: -0.32, dist: up.len * 2.1, target: [0, 0, 0], canvas: cv, parts: up.parts }); return cv; } };
       },
-      start: cfg => { fromOrig = true; if (orig.st.logo != null && opt.logo !== 'custom') opt.logo = orig.st.logo; if (orig.st.char != null) opt.char = orig.st.char; tourMode = cfg.tourn; opt.rivals = cfg.rivals; opt.diff = cfg.diff; opt.players = cfg.players; save();
+      start: cfg => { fromOrig = true; if (orig.st.logo != null && typeof opt.logo !== 'string') opt.logo = orig.st.logo; if (orig.st.char != null) opt.char = orig.st.char; tourMode = cfg.tourn; opt.rivals = cfg.rivals; opt.diff = cfg.diff; opt.players = cfg.players; save();
         if (audio) { audio.stopNarration(); } startRace(cfg.level, cfg.veh, cfg.team, 0, cfg.players); },
     });
     await orig.init();
@@ -284,7 +300,7 @@
     for (const p of ['home', 'quick', 'tourn', 'online', 'mods', 'profile']) $('pane_' + p).hidden = p !== W.pane;
     for (const c of ['h_main', 'h_single', 'h_multi']) $(c).hidden = c !== W.col;
     $('m_back').hidden = v === 'home'; $('m_title').textContent = W.title; $('menu').classList.toggle('homeview', W.pane === 'home');
-    if (W.pane === 'quick') setQuickMode(v);
+    if (W.pane === 'quick') { setQuickMode(v); setTimeout(qvLoad, 0); }
     if (v === 'online') onlineEnter(); if (v === 'profile') { renderProfile(); renderHorns(); renderProfiles(); renderStats(); } if (v === 'mods') renderMods(); if (W.pane === 'home') renderHomeProf();
     if (globeT) { globeT.drawn = false; globeT.start(); } if (globeD) { globeD.drawn = false; globeD.start(); }
     setTimeout(() => navFocusFirst(W.pane === 'home' ? $(W.col) : $('pane_' + W.pane)), 0);
@@ -308,14 +324,16 @@
     return front[k] = R.thumb(m.up, { size: 128, yaw: Math.PI + 0.35, pitch: -0.1, dist: m.size * 2.0, target: [0, m.cy, 0] }); }
   async function renderProfile() {
     if (!front) return; const team = opt.team || 1; $('pf_name').value = opt.netName || '';
-    $('pf_title').textContent = 'Escudería ' + TEAM[team].n; $('pf_title').style.color = TEAM[team].c;
+    $('pf_title').textContent = myTeamName() || 'Escudería ' + TEAM[team].n; $('pf_tname').value = opt.teamName || ''; $('pf_tname').placeholder = 'Equipo ' + TEAM[team].n; $('pf_title').style.color = carColOpt();
     const chars = []; for (let i = 0; i < 6; i++) chars.push(`<div class="pitem${(opt.char || 0) === i ? ' on' : ''}" tabindex="0" data-c="${i}"><img src="${await charURL(i, team).catch(() => '')}"><div>Piloto ${i + 1}</div></div>`);
     $('pf_chars').innerHTML = chars.join('');
     const logos = []; for (let i = 0; i < 13; i++) logos.push(`<div class="pitem${(opt.logo || 0) === i ? ' on' : ''}" tabindex="0" data-l="${i}"><img src="${orig ? await orig.logoURL(i, team).catch(() => '') : ''}"></div>`);
+    for (const L of BRR.LOGOS_EXTRA || []) logos.push(`<div class="pitem${opt.logo === 'x:' + L.id ? ' on' : ''}" tabindex="0" data-x="${L.id}" title="${esc(L.n)}"><img src="${L.src}" style="background:${carColOpt()};image-rendering:auto"></div>`);
     logos.push(`<div class="pitem${opt.logo === 'custom' ? ' on' : ''}" tabindex="0" data-custom="1" title="Tu propio logo (PNG)">${opt.customLogo ? `<img src="${opt.customLogo}" style="background:${TEAM[team].c}">` : '<div style="font-size:42px;line-height:72px">＋</div>'}<div>Logo propio</div></div>`);
-    logos.push(`<div class="pitem${opt.paint ? ' on' : ''}" tabindex="0" data-paint="1" title="Color propio (RGB)"><div style="height:40px;border-radius:8px;background:${opt.paint || 'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)'}"></div>${opt.paint ? 'Color propio' : 'Color RGB…'}</div>`);
-    logos.push(...[1, 2, 3, 4, 5, 6].map(t => `<div class="pitem${team === t ? ' on' : ''}" tabindex="0" data-t="${t}" style="background:${TEAM[t].c}55"><div style="height:40px;border-radius:8px;background:${TEAM[t].c}"></div>${TEAM[t].n}</div>`));
-    $('pf_logos').innerHTML = logos.join('');
+    const cols = [];
+    cols.push(`<div class="pitem${opt.paint ? ' on' : ''}" tabindex="0" data-paint="1" title="Color propio (RGB)"><div style="height:40px;border-radius:8px;background:${opt.paint || 'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)'}"></div>${opt.paint ? 'Color propio' : 'Color RGB…'}</div>`);
+    cols.push(...[1, 2, 3, 4, 5, 6].map(t => `<div class="pitem${team === t && !opt.paint ? ' on' : ''}" tabindex="0" data-t="${t}" style="background:${TEAM[t].c}55"><div style="height:40px;border-radius:8px;background:${TEAM[t].c}"></div>${TEAM[t].n}</div>`));
+    $('pf_logos').innerHTML = logos.join(''); $('pf_colors').innerHTML = cols.join('');
     for (const el of document.querySelectorAll('#pane_profile .pitem')) el.onclick = () => { sfx('BEEP4');
       if (el.dataset.paint) { const inp = document.createElement('input'); inp.type = 'color'; inp.value = opt.paint || TEAM[opt.team || 1].c;
         inp.oninput = inp.onchange = () => { opt.paint = inp.value; save(); renderProfile(); renderHomeProf(); }; inp.click(); return; }
@@ -326,9 +344,9 @@
           g.drawImage(im, (40 - im.width * k) / 2, (40 - im.height * k) / 2, im.width * k, im.height * k);
           const N = 256, cv2 = document.createElement('canvas'); cv2.width = cv2.height = N; const g2 = cv2.getContext('2d'), k2 = Math.min(N / im.width, N / im.height); g2.imageSmoothingQuality = 'high';
           g2.drawImage(im, (N - im.width * k2) / 2, (N - im.height * k2) / 2, im.width * k2, im.height * k2);
-          opt.customLogo = cv2.toDataURL('image/png'); if (opt.customLogo.length > 180000) opt.customLogo = cv2.toDataURL('image/webp', 0.9); delete opt.customLogoHi; opt.logo = 'custom'; save(); renderProfile(); renderHomeProf(); };
+          opt.customLogo = cv2.toDataURL('image/png'); for (const q of [0.9, 0.75, 0.6]) if (opt.customLogo.length > 180000) opt.customLogo = cv2.toDataURL('image/webp', q); /* siempre por debajo del límite que se acepta en online */ delete opt.customLogoHi; opt.logo = 'custom'; save(); renderProfile(); renderHomeProf(); };
         if (opt.customLogo && opt.logo !== 'custom') { opt.logo = 'custom'; save(); renderProfile(); renderHomeProf(); } else inp.click(); return; }
-      if (el.dataset.c != null) opt.char = +el.dataset.c; if (el.dataset.l != null) opt.logo = +el.dataset.l; if (el.dataset.t != null) opt.team = +el.dataset.t;
+      if (el.dataset.c != null) opt.char = +el.dataset.c; if (el.dataset.l != null) opt.logo = +el.dataset.l; if (el.dataset.x != null) opt.logo = 'x:' + el.dataset.x; if (el.dataset.t != null) opt.team = +el.dataset.t;
       if (orig) Object.assign(orig.st, { char: opt.char || 0, logo: typeof opt.logo === 'number' ? opt.logo : 0, team: opt.team });
       $('m_team').value = opt.team; $('t_team').value = opt.team; showTeamHead(); save(); const k = el.dataset.c != null ? 'c' : el.dataset.l != null ? 'l' : 't'; renderProfile().then(() => { const n = document.querySelector(`#pane_profile .pitem[data-${k}="${el.dataset[k]}"]`); if (n) n.focus(); }); };
     // vista grande: el piloto girando
@@ -348,12 +366,21 @@
     return (mx === r ? ((g - b) / d + 6) % 6 : mx === g ? (b - r) / d + 2 : (r - g) / d + 4) * 60; };
   const hslHex = (h, s2, l) => { const f = n => { const k = (n + h / 30) % 12, a = s2 * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); }; return '#' + f(0) + f(8) + f(4); };
   function rivalLooks(n, avoid) {
-    const out = [], hues = avoid.filter(x => x != null), horns = BRR.HORNS.map(x => x.id).filter(x => x !== 'propia').sort(() => Math.random() - 0.5);
+    const out = [], names = RIVAL_TEAMS.filter(n => n !== myTeamName()).sort(() => Math.random() - 0.5), hues = avoid.filter(x => x != null), horns = BRR.HORNS.map(x => x.id).filter(x => x !== 'propia').sort(() => Math.random() - 0.5);
     for (let k = 0; k < n; k++) { let best = 0, bd = -1;
       for (let t = 0; t < 40; t++) { const h = Math.random() * 360, d = Math.min(360, ...hues.map(q => Math.min(Math.abs(h - q), 360 - Math.abs(h - q)))); if (d > bd) { bd = d; best = h; } }
-      hues.push(best); out.push({ paint: hslHex(best, 0.7 + Math.random() * 0.3, 0.42 + Math.random() * 0.16), horn: horns[k % horns.length] }); }
+      hues.push(best); out.push({ paint: hslHex(best, 0.7 + Math.random() * 0.3, 0.42 + Math.random() * 0.16), horn: horns[k % horns.length], teamName: names[k % names.length] }); }
     return out; }
   const carCol = c => c.paintHex || TEAM[c.team].c;
+  // logo elegido como imagen: el propio del jugador o uno de los añadidos al port ('x:id')
+  const extraLogo = id => (BRR.LOGOS_EXTRA || []).find(l => l.id === id);
+  const myLogoData = () => opt.logo === 'custom' ? opt.customLogo || null : typeof opt.logo === 'string' && opt.logo.startsWith('x:') ? (extraLogo(opt.logo.slice(2)) || {}).src || null : null;
+  const carColOpt = () => opt.paint || TEAM[opt.team || 1].c;
+  // nombre del equipo: el que se pone el jugador (o el que eligen los rivales al azar); si no, el color
+  const RIVAL_TEAMS = ['Dust Devils', 'Mud Monkeys', 'Thunder Pigs', 'Rusty Bolts', 'Nitro Nuts', 'Gravel Gang', 'Bumper Bros', 'Skid Kings', 'Crazy Hogs', 'Big Wheels', 'Rocket Rats', 'Diesel Dogs', 'Wild Sheep', 'Mad Moles', 'Los Locos', 'Turbo Turtles'];
+  const cleanTeamName = v => String(v || '').replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 24);
+  const myTeamName = () => cleanTeamName(opt.teamName);
+  const teamLabel = c => c.teamName || 'Equipo ' + TEAM[c.team].n;
   const hexRGB = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
   // bocinas
   function renderHorns() {
@@ -393,6 +420,7 @@
     R0.sort((a, b) => a[0].localeCompare(b[0]) || a[2] - b[2]);
     $('pf_recs').innerHTML = R0.length ? '<table class="lbt">' + R0.map(r => `<tr><td>${esc(tname(front.tracks.find(t => t.id === r[0]) || { id: r[0] }))} · ${r[0]}</td><td>${VEH_NAMES[r[1]] || r[1]}</td><td>vuelta ${fmt(r[2])}</td><td>${r[3] ? 'carrera (' + r[4] + ' v.) ' + fmt(r[3]) : ''}</td></tr>`).join('') + '</table>' : 'Aún no tienes récords: ¡a correr!';
   }
+  $('pf_tname').onchange = () => { opt.teamName = cleanTeamName($('pf_tname').value); save(); renderProfile(); renderHomeProf(); if (BRR_net.room) BRR_net.data(myData()); };
   $('pf_name').onchange = () => { opt.netName = $('pf_name').value.trim().slice(0, 20); BRR_net.p2p && (BRR_net.p2p.name = opt.netName || 'Piloto'); save(); renderHomeProf(); };
   let spinT = 0;
   async function profSpin(team) { const tok = ++spinT; let m; try { m = await charMesh(opt.char || 0, team, false, false, hexRGB(opt.paint)); } catch (e) { return; } const cv = $('pf_view'), g = cv.getContext('2d'); let a = 0;
@@ -400,24 +428,24 @@
       g.clearRect(0, 0, cv.width, cv.height); g.drawImage(im, 0, 0, cv.width, cv.height); setTimeout(step, 50); }; step(); }
   // logo propio (PNG/JPG del jugador), guardado en el navegador como imagen de 40×40
   async function logoRGBAOf(v) {
-    try { if (typeof v === 'string' && v.startsWith('data:image')) { const im = new Image(); im.src = v; await im.decode(); const cv = document.createElement('canvas'); cv.width = cv.height = 40; const g = cv.getContext('2d'); g.drawImage(im, 0, 0, 40, 40); return g.getImageData(0, 0, 40, 40).data; }
+    try { if (typeof v === 'string' && v.startsWith('data:image')) { if (v.length > 200000) return null; const im = new Image(); im.src = v; await im.decode(); if (im.width > 2048 || im.height > 2048) return null; const cv = document.createElement('canvas'); cv.width = cv.height = 40; const g = cv.getContext('2d'); g.drawImage(im, 0, 0, 40, 40); return g.getImageData(0, 0, 40, 40).data; }
       if (typeof v === 'number' && orig) return await orig.logoRGBA(v); } catch (e) { } return null; }
   // logo propio en alta resolución (256×256) para la calcomanía del coche
   async function logoHiOf(v) {
-    try { if (typeof v === 'string' && v.startsWith('data:image')) { const im = new Image(); im.src = v; await im.decode(); const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d');
+    try { if (typeof v === 'string' && v.startsWith('data:image')) { if (v.length > 200000) return null; const im = new Image(); im.src = v; await im.decode(); if (im.width > 2048 || im.height > 2048) return null; const N = 256, cv = document.createElement('canvas'); cv.width = cv.height = N; const g = cv.getContext('2d');
       const k = Math.min(N / im.width, N / im.height); g.imageSmoothingQuality = 'high'; g.drawImage(im, (N - im.width * k) / 2, (N - im.height * k) / 2, im.width * k, im.height * k); return { w: N, h: N, data: new Uint8Array(g.getImageData(0, 0, N, N).data.buffer) }; } } catch (e) { } return null; }
   async function myLogoRGBA() {
     try {
-      if (opt.logo === 'custom' && opt.customLogo) { const im = new Image(); im.src = opt.customLogo; await im.decode(); const cv = document.createElement('canvas'); cv.width = cv.height = 40; const g = cv.getContext('2d'); g.drawImage(im, 0, 0, 40, 40); return g.getImageData(0, 0, 40, 40).data; }
+      if (myLogoData()) { const im = new Image(); im.src = myLogoData(); await im.decode(); const cv = document.createElement('canvas'); cv.width = cv.height = 40; const g = cv.getContext('2d'); g.drawImage(im, 0, 0, 40, 40); return g.getImageData(0, 0, 40, 40).data; }
       if (typeof opt.logo === 'number' && orig) return await orig.logoRGBA(opt.logo);
     } catch (e) { console.warn(e); }
     return null;
   }
-  async function logoImgURL(team) { if (opt.logo === 'custom' && opt.customLogo) return opt.customLogo; return orig ? orig.logoURL(opt.logo || 0, team).catch(() => null) : null; }
+  async function logoImgURL(team) { if (myLogoData()) return myLogoData(); return orig ? orig.logoURL(opt.logo || 0, team).catch(() => null) : null; }
   async function renderHomeProf() {
     if (!front) return; const t = opt.team || 1, tok = (renderHomeProf.tok = (renderHomeProf.tok || 0) + 1);
-    const u = await logoImgURL(t); if (tok !== renderHomeProf.tok) return;   // solo la última llamada pinta (evita el logo repetido)
-    $('h_prof').innerHTML = `${front.heads && front.heads[t] ? `<img src="${front.heads[t]}" style="background:${TEAM[t].c}33;border-radius:50%">` : ''}<div><b style="color:${TEAM[t].c}">${esc(opt.netName || 'Piloto')}</b><br><span class="small">Escudería ${TEAM[t].n}</span></div>` + (u ? `<img src="${u}" style="background:${TEAM[t].c};border-radius:6px">` : '');
+    const u = await logoImgURL(t), body = await charURL(opt.char || 0, t).catch(() => null); if (tok !== renderHomeProf.tok) return;   // solo la última llamada pinta (evita el logo repetido)
+    $('h_prof').innerHTML = `${body ? `<img class="hbody" src="${body}" style="background:${carColOpt()}33">` : front.heads && front.heads[t] ? `<img src="${front.heads[t]}" style="background:${TEAM[t].c}33;border-radius:50%">` : ''}<div><b style="color:${carColOpt()}">${esc(opt.netName || 'Piloto')}</b><br><span class="small" style="color:${carColOpt()}">${myTeamName() ? esc(myTeamName()) : 'Escudería ' + TEAM[t].n}</span></div>` + (u ? `<img src="${u}" style="background:${TEAM[t].c};border-radius:6px">` : '');
   }
   // ---------- mods (guardados en el navegador) ----------
   async function modsGet() { return (await idbGet('mods')) || []; }
@@ -598,8 +626,8 @@
       const teams = [team, ...[1, 2, 3, 4, 5, 6].filter(t => t !== team)];
       let def0 = null;
       for (let i = 0; i < nPlayers; i++) {
-        const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : null, paint: hexRGB(opt.paint) } : {}); if (!def0) def0 = d;
-        const c = new BRR.Car(d, lvl); c.team = teams[i % 6]; c.isPlayer = true; c.human = i; if (i === 0 && opt.paint) c.paintHex = opt.paint; c.headDraw = await driverHead(i === 0 ? (opt.char || 0) : (i % 6), teams[i % 6], i === 0 ? hexRGB(opt.paint) : null);
+        const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) } : {}); if (!def0) def0 = d;
+        const c = new BRR.Car(d, lvl); c.team = teams[i % 6]; c.isPlayer = true; c.human = i; if (i === 0 && opt.paint) c.paintHex = opt.paint; if (i === 0 && myTeamName()) c.teamName = myTeamName(); c.headDraw = await driverHead(i === 0 ? (opt.char || 0) : (i % 6), teams[i % 6], i === 0 ? hexRGB(opt.paint) : null);
         const h = newHuman(i, c, new BRR.Race(lvl, laps || lvl.laps), teams[i % 6]); h.draw = R.upload(d.mesh); humans.push(h);
       }
       car = humans[0].car; race = humans[0].race;
@@ -612,7 +640,7 @@
         for (const e of net.order) {
           if (e.id === net.myId) continue;
           $('load_msg').textContent = 'Cargando ' + (e.name || 'rival') + '…';
-          const t = e.team || 1, d = await BRR.loadVehicle(files, e.veh || veh, lvl, t, { logo: e.logo != null ? await logoRGBAOf(e.logo) : null, logoHi: typeof e.logo === 'string' ? await logoHiOf(e.logo) : null, paint: hexRGB(e.paint) }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = e.paint || null; c.headDraw = await driverHead(e.char != null ? e.char : t - 1, t, hexRGB(e.paint));
+          const t = e.team || 1, d = await BRR.loadVehicle(files, e.veh || veh, lvl, t, { logo: e.logo != null ? await logoRGBAOf(e.logo) : null, logoHi: typeof e.logo === 'string' ? await logoHiOf(e.logo) : null, paint: hexRGB(e.paint) }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = e.paint || null; c.teamName = cleanTeamName(e.teamName) || null; c.headDraw = await driverHead(e.char != null ? e.char : t - 1, t, hexRGB(e.paint));
           const rr = new BRR.Race(lvl, laps || lvl.laps), ent = { id: e.id, name: e.name, car: c, race: rr, ai: null, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, isAI: !!e.ai, hornType: e.horn || null };
           if (e.ai && net.role === 'host') ent.ai = new BRR.AIDriver(c, rr, (skill) * (0.97 + 0.03 * Math.random()), lanes[ak % lanes.length], e.profile || profiles[ak % profiles.length]);
           else { ent.remote = true; c.puppet = true; ent.race = puppetRace(ent, laps || lvl.laps); }
@@ -635,7 +663,7 @@
           $('load_msg').textContent = 'Cargando rivales… ' + (rivals.length + 1) + '/' + nR;
           let t = rec.team + 1; if (used.has(t)) t = [1, 2, 3, 4, 5, 6].find(x => !used.has(x)) || t; used.add(t);
           const lk = looks[rivals.length] || {}, pt = hexRGB(lk.paint);
-          const vn = cars[rec.veh] || veh, d = await BRR.loadVehicle(files, files.path(vn + '.VHC') ? vn : veh, lvl, t, { paint: pt }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.headDraw = await driverHead(t - 1, t, pt);
+          const vn = cars[rec.veh] || veh, d = await BRR.loadVehicle(files, files.path(vn + '.VHC') ? vn : veh, lvl, t, { paint: pt }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
           const rr = new BRR.Race(lvl, laps || lvl.laps);
           per.push(BRR.replayPace(rec) * BRR.S / (0.88 * c.topSpeed));
           rivals.push({ car: c, race: rr, ai: null, replay: new BRR.ReplayDriver(c, rr, rec, replayBand, 0.23), draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, hornType: lk.horn || null });
@@ -651,7 +679,7 @@
       for (let k = rivals.length; k < (net ? 0 : nR); k++) {
         $('load_msg').textContent = 'Cargando rivales… ' + (k + 1) + '/' + nR;
         const lk = looks[k] || {}, pt = hexRGB(lk.paint);
-        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t, { paint: pt }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.headDraw = await driverHead(t - 1, t, pt);
+        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t, { paint: pt }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
         const rr = new BRR.Race(lvl, laps || lvl.laps), ai = new BRR.AIDriver(c, rr, skill * (0.97 + 0.03 * Math.random()), lanes[k], profiles[k]);
         if (recLines.length) ai.line = recLines[k % recLines.length];
         rivals.push({ car: c, race: rr, ai, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, hornType: lk.horn || null });
@@ -815,14 +843,14 @@
     clearTimeout(finishTimer); finishTimer = null; if (state !== 'race' && state !== 'results') return;
     updatePositions(0);
     const multi = humans.length > 1, h0 = humans[0], rec = getRec(h0), bestLap = h0.race.lapTimes.length ? Math.min(...h0.race.lapTimes) : null;
-    const who = o => o.h ? (multi ? 'Jugador ' + (o.h.i + 1) : 'Tú') : o.name && !o.isAI ? o.name + ' <small style="color:var(--mut)">(online)</small>' : 'Equipo ' + TEAM[o.car.team].n + (o.ai ? ' <small style="color:var(--mut)">(' + o.ai.P.name.toLowerCase() + ')</small>' : '');
+    const who = o => o.h ? (multi ? 'Jugador ' + (o.h.i + 1) : 'Tú') : o.name && !o.isAI ? o.name + ' <small style="color:var(--mut)">(online)</small>' : teamLabel(o.car) + (o.ai ? ' <small style="color:var(--mut)">(' + o.ai.P.name.toLowerCase() + ')</small>' : '');
     const posRows = (rivals.length || multi) ? `<tr class="hdr"><td colspan="2">Clasificación</td></tr>` + order.map((o, i) => `<tr${o.h ? ' class="me"' : ''}><td>${headImg(o.car.team, 26)}${i + 1}. ${who(o)}</td><td>${o.race.finishT != null ? fmt(o.race.finishT) : 'en carrera'}</td></tr>`).join('') : '';
     const laps = multi ? '' : `<tr class="hdr"><td colspan="2">Tus vueltas</td></tr>` + h0.race.lapTimes.map((t, i) => `<tr${t === bestLap ? ' class="best"' : ''}><td>Vuelta ${i + 1}</td><td>${fmt(t)}</td></tr>`).join('') + `<tr class="tot"><td>Total</td><td>${fmt(h0.total)}</td></tr>`;
     $('r_list').innerHTML = posRows + laps;
     const myPos = h0.pos || order.findIndex(o => o.h === h0) + 1;
     $('r_rec').textContent = multi ? '' : (h0.newTotal ? '¡Nuevo récord de carrera! ' : 'Récord de carrera: ' + fmt(rec.total) + '. ') + (h0.newLap ? '¡Nueva mejor vuelta!' : 'Mejor vuelta: ' + fmt(rec.lap) + '.');
     const winner = order[0];
-    $('r_title').textContent = multi ? (winner.h ? '¡Gana el Jugador ' + (winner.h.i + 1) + '!' : 'Gana el equipo ' + TEAM[winner.car.team].n) + ' · ' + lvl.name
+    $('r_title').textContent = multi ? (winner.h ? '¡Gana el Jugador ' + (winner.h.i + 1) + '!' : (winner.car.teamName ? '¡Gana ' + winner.car.teamName + '!' : 'Gana el equipo ' + TEAM[winner.car.team].n)) + ' · ' + lvl.name
       : rivals.length ? (myPos === 1 ? '¡Has ganado!' : `Has quedado ${myPos}º`) + ' · ' + lvl.name : 'Carrera terminada · ' + lvl.name;
     if (ttMode && !multi && bestLap) { lbSubmit(lvl.name, car.def.name, bestLap, h0.total); $('r_title').textContent = 'Contrarreloj · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap); }
     if (tourMode && rivals.length) { $('r_rec').textContent += ' ' + tournResult(myPos); $('r_again').hidden = true; $('r_menu').textContent = 'Volver al torneo'; }
@@ -832,7 +860,7 @@
     if (front && front.bg.results) $('results').style.backgroundImage = `url(${front.bg.results})`;
     state = 'results';
     if (orig && fromOrig && opt.menu !== 'moderno') {   // resultados en la pantalla original (RESULSCN)
-      const rows = order.slice(0, 6).map((o, i) => `${i + 1}. ${o.h ? (multi ? 'JUGADOR ' + (o.h.i + 1) : 'TU') : 'EQUIPO ' + TEAM[o.car.team].n.toUpperCase()}  ${o.race.finishT != null ? fmt(o.race.finishT) : '--'}`);
+      const rows = order.slice(0, 6).map((o, i) => `${i + 1}. ${o.h ? (multi ? 'JUGADOR ' + (o.h.i + 1) : 'TU') : (o.car.teamName ? o.car.teamName.toUpperCase() : 'EQUIPO ' + TEAM[o.car.team].n.toUpperCase())}  ${o.race.finishT != null ? fmt(o.race.finishT) : '--'}`);
       if (audio) { audio.stopAll(); audio.playTrack(2); }
       orig.results(rows, $('r_title').textContent.replace(' · ', ' - ').toUpperCase().slice(0, 26), $('r_rec').textContent.toUpperCase().slice(0, 48), () => { orig.close(); toMenu(); });
       return;
@@ -1041,7 +1069,7 @@
   BRR_net.on('g', m => {
     const d = m.d || {};
     if (d.k === 'rtc') { rtcSignal(m.from, d); return; }
-    if (d.k === 'hn') { const e = rivals.find(r => r.id === m.from); if (!e || !audio || !audio.ctx) return; const info = BRR.hornInfo(d.t);
+    if (d.k === 'hn') { const e = rivals.find(r => r.id === m.from); if (!e || !audio || !audio.ctx || typeof d.t !== 'string' || d.t === 'propia' || !BRR.HORNS.some(x => x.id === d.t)) return; const info = BRR.hornInfo(d.t);
       if (d.on) { if (e.hornH) e.hornH.stop(); e.hornH = audio.horn(1, 0.7, null, d.t, e.car.p); } else if (e.hornH && info.hold) { e.hornH.stop(); e.hornH = null; } return; }
     if (d.k === 'start') { if (!netRace && state !== 'race') netStart(d); return; }
     if (!netRace) return;
@@ -1063,8 +1091,8 @@
   // ---------- lobby online ----------
   function netTracks() { return front ? front.tracks : []; }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const myLogo = () => opt.logo === 'custom' ? opt.customLogo || null : (typeof opt.logo === 'number' ? opt.logo : null);
-  const myData = () => ({ team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, paint: opt.paint || null });
+  const myLogo = () => myLogoData() || (typeof opt.logo === 'number' ? opt.logo : null);
+  const myData = () => ({ team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, paint: opt.paint || null, teamName: myTeamName() || null });
   const tById = id => netTracks().find(x => x.id === id);
   const tLabel = id => { const t = tById(id); return t ? (t.place || t.id) + ' · ' + t.id : id || '?'; };
   $('n_url').value = opt.netUrl && /^wss?:/.test(opt.netUrl) ? opt.netUrl : '';
@@ -1329,8 +1357,8 @@
   const softStart = () => { const r0 = humans[0] && humans[0].race; return !!r0 && r0.phase === 'race' && r0.t < 4.5; };
   const camDist = p => Math.min(...humans.map(h => Math.hypot(p[0] - h.cam.pos[0], p[2] - h.cam.pos[2])));
   // bocinas: el jugador con H / L3 / R3; la máquina pita si la golpeas, al caer de un salto grande o si vuelca
-  const RIVAL_HORNS = ['normal', 'aguda', 'grave', 'payaso', 'pato', 'claxon', 'camion'];
-  const humanHorn = h => h.i === 0 ? (opt.horn || 'normal') : ['aguda', 'grave', 'payaso', 'claxon', 'pato', 'camion', 'boing', 'cerdo'][h.i % 8];
+  const RIVAL_HORNS = ['normal', 'aguda', 'grave', 'payaso', 'claxon', 'camion', 'boing'];
+  const humanHorn = h => h.i === 0 ? (opt.horn || 'normal') : ['aguda', 'grave', 'payaso', 'claxon', 'trombon', 'camion', 'boing', 'laser'][h.i % 8];
   function hornFrame(dt) {
     if (!audio || !audio.ctx || state !== 'race') { for (const h of humans) if (h.horn) { h.horn.stop(); h.horn = null; } return; }
     for (const h of humans) { const on = !!(h.inp && h.inp.horn), was = !!h.hornWas; h.hornWas = on; if (on === was) continue;
@@ -1401,7 +1429,7 @@
   // nombres sobre los coches
   function nameTags(h, VP, vw, vh) {
     const box = h.q('tags'); h.tagsOn = true; const out = [];
-    const list = [...rivals.map(r => ({ c: r.car, n: r.name && !r.isAI ? r.name : (r.replay ? 'Equipo ' + TEAM[r.car.team].n : (r.ai ? r.ai.P.name : '')) })), ...humans.filter(o => o !== h).map(o => ({ c: o.car, n: NAMES[o.i] }))];
+    const list = [...rivals.map(r => ({ c: r.car, n: r.name && !r.isAI ? r.name : (r.car.teamName || (r.replay ? 'Equipo ' + TEAM[r.car.team].n : (r.ai ? r.ai.P.name : ''))) })), ...humans.filter(o => o !== h).map(o => ({ c: o.car, n: NAMES[o.i] }))];
     for (const { c, n } of list) { if (!n) continue; const p = [c.p[0], c.p[1] + 2.2, c.p[2]], m = VP;
       const x = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], y = m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
       if (w <= 0.5 || w > 150) continue; const sx = (x / w * 0.5 + 0.5) * 100, sy = (1 - (y / w * 0.5 + 0.5)) * 100; if (sx < -5 || sx > 105 || sy < -5 || sy > 105) continue;
@@ -1434,7 +1462,7 @@
   let packT = 0;
   const camHidden = p => !humans.length || humans.every(h => { const C = h.cam; if (!C || !C.pos || !C.look) return true; const d = V.sub(p, C.pos), L = V.len(d), f = V.norm(V.sub(C.look, C.pos)); return L > 90 || V.dot(d, f) < L * 0.2; });
   function packFrame(dt) {
-    if (!rivals.length || !humans.length) return;
+    if (!rivals.length || !humans.length) return; if (window.BRR_NOPACK) { for (const r of rivals) { if (r.replay) r.replay.rate = (r.replay.band && r.replay.band.nom) || 1; if (r.ai) r.ai.rubber = 1; } return; }   // pruebas: sin pelotón
     if (netRace && netRace.role !== 'host') return;
     const H = humans.filter(h => h.race.phase === 'race' || h.race.phase === 'finished'); if (!H.length) return;
     packT += dt;

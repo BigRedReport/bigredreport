@@ -21,7 +21,7 @@ Lo que falta para la versión final del port, **en orden de prioridad**. Se va t
 - [x] Reconexión automática si se cae alguien
 - [x] Migración de anfitrión si el que creó la partida se va
 - [x] Expulsar jugadores y bloquear usuarios
-- [ ] Límites de tamaño y formato para logos y bocinas propios
+- [x] Límites de tamaño y formato para logos y bocinas propios
 
 ## 2. Físicas originales
 - [ ] Manejo del juego de 1995 leído del ejecutable original, como opción
@@ -29,8 +29,8 @@ Lo que falta para la versión final del port, **en orden de prioridad**. Se va t
 - [ ] Mezclar a gusto: gráficos modernos con física antigua, y al revés
 
 ## 3. Web y comunidad
-- [ ] Contador de descargas (versiones publicadas en Releases)
-- [ ] Comentarios en la web (GitHub Discussions)
+- [x] Contador de descargas (versiones publicadas en Releases)
+- [x] Comentarios en la web
 - [ ] Clasificaciones verificadas, separadas entre juego original, con mods y experimental
 
 ## 4. Versión para Windows, Linux y Steam Deck
@@ -47,9 +47,10 @@ Lo que falta para la versión final del port, **en orden de prioridad**. Se va t
 - [ ] Catálogo comunitario de coches, circuitos, pinturas y sonidos
 
 ## 6. Gráficos
-- [ ] Suelo suavizado (sin las "placas" cuadradas) y bordes del césped bien unidos
+- [x] Suelo suavizado (sin las "placas" cuadradas) y bordes del césped bien unidos
 - [ ] Clima y horas del día: lluvia, niebla, amanecer, atardecer
-- [ ] Efectos modernos: oclusión ambiental, reflejos, humo de neumáticos, polvo volumétrico
+- [x] Humo de neumáticos y polvo
+- [ ] Efectos modernos: oclusión ambiental, reflejos
 - [ ] Daños visuales en los vehículos
 - [ ] Texturas en alta resolución
 
@@ -71,8 +72,8 @@ Lo que falta para la versión final del port, **en orden de prioridad**. Se va t
 - [ ] Motores mejorados (más muestras y transiciones suaves)
 - [ ] Banda sonora remasterizada (si se consigue)
 
-## 11. Realidad virtual
-- [ ] Jugar con gafas de realidad virtual desde el navegador (WebXR: Quest, PC VR), cabina con vista 3D real
+## 11. Realidad virtual (junto con la versión de Windows)
+- [ ] Jugar con gafas de realidad virtual (Quest, PC VR), cabina con vista 3D real
 
 ## 12. Android
 - [ ] Cargar los archivos del juego en el móvil (el navegador de Android no deja elegir carpetas: con un .zip de la carpeta BIGRED o con una app)
@@ -81,5 +82,5 @@ Lo que falta para la versión final del port, **en orden de prioridad**. Se va t
 - Viable: el juego ya funciona en el navegador; lo más difícil es el rendimiento en móviles modestos
 
 ## Pendientes de comprobar o pequeños
-- [ ] La IA nueva en el primer circuito de Marte sigue lenta
-- [ ] Pantalla partida de 5 a 8 jugadores en pantallas grandes
+- [ ] La IA nueva en el primer circuito de Marte sigue lenta (mejorada, falta afinar)
+- [x] Pantalla partida de 5 a 8 jugadores en pantallas grandes

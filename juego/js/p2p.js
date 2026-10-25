@@ -5,6 +5,18 @@
 // Misma interfaz que BRR.Net (servidor propio), así el resto del juego no cambia.
 "use strict";
 (function () {
+
+  // límites del contenido propio que llega por la red: logos (formato y tamaño), color, piloto, vehículo y nombre
+  const cleanData = d => { const o = {}; if (!d || typeof d !== 'object') return o;
+    for (const k of ['team', 'char']) if (d[k] != null) { const v = d[k] | 0; if (v >= 0 && v <= 12) o[k] = v; }
+    if (typeof d.veh === 'string' && /^[A-Z0-9_]{1,12}$/i.test(d.veh)) o.veh = d.veh.toUpperCase();
+    if (d.ready != null) o.ready = !!d.ready;
+    if (typeof d.teamName === 'string') o.teamName = d.teamName.replace(/[<>\u0000-\u001f]/g, '').trim().slice(0, 24); else if (d.teamName === null) o.teamName = null;
+    if (typeof d.paint === 'string' && /^#[0-9a-f]{6}$/i.test(d.paint)) o.paint = d.paint; else if (d.paint === null) o.paint = null;
+    if (typeof d.logo === 'number' && d.logo >= 0 && d.logo < 64) o.logo = d.logo | 0;
+    else if (typeof d.logo === 'string' && d.logo.length <= 200000 && /^data:image\/(png|webp|jpeg);base64,[A-Za-z0-9+/=]+$/.test(d.logo)) o.logo = d.logo;
+    else if ('logo' in d) o.logo = null;
+    return o; };
   const BRR = window.BRR;
   const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt', 'wss://public:public@public.cloud.shiftr.io'];
   const T = 'bigredracing/v1/';
@@ -75,7 +87,7 @@
     // ---------- como anfitrión: hace de servidor ----------
     create(o) {
       this.leave(true);
-      const me = { id: this.id, name: this.name, data: o.data || {}, self: true };
+      const me = { id: this.id, name: this.name, data: cleanData(o.data), self: true };
       this.host = { id: this.id, name: String(o.name || this.name).slice(0, 30), pub: o.pub !== false, pass: o.pass || '', max: Math.max(2, Math.min(12, o.max | 0 || 6)), state: o.state || 'lobby', info: o.info || {}, members: new Map([[me.id, me]]), hostM: me, banned: new Set(o.banned || []) };
       this.lastRoom = null; this.migrating = null;
       this.adT = setInterval(() => this.advertise(), 5000); this.advertise(); this.roomUpdate();
@@ -89,7 +101,7 @@
     hostMsg(m, msg) {   // lo mismo que onMsg de server/brr-server.js
       const r = this.host; if (!r) return;
       switch (msg.t) {
-        case 'data': m.data = Object.assign(m.data || {}, msg.data || {}); this.roomUpdate(); break;
+        case 'data': m.data = Object.assign(m.data || {}, cleanData(msg.data)); this.roomUpdate(); break;
         case 'info': if (m === r.hostM) { r.info = msg.info || {}; if (msg.state) r.state = msg.state; this.roomUpdate(); this.advertise(); } break;
         case 'chat': for (const o of r.members.values()) this.toMember(o, { t: 'chat', from: m.name, id: m.id, text: String(msg.text || '').slice(0, 200) }); break;
         case 'g': { const out = { t: 'g', from: m.id, d: msg.d }; for (const o of r.members.values()) if (o !== m && (!msg.to || o.id === msg.to)) this.toMember(o, out); break; }
@@ -111,7 +123,7 @@
         if (r.pass && r.pass !== s.pass && !old) return this.sig(s.from, { type: 'error', msg: 'Contraseña incorrecta' });
         if (r.members.size >= r.max && !old) return this.sig(s.from, { type: 'error', msg: 'La partida está llena' });
         if (old) { clearTimeout(old.lostT); try { old.pc && old.pc.close(); } catch (e) { } r.members.delete(s.from); }
-        const m = { id: s.from, name: String(s.name || 'Piloto').slice(0, 20), data: (old && old.data) || s.data || {} };
+        const m = { id: s.from, name: String(s.name || 'Piloto').slice(0, 20), data: (old && old.data) || cleanData(s.data) };
         const pc = new RTCPeerConnection(ICE); m.pc = pc; this.links.set(s.from, pc);
         pc.onicecandidate = e => { if (e.candidate) this.sig(s.from, { type: 'ice', c: e.candidate }); };
         pc.ondatachannel = e => { const ch = e.channel; m.ch = ch;

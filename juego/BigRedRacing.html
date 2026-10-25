@@ -83,7 +83,12 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .hbtn:hover,.hbtn:focus{background:var(--red);border-color:#fff;transform:translateX(8px);outline:none}
 .hprof{justify-self:end;align-self:end;background:rgba(14,17,25,.82);border:1px solid var(--line);border-radius:12px;padding:12px 16px;display:flex;gap:12px;align-items:center}
 .hprof img{width:64px;height:64px;image-rendering:pixelated}
+.hprof img.hbody{width:72px;height:96px;object-fit:cover;object-position:center 30%;border-radius:10px}
+.dteam{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+#d_vcv{width:150px;height:100px;background:radial-gradient(ellipse at 50% 70%,#ffffff18,transparent 70%);border:1px solid var(--line);border-radius:10px;flex:none}
 .pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.psub{font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#9aa4b2;margin:10px 0 6px}.psub:first-of-type{margin-top:2px}
+.pcolors{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
 .pitem{background:#111;border:2px solid transparent;border-radius:10px;padding:6px;text-align:center;cursor:pointer;font-size:12px}
 .pitem img{width:100%;aspect-ratio:1;object-fit:contain;image-rendering:pixelated}.pitem.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(226,59,59,.35)}
 .lbt{width:100%;font-size:13px;border-collapse:collapse}.lbt td{padding:2px 4px;border-bottom:1px solid var(--line)}.lbt td:last-child{text-align:right;font-variant-numeric:tabular-nums}
@@ -102,14 +107,15 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .hgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:6px}.hgrid button{text-align:left;font-size:13px;padding:8px 10px}.hgrid button.on{background:var(--red);border-color:var(--red)}
 .stats{display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:8px}.stats div{background:#0d1016;border:1px solid var(--line);border-radius:8px;padding:8px 10px}.stats b{display:block;font-size:22px}.stats span{font-size:12px;color:var(--mut)}
 .modrow{display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
-.tracks{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;align-content:start;padding:2px 4px 8px 2px}
+.tracks{overflow:auto;display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:10px;align-content:start;grid-auto-rows:max-content;padding:2px 4px 8px 2px}
 .tcard{position:relative;border-radius:10px;overflow:hidden;border:2px solid transparent;cursor:pointer;background:#111;aspect-ratio:16/10;transition:transform .12s,border-color .12s}
-.tcard img{width:100%;height:100%;object-fit:cover;display:block;image-rendering:pixelated}
+.tcard img{width:100%;height:100%;object-fit:cover;display:block}
 .tcard:hover{transform:translateY(-2px)}.tcard.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(226,59,59,.35)}
 .tcard .tag{position:absolute;left:0;right:0;bottom:0;padding:16px 8px 5px;font-size:12px;background:linear-gradient(transparent,rgba(0,0,0,.85));display:flex;justify-content:space-between}
 .tcard .tag b{font-weight:600}.tcard .lock{position:absolute;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;font-size:13px;color:#ccc}
 .detail{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:auto;display:flex;flex-direction:column}
-.dimg{position:relative}.dimg img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;image-rendering:pixelated;background:#000}
+.dimg{position:relative}.dimg img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;background:#000}
+body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{image-rendering:pixelated}
 #d_globe{position:absolute;right:8px;bottom:8px;width:96px;height:96px;filter:drop-shadow(0 2px 6px #000)}
 #d_place{position:absolute;left:10px;bottom:8px;font-size:12px;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:6px}
 .dbody{padding:14px 18px 18px}.dhead{display:flex;align-items:center;gap:10px}.dhead h2{margin:0;font-size:20px}
@@ -184,7 +190,8 @@ input[type=range]{width:100%;accent-color:var(--red)}
   <section id="pane_profile" class="pane" hidden>
     <div class="tlist">
       <div class="series"><h3>Piloto</h3><div id="pf_chars" class="pgrid"></div></div>
-      <div class="series"><h3>Escudería (logo y color)</h3><div id="pf_logos" class="pgrid"></div></div>
+      <div class="series"><h3>Nombre del equipo</h3><input id="pf_tname" class="inp" maxlength="24"></div>
+      <div class="series"><h3>Escudería (logo y color)</h3><div class="psub">Logo</div><div id="pf_logos" class="pgrid"></div><div class="psub">Color</div><div id="pf_colors" class="pgrid pcolors"></div></div>
       <div class="series"><h3>Bocina <small>H en el teclado · L3/R3 en el mando</small></h3><div id="pf_horns" class="hgrid"></div>
         <p class="small" style="margin:8px 0 0"><button id="pf_hornfile">Cargar mi propia bocina…</button> <span id="pf_hornname"></span> (MP3, WAV, OGG; máx. 1 MB y 4 s)</p><input type="file" id="pf_hornin" accept="audio/*" hidden></div>
       <div class="series"><h3>Nombre</h3><input id="pf_name" class="inp" maxlength="20" placeholder="Tu nombre (clasificaciones y online)"></div>
@@ -220,7 +227,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
         <div class="dhead"><h2 id="d_name"></h2><span id="d_diff" class="diff"></span></div>
         <p id="d_desc"></p>
         <p class="small" id="d_rec"></p>
-        <div id="d_head" style="display:flex;align-items:center;gap:6px;margin-top:6px"></div>
+        <div class="dteam"><div id="d_head" style="display:flex;align-items:center;gap:6px"></div><canvas id="d_vcv" width="180" height="120" aria-hidden="true"></canvas></div>
         <select id="m_level" hidden></select>
         <div class="grid2"><div><label class="row">Vehículo</label><select id="m_veh"></select></div>
         <div><label class="row">Equipo (color)</label><select id="m_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select></div></div>
@@ -315,6 +322,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
     <div class="opt"><span>Antialiasing</span><select id="o_aa"><option value="0">No</option><option value="1">FXAA (suaviza bordes)</option></select><span></span></div>
     <div class="opt"><span>Partículas</span><select id="o_parts"><option value="0.4">Pocas</option><option value="1">Normal</option><option value="1.6">Muchas</option></select><span></span></div>
     <div class="opt"><span>Límite de FPS</span><select id="o_fpslim"><option value="0">Sin límite (los Hz de tu pantalla)</option><option value="30">30</option><option value="60">60</option><option value="120">120</option><option value="144">144</option></select><span></span></div>
+    <div class="opt"><span>Imágenes del menú</span><select id="o_menuImg"><option value="hd">Mejoradas (escalado HD)</option><option value="suave">Suavizadas</option><option value="pixel">Pixeladas (original)</option></select><span class="small" id="o_menuImg_n" hidden>al volver a abrir el juego</span></div>
     <div class="opt"><span>Mostrar FPS</span><input id="o_fps" type="checkbox"><span></span></div>
     <p class="small">La física va siempre a 240 pasos por segundo, sea cual sea la frecuencia de tu pantalla. La sincronización vertical la decide el navegador.</p>
     <button id="o_full" style="width:100%">Pantalla completa</button>
@@ -410,6 +418,8 @@ input[type=range]{width:100%;accent-color:var(--red)}
 <script src="js/p2p.js"></script>
 <script src="js/front.js"></script>
 <script src="js/origmenu.js"></script>
+<script src="js/logos_data.js"></script>
+<script src="js/horns_data.js"></script>
 <script src="js/horns.js"></script>
 <script src="js/main.js"></script>
 </body></html>

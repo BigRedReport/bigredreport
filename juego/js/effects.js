@@ -11,8 +11,15 @@ void main(){ vuv=uv; vcol=col; wp=p; gl_Position=VP*vec4(p,1.); }`;
       const FS = `#version 300 es
 precision highp float; in vec2 vuv; in vec4 vcol; in vec3 wp; uniform vec3 cam; uniform float far; uniform vec3 fogc; out vec4 o;
 void main(){ float a=vcol.a;
-  if(vuv.x>=0.){ vec2 q=vuv*2.-1.; float r=dot(q,q); if(r>1.) discard; a*=1.-smoothstep(.25,1.,r); }
-  float f=clamp((length(wp-cam)-far*.55)/(far*.45),0.,1.); o=vec4(mix(vcol.rgb,fogc,f),a*(1.-f)); }`;
+  vec3 rgb=vcol.rgb;
+  if(vuv.x>=0.){ vec2 q=vuv*2.-1.;
+    // borde irregular (ruido según la posición) para que el humo y el polvo no sean círculos perfectos
+    float ang=atan(q.y,q.x), sd=dot(floor(wp*1.7),vec3(1.7,9.2,3.1));
+    float wob=.82+.12*sin(ang*3.+sd)+.08*sin(ang*7.-sd*1.3);
+    float r=length(q)/wob; if(r>1.) discard; a*=1.-smoothstep(.2,1.,r);
+    if(vuv.y<=1.) rgb*=.78+.34*vuv.y+.06*sin(q.x*5.+sd);   // volumen: más claro arriba (luz del cielo) y más oscuro abajo
+  }
+  float f=clamp((length(wp-cam)-far*.55)/(far*.45),0.,1.); o=vec4(mix(rgb,fogc,f),a*(1.-f)); }`;
       const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
       const pr = this.pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
       gl.bindAttribLocation(pr, 0, 'p'); gl.bindAttribLocation(pr, 1, 'uv'); gl.bindAttribLocation(pr, 2, 'col'); gl.linkProgram(pr);
@@ -22,11 +29,11 @@ void main(){ float a=vcol.a;
       gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, st, 12); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, st, 20);
       gl.bindVertexArray(null); this.data = new Float32Array(9 * 6 * 6000);
     }
-    reset() { this.parts.length = 0; this.marks.length = 0; this.last.clear(); }
+    reset() { this.parts.length = 0; this.marks.length = 0; this.last.clear(); this.air = new Map(); }
     puff(p, v, col, size, life, grow = 1.6, n = 1, spread = 0.6) {
       const dn = this.density ?? 1; n = dn >= 1 ? Math.round(n * dn) : (Math.random() < dn ? n : 0);   // cantidad de partículas (opciones)
       for (let k = 0; k < n; k++) {
-        if (this.parts.length > 1400 * Math.max(1, dn)) this.parts.shift();
+        if (this.parts.length > 1800 * Math.max(1, dn)) this.parts.shift();
         this.parts.push({ p: [p[0] + (Math.random() - .5) * spread, p[1] + Math.random() * 0.2, p[2] + (Math.random() - .5) * spread],
           v: [v[0] + (Math.random() - .5) * 1.5, v[1] + Math.random() * 1.2, v[2] + (Math.random() - .5) * 1.5], col, size, life, age: 0, grow });
       }
@@ -43,6 +50,13 @@ void main(){ float a=vcol.a;
     // un coche: polvo/agua según superficie y velocidad, marcas al derrapar o en tierra
     car(c, dt, id) {
       const sp = V.len(c.v), R = c.R, fw = BRR.mv(R, [0, 0, -1]);
+      // aterrizaje tras un salto: nube de polvo alrededor (o salpicón)
+      this.air = this.air || new Map(); const onG = c.W.some(w => w.contact), at = this.air.get(id) || 0;
+      if (!onG) this.air.set(id, at + dt);
+      else { if (at > 0.45 && Math.abs(c.v[1]) + sp * 0.1 > 3) { const s = this.lvl.surface(c.p[0], c.p[2]);
+          if (s.type !== 'agua') { const col = [...(s.type === 'asfalto' ? [0.7, 0.7, 0.72] : s.col.map(x => x * 0.6 + 0.22)), s.type === 'asfalto' ? 0.25 : 0.45];
+            for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; this.puff([c.p[0] + Math.cos(a) * 0.8, c.p[1] - 0.3, c.p[2] + Math.sin(a) * 0.8], [Math.cos(a) * 3.5 + c.v[0] * 0.3, 0.6, Math.sin(a) * 3.5 + c.v[2] * 0.3], col, 0.55, 1.6 + Math.random(), 3, 1, 0.4); } } }
+        this.air.set(id, 0); }
       c.W.forEach((w, i) => {
         const key = id + ':' + i;
         if (!w.contact) { this.last.delete(key); return; }
@@ -59,9 +73,16 @@ void main(){ float a=vcol.a;
                 col: [0.86, 0.94, 1, 0.75], size: 0.07 + Math.random() * 0.07, life: 0.45 + Math.random() * 0.35, age: 0, grow: 0.3, grav: 1, solid: true });
               if (Math.random() < 0.35) this.puff([wc[0], wc[1] + 0.02, wc[2]], [back[0] * 0.2, 0.05, back[2] * 0.2], [0.92, 0.97, 1, 0.35], 0.35, 0.9, 1.4, 1, 0.4);
             }
-            else this.puff(wc, [back[0], 0.6, back[2]], [...(s.type === 'nieve' ? s.col : s.col.map(x => x * 0.6 + 0.2)), s.type === 'nieve' ? 0.8 : 0.5], 0.35, 1.2 + Math.random(), s.type === 'nieve' ? 2 : 1.7);
+            else {   // polvo: una nube que se queda flotando, crece y se deja llevar
+              const big = Math.min(1, sp / 25), col = [...(s.type === 'nieve' ? s.col : s.col.map(x => x * 0.6 + 0.22)), s.type === 'nieve' ? 0.6 : 0.3 + 0.1 * big];
+              this.puff(wc, [back[0], 0.5 + big * 0.6, back[2]], col, 0.4 + big * 0.25, 1.8 + Math.random() * 1.6 + big, s.type === 'nieve' ? 2.4 : 3.2, 1, 0.7);
+            }
           }
-        } else if (slip > 0.45 && sp > 9 && Math.random() < slip * dt * 8) this.puff(wc, [0, 0.4, 0], [0.75, 0.75, 0.75, 0.3], 0.35, 0.8, 1.6);   // humo de rueda
+        } else {
+          // asfalto: humo de neumático al derrapar o al patinar las ruedas al arrancar (quemar rueda)
+          const burn = (c.thr || 0) > 0.8 && sp > 0.3 && sp < 9 && !c.K.fly ? (9 - sp) / 9 * 0.7 : 0, sm = Math.max(slip > 0.4 && sp > 7 ? (slip - 0.4) * 2 : 0, burn);
+          if (sm > 0 && Math.random() < sm * dt * 22) this.puff([wc[0], wc[1] + 0.15, wc[2]], [-fw[0] * sp * 0.25, 0.35, -fw[2] * sp * 0.25], [0.86, 0.86, 0.88, 0.22 + sm * 0.2], 0.45, 2.2 + Math.random() * 1.5, 4.2, 1, 0.5);
+        }
         // marcas: derrape en cualquier superficie; en tierra/nieve siempre (rastro)
         const leave = slip > 0.3 ? 1 : (s.type === 'tierra' || s.type === 'nieve' || s.type === 'arena') && sp > 2 ? 0.55 : 0;
         const prev = this.last.get(key);
@@ -75,7 +96,11 @@ void main(){ float a=vcol.a;
       });
     }
     update(dt) {
-      for (const q of this.parts) { q.age += dt; q.v[1] -= (q.grav ? 9.8 : 0.8) * dt; q.v = V.mul(q.v, 1 - dt * (q.grav ? 0.5 : 1.6)); q.p = V.madd(q.p, q.v, dt); }
+      this.t = (this.t || 0) + dt; const t = this.t;
+      for (const q of this.parts) { q.age += dt;
+        if (q.grav || q.solid) q.v[1] -= (q.grav ? 9.8 : 0.8) * dt;
+        else { q.v[1] += (0.25 - q.v[1] * 0.4) * dt; q.v[0] += Math.sin(t * 0.9 + q.p[2] * 0.3) * 0.25 * dt; q.v[2] += Math.cos(t * 0.7 + q.p[0] * 0.3) * 0.25 * dt; }   // humo/polvo: sube despacio y se mece
+        q.v = V.mul(q.v, 1 - dt * (q.grav ? 0.5 : 1.6)); q.p = V.madd(q.p, q.v, dt); }
       this.parts = this.parts.filter(q => q.age < q.life);
       for (const m of this.marks) m.age += dt;
       while (this.marks.length && this.marks[0].age > 40) this.marks.shift();
