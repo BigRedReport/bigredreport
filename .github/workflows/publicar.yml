@@ -1,0 +1,24 @@
+# Publica una versión (Release) con el zip del port cada vez que cambia el archivo VERSION.
+# El número de descargas de los Releases es el que muestra la web.
+name: Publicar versión
+on:
+  push:
+    branches: [main]
+    paths: ['VERSION']
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          V="v$(tr -d ' \r\n' < VERSION)"
+          if gh release view "$V" >/dev/null 2>&1; then
+            gh release upload "$V" descargas/BigRedRacing_port.zip --clobber
+          else
+            gh release create "$V" descargas/BigRedRacing_port.zip --title "Big Red Report ${V#v}" --notes-file NOTAS.md --latest
+          fi

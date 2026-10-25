@@ -132,6 +132,12 @@ textarea{min-height:92px;resize:vertical}
 .empty{background:var(--panel);border:1px dashed var(--line);border-radius:10px;padding:22px;color:var(--mut);text-align:center}
 .s-pend{--st:var(--mut)} .s-acc{--st:var(--info)} .s-inv{--st:var(--warn)} .s-fix{--st:var(--ok)} .s-rej{--st:var(--bad)} .s-dup{--st:var(--mut)}
 
+/* comentarios */
+.comments{display:grid;gap:12px;margin-top:16px}
+.cmt{display:grid;grid-template-columns:40px 1fr;gap:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px}
+.cmt img{width:40px;height:40px;border-radius:50%}
+.cmt .who{font-weight:700}.cmt .who small{font-weight:400;color:var(--mut);margin-left:8px}
+.cmt p{margin:4px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
 /* hoja de ruta */
 .road{margin:0;padding:0;list-style:none;counter-reset:r;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 .road li{counter-increment:r;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:12px 14px 12px 52px;position:relative}
@@ -175,7 +181,7 @@ footer b{color:#fff}
   <div class="brandbox"><a class="brand" href="#inicio">BIG RED <b>REPORT</b></a>
   <div id="langs" role="group" aria-label="Idioma / Language"></div></div>
   <nav aria-label="Secciones">
-    <a href="#inicio">Inicio</a><a href="#descargar">Descargar</a><a href="#mejoras">Mejoras</a><a href="#noticias">Noticias</a><a href="#hoja">Hoja de ruta</a><a href="#clasificaciones">Clasificaciones</a><a href="#fallos">Reportar fallo</a><a href="#faq">Preguntas</a>
+    <a href="#inicio">Inicio</a><a href="#descargar">Descargar</a><a href="#mejoras">Mejoras</a><a href="#noticias">Noticias</a><a href="#hoja">Hoja de ruta</a><a href="#clasificaciones">Clasificaciones</a><a href="#fallos">Reportar fallo</a><a href="#comentarios">Comentarios</a><a href="#faq">Preguntas</a>
   </nav>
 </div></header>
 
@@ -219,10 +225,10 @@ footer b{color:#fff}
 </div></section>
 
 <section id="descargar"><div class="wrap">
-  <div class="head"><div><div class="eyebrow">Descargas</div><h2>Descargar</h2><p>Versión de prueba (24 oct 2026). Necesitas tu copia original de Big Red Racing: al abrir el juego te pide la carpeta BIGRED.</p></div></div>
+  <div class="head"><div><div class="eyebrow">Descargas</div><h2>Descargar</h2><p><span id="dlver">Versión de prueba</span><span id="dlcount"></span>. Necesitas tu copia original de Big Red Racing: al abrir el juego te pide la carpeta BIGRED.</p></div></div>
   <div class="dl">
     <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Jugar en el navegador</h3><p class="mono">Sin instalar nada, en Chrome o Edge. Elige tu carpeta BIGRED y a correr.</p><a class="cta" href="juego/BigRedRacing.html">Jugar ahora</a></div>
-    <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Descargar (.zip)</h3><p class="mono">Para jugar sin conexión: descomprime y abre BigRedRacing.html con Chrome o Edge.</p><a class="cta" href="descargas/BigRedRacing_port.zip" download>Descargar</a></div>
+    <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Descargar (.zip)</h3><p class="mono">Para jugar sin conexión: descomprime y abre BigRedRacing.html con Chrome o Edge.</p><a class="cta" id="dllink" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedRacing_port.zip">Descargar</a></div>
     <div class="dlc"><span class="st">Más adelante</span><h3>Versión Windows / Linux</h3><p class="mono">Un programa que se instala, con servidor online incluido.</p><a class="cta ghost" style="color:var(--ink);border-color:var(--line)" href="https://github.com/BigRedReport/bigredreport">Código en GitHub</a></div>
   </div>
   <p class="note">Para jugar hace falta <b>tu copia original</b> de Big Red Racing: el port no incluye ni va a distribuir los datos del juego (circuitos, coches, música…). La música sale de la imagen del CD (IMAGE.img y IMAGE.cue) si está en la carpeta que eliges.</p>
@@ -382,6 +388,12 @@ footer b{color:#fff}
       <div class="board" id="board"><div class="empty">Cargando los fallos enviados…</div></div>
     </div>
   </div>
+</div></section>
+
+<section id="comentarios"><div class="wrap">
+  <div class="head"><div><div class="eyebrow">Comunidad</div><h2>Comentarios</h2><p>¿Qué te parece el port? Opiniones, ideas y dudas. Para comentar necesitas una cuenta de GitHub (es gratis); los fallos, mejor en <a href="#fallos">Reportar fallo</a>.</p></div></div>
+  <p><a class="cta" id="c_new" href="https://github.com/BigRedReport/bigredreport/issues/1#new_comment_field" target="_blank" rel="noopener">Escribir un comentario</a> <span id="c_n" class="mono"></span></p>
+  <div id="c_list" class="comments"><div class="empty">Cargando comentarios…</div></div>
 </div></section>
 
 <section id="faq"><div class="wrap">

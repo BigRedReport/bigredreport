@@ -55,9 +55,25 @@
   }
   fetch('https://api.github.com/repos/' + REPO + '/issues?state=all&per_page=100', { headers: { Accept: 'application/vnd.github+json' } })
     .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
-    .then(L => { bugs = L.filter(i => !i.pull_request).map(i => ({ n: i.number, url: i.html_url, title: i.title, user: i.user ? i.user.login : '', created: i.created_at, comments: i.comments, st: stOf(i),
+    .then(L => { bugs = L.filter(i => !i.pull_request && !i.labels.some(l => l.name === 'comentarios')).map(i => ({ n: i.number, url: i.html_url, title: i.title, user: i.user ? i.user.login : '', created: i.created_at, comments: i.comments, st: stOf(i),
       donde: field(i.body, 'Dónde'), circuito: field(i.body, 'Circuito / vehículo'), desc: field(i.body, 'Descripción') || i.body })); render(); })
     .catch(() => { $('board').innerHTML = '<div class="empty">No se ha podido cargar la lista ahora mismo. <a href="https://github.com/' + REPO + '/issues" target="_blank" rel="noopener">Ver los fallos en GitHub</a>.</div>'; });
+
+  // ---------- descargas: las versiones publicadas en GitHub (Releases) llevan la cuenta ----------
+  fetch('https://api.github.com/repos/' + REPO + '/releases?per_page=100', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(L => { if (!L.length) return; const n = L.reduce((a, r) => a + r.assets.reduce((b, x) => b + (x.download_count || 0), 0), 0), last = L.find(r => !r.prerelease && !r.draft) || L[0];
+      $('dlver').textContent = 'Versión ' + last.tag_name.replace(/^v/, '') + ' (' + fmt(last.published_at) + ')';
+      $('dlcount').textContent = ' · ' + n.toLocaleString('es-ES') + (n === 1 ? ' descarga' : ' descargas'); })
+    .catch(() => { });
+  // ---------- comentarios: los del hilo de GitHub (issue 1) ----------
+  const md = t => esc(t).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\[([^\]]+)\]\((https?:[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noopener nofollow">$1</a>');
+  fetch('https://api.github.com/repos/' + REPO + '/issues/1/comments?per_page=100', { headers: { Accept: 'application/vnd.github+json' } })
+    .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
+    .then(L => { $('c_n').textContent = L.length ? L.length + (L.length === 1 ? ' comentario' : ' comentarios') : '';
+      $('c_list').innerHTML = L.length ? L.slice().reverse().map(c => `<div class="cmt"><img src="${esc(c.user.avatar_url)}&s=80" alt="" loading="lazy"><div><div class="who">${esc(c.user.login)}<small>${fmt(c.created_at)}</small></div><p>${md(c.body)}</p></div></div>`).join('')
+        : '<div class="empty">Aún no hay comentarios. ¡Escribe el primero!</div>'; })
+    .catch(() => { $('c_list').innerHTML = '<div class="empty">No se han podido cargar ahora mismo. <a href="https://github.com/' + REPO + '/issues/1" target="_blank" rel="noopener">Verlos en GitHub</a>.</div>'; });
 
   // ---------- clasificaciones: el juego las guarda como mensajes retenidos en un buzón público MQTT ----------
   const BROKERS = ['wss://broker.emqx.io:8084/mqtt', 'wss://broker.hivemq.com:8884/mqtt', 'wss://test.mosquitto.org:8081/mqtt'];
