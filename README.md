@@ -1,5 +1,7 @@
 # Big Red Report
 
+[Español](README.md) · **English:** [README.en.md](README.en.md)
+
 ![Big Red Report](img/portada.jpg)
 
 ![Visitas](https://hits.sh/github.com/BigRedReport/bigredreport.svg?label=visitas&color=e23b3b)
@@ -27,13 +29,13 @@ Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores mod
 
 ## Cómo jugar
 
-1. Necesitas tu **copia original** de Big Red Racing (la carpeta `BIGRED`; si está la imagen del CD, también suena su música).
-2. Descarga el programa para Windows o Linux (descomprime y abre `BigRedReport`), o juega en la web (Chrome o Edge).
+1. Necesitas tu **copia original** de Big Red Racing (la carpeta BIGRED; si está la imagen del CD, también suena su música).
+2. Descarga el programa para Windows o Linux (descomprime y abre BigRedReport), o juega en la web (Chrome o Edge).
 3. Pulsa **PRESS START** y elige la carpeta del juego. F2 para menu nuevo
 
 ## Código
 
-Carpeta [`juego/`](juego/): JavaScript + WebGL2, sin dependencias. Servidor dedicado opcional en `juego/server/` (Node.js).
+Carpeta [juego/](juego/): JavaScript + WebGL2, sin dependencias. Servidor dedicado opcional en juego/server/ (Node.js).
 
 ---
 
