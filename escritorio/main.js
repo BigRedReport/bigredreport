@@ -80,7 +80,7 @@ ipcMain.handle('lan:host', async () => {
 // ---------- actualizaciones (Releases de GitHub) ----------
 const REPO = 'BigRedReport/bigredreport';
 async function latest() {
-  const r = await fetch('https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'BigRedReport' } });
+  const r = await fetch(process.env.BRR_UPD_API || 'https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'BigRedReport' } });   // BRR_UPD_API: solo para probar
   if (!r.ok) throw new Error('GitHub ' + r.status); const j = await r.json();
   const asset = n => (j.assets || []).find(a => a.name === n);
   return { ver: String(j.tag_name || '').replace(/^v/, ''), url: j.html_url, game: asset('BigRedRacing_port.zip'), app: asset(process.platform === 'win32' ? 'BigRedReport-Windows.zip' : 'BigRedReport-Linux.tar.gz') };
@@ -129,8 +129,11 @@ ipcMain.handle('upd:app', async (e) => {
   const L = await latest(); if (!L.app) throw new Error('No hay paquete para este sistema');
   const send = (p, got, total) => { try { e.sender.send('upd:progress', { p, got, total }); } catch (x) { } };
   const buf = await download(L.app.browser_download_url, send);
-  const tmp = path.join(app.getPath('userData'), 'programa-nuevo'); fs.rmSync(tmp, { recursive: true, force: true }); fs.mkdirSync(tmp, { recursive: true });
-  if (process.platform === 'win32') unzip(buf, tmp); else untar(buf, tmp);
+  const tmp = path.join(app.getPath('userData'), 'programa-nuevo');
+  // Electron trata los .asar como carpetas: para poder escribirlos tal cual hay que desactivarlo mientras se descomprime
+  const na = process.noAsar; process.noAsar = true;
+  try { fs.rmSync(tmp, { recursive: true, force: true }); fs.mkdirSync(tmp, { recursive: true }); if (process.platform === 'win32') unzip(buf, tmp); else untar(buf, tmp); }
+  finally { process.noAsar = na; }
   const src = fs.existsSync(path.join(tmp, 'BigRedReport')) ? path.join(tmp, 'BigRedReport') : tmp, dst = path.dirname(process.execPath), exe = path.basename(process.execPath);
   if (!fs.existsSync(path.join(src, exe))) throw new Error('El paquete descargado no trae el programa');
   fs.rmSync(UPD, { recursive: true, force: true });   // el juego nuevo ya viene dentro del programa

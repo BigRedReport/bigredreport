@@ -182,6 +182,7 @@ footer b{color:#fff}
 }
 @media (max-width:480px){.row2{grid-template-columns:1fr}.top nav{margin-left:0}}
 @media (prefers-reduced-motion:no-preference){.shot{transition:transform .3s}.shot:hover{transform:rotate(0) scale(1.01)}}
+.dlc.soon{opacity:.72;border-style:dashed}
 </style>
 </head><body>
 
@@ -198,8 +199,8 @@ footer b{color:#fff}
     <div>
       <div class="eyebrow" style="color:#b9b2ab">Port de fans · Big Red Racing (1995)</div>
       <h1>Big Red <span>Report</span></h1>
-      <div class="badges"><span class="badge">25 circuitos</span><span class="badge">20 vehículos</span><span class="badge">Hasta 12 online</span><span class="badge">Pantalla partida hasta 8</span></div>
-      <p>El juego de carreras más loco de 1995, de jeeps a lanchas, helicópteros y buggies en Marte, ahora en ordenadores modernos: alta resolución, luces y sombras actuales, mandos de hoy, online y los rivales originales del juego.</p>
+      <div class="badges"><span class="badge">25 circuitos</span><span class="badge">20 vehículos</span><span class="badge">Online hasta 12</span><span class="badge">Red local (LAN)</span><span class="badge">Pantalla partida hasta 8</span><span class="badge">Windows · Linux · navegador</span></div>
+      <p>El juego de carreras más loco de 1995, de jeeps a lanchas, helicópteros y buggies en Marte, ahora en ordenadores modernos: alta resolución, luces y sombras actuales, cualquier mando, online, red local y pantalla partida, modo libre con rampas y acrobacias, y los rivales originales del juego.</p>
       <div class="ctas"><a class="cta" href="juego/BigRedRacing.html">Jugar ahora</a><a class="cta ghost" href="#descargar">Descargar</a><a class="cta ghost" href="#apoyar">❤ Apoyar</a></div>
     </div>
     <figure class="shot"><img src="img/portada.jpg" alt="Portada de Big Red Report: el piloto gritando al volante de un jeep rojo"></figure>
@@ -222,11 +223,11 @@ footer b{color:#fff}
       <p>Este port lee <b>tu propia copia del juego</b> y lo hace funcionar en un ordenador de hoy sin emulador: todo se dibuja de nuevo, con las texturas, modelos, sonidos y música originales del CD. Por eso no incluye ningún archivo del juego: hace falta el original.</p>
     </div>
     <dl class="facts">
-      <dt>Estado</dt><dd>En desarrollo · versión de prueba jugable</dd>
-      <dt>Funciona en</dt><dd>Chrome y Edge (navegador). Versión para Windows más adelante</dd>
+      <dt>Estado</dt><dd>Beta · se juega entero de principio a fin; ahora toca pulir y añadir</dd>
+      <dt>Funciona en</dt><dd>Windows y Linux (programa que se actualiza solo) y en el navegador (Chrome o Edge). Android más adelante</dd>
       <dt>Necesitas</dt><dd>La carpeta BIGRED del juego original (y la imagen del CD para la música)</dd>
       <dt>Rivales</dt><dd>Las carreras grabadas del juego original, como en 1995</dd>
-      <dt>Online</dt><dd>Sin servidor: quien crea la partida hace de anfitrión</dd>
+      <dt>Multijugador</dt><dd>Online sin servidor, red local (LAN) y pantalla partida</dd>
       <dt>Código</dt><dd><a id="gh_link" href="https://github.com/BigRedReport/bigredreport">GitHub</a></dd>
     </dl>
   </div>
@@ -235,9 +236,9 @@ footer b{color:#fff}
 <section id="descargar"><div class="wrap">
   <div class="head"><div><div class="eyebrow">Descargas</div><h2>Descargar</h2><p><span id="dlver">Versión de prueba</span><span id="dlcount"></span>. Necesitas tu copia original de Big Red Racing: al abrir el juego te pide la carpeta BIGRED.</p></div></div>
   <div class="dl">
-    <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Jugar en el navegador</h3><p class="mono">Sin instalar nada, en Chrome o Edge. Elige tu carpeta BIGRED y a correr.</p><a class="cta" href="juego/BigRedRacing.html">Jugar ahora</a></div>
-    <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Descargar (.zip)</h3><p class="mono">Para jugar sin conexión: descomprime y abre BigRedRacing.html con Chrome o Edge.</p><a class="cta" id="dllink" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedRacing_port.zip">Descargar</a></div>
-    <div class="dlc"><span class="st" style="color:var(--ok)">Nuevo</span><h3>Windows y Linux</h3><p class="mono">Programa con lanzador: elige la carpeta una vez, opciones, servidor online propio y a jugar. Descomprime y abre BigRedReport.</p><a class="cta" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip">Windows</a> <a class="cta ghost" style="color:var(--ink);border-color:var(--line)" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz">Linux</a></div>
+    <div class="dlc"><span class="st" style="color:var(--ok)">Recomendado</span><h3>Windows y Linux</h3><p class="mono">Programa con lanzador: eliges la carpeta del juego una vez y a jugar. Se actualiza solo, trae red local (LAN) y servidor propio. Descomprime y abre BigRedReport.</p><a class="cta" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip">Windows</a> <a class="cta ghost" style="color:var(--ink);border-color:var(--line)" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz">Linux</a></div>
+    <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Navegador</h3><p class="mono">En Chrome o Edge, sin instalar nada (y se puede instalar como app). Para jugar sin conexión, descarga el .zip y abre BigRedRacing.html.</p><a class="cta" href="juego/BigRedRacing.html">Jugar ahora</a> <a class="cta ghost" style="color:var(--ink);border-color:var(--line)" id="dllink" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedRacing_port.zip">Sin conexión (.zip)</a></div>
+    <div class="dlc soon"><span class="st">Próximamente</span><h3>Android</h3><p class="mono">App para móvil y tablet: cargar el juego desde un .zip, controles táctiles y mando.</p><span class="cta ghost" style="color:var(--mut,#888);border-color:var(--line);cursor:default">En camino</span></div>
   </div>
   <p class="note">Para jugar hace falta <b>tu copia original</b> de Big Red Racing: el port no incluye ni va a distribuir los datos del juego (circuitos, coches, música…). La música sale de la imagen del CD (IMAGE.img y IMAGE.cue) si está en la carpeta que eliges.</p>
 </div></section>
@@ -248,10 +249,10 @@ footer b{color:#fff}
     <div class="fcard"><h3>Gráficos <span class="n">8</span></h3><ul>
       <li><b>Resolución moderna</b> con escala ajustable, resolución automática y <b>antialiasing</b> FXAA.</li>
       <li><b>Iluminación nueva</b> con sol, cielo y sombras, o la original de 1995; se cambia en plena carrera para comparar.</li>
-      <li><b>Suelo suavizado</b>, sin las «placas» cuadradas, y bordes del césped sin dientes de sierra.</li>
+      <li><b>Suelo suavizado</b>, con las baldosas encajando como en el original (sin dientes de sierra) y objetos que ya no flotan.</li>
       <li><b>Humo de neumáticos</b>, polvo que se queda flotando y nube al aterrizar de un salto.</li>
       <li><b>Agua con olas y reflejos</b> y los colores animados del original.</li>
-      <li><b>Luces de freno</b> y <b>pilotos visibles</b> conduciendo.</li>
+      <li><b>Sombras</b> de los coches en el suelo y en el aire, <b>luces de freno</b> y <b>pilotos visibles</b> conduciendo.</li>
       <li>Campo de visión y distancia de dibujado ampliados; pantallas <b>ultrapanorámicas</b> y cualquier frecuencia.</li>
       <li>Imágenes del menú <b>mejoradas en HD</b> (o pixeladas como el original).</li>
     </ul></div>
@@ -268,18 +269,20 @@ footer b{color:#fff}
       <li>Rivales con <b>color, bocina y nombre de equipo</b> al azar (o los colores del original).</li>
       <li>Pitan si les golpeas, al caer de un salto o si vuelcan, y a veces te contestan.</li>
     </ul></div>
-    <div class="fcard"><h3>Conducción <span class="n">5</span></h3><ul>
+    <div class="fcard"><h3>Conducción <span class="n">6</span></h3><ul>
       <li>Físicas con suspensión por rueda, agarre por superficie y nitro.</li>
       <li>Choques entre coches con la forma real de cada vehículo.</li>
       <li><b>Controles a tu gusto</b> en teclado y mando, con <b>vibración</b>.</li>
       <li><b>Ayudas de conducción</b> para empezar: dirección, frenada y recolocar solo.</li>
-      <li><b>Modo libre</b>: cualquier vehículo en cualquier circuito.</li>
+      <li><b>Daños del original</b>: humo al 80, 90 y 95 % y, al 100 %, ¡explota!</li>
+      <li><b>Modo libre</b>: cualquier vehículo en cualquier circuito, sin cronómetro, con <b>rampas</b>, <b>half pipe</b>, <b>salto con carga</b>, turbo infinito y puntos por acrobacias.</li>
     </ul></div>
-    <div class="fcard"><h3>Multijugador <span class="n">5</span></h3><ul>
+    <div class="fcard"><h3>Multijugador <span class="n">6</span></h3><ul>
       <li><b>Pantalla partida</b> de 2 a 8 jugadores.</li>
       <li><b>Online sin servidor</b> hasta 12: partida con código, pública o privada, también solo con la máquina.</li>
+      <li><b>Red local (LAN)</b> con el programa de escritorio: las partidas de tu casa aparecen solas, sin Internet.</li>
       <li><b>Reconexión automática</b>, <b>cambio de anfitrión</b> si se va, expulsar y silenciar jugadores.</li>
-      <li>Modos: una carrera, lista, campeonato, circuito al azar y votación.</li>
+      <li>Modos: una carrera, lista, campeonato, circuito al azar, votación y <b>modo libre</b>.</li>
       <li>Chat de texto y de voz; logos, colores y bocinas que ven y oyen los demás.</li>
     </ul></div>
     <div class="fcard"><h3>Sonido <span class="n">4</span></h3><ul>
@@ -291,13 +294,13 @@ footer b{color:#fff}
     <div class="fcard"><h3>Menús y perfiles <span class="n">5</span></h3><ul>
       <li>Pantalla de inicio con <b>PRESS START</b> y <b>menú nuevo</b> manejable con el mando; también el <b>menú original de 1995</b>.</li>
       <li>Campeonato con las 7 series y <b>contrareloj</b> con clasificación online.</li>
-      <li><b>21 logros</b>, perfiles, estadísticas y récords por circuito.</li>
+      <li><b>Más de 45 logros</b> (uno por cada circuito visitado), perfiles, estadísticas y récords por circuito.</li>
       <li><b>6 idiomas</b>, colores para daltonismo y menús más grandes.</li>
-      <li><b>Instalable como aplicación</b> desde la web y aviso automático de fallos.</li>
+      <li><b>Cualquier mando</b> (Xbox, PlayStation, 8BitDo, Vader…), <b>actualizaciones automáticas</b> y los fallos se <b>envían solos</b>.</li>
     </ul></div>
     <div class="fcard"><h3>Personalización y mods <span class="n">4</span></h3><ul>
       <li>Piloto con <b>cabeza y cuerpo</b> a elegir por separado.</li>
-      <li><b>Nombre de equipo</b> libre, logos originales y nuevos, <b>logo propio</b> y <b>color RGB</b> en coche, piloto y nombre.</li>
+      <li><b>Nombre de equipo</b> libre, <b>más de 40 logos</b> (originales y nuevos), <b>logo propio</b> y <b>color RGB</b> en coche, ruedas, nitro, piloto y nombre.</li>
       <li>Tu vehículo dando vueltas al elegir circuito.</li>
       <li><b>Mods</b>: carpetas que cambian texturas, coches o sonidos; compatible con el parche oficial v2.25.</li>
     </ul></div>
@@ -307,6 +310,10 @@ footer b{color:#fff}
 <section id="noticias"><div class="wrap">
   <div class="head"><div><div class="eyebrow">Diario de desarrollo</div><h2>Noticias</h2></div></div>
   <div class="news">
+    <article class="post"><div><time datetime="2026-10-28">28 oct 2026</time><br><span class="ver">0.54</span></div><div>
+      <h3>26 logos nuevos y actualizador arreglado</h3>
+      <p>Llegan <b>logos nuevos</b> para tu escudería (grafitis, peligro biológico, anarquía, la paz, jamón, kebab, un nacho, cinta americana, zarpazos…). El actualizador automático del programa queda listo: si tienes la 0.53, descarga esta una vez a mano y a partir de aquí se actualiza solo.</p>
+      <ul><li>Italia: las losas que colgaban sobre las escaleras ahora son bloques macizos.</li></ul></div></article>
     <article class="post"><div><time datetime="2026-10-28">28 oct 2026</time><br><span class="ver">0.53</span></div><div>
       <h3>El programa se actualiza solo y adiós a lo que flotaba</h3>
       <p>Desde esta versión, el lanzador de Windows y Linux <b>se actualiza solo</b>: descarga la versión nueva, la instala y se vuelve a abrir (si vienes de la 0.52 o anterior, descarga esta una última vez a mano).</p>
@@ -400,15 +407,16 @@ footer b{color:#fff}
 <section id="hoja"><div class="wrap">
   <div class="head"><div><div class="eyebrow">Lo que viene</div><h2>Hoja de ruta</h2><p>Lo que falta para la versión final, en bloques del más rápido y fácil al más largo y difícil. La lista completa, con lo que se va tachando, está en <a href="https://github.com/BigRedReport/bigredreport/blob/main/ROADMAP.md">GitHub</a>, junto con la lista de pruebas: 78 arreglos y mejoras encontrados jugando.</p></div></div>
   <ol class="road">
-    <li><b>Modo libre y diversión</b><span>hecho: rampas donde quieras, acrobacias con puntos, pilotos niño y grandullón</span></li>
-    <li><b>Nostalgia</b><span>modo clásico como en 1995</span></li>
-    <li><b>Ambiente</b><span>clima y horas del día, reflejos, mejor sonido de motores</span></li>
+    <li><b>Lista de pruebas</b><span>más de 85 arreglos encontrados jugando: la mayoría ya hechos (mandos, suelo, daños, objetos flotantes…); quedan puentes, techos, luces y algún mapa</span></li>
+    <li><b>Modo libre y diversión</b><span>hecho: rampas, half pipe, salto con carga, acrobacias con puntos, turbo infinito, pilotos niño y grandullón</span></li>
+    <li><b>Nostalgia</b><span>modo clásico como en 1995, efectos originales de derrape, polvo y turbo, interiores de los coches</span></li>
+    <li><b>Ambiente</b><span>clima y horas del día con cielos y nubes a juego, faros y luces con brillo, mejor sonido de motores</span></li>
     <li><b>Competir</b><span>fantasmas, retos semanales, repeticiones y modo espectador</span></li>
-    <li><b>Mi coche</b><span>editor de decoración y garaje con mejoras</span></li>
-    <li><b>Social</b><span>amigos, invitaciones, revancha y ligas</span></li>
-    <li><b>Plataformas</b><span>hecho: Windows y Linux con lanzador · falta: Steam Deck, volantes, realidad virtual y Android</span></li>
-    <li><b>Modos locos</b><span>objetos y misiles tipo Mario Kart, modo eliminación, daños visuales</span></li>
-    <li><b>Creadores</b><span>coches y circuitos nuevos, editor de circuitos con brochas al estilo LittleBigPlanet Karting, catálogo, clasificaciones verificadas</span></li>
+    <li><b>Mi coche</b><span>garaje con mejoras y color del turbo, editor de decoración</span></li>
+    <li><b>Social</b><span>amigos, invitaciones, revancha y ligas · hecho: red local (LAN)</span></li>
+    <li><b>Plataformas</b><span>hecho: Windows y Linux con actualizaciones automáticas · falta: Android, Steam Deck, volantes y realidad virtual</span></li>
+    <li><b>Modos locos</b><span>Mario Kart / Crazy Kart con objetos, eliminación (por checkpoints y cada minuto), bomba caliente, policías y cacos, cámara cenital estilo Micro Machines</span></li>
+    <li><b>Creadores</b><span>editor de circuitos al estilo LittleBigPlanet Karting (brochas, carretera dibujada, IA automática), coches nuevos, catálogo y clasificaciones verificadas</span></li>
     <li><b>Física original</b><span>el manejo de 1995 sacado del ejecutable, como opción</span></li>
   </ol>
 </div></section>
@@ -468,7 +476,9 @@ footer b{color:#fff}
   <div class="faq">
     <details><summary>¿Necesito el juego original?</summary><p>Sí. El port lee los archivos de tu copia (la carpeta BIGRED y, para la música, la imagen del CD). No incluye ni distribuye ningún archivo del juego.</p></details>
     <details><summary>¿Es un proyecto oficial?</summary><p>No. Es un proyecto de fans sin relación con Big Red Software, Domark ni los actuales dueños de los derechos del juego.</p></details>
-    <details><summary>¿En qué ordenadores funciona?</summary><p>De momento en Chrome o Edge en cualquier ordenador reciente. Más adelante habrá una versión para Windows.</p></details>
+    <details><summary>¿En qué ordenadores funciona?</summary><p>En Windows y Linux con el programa (recomendado: se actualiza solo) y en Chrome o Edge en cualquier ordenador reciente. Android vendrá más adelante.</p></details>
+    <details><summary>¿Qué mandos sirven?</summary><p>Cualquiera que reconozca el ordenador: Xbox (también Elite), PlayStation, 8BitDo, Flydigi Vader, Logitech… Si tienes varios conectados, valen todos. En Opciones → Controles ves los que detecta.</p></details>
+    <details><summary>¿Cómo juego en red local (LAN)?</summary><p>Con el programa de Windows o Linux: Multijugador → Red local (LAN) → Crear partida en tu red. Los demás ordenadores de tu casa la verán en la misma pantalla en unos segundos.</p></details>
     <details><summary>¿Sirve el parche v2.25 del original?</summary><p>Sí, puedes copiar sus archivos en tu carpeta BIGRED. Solo cambia textos y arregla fallos del ejecutable original; los circuitos y rivales son los mismos.</p></details>
     <details><summary>¿Cómo juego online con amigos?</summary><p>Multijugador → Online → Crear partida, y pásales el código. Ellos lo escriben en Unirse. No hace falta abrir puertos.</p></details>
     <details><summary>¿Puedo hacer mods?</summary><p>Sí: una carpeta con archivos con el mismo nombre que los del juego (texturas .TM, modelos .3DW, sonidos .WAV…). Se cargan desde Menú → Mods.</p></details>
@@ -482,5 +492,5 @@ footer b{color:#fff}
   <div>Big Red Racing es © de sus respectivos dueños. Este sitio no distribuye archivos del juego.</div>
 </div></footer>
 
-<script src="site.js?v=20261025.3"></script>
+<script src="site.js?v=20261028.1"></script>
 </body></html>

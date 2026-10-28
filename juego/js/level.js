@@ -300,6 +300,21 @@
         const xs = G.map(g => g[0]), zs = G.map(g => g[2]); window.BRR_OBJDBG.push({ gy: groundAt(ox, oz), lo, name, cls, x: ox, z: oz, minC: Math.min(...foot), maxC: Math.max(...foot), w: Math.max(...xs) - Math.min(...xs), d: Math.max(...zs) - Math.min(...zs), h: Math.max(...G.map(g => g[1])) - lo }); }
       mb.addModel(mm, xfm, findTM, solid ? (a, b, c) => col.add(a, b, c, name) : null, 1);
       nobj++;
+      // losas finas que quedan colgando sobre una pendiente (como las de las escaleras de Italia): se cierran con paredes hasta el suelo
+      if (solid && !decal && !dGL) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1])), hi = Math.max(...G.map(g => g[1]));
+        if (hi - lo < 0.6 && G.length >= 3) { const clear = G.map(g => g[1] - groundAt(g[0] / S, -g[2] / S)), mx = Math.max(...clear);
+          if (mx > 0.8 && mx < 12 && Math.min(...clear) < 0.5) {
+            // contorno en planta (envolvente convexa) y color medio de la losa
+            const P = G.map(g => [g[0], g[2]]).sort((a, b) => a[0] - b[0] || a[1] - b[1]), cr = (o, a, b) => (a[0] - o[0]) * (b[1] - o[1]) - (a[1] - o[1]) * (b[0] - o[0]), H = [];
+            for (const q of P.concat(P.slice().reverse())) { while (H.length >= 2 && cr(H[H.length - 2], H[H.length - 1], q) <= 0) H.pop(); H.push(q); } H.pop();
+            let cc = [0.6, 0.6, 0.6]; const f0 = mm.faces.find(f => !f.tex && f.color != null); if (f0) cc = [pal[f0.color * 3] / 255, pal[f0.color * 3 + 1] / 255, pal[f0.color * 3 + 2] / 255];
+            else { const ft = mm.faces.find(f => f.tex && f.uv); const tm = ft && findTM(ft.tex); if (tm) { let r = 0, g = 0, b = 0, n = 0; for (let k = 0; k < tm.length; k += 37) { const c = tm[k]; if (!c) continue; r += pal[c * 3]; g += pal[c * 3 + 1]; b += pal[c * 3 + 2]; n++; } if (n) cc = [r / n / 255, g / n / 255, b / n / 255]; } }
+            cc = cc.map(x => x * 0.82); const gC = mb.group('COLOR');
+            for (let k = 0; k < H.length; k++) { const a2 = H[k], b2 = H[(k + 1) % H.length], ya = lo, ga = groundAt(a2[0] / S, -a2[1] / S) - 0.15, gb = groundAt(b2[0] / S, -b2[1] / S) - 0.15;
+              if (ya - ga < 0.3 && ya - gb < 0.3) continue;
+              const A = [a2[0], ya, a2[1]], B = [b2[0], ya, b2[1]], Cq = [b2[0], gb, b2[1]], D = [a2[0], ga, a2[1]];
+              for (const t of [[A, B, Cq], [A, Cq, D]]) { col.add(t[0], t[1], t[2], name); for (const order of [[0, 1, 2], [0, 2, 1]]) for (const j of order) { gC.pos.push(...t[j]); gC.col.push(...cc); gC.lay.push(1); } } }
+          } } }
     }
     col.finish();
     // cámaras de televisión del original (líneas fixcam x, altura sobre el suelo, z)
