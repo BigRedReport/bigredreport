@@ -60,6 +60,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 ## Bloque 8 · Modos locos (largo)
 - [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
 - [ ] Daños visuales en los vehículos
+- [ ] Modo eliminación: el último en pasar por un checkpoint queda eliminado y gana el último que queda. Según el tamaño del mapa: en los grandes cada X checkpoints; en los pequeños a mitad de vuelta o por vuelta
 
 ## Bloque 9 · Creadores (largo)
 - [ ] Coches y circuitos nuevos en formatos normales (glTF, OBJ, imagen de alturas), gestor de mods y catálogo
@@ -70,6 +71,92 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 ## Bloque 10 · Física original (lo más difícil)
 - [ ] Manejo del juego de 1995 leído del ejecutable original, como opción (ingeniería inversa)
 - [ ] Mezclar a gusto: gráficos modernos con física antigua, y al revés
+
+## Lista de pruebas (28 oct 2026)
+Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arreglan.
+
+**Menús e interfaz**
+- [ ] 1 PRESS START lleva directo al menú nuevo
+- [ ] 2 Un jugador: bola del mundo grande del mapa en vez de la imagen
+- [ ] 3 El equipo y su color solo se cambian en el perfil, no al elegir mapa
+- [ ] 4 Un jugador: el piloto sale solo con la cabeza al mostrar equipo y coche
+- [ ] 5 Texto «Contrareloj»
+- [ ] 6 Contrarreloj: tu mejor tiempo del mapa en el panel derecho
+- [ ] 7 Piloto y escudería: un récord por mapa (el mejor de cualquier coche)
+- [ ] 8 Piloto niño: cabeza un poco más pequeña
+- [ ] 9 Actualizaciones desde GitHub (lanzador y juego)
+- [ ] 10 Envío automático de fallos, sin pulsar nada
+- [ ] 11 Revisar el número de versión según lo avanzado
+- [ ] 12 Mensajes de saltos más pequeños, sin fondo y arriba
+- [ ] 13 Minimapa: checkpoints como línea amarilla que cruza la pista
+- [ ] 14 Cuenta atrás sin recuadro: números negros, gruesos y llamativos
+- [ ] 15 Quitar el parpadeo negro al empezar la carrera
+- [ ] 16 Start del mando: la pausa se cierra sola (sobre todo a mucha velocidad)
+
+**Vehículos y jugabilidad**
+- [ ] 17 Daños del original: progresivos hasta romperse al 100 %
+- [ ] 18 Modo libre: marcar los vehículos del mapa pero dejar elegir cualquiera
+- [ ] 19 Modo libre: cambiar de vehículo desde la pausa
+- [ ] 20 Funciones nuevas activadas por defecto (menos las ayudas de conducción)
+- [ ] 21 Excavadora y dumper hundidos en el suelo
+- [ ] 22 Quitanieves (SNOW1) hundida
+- [ ] 23 Luces de freno con brillo; valorar faros delanteros
+- [ ] 24 Sombra de los vehículos también apoyados en el suelo
+- [ ] 25 Buggy lunar: faltan las ruedas del lado derecho
+- [ ] 26 Jet Car: sin marcas de ruedas; polvo bajo la nave
+- [ ] 27 Modo libre: turbo infinito
+- [ ] 28 Color del nitro = color del equipo
+- [ ] 29 Garaje (futuro): color del turbo aparte
+- [ ] 30 Tarjeta del menú principal: logo con sus colores originales
+- [ ] 31 El recuadro del logo no recibe sombras (monster truck)
+- [ ] 32 Carteles golpeables: girar por el eje correcto (las plantas y las lanchas ya van bien)
+- [ ] 33 Bocinas nuevas que no suenan; un solo icono para todas
+- [ ] 36 Modo libre: segunda rampa tipo half pipe (cruceta →); la original sigue en ←
+- [ ] 37 Botón de salto moderado (cruceta libre)
+- Se conservan tal cual: las rampas actuales (34) y el aplastamiento de ovejas (35)
+
+**Online**
+- [ ] 38 Modo libre online
+- [ ] 39 Quitar la elección de coche de Multijugador > Online (se elige en la sala)
+- [ ] 40 Bola del mundo del mapa bajo el código de invitación
+- [ ] 72 Clasificaciones online fiables: una sola fuente para juego y web, sin perder tiempos si falla la conexión
+
+**Suelo, cielo y objetos**
+- [ ] 41 Texturas del suelo en tiras e invertidas; dientes de sierra
+- [ ] 42 Opción de suelo: bloques originales o suavizado
+- [ ] 43 RIG1: la bandera de cuadros del suelo levanta los bordes
+- [ ] 44 RUF1: la bandera de cuadros sale de lado
+- [ ] 45 Nubes y cielos más realistas (Alemania…)
+- [ ] 46 Cielo coherente con el clima
+- [ ] 47 Vallas y carteles flotantes: apoyarlos y seguir la pendiente
+
+**Mapas**
+- [ ] 48 WATER1 y 49 WATER2 (India): puentes flotantes
+- [ ] 50 RUF2 (Egipto): texturas de las pirámides flotando
+- [ ] 51 Banderas de checkpoint: solo la salida pone START
+- [ ] 52 WATER3 (China): casa flotante
+- [ ] 53–56 DIRT1 (Japón): nubes rosas, arcos rojos flotantes, árboles tumbados, árbol golpeable desmontado
+- [ ] 57 TEST1: bandera START a ras de suelo
+- [ ] 58 SNOW1 (Ártico): montañas flotantes o partidas
+- [ ] 59–60 CITY4 (Italia): texturas lilas junto a las escaleras y línea lila en la salida
+- [ ] 61–63, 66 MOON1/2/3: torres, puentes, carteles, vallas y edificios flotantes; parrilla de salida torcida
+- [ ] 64 SNOW2 (Escocia): carteles flotantes y montaña del checkpoint 2 rota
+- [ ] 65 RUF3 (Francia): muro invisible en el puente rojo; carteles flotantes
+- [ ] 67 RIG3: cartel START pequeño; árboles flotantes
+- [ ] 68 RIG4 (España): piedras amarillas mal colocadas
+- [ ] 69 CHOPPER1: postes de checkpoint que no llegan al suelo
+- [ ] 70 CITY1: cuadrados lilas flotando tras los edificios
+- [ ] 71 DIRT1/2/3: techos transparentes
+
+**Logros**
+- [ ] 73 Un logro por visitar cada circuito, uno por usar todos los coches, uno por 10 rampas; pantalla partida con 2 jugadores
+
+**Más grandes (después)**
+- [ ] 74 Recuperar los efectos originales de derrape, polvo y turbo (de los .ENV del juego)
+- [ ] 75 Cámara cenital lejana estilo Micro Machines
+- [ ] 76 Interiores originales de los coches (volante, salpicadero)
+- [ ] 77 Sprites con más resolución
+- [ ] 78 Editor de circuitos al estilo LittleBigPlanet Karting: brochas de terreno, carretera dibujada con waypoints y checkpoints automáticos, biblioteca de objetos, cielo y luz, guardar, probar y volver a editar
 
 ## Pendientes
 - [ ] Afinar la IA nueva en el primer circuito de Marte (mejorada, sigue algo lenta)
