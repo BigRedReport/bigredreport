@@ -1,40 +1,42 @@
 # Big Red Report
 
+**English** · [Español](README.es.md) · [Français](README.fr.md) · [Italiano](README.it.md) · [Português](README.pt.md) · [Deutsch](README.de.md)
+
 ![Big Red Report](img/portada.jpg)
 
-![Visitas](https://hits.sh/github.com/BigRedReport/bigredreport.svg?label=visitas&color=e23b3b)
+![Views](https://hits.sh/github.com/BigRedReport/bigredreport.svg?label=views&color=e23b3b)
 
-Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores modernos: el juego de carreras más loco de 1995, de jeeps a lanchas, helicópteros y buggies en Marte, con gráficos actuales, mandos de hoy, pantalla partida, online y los rivales originales.
+A fan-made port of **Big Red Racing** (Big Red Software, 1995) for modern computers: the wildest racing game of 1995, from jeeps and speedboats to helicopters and Martian buggies, now with modern graphics, current controllers, split-screen, online multiplayer, and the original AI rivals.
 
-🌐 **Web:** https://bigredreport.github.io/bigredreport/
+🌐 **Website:** https://bigredreport.github.io/bigredreport/
 
-- ▶️ **Jugar en el navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html (se puede instalar como aplicación)
+- ▶️ **Play in your browser:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html (installable as an app)
 - 🪟 **Windows:** [BigRedReport-Windows.zip](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip) · 🐧 **Linux:** [BigRedReport-Linux.tar.gz](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz)
-- ⬇️ **Todas las descargas:** [última versión (Releases)](https://github.com/BigRedReport/bigredreport/releases/latest)
-- 🗺️ **Hoja de ruta:** [ROADMAP.md](ROADMAP.md)
-- 🐞 **Fallos:** pestaña *Issues* (plantilla «Reportar un fallo») o el formulario de la web
-- 💬 **Comentarios:** [en la web](https://bigredreport.github.io/bigredreport/#comentarios)
-- ❤️ **Apoyar el proyecto:** [Ko-fi](https://ko-fi.com/bigredreport) o el botón *Sponsor* de arriba
+- ⬇️ **All downloads:** [latest release](https://github.com/BigRedReport/bigredreport/releases/latest)
+- 🗺️ **Roadmap:** [ROADMAP.md](ROADMAP.md)
+- 🐞 **Bug reports:** the *Issues* tab (use the “Report a bug” template) or the form on the website
+- 💬 **Comments:** [on the website](https://bigredreport.github.io/bigredreport/#comentarios)
+- ❤️ **Support the project:** [Ko-fi](https://ko-fi.com/bigredreport) or the *Sponsor* button above
 
-## Qué tiene
+## Features
 
-- **Gráficos:** alta resolución, iluminación con sol y sombras (o la de 1995), suelo suavizado, humo y polvo, agua con olas, ultrapanorámicas y cualquier frecuencia.
-- **Rivales:** las carreras grabadas del juego original o una IA nueva, en pelotón y con salidas limpias.
-- **Multijugador:** pantalla partida hasta 8 y online sin servidor hasta 12, con reconexión, cambio de anfitrión, chat de texto y de voz.
-- **Tu escudería:** cabeza y cuerpo del piloto, nombre de equipo, logos (también propios), color RGB y más de 35 bocinas.
-- **Para todos:** controles a gusto, ayudas de conducción, colores para daltonismo, 6 idiomas y 21 logros.
-- **Extras:** cámaras de televisión, modo foto, contrarreloj con clasificación online, modo libre con rampas y acrobacias, perfiles y mods.
+- **Graphics:** high resolution, modern lighting with sunlight and shadows (or the original 1995 look), smoother terrain, smoke and dust, wavy water, ultrawide support, and uncapped frame rates.
+- **Rivals:** the original game's recorded races or a new AI, racing in packs with cleaner starts.
+- **Multiplayer:** split-screen for up to 8 players and online play for up to 12, with reconnection, host migration, text chat, and voice chat.
+- **Your team:** choose your driver's head and body, team name, logos (including custom ones), RGB colors, and more than 35 horns.
+- **Accessibility and options:** customizable controls, driving assists, color-blind modes, 6 languages, and 21 achievements.
+- **More:** TV cameras, photo mode, time trials with online leaderboards, stunt mode with ramps and tricks, profiles, and mods.
 
-## Cómo jugar
+## How to play
 
-1. Necesitas tu **copia original** de Big Red Racing (la carpeta `BIGRED`; si está la imagen del CD, también suena su música).
-2. Descarga el programa para Windows o Linux (descomprime y abre `BigRedReport`), o juega en la web (Chrome o Edge).
-3. Pulsa **PRESS START** y elige la carpeta del juego.
+1. You need your **own original copy** of Big Red Racing (the `BIGRED` folder; if you have the CD image, the game's music can also play).
+2. Download the Windows or Linux app (extract it and open `BigRedReport`), or play on the web (Chrome or Edge).
+3. Press **PRESS START** and select your original game folder. Press F2 for the new menu.
 
-## Código
+## Code
 
-Carpeta [`juego/`](juego/): JavaScript + WebGL2, sin dependencias. Servidor dedicado opcional en `juego/server/` (Node.js).
+The [`juego/`](juego/) folder contains the game: JavaScript + WebGL2, with no dependencies. An optional dedicated server is in `juego/server/` (Node.js).
 
 ---
 
-El port lee los archivos de tu copia y **no incluye ni distribuye datos del juego**. Proyecto de fans gratuito, sin relación con Big Red Software, Domark ni los actuales dueños de los derechos. Las donaciones son para la web, los servidores y las herramientas; el juego es y será gratis.
+This port reads files from your own copy and **does not include or distribute the game's data**. This is a free fan project and is not affiliated with Big Red Software, Domark, or the current rights holders. Donations support the website, servers, and tools; the game will always be free.

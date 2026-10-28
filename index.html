@@ -164,7 +164,7 @@ textarea{min-height:92px;resize:vertical}
 .faq p{margin:8px 0 0;color:var(--mut)}
 .visits{display:flex;align-items:center;gap:12px}
 .visits .vl{font:600 11px/1.2 var(--f-mono);letter-spacing:.14em;text-transform:uppercase;color:#bdb6af}
-.odo{display:flex;gap:3px}.odo span{display:inline-block;width:24px;height:34px;line-height:34px;text-align:center;font:700 19px var(--f-mono);color:#fff;background:linear-gradient(#3a363e 0 49%,#2a272d 51%);border:1px solid #47424c;border-radius:5px;box-shadow:inset 0 -2px 0 #0004}
+.visit-badge{height:24px;max-width:180px;border:0;background:transparent;box-shadow:none}.odo span{display:inline-block;width:24px;height:34px;line-height:34px;text-align:center;font:700 19px var(--f-mono);color:#fff;background:linear-gradient(#3a363e 0 49%,#2a272d 51%);border:1px solid #47424c;border-radius:5px;box-shadow:inset 0 -2px 0 #0004}
 .odo span:last-child{background:linear-gradient(var(--red) 0 49%,var(--redink) 51%);border-color:var(--red)}
 .odo span.tick{animation:otick .45s ease-out}@keyframes otick{from{transform:translateY(-35%);opacity:.2}}
 @media (prefers-reduced-motion:reduce){.odo span.tick{animation:none}}
@@ -454,10 +454,10 @@ footer b{color:#fff}
 </main>
 
 <footer><div class="wrap">
-  <div class="visits" title="Visitas a la web (una por persona y día)"><span class="vl">Visitas</span><span id="visits" class="odo"><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span><span>0</span></span></div>
+  <div class="visits" title="Visitas del proyecto en GitHub y en la web"><span class="vl">Visitas</span><img id="visits" class="visit-badge" src="https://hits.sh/github.com/BigRedReport/bigredreport.svg?label=visitas&amp;color=e23b3b" alt="Visitas de Big Red Report" loading="eager" decoding="async"></div>
   <div><b>Big Red Report</b> · port de fans de Big Red Racing (1995) · <a style="color:#fff" href="https://github.com/BigRedReport/bigredreport">GitHub</a></div>
   <div>Big Red Racing es © de sus respectivos dueños. Este sitio no distribuye archivos del juego.</div>
 </div></footer>
 
-<script src="site.js"></script>
+<script src="site.js?v=20261025.3"></script>
 </body></html>
