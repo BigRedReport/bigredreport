@@ -249,7 +249,10 @@
       this.m = 1200; const h = def.box.h;
       this.I = [this.m / 3 * (h[1] * h[1] + h[2] * h[2]) * 1.2, this.m / 3 * (h[0] * h[0] + h[2] * h[2]) * 1.2, this.m / 3 * (h[0] * h[0] + h[1] * h[1]) * 1.2];
       this.k = this.m * 9.81 / def.wheels.length / 0.15; this.c = 0.7 * Math.sqrt(this.k * this.m / def.wheels.length);
-      this.W = def.wheels.map(w => ({ ...w, len: 0.3, prevLen: 0.3, spin: 0, contact: false, load: 0, slip: 0 }));
+      this.W = def.wheels.map(w => ({ ...w, len: 0.3, prevLen: 0.3, spin: 0, contact: false, load: 0, slip: 0, steerK: w.steer ? 1 : 0 }));
+      // si TODAS las ruedas giran (buggy lunar 6×6): las de delante a un lado, las de detrás al contrario y las del medio rectas (si no, va de lado como un cangrejo)
+      if (this.W.length > 2 && this.W.every(w => w.steer)) { const zs = this.W.map(w => w.c[2]), zm = (Math.max(...zs) + Math.min(...zs)) / 2, zh = (Math.max(...zs) - Math.min(...zs)) / 2 || 1;
+        for (const w of this.W) { const t = (w.c[2] - zm) / zh; w.steerK = Math.abs(t) < 0.3 ? 0 : -t; } }
       // muelles según el peso que carga cada eje (centro de masas en el origen): todas las ruedas quedan a la misma altura en reposo
       { const zs = this.W.map(w => w.c[2]), f = Math.min(...zs), r = Math.max(...zs);
         if (r - f > 0.5 && f < 0 && r > 0) { const nf = this.W.filter(w => w.c[2] - f < (r - f) / 2).length, nr = this.W.length - nf;
@@ -319,7 +322,7 @@
         Fs = Math.max(0, Fs); w.load = Fs;
         const n = hit.n, cp = V.madd(top, down, hit.t), r = V.sub(cp, this.p);
         const vc = V.add(this.v, V.cross(this.w, r));
-        const sa = w.steer ? this.steerAng : 0;
+        const sa = this.steerAng * (w.steerK != null ? w.steerK : w.steer ? 1 : 0);
         const f0 = V.add(V.mul(fwd, Math.cos(sa)), V.mul(right, Math.sin(sa)));
         const fw = V.norm(V.madd(f0, n, -V.dot(f0, n))), lat = V.norm(V.cross(fw, n));
         const vLong = V.dot(vc, fw), vLat = V.dot(vc, lat); let Flong0 = 0;

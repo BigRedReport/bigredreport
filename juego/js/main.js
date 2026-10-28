@@ -183,7 +183,10 @@
   }
   // ---------- caras de los pilotos de cada equipo (TEAMS.TEA), renderizadas a imagen ----------
   // personajes: cuerpo (BLOKE/WOMAN + color del equipo) y cabeza (HEAD1x, 2, 3, 4x, 5, 6) de CHARSCN con su paleta (DRIVER.RAW)
-  const CHARS = [{ b: 'BLOKE', h: 'HEAD1', v: 1 }, { b: 'BLOKE', h: 'HEAD2' }, { b: 'BLOKE', h: 'HEAD3' }, { b: 'WOMAN', h: 'HEAD4', v: 1 }, { b: 'WOMAN', h: 'HEAD5' }, { b: 'BLOKE', h: 'HEAD6' }];
+  const CHARS = [{ b: 'BLOKE', h: 'HEAD1', v: 1 }, { b: 'BLOKE', h: 'HEAD2' }, { b: 'BLOKE', h: 'HEAD3' }, { b: 'WOMAN', h: 'HEAD4', v: 1 }, { b: 'WOMAN', h: 'HEAD5' }, { b: 'BLOKE', h: 'HEAD6' },
+    // cabezas nuevas de mujer hechas con las del original cambiando colores: pelo rubio (los amarillos del rubio) · piel clara y melena castaña (sin el color del equipo)
+    { b: 'WOMAN', h: 'HEAD5', r: { 47: 84 } }, { b: 'WOMAN', h: 'HEAD4', v: 1, r: {48: 13, 49: 13, 50: 13, 51: 13, 52: 13, 53: 13, 54: 14, 55: 14, 56: 14, 57: 14, 58: 14, 59: 14, 60: 15, 61: 15, 62: 15, 63: 15, 11: 241, 12: 242, 13: 243, 14: 244, 15: 245} }];
+  const remapFaces = (m, r) => r ? { ...m, faces: m.faces.map(f => f.color != null && !f.tex && r[f.color] != null ? { ...f, color: r[f.color] } : f) } : m;
   // cabeza y cuerpo por separado: cualquier cabeza con cualquier cuerpo
   const BODIES = ['BLOKE', 'WOMAN', 'BLOKE:kid', 'BLOKE:fat'];
   // cuerpos nuevos con el estilo del original: se sacan del cuerpo de hombre deformándolo (niño: bajito y cabezón; grande: ancho y con barriga)
@@ -197,7 +200,7 @@
   }
   const headScale = mod => mod === 'kid' ? 1.08 : mod === 'fat' ? 1.06 : 1;
   const charOf = ci => ci && typeof ci === 'object' ? ci : CHARS[(ci | 0) % CHARS.length];
-  const specOf = (head, body) => { const H = CHARS[(head | 0) % CHARS.length]; return { h: H.h, v: H.v, b: BODIES[(body | 0) % BODIES.length] }; };
+  const specOf = (head, body) => { const H = CHARS[(head | 0) % CHARS.length]; return { h: H.h, v: H.v, r: H.r, b: BODIES[(body | 0) % BODIES.length] }; };
   const myHead = () => opt.head != null ? opt.head : (opt.char || 0), myBody = () => opt.body != null ? opt.body : Math.max(0, BODIES.indexOf(CHARS[(opt.char || 0) % 6].b));
   const mySpec = () => specOf(myHead(), myBody());
   const specFrom = e => e.head != null || e.body != null ? specOf(e.head != null ? e.head : e.char || 0, e.body != null ? e.body : BODIES.indexOf(CHARS[(e.char || 0) % 6].b)) : null;
@@ -208,13 +211,16 @@
     const key = [JSON.stringify(ci), color, dirty, headOnly, paint || ''].join(); if (charCache.has(key)) return charCache.get(key);
     if (!charArc) { charArc = await files.archive('CHARSCN.SCN'); charPal = BRR.pal6(charArc.get('DRIVER.RAW').subarray(0, 768)); }
     const c = charOf(ci), A = charArc, mb = new BRR.MeshBuilder(charPalFor(color, paint)), tm = n => A.get(n + '.TM');
-    const head = BRR.parse3DW(A.get(c.h + (c.v ? color : '') + '.3DW')), [bf, mod] = c.b.split(':'), hs = headScale(mod);
+    const head = remapFaces(BRR.parse3DW(A.get(c.h + (c.v ? color : '') + '.3DW')), c.r), [bf, mod] = c.b.split(':'), hs = headScale(mod);
     let top = 0;
     if (!headOnly) { const body = morphBody(BRR.parse3DW(A.get(bf + (dirty ? 'B' : '') + color + '.3DW')), mod); top = Math.min(...body.verts.filter(Boolean).map(v => v[1])); mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), tm); }
     const hb = Math.max(...head.verts.filter(Boolean).map(v => v[1]));
     mb.addModel(head, v => BRR.toGL(v[0] * hs, (v[1] - hb) * hs + top + 1, v[2] * hs), tm);
     if (!R.L) R.setEnvironment([-0.35, 0.75, 0.55], [0.62, 0.7, 0.82]);
-    const out = { up: R.upload(mb), size: (headOnly ? head.radius * 1.2 : (Math.abs(top) + 18)) * BRR.S, cy: headOnly ? 0 : (Math.abs(top) + 14) * 0.5 * BRR.S };
+    let hsz = head.radius * 1.2 * BRR.S, hcy = 0;
+    if (headOnly) { const G = head.verts.filter(Boolean).map(v => BRR.toGL(v[0] * hs, (v[1] - hb) * hs + top + 1, v[2] * hs)), ys = G.map(g => g[1]), xs = G.map(g => g[0]), zs = G.map(g => g[2]);   // encuadre por el contorno real de la cabeza (las de mujer salían pequeñas)
+      hcy = (Math.max(...ys) + Math.min(...ys)) / 2; hsz = Math.max(Math.max(...ys) - Math.min(...ys), Math.max(...xs) - Math.min(...xs)) * 0.7; }   // por la altura de la cara, no por la coleta o la melena
+    const out = { up: R.upload(mb), size: headOnly ? hsz : (Math.abs(top) + 18) * BRR.S, cy: headOnly ? hcy : (Math.abs(top) + 14) * 0.5 * BRR.S };
     charCache.set(key, out); return out;
   }
   // cabeza del piloto elegido para llevarla en el coche (en el sitio "head" del vehículo), a tamaño real (~30 cm)
@@ -224,7 +230,7 @@
     let out = null;
     try {
       if (!charArc) { charArc = await files.archive('CHARSCN.SCN'); charPal = BRR.pal6(charArc.get('DRIVER.RAW').subarray(0, 768)); }
-      const c = charOf(ci), A = charArc, head = BRR.parse3DW(A.get(c.h + (c.v ? team : '') + '.3DW')), [bf, mod] = c.b.split(':'), hs = headScale(mod), body = morphBody(BRR.parse3DW(A.get(bf + team + '.3DW')), mod);
+      const c = charOf(ci), A = charArc, head = remapFaces(BRR.parse3DW(A.get(c.h + (c.v ? team : '') + '.3DW')), c.r), [bf, mod] = c.b.split(':'), hs = headScale(mod), body = morphBody(BRR.parse3DW(A.get(bf + team + '.3DW')), mod);
       // como en el menú: la cabeza encima del cuerpo; en el coche solo se ve de cintura para arriba
       const top = Math.min(...body.verts.filter(Boolean).map(v => v[1])), hb = Math.max(...head.verts.filter(Boolean).map(v => v[1]));
       const hxf = v => BRR.toGL(v[0] * hs, (v[1] - hb) * hs + top + 1, v[2] * hs), bxf = v => BRR.toGL(v[0], v[1], v[2]);
@@ -242,7 +248,7 @@
   }
   async function makeHeads() {
     front.heads = {}; if (!files.has('CHARSCN.SCN')) return;
-    for (let t = 1; t <= 6; t++) { const m = await charMesh(t - 1, t, false, true); front.heads[t] = R.thumb(m.up, { size: 128, yaw: Math.PI + 0.4, pitch: -0.12, dist: m.size * 3.4, target: [0, 0, 0] }); }
+    for (let t = 1; t <= 6; t++) { const m = await charMesh(t - 1, t, false, true); front.heads[t] = R.thumb(m.up, { size: 128, yaw: Math.PI + 0.4, pitch: -0.12, dist: m.size * 3.4, target: [0, m.cy || 0, 0] }); }
   }
   const headImg = (team, sz = 22) => front && front.heads && front.heads[team] ? `<img src="${front.heads[team]}" style="width:${sz}px;height:${sz}px;vertical-align:middle;margin-right:6px;background:${TEAM[team].c}33;border-radius:50%">` : `<span class="dot" style="background:${TEAM[team].c}"></span>`;
   // piloto de cuerpo entero con el nombre del equipo (el equipo y el color se eligen en Piloto y escudería)
@@ -391,7 +397,7 @@
   }
   // perfil: piloto (6 personajes del original) y escudería (13 logos × 6 colores)
   async function headURL(ci, team) { const pt = hexRGB(opt.paint), k = 'hd' + JSON.stringify(ci) + '_' + team + '_' + (opt.paint || ''); if (front[k]) return front[k]; const m = await charMesh(ci, team, false, true, pt);
-    return front[k] = R.thumb(m.up, { size: 128, yaw: Math.PI + 0.4, pitch: -0.12, dist: m.size * 3.4, target: [0, 0, 0] }); }
+    return front[k] = R.thumb(m.up, { size: 128, yaw: Math.PI + 0.4, pitch: -0.12, dist: m.size * 3.4, target: [0, m.cy || 0, 0] }); }
   async function charURL(ci, team) { const pt = hexRGB(opt.paint), k = 'ch' + JSON.stringify(ci) + '_' + team + '_' + (opt.paint || ''); if (front[k]) return front[k]; const m = await charMesh(ci, team, false, false, pt);
     return front[k] = R.thumb(m.up, { size: 128, yaw: Math.PI + 0.35, pitch: -0.1, dist: m.size * 2.0, target: [0, m.cy, 0] }); }
   async function renderProfile() {
@@ -1296,12 +1302,12 @@
     netRamps.set(id + kind, { up: D.up, R: M, p }); lvl.collider.setDyn('net' + kind + id, D.tris.map(t => t.map(q => V.add(p, BRR.mv(M, q)))), 'RAMP');
   }
   // salto con carga: un toque = saltito; mantenido 2 s = más alto; 5 s = más alto todavía (salta al soltar)
-  const JUMP_LV = [[0, 4.2, 'Saltito'], [2, 6.2, 'Salto'], [5, 8.4, 'Supersalto']];
+  const JUMP_LV = [[0, 4.2, 'Saltito'], [0.7, 6.2, 'Salto'], [1.5, 8.4, 'Supersalto']];   // un toque · ~0,7 s · ~1,5 s
   function jumpCharge(h, down) {
     const now = performance.now() / 1000;
     if (down && !h.jumpPrev) h.jumpHold = now;
     if (down && h.jumpHold != null) { const held = now - h.jumpHold, lv = JUMP_LV.filter(l => held >= l[0]).pop();
-      if (held > 0.6 && lv !== h.jumpLv) { h.jumpLv = lv; flash(h, lv[2] + (lv === JUMP_LV[2] ? ' ▮▮▮' : lv === JUMP_LV[1] ? ' ▮▮▯' : ' ▮▯▯'), 9, 'stunt'); if (audio) audio.play('SAMPLES/BEEP3.WAV', { vol: 0.25 }); } }
+      if (held > 0.35 && lv !== h.jumpLv) { h.jumpLv = lv; flash(h, lv[2] + (lv === JUMP_LV[2] ? ' ▮▮▮' : lv === JUMP_LV[1] ? ' ▮▮▯' : ' ▮▯▯'), 9, 'stunt'); if (audio) audio.play('SAMPLES/BEEP3.WAV', { vol: 0.25 }); } }
     if (!down && h.jumpPrev && h.jumpHold != null) { const held = now - h.jumpHold; h.jumpHold = null; h.jumpLv = null; h.msgT = Math.min(h.msgT, 0.3); carJump(h, JUMP_LV.filter(l => held >= l[0]).pop()[1]); }
   }
   function carJump(h, vy) {
@@ -1716,7 +1722,7 @@
     c.W.forEach((w, i) => {
       const wd = dd.wheels[i]; if (!wd) return;
       const cc = [w.c[0], w.c[1] + 0.3 - w.len, w.c[2]];
-      const sa = w.steer ? -c.steerAng : 0, cs = Math.cos(sa), sn = Math.sin(sa), cx = Math.cos(w.spin), sx = Math.sin(w.spin);
+      const sa = -c.steerAng * (w.steerK != null ? w.steerK : w.steer ? 1 : 0), cs = Math.cos(sa), sn = Math.sin(sa), cx = Math.cos(w.spin), sx = Math.sin(w.spin);
       const Ry = [[cs, 0, sn], [0, 1, 0], [-sn, 0, cs]], Rx = [[1, 0, 0], [0, cx, -sx], [0, sx, cx]];
       R.draw(wd, BRR.M4.fromRT(mm3(Rm, mm3(Ry, Rx)), V.add(c.p, BRR.mv(Rm, cc))));
     });

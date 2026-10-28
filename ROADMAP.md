@@ -164,10 +164,12 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Pausa: entrar al modo foto; cambiar de vehículo con un menú de fotos
 - [x] Bocinas sin «(del juego)» y traducidas
 - [x] Monster truck: se pinta la carrocería (no la ventana) en todos los circuitos
-- [x] Buggy lunar del tamaño correcto al elegir vehículo
+- [x] Buggy lunar del tamaño correcto al elegir vehículo y con dirección 6×6 (delante y detrás giran al revés)
+- [x] Salto con carga más rápido (≈0,7 s y ≈1,5 s)
+- [x] Cabezas con el mismo tamaño en el menú y dos cabezas nuevas de mujer
 - [x] 83 WATER1: la IA de las lanchas intenta ir por las montañas
 - [x] 84 Lanchas: pierden demasiada velocidad al subir rampas
-- [x] 85 WATER2: voz «This is wet and wild like me» que se repite muy bajita
+- [x] 85 WATER2: voz «This is wet and wild like me» que se repetía (fallo del juego original)
 
 **Más grandes (después)**
 - [ ] 74 Recuperar los efectos originales de derrape, polvo y turbo (de los .ENV del juego)
