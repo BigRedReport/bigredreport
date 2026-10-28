@@ -146,6 +146,9 @@
     // la gama del color del equipo es la 32 + 16·equipo (la que cambia entre JEEP1, JEEP2…): si el modelo la usa, se pinta esa (si no, la más llamativa)
     if (extra.paint) { const tb = 32 + 16 * team, uses = body.faces.some(f => !f.tex && f.color >= tb && f.color < tb + 16);
       pal = BRR.paintPal(lvl.pal, [body], extra.paint, uses ? tb : undefined); if (pal !== lvl.pal) body.paint = extra.paint.slice(); }
+    // cristales: el original usa colores del final de la paleta (238…) que cambian en cada circuito (lila, morado, magenta): se dejan como cristal tintado
+    { const glass = new Set(); for (const f of body.faces) if (!f.tex && f.color >= 224 && f.cond == null) glass.add(f.color);
+      if (glass.size) { if (pal === lvl.pal) pal = new Uint8Array(lvl.pal); for (const c of glass) { pal[c * 3] = 70; pal[c * 3 + 1] = 92; pal[c * 3 + 2] = 122; } } }
     const mb = new BRR.MeshBuilder(pal);
     mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), findTM);
     // hojas de textura que llevan el hueco del logo de este equipo (JDSH, MDSH, TRDH...): las que usa alguna cara dentro del hueco

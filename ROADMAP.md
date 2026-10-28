@@ -142,7 +142,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [ ] Pendiente de repasar: puentes (WATER1/2, RIG4, MOON), muro invisible del puente de RUF3, techos de DIRT, postes de CHOPPER1
 - [ ] 48 WATER1 y 49 WATER2 (India): puentes flotantes
 - [ ] 50 RUF2 (Egipto): texturas de las pirámides flotando
-- [ ] 51 Banderas de checkpoint: solo la salida pone START
+- [x] 51 Banderas de checkpoint: solo la salida pone START
 - [ ] 52 WATER3 (China): casa flotante
 - [x] 53–56 DIRT1 (Japón): nubes rosas, arcos rojos flotantes, árboles tumbados, árbol golpeable desmontado
 - [x] 57 TEST1: bandera START a ras de suelo
@@ -150,10 +150,10 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 59–60 CITY4 (Italia): texturas lilas junto a las escaleras y línea lila en la salida
 - [ ] 61–63, 66 MOON1/2/3: torres, puentes, carteles, vallas y edificios flotantes; parrilla de salida torcida
 - [ ] 64 SNOW2 (Escocia): carteles flotantes y montaña del checkpoint 2 rota
-- [ ] 65 RUF3 (Francia): muro invisible en el puente rojo; carteles flotantes
-- [ ] 67 RIG3: cartel START pequeño; árboles flotantes
+- [x] 65 RUF3 (Francia): muro invisible en el puente rojo; carteles flotantes (ya se pasa por debajo)
+- [x] 67 RIG3: cartel START pequeño; árboles flotantes
 - [ ] 68 RIG4 (España): piedras amarillas mal colocadas
-- [ ] 69 CHOPPER1: postes de checkpoint que no llegan al suelo
+- [x] 69 CHOPPER1: postes de checkpoint que no llegan al suelo
 - [x] 70 CITY1: cuadrados lilas flotando tras los edificios
 - [x] 71 DIRT1/2/3: techos transparentes
 
@@ -164,6 +164,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Pausa: entrar al modo foto; cambiar de vehículo con un menú de fotos
 - [x] Bocinas sin «(del juego)» y traducidas
 - [x] Monster truck: se pinta la carrocería (no la ventana) en todos los circuitos
+- [x] Cristales de los vehículos como cristal tintado (antes salían lilas o morados según el circuito)
 - [x] Buggy lunar del tamaño correcto al elegir vehículo y con dirección 6×6 (delante y detrás giran al revés)
 - [x] Salto con carga más rápido (≈0,7 s y ≈1,5 s)
 - [x] Cabezas con el mismo tamaño en el menú y dos cabezas nuevas de mujer

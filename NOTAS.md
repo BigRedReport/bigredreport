@@ -5,6 +5,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.59**
+- Solo la pancarta de salida pone START (fallo del original: lo ponían todas).
+- CHOPPER1: postes de los controles hasta el suelo. RIG3: pancarta de salida a su tamaño.
+- Cristales de los vehículos tintados (antes lilas o morados según el circuito).
+
 **Novedades de la 0.58**
 - Icono nuevo del programa (Windows y Linux) y de la app.
 - Bocinas de clips renovadas y niveladas; bocina nueva: pedo épico.

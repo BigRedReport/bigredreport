@@ -217,6 +217,7 @@
     const cseRaw = []; { const cs = find(mapn + '.CSE'); if (cs) { const v = new DataView(cs.buffer, cs.byteOffset, cs.byteLength); for (let j = 0; j + 16 <= cs.length; j += 16) cseRaw.push([v.getInt32(j, true), v.getInt32(j + 4, true)]); } }
     const farFromCourse = (x, z) => { for (let j = 0; j < cseRaw.length; j++) { const a = cseRaw[j], b = cseRaw[(j + 1) % cseRaw.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * vx + (z - a[1]) * vz) / (vx * vx + vz * vz || 1))); if (Math.hypot(a[0] + vx * t - x, a[1] + vz * t - z) < 40 / S) return false; } return cseRaw.length > 0; };
     const groundAt = (x, z) => { const fx = x / CELL, fz = z / CELL, ix = Math.max(0, Math.min(254, Math.floor(fx))), iz = Math.max(0, Math.min(254, Math.floor(fz))), u = fx - ix, v = fz - iz, h = (a, b) => hgt[b * 256 + a]; return (h(ix, iz) * (1 - u) + h(ix + 1, iz) * u) * (1 - v) + (h(ix, iz + 1) * (1 - u) + h(ix + 1, iz + 1) * u) * v; };
+    let startCP = null; for (let i = 0; i + 22 <= dat.length; i += 22) if (names[dat[i]] === 'CHECKP' && (dat[i + 19] & 0x7f) === 0) { startCP = [dv.getInt32(i + 1, true), dv.getInt32(i + 9, true)]; break; }
     let nobj = 0, tGrey = -1, decalN = 0; const checkpoints = [], props = [], posts = [];
     for (let i = 0; i + 22 <= dat.length; i += 22) if (/POST/.test(names[dat[i]] || '')) posts.push([dv.getInt32(i + 1, true), dv.getInt32(i + 5, true), dv.getInt32(i + 9, true)]);
     // objetos que flotan sobre el terreno (en el original casi no se notaba): se bajan al suelo, y lo que está encima (copas, tejados) baja con ellos.
@@ -278,7 +279,7 @@
         for (const q of posts) { const dx = q[0] - ox, dy = q[1] - oy, dz = q[2] - oz, lx = R[0][0] * dx + R[1][0] * dy + R[2][0] * dz, lz = R[0][2] * dx + R[1][2] * dy + R[2][2] * dz;
           if (Math.abs(lz) > 300 || Math.abs(lx) < 300 || Math.abs(lx) > 2600) continue;
           if (lx < 0 && (xl === null || lx > xl)) xl = lx; if (lx > 0 && (xr === null || lx < xr)) xr = lx; }
-        if (xl !== null && xr !== null && hm > 0) { const cx = (xl + xr) / 2, sx = ((xr - xl) / 2 - 4) / hm; xfm = v => xf([cx + v[0] * sx, v[1], v[2]]); } }
+        if (xl !== null && xr !== null && hm > 0) { const cx = (xl + xr) / 2, sx = Math.max(1, ((xr - xl) / 2 - 4) / hm); /* se estira hasta los postes, pero nunca se encoge (RIG3) */ xfm = v => xf([cx + v[0] * sx, v[1], v[2]]); } }
       if (decal) { const ys = m.verts.filter(Boolean).map(v => v[1]), flat = ys.length && Math.max(...ys) - Math.min(...ys) < 24;
         const lift = 0.08 + 0.025 * (decalN++ % 8);   // cada marca un poco más alta que la anterior: el orden de pintado del original (la parrilla negra sobre la blanca)
         if (flat && Math.abs(-oy * S - groundAt(ox, oz)) < 2.5) xfm = v => { const g = xf(v), wx = ox + R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2];
@@ -286,10 +287,13 @@
       // postes finos y altos (los de las pancartas de salida y control) que en el original quedan colgando: se alargan hasta el suelo
       if (!decal) { const Vs = m.verts.filter(Boolean), ex = a => Math.max(...Vs.map(v => Math.abs(v[a])));
         const ymax = Math.max(...Vs.map(v => v[1])), ymin = Math.min(...Vs.map(v => v[1]));
-        if (Vs.length && ex(0) <= 20 && ex(2) <= 20 && ymax - ymin >= 100) {
+        const gateP = /CHECKP|ST_POST/.test(name);   // puertas de control con dos postes (CHOPPER1): los pies también bajan hasta el suelo
+        if (Vs.length && ((ex(0) <= 20 && ex(2) <= 20) || gateP) && ymax - ymin >= 100) {
           const gap = -(oy + ymax) * S - groundAt(ox, oz);   // >0: el pie queda por encima del suelo (metros)
-          if (gap > 0.05 && gap < 12) { const base = xfm; xfm = v => { const g = base(v); if (v[1] >= ymax - 1) { const wx = ox + R[0][0] * v[0] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][2] * v[2]; g[1] = groundAt(wx, wz) - 0.1; } return g; }; } } }
+          if (gap > 0.05 && gap < (gateP ? 25 : 12)) { const base = xfm; xfm = v => { const g = base(v); if (v[1] >= ymax - 1) { const wx = ox + R[0][0] * v[0] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][2] * v[2]; g[1] = groundAt(wx, wz) - 0.1; } return g; }; } } }
       let mm = m;
+      // fallo heredado del original: todas las pancartas de control ponen START; solo la de salida lo lleva, las demás usan la franja lisa de la textura
+      if (name === 'START' && startCP && Math.hypot(ox - startCP[0], oz - startCP[1]) > 3000) mm = { ...m, faces: m.faces.map(f => f.tex === 'START' && f.uv && f.uv.length === 4 && Math.max(...f.uv.map(q => q[1])) <= 47 ? { ...f, uv: f.uv.map(q => [q[0], q[1] + 48]) } : f) };
       if (/ROOF|CANOP|AWN|SHELTER|TENT/.test(name)) mm = { ...m, faces: m.faces.map(f => ({ ...f, two: true })) };   // tejados: de una sola cara en el original (desde arriba se veían transparentes)
       if (/TUNN/.test(name)) {   // túneles: el original los pintaba negros y tapados por la colina (sin z-buffer); aquí gris oscuro,
         // visibles desde dentro (doble cara) y sin asomar por encima de la colina
