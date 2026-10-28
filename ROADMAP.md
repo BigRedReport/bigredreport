@@ -121,7 +121,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - Se conservan tal cual: las rampas actuales (34) y el aplastamiento de ovejas (35)
 
 **Online**
-- [ ] Partidas en red local (LAN), con las mismas salas que el online
+- [x] Partidas en red local (LAN), con las mismas salas que el online
 - [x] Monster truck: los bujes de las ruedas no cogían el color RGB
 - [x] 38 Modo libre online
 - [x] 39 Quitar la elección de coche de Multijugador > Online (se elige en la sala)

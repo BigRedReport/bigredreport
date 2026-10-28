@@ -146,7 +146,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .dimg{position:relative;background:radial-gradient(circle at 50% 45%,#ffffff14,transparent 70%)}.dimg img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;background:#000}
 body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{image-rendering:pixelated}
 #d_globe{display:block;margin:4px auto 0;width:min(100%,250px);height:auto;aspect-ratio:1;filter:drop-shadow(0 4px 12px #000)}#d_img{display:none!important}#n_room[hidden],#n_home[hidden],#n_new[hidden]{display:none!important}#n_globe{display:block;margin:8px auto;width:min(100%,230px);height:auto;aspect-ratio:1;filter:drop-shadow(0 4px 12px #000)}.ttbest{position:absolute;right:8px;top:8px;text-align:right;background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px}.ttbest .ttb{font:800 24px/1.1 system-ui;color:#ffd24a}
-#d_place{text-align:center;font-weight:700;font-size:14px;margin:2px 0 4px}
+#d_place:empty{display:none}#d_place{text-align:center;font:600 12px ui-monospace,Menlo,Consolas,monospace;letter-spacing:.08em;color:#9aa4b2;margin:2px 0 4px}
 .dbody{padding:14px 18px 18px}.dhead{display:flex;align-items:center;gap:10px}.dhead h2{margin:0;font-size:20px}
 .diff{margin-left:auto;font-size:12px;padding:3px 8px;border-radius:6px;background:#263}.diff.d2{background:#663}.diff.d3{background:#733}
 #d_desc{white-space:pre-line;color:#cfd5de;margin:8px 0 4px}
@@ -216,6 +216,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
       <div class="hcol" id="h_multi" hidden>
         <button class="hbtn" data-go="split">Pantalla partida (2-8)</button>
         <button class="hbtn" data-go="online">Online</button>
+        <button class="hbtn" data-go="lan">Red local (LAN)</button>
         <button class="hbtn small2" data-go="back">◀ Volver</button>
       </div>
     </div>
@@ -293,6 +294,16 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   </section>
   <section id="pane_online" class="pane" hidden>
     <div class="tlist">
+      <div class="series" id="l_home" hidden>
+        <h3>Red local (LAN) <small id="l_status" class="small"></small></h3>
+        <p class="small">Para jugar con los ordenadores de tu casa o tu oficina, sin Internet. Uno crea la partida y los demás la ven aquí en unos segundos.</p>
+        <button class="main" id="l_host">Crear partida en tu red</button>
+        <h3 style="margin-top:14px">Partidas en tu red</h3>
+        <div id="l_list" class="small">Buscando…</div>
+        <details style="margin-top:12px"><summary class="small">¿No aparece? Escribe la dirección</summary>
+          <p class="small">El que crea la partida ve su dirección arriba (ws://192.168.…:7777).</p>
+          <div class="grid2"><input id="l_url" class="inp" placeholder="ws://192.168.1.20:7777"><button id="l_conn">Conectar</button></div></details>
+      </div>
       <div class="series" id="n_home">
         <h3>Jugar online <small id="n_status" class="small">Conectando…</small></h3>
         <p class="small">No hace falta instalar nada: quien crea la partida hace de servidor desde su propio juego. Comparte el <b>código</b> con tus amigos (o hazla pública y la verán en la lista).</p>

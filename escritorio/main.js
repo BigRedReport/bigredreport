@@ -32,10 +32,10 @@ function openGame() {
   game.on('closed', () => { game = null; if (launcher) launcher.show(); else app.quit(); });
   if (launcher) launcher.hide();
 }
-function startServer() {
-  if (server || !cfg.server) return;
+function startServer(force) {
+  if (server || !(cfg.server || force)) return;
   const js = path.join(gameDir(), 'server', 'brr-server.js'); if (!fs.existsSync(js)) return;
-  server = utilityProcess.fork(js, [String(cfg.port || 7777)], { cwd: app.getPath('userData'), stdio: 'ignore' });
+  server = utilityProcess.fork(js, [String(cfg.port || 7777)], { cwd: app.getPath('userData'), stdio: 'ignore', env: { ...process.env, BRR_NAME: require('os').hostname() } });
   server.on('exit', () => { server = null; });
 }
 function stopServer() { if (server) { try { server.kill(); } catch (e) { } server = null; } }
@@ -66,6 +66,17 @@ ipcMain.handle('files:read', async (e, rel, start, end) => {
   finally { await fh.close(); }
 });
 ipcMain.handle('game:play', () => { openGame(); return true; });
+// ---------- red local (LAN): se escuchan los servidores que se anuncian en la red y se puede crear uno aquí ----------
+const lanSeen = new Map();
+try { const dgram = require('dgram'), s = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+  s.on('message', (b, ri) => { try { const m = JSON.parse(b.toString()); if (m && m.brr === 1 && m.port) lanSeen.set(ri.address + ':' + m.port, { ...m, ip: ri.address, t: Date.now() }); } catch (e) { } });
+  s.on('error', () => { }); s.bind(7779); } catch (e) { }
+ipcMain.handle('lan:list', () => { const now = Date.now(), out = []; for (const [k, v] of lanSeen) if (now - v.t > 7000) lanSeen.delete(k); else out.push({ name: String(v.name || '').slice(0, 30), ip: v.ip, port: v.port | 0, rooms: Array.isArray(v.rooms) ? v.rooms.slice(0, 8) : [] }); return out; });
+ipcMain.handle('lan:host', async () => {
+  startServer(true); await new Promise(r => setTimeout(r, 700));
+  const os = require('os'), ips = []; const nets = os.networkInterfaces(); for (const k in nets) for (const a of nets[k]) if (a.family === 'IPv4' && !a.internal) ips.push(a.address);
+  return { port: cfg.port || 7777, ips, running: !!server };
+});
 // ---------- actualizaciones (Releases de GitHub) ----------
 const REPO = 'BigRedReport/bigredreport';
 async function latest() {

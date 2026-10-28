@@ -303,7 +303,7 @@
     const t = front.tracks.find(x => x.id === id); if (!t) return;
     $('m_level').value = id; opt.level = id; save(); fillVehicles();
     for (const c of document.querySelectorAll('#tracks .tcard')) c.classList.toggle('on', c.dataset.id === id);
-    $('d_img').src = t.view || ''; $('d_place').textContent = t.place || ''; $('d_name').textContent = t.id;
+    $('d_img').src = t.view || ''; $('d_place').textContent = ''; $('d_name').textContent = t.place || t.id;   // solo el país (sin el nombre interno del mapa)
     $('d_diff').textContent = DIFF[t.diff] || ''; $('d_diff').className = 'diff d' + t.diff;
     $('d_desc').textContent = (t.desc || '') + (t.laps ? `\n${t.laps} vueltas.` : '');
     let rec = null; try { for (const k of ST.keys()) if (k.startsWith('brr_rec_' + id + '_')) { const r = JSON.parse(ST.get(k)); if (r.lap && (!rec || r.lap < rec)) rec = r.lap; } } catch (e) { }
@@ -352,7 +352,7 @@
   const VIEWS = {
     home: { pane: 'home', col: 'h_main', title: '' }, single: { pane: 'home', col: 'h_single', title: 'Un jugador', back: 'home' }, multi: { pane: 'home', col: 'h_multi', title: 'Multijugador', back: 'home' },
     quick: { pane: 'quick', title: 'Carrera rápida', back: 'single' }, tt: { pane: 'quick', title: 'Contrareloj', back: 'single' }, free: { pane: 'quick', title: 'Modo libre', back: 'single' }, split: { pane: 'quick', title: 'Pantalla partida', back: 'multi' },
-    tourn: { pane: 'tourn', title: 'Campeonato', back: 'single' }, online: { pane: 'online', title: 'Online', back: 'multi' },
+    tourn: { pane: 'tourn', title: 'Campeonato', back: 'single' }, online: { pane: 'online', title: 'Online', back: 'multi' }, lan: { pane: 'online', title: 'Red local (LAN)', back: 'multi' },
     mods: { pane: 'mods', title: 'Mods', back: 'home' }, profile: { pane: 'profile', title: 'Piloto y escudería', back: 'home' } };
   let view = 'home', qmode = 'quick', ttMode = false, freeMode = false;
   const sfx = n => { if (audio) { audio.init(); audio.play('SAMPLES/' + n + '.WAV', { vol: 0.5, bus: 'ui' }); } };
@@ -367,7 +367,7 @@
     for (const c of ['h_main', 'h_single', 'h_multi']) $(c).hidden = c !== W.col;
     $('m_back').hidden = v === 'home'; $('m_title').textContent = W.title; $('menu').classList.toggle('homeview', W.pane === 'home');
     if (W.pane === 'quick') { setQuickMode(v); setTimeout(qvLoad, 0); }
-    if (v === 'online') onlineEnter(); if (v === 'profile') { renderProfile(); renderHorns(); renderProfiles(); renderStats(); renderAch(); } if (v === 'mods') renderMods(); if (W.pane === 'home') renderHomeProf();
+    if (v === 'online') onlineEnter(); if (v === 'lan') lanEnter(); if (v === 'profile') { renderProfile(); renderHorns(); renderProfiles(); renderStats(); renderAch(); } if (v === 'mods') renderMods(); if (W.pane === 'home') renderHomeProf();
     if (globeT) { globeT.drawn = false; globeT.start(); } if (globeD) { globeD.drawn = false; globeD.start(); }
     setTimeout(() => navFocusFirst(W.pane === 'home' ? $(W.col) : $('pane_' + W.pane)), 0);
   }
@@ -1003,7 +1003,7 @@
   $('r_again').onclick = restart;
   function toMenu() {
     if (netRace) { const ids = netRace.resultIds; netRace = null; netWait = false; clearTimeout(netResT); $('netbar').hidden = true; if (BRR_net.isHost && BRR_net.room) netAfterRace(ids); fromOrig = false; if (orig) orig.close(); opt.menu = 'moderno';
-      setTimeout(() => { go('online'); netRenderRoom(); }, 50); }
+      setTimeout(() => { go(BRR_net.lanUrl ? 'lan' : 'online'); netRenderRoom(); }, 50); }
     statsFlush(); clearTimeout(finishTimer); finishTimer = null; $('results').hidden = true; if (audio) { audio.stopAll(); audio.stopMusic(); }
     state = 'menu'; show('menu'); renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
     if (orig && fromOrig && opt.menu !== 'moderno') { fromOrig = false; state = 'origmenu'; if (!orig.on) { orig.on = true; orig.root.hidden = false; orig.loop(); } if (audio) audio.playTrack(2); orig.globe(); }
@@ -1425,12 +1425,33 @@
   const tLabel = id => { const t = tById(id); return t ? (t.place || t.id) + ' · ' + t.id : id || '?'; };
   $('n_url').value = opt.netUrl && /^wss?:/.test(opt.netUrl) ? opt.netUrl : '';
   let listT = null;
+  // ---------- red local (LAN): mismas salas que el online, a través del servidor que lleva el programa de escritorio ----------
+  let lanT = 0;
+  function lanUI(on) { $('l_home').hidden = !on; $('n_home').hidden = on || !!BRR_net.room; if (on && !BRR_net.lanUrl) $('n_home').hidden = true; }
+  async function lanConnect(url) {
+    $('l_status').textContent = 'Conectando…'; if (BRR_net.room) BRR_net.leave();
+    try { BRR_net.use('server'); await BRR_net.connect(url, opt.netName || 'Piloto'); BRR_net.lanUrl = url; $('l_status').textContent = 'Conectado a ' + url; $('n_home').hidden = false; $('n_status').textContent = 'Red local: ' + url; BRR_net.list(); return true; }
+    catch (e) { $('l_status').textContent = e.message; return false; }
+  }
+  async function lanEnter() {
+    $('n_team').value = opt.team || 1; lanUI(true); $('l_host').hidden = !(NAT && NAT.lanHost);
+    if (!(NAT && NAT.lanList)) $('l_list').innerHTML = 'Desde el navegador no se pueden buscar partidas de la red: abre el juego con el programa de Windows o Linux, o escribe abajo la dirección del ordenador que la crea.';
+    clearInterval(lanT); const scan = async () => { if (view !== 'lan' || state !== 'menu') return clearInterval(lanT); if (!(NAT && NAT.lanList)) return;
+      const L = await NAT.lanList().catch(() => []);
+      $('l_list').innerHTML = L.length ? L.map((s, i) => `<div class="rrow"><span><b>${esc(s.name)}</b> · ${esc(s.ip)}${s.rooms.length ? ' · ' + s.rooms.map(r => esc(r.name) + ' (' + (r.players | 0) + '/' + (r.max | 0) + ')').join(', ') : ' · <span>sin partidas aún</span>'}</span><button data-i="${i}">Ver</button></div>`).join('') : 'Buscando… (no hay ninguna todavía)';
+      for (const b of $('l_list').querySelectorAll('button')) b.onclick = () => { const s = L[+b.dataset.i]; lanConnect('ws://' + s.ip + ':' + s.port); }; };
+    scan(); lanT = setInterval(scan, 2000);
+    netRenderRoom();
+  }
+  $('l_host').onclick = async () => { $('l_host').disabled = true; try { const r = await NAT.lanHost(); if (await lanConnect('ws://127.0.0.1:' + r.port)) { $('l_status').textContent = 'Tu partida se ve en la red como ' + (r.ips.map(ip => 'ws://' + ip + ':' + r.port).join(' · ') || 'este PC'); $('n_newbtn').onclick(); } } finally { $('l_host').disabled = false; } };
+  $('l_conn').onclick = () => { const u = $('l_url').value.trim(); if (/^wss?:\/\//.test(u)) lanConnect(u); else $('l_status').textContent = 'La dirección empieza por ws:// (ej. ws://192.168.1.20:7777)'; };
   async function onlineEnter() {
+    lanUI(false); if (BRR_net.lanUrl) { if (BRR_net.room) BRR_net.leave(); try { BRR_net.srv.close(); } catch (e) { } BRR_net.lanUrl = null; BRR_net.use(opt.netUrl && /^wss?:/.test(opt.netUrl) ? 'server' : 'p2p'); }
     $('n_team').value = opt.team || 1;
     if (!BRR_net.connected) { $('n_status').textContent = 'Conectando…';
       try { await BRR_net.connect(opt.netUrl && /^wss?:/.test(opt.netUrl) ? opt.netUrl : null, opt.netName || 'Piloto'); $('n_status').textContent = BRR_net.mode === 'server' ? 'Conectado al servidor ' + opt.netUrl : 'Conectado. Tu nombre: ' + (opt.netName || 'Piloto'); }
       catch (e) { $('n_status').textContent = e.message; } }
-    BRR_net.list(); clearInterval(listT); listT = setInterval(() => { if (view === 'online' && state === 'menu') BRR_net.list(); else clearInterval(listT); }, 4000);
+    BRR_net.list(); clearInterval(listT); listT = setInterval(() => { if ((view === 'online' || view === 'lan') && state === 'menu') BRR_net.list(); else clearInterval(listT); }, 4000);
     netRenderRoom();
   }
   $('n_conn').onclick = async () => { opt.netUrl = $('n_url').value.trim(); save(); if (BRR_net.room) BRR_net.leave(); BRR_net.use(/^wss?:/.test(opt.netUrl) ? 'server' : 'p2p');
@@ -1567,7 +1588,7 @@
     if (BRR_net.members.every(m => info.vote.votes[m.id])) info.vote.until = Math.min(info.vote.until, Date.now() + 1500); BRR_net.info(info); }
   // el anfitrión: votaciones, cuenta atrás y salida automática entre carreras
   setInterval(() => {
-    const r = BRR_net.room; if (!r) return; if (view === 'online' && state === 'menu') netRenderRoom();
+    const r = BRR_net.room; if (!r) return; if ((view === 'online' || view === 'lan') && state === 'menu') netRenderRoom();
     if (!BRR_net.isHost || r.state !== 'lobby') return; const info = r.info || {}, now = Date.now();
     if (info.vote && now > info.vote.until) { const cnt = {}; for (const k in info.vote.votes) cnt[info.vote.votes[k]] = (cnt[info.vote.votes[k]] || 0) + 1;
       const best = info.vote.opts.slice().sort((a, b) => (cnt[b] || 0) - (cnt[a] || 0) || Math.random() - .5)[0]; BRR_net.info({ ...info, level: best, vote: null, autoAt: now + 8000 }); return; }

@@ -5,6 +5,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.52**
+- Red local (LAN) en Multijugador: con el programa de escritorio, las partidas de tu red aparecen solas (mismas salas que el online).
+- Elegir circuito: el país en grande, sin el nombre interno del mapa.
+
 **Novedades de la 0.51**
 - Suelo: las baldosas encajan como en el original (sin dientes de sierra); banderas de cuadros planas.
 - Daños del original: humo al 80/90/95 % y explosión al 100 % (se puede quitar en Opciones → Juego).

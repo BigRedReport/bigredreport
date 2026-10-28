@@ -12,5 +12,7 @@ contextBridge.exposeInMainWorld('BRR_NATIVE', {
   openUrl: u => ipcRenderer.invoke('open:url', u),
   quit: () => ipcRenderer.invoke('app:quit'),
   checkUpdate: () => ipcRenderer.invoke('upd:check'),
+  lanList: () => ipcRenderer.invoke('lan:list'),
+  lanHost: () => ipcRenderer.invoke('lan:host'),
   updateGame: () => ipcRenderer.invoke('upd:game'),
 });

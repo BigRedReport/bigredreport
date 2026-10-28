@@ -6,7 +6,7 @@
 
 ![Visitas](https://hits.sh/github.com/BigRedReport/bigredreport.svg?label=visitas&color=e23b3b)
 
-Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores modernos: el juego de carreras más loco de 1995, de jeeps a lanchas, helicópteros y buggies en Marte, con gráficos actuales, mandos de hoy, pantalla partida, online y los rivales originales.
+Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores modernos: el juego de carreras más loco de 1995, de jeeps a lanchas, helicópteros y buggies en Marte, con gráficos actuales, mandos de hoy, pantalla partida, red local (LAN), online y los rivales originales.
 
 🌐 **Web:** https://bigredreport.github.io/bigredreport/
 

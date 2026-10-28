@@ -6,7 +6,7 @@
 
 ![Views](https://hits.sh/github.com/BigRedReport/bigredreport.svg?label=views&color=e23b3b)
 
-A fan-made port of **Big Red Racing** (Big Red Software, 1995) for modern computers: the wildest racing game of 1995, from jeeps and speedboats to helicopters and Martian buggies, now with modern graphics, current controllers, split-screen, online multiplayer, and the original AI rivals.
+A fan-made port of **Big Red Racing** (Big Red Software, 1995) for modern computers: the wildest racing game of 1995, from jeeps and speedboats to helicopters and Martian buggies, now with modern graphics, current controllers, split-screen, LAN and online multiplayer, and the original AI rivals.
 
 🌐 **Website:** https://bigredreport.github.io/bigredreport/
 

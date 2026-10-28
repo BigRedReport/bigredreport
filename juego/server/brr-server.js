@@ -107,7 +107,18 @@ const srv = http.createServer((req, res) => {
   res.end('Servidor de Big Red Racing en marcha. Partidas abiertas: ' + rooms.size + '\n');
 });
 srv.on('upgrade', (req, sock) => accept(req, sock));
+// red local: se anuncia cada 2 s por difusión UDP (puerto 7779) para que los juegos de la misma red lo encuentren solos
+function lanAnnounce() {
+  try { const dgram = require('dgram'), os = require('os'), s = dgram.createSocket({ type: 'udp4', reuseAddr: true });
+    s.bind(() => { s.setBroadcast(true);
+      setInterval(() => { const msg = Buffer.from(JSON.stringify({ brr: 1, name: (process.env.BRR_NAME || os.hostname()).slice(0, 30), port: PORT, rooms: [...rooms.values()].filter(r => r.pub !== false).map(r => ({ name: String(r.name || '').slice(0, 30), players: r.members ? r.members.size : 0, max: r.max })).slice(0, 8) }));
+        const targets = new Set(['255.255.255.255']); const nets = os.networkInterfaces();
+        for (const k in nets) for (const a of nets[k]) if (a.family === 'IPv4' && !a.internal && a.netmask) { const ip = a.address.split('.').map(Number), m = a.netmask.split('.').map(Number); targets.add(ip.map((x, i) => (x & m[i]) | (~m[i] & 255)).join('.')); }
+        for (const t of targets) s.send(msg, 7779, t, () => { }); }, 2000); });
+    s.on('error', () => { }); } catch (e) { }
+}
 srv.listen(PORT, () => {
+  lanAnnounce();
   console.log('Servidor de Big Red Racing escuchando en el puerto ' + PORT);
   const nets = require('os').networkInterfaces();
   for (const k in nets) for (const a of nets[k]) if (a.family === 'IPv4' && !a.internal) console.log('  En tu red local:  ws://' + a.address + ':' + PORT);
