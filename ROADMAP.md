@@ -21,7 +21,6 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [x] Controles a gusto, 21 logros, ayudas de conducción, colores para daltonismo y menús grandes
 - [x] Comentarista con más frases, aviso automático de fallos e instalable desde el navegador
 - [x] Pantalla de inicio con PRESS START y la portada nueva
-- [x] Donaciones (Ko-fi y PayPal) en la web, en GitHub y en el juego
 
 ## Bloque 1 · Modo libre y diversión (rápido)
 - [x] Modo libre + acrobacias en uno: sin cronómetro de vueltas y con un botón que pone una rampa (las marrones de los circuitos de ciudad) pegada al suelo unos metros por delante; una por jugador, solo en este modo
@@ -55,7 +54,6 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Volantes, pedales y cambio de marchas; force feedback si es posible
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
 - [ ] Android: cargar el juego desde un .zip, controles táctiles y app instalable
-- [ ] Publicación en lanzadores de ports (PortMaster, Lutris…): depende de que acepten el port
 
 ## Bloque 8 · Modos locos (largo)
 - [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
