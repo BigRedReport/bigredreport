@@ -887,6 +887,7 @@
     $('results').hidden = true; state = 'race'; show('hud'); last = performance.now();
   }
   // ---------- sonido ----------
+  const pickV = n => snd && typeof snd.pickVoice === 'function' ? snd.pickVoice(n) : null;   // voces del locutor (aún sin cargar: nada)
   async function startSounds(level, def) {
     if (!audio || !audio.ctx) return;
     audio.stopAll(); audio.loops = [];
@@ -931,18 +932,18 @@
       if (c.landed && surf === 'agua') audio.play('GEN/SPLASH.WAV', { vol: Math.min(1, c.landed / 8) });
       if (c.nitroT <= 0 && S2.nitroOn) audio.play('GEN/NOTTURB.WAV', { vol: 0.7 }); S2.nitroOn = c.nitroT > 0;
       if (c.lastHit > 3) { const B = snd.bangs || [], b = B[Math.random() * B.length | 0]; if (b) audio.play(b, { vol: Math.min(1, c.lastHit / 12) });
-        if (c.lastHit > 9) { const v = snd.pickVoice('CRASH') || snd.pickVoice('CRAS'); if (v) audio.voice(v); } }
+        if (c.lastHit > 9) { const v = pickV('CRASH') || pickV('CRAS'); if (v) audio.voice(v); } }
       c.lastHit = 0;
       if (c.landed) { audio.play('GEN/BIG.WAV', { vol: Math.min(1, c.landed / 10) }); c.landed = 0;
-        if (c.lastAir > 1.0) { const v = snd.pickVoice('JUMP'); if (v) audio.voice(v); } if (c.isPlayer && c.human === 0 && c.lastAir > 2) achUnlock('vuelo'); }
-      const up = c.R[1][1]; if (up < 0.1 && !S2.rolled) { S2.rolled = true; if (c.isPlayer && c.human === 0 && state === 'race') achUnlock('vuelco'); const v = snd.pickVoice('ROLL'); if (v) audio.voice(v); } if (up > 0.8) S2.rolled = false;
+        if (c.lastAir > 1.0) { const v = pickV('JUMP'); if (v) audio.voice(v); } if (c.isPlayer && c.human === 0 && c.lastAir > 2) achUnlock('vuelo'); }
+      const up = c.R[1][1]; if (up < 0.1 && !S2.rolled) { S2.rolled = true; if (c.isPlayer && c.human === 0 && state === 'race') achUnlock('vuelco'); const v = pickV('ROLL'); if (v) audio.voice(v); } if (up > 0.8) S2.rolled = false;
     }
     if (snd.rivEng && snd.rivEng.length) {
       const dmin = c => Math.min(...humans.map(h => Math.hypot(c.p[0] - h.cam.pos[0], c.p[1] - h.cam.pos[1], c.p[2] - h.cam.pos[2])));
       const near = rivals.map(r => ({ c: r.car, d: dmin(r.car) })).sort((a, b) => a.d - b.d);
       snd.rivEng.forEach((l, k) => { const n = near[k]; if (!l || !n) return; l.set(paused ? 0 : 0.3 * Math.max(0, 1 - n.d / 90) ** (audio.spatial ? 1 : 2), 0.8 + n.c.rpm() / 255 * 1.1, n.c.p); });
     }
-    if (!paused && race.phase === 'race') { snd.nextGeneral -= dt; if (snd.nextGeneral < 0) { snd.nextGeneral = 20 + Math.random() * 20; const v = snd.pickVoice('GENRAL'); if (v) audio.voice(v); } }
+    if (!paused && race.phase === 'race') { snd.nextGeneral -= dt; if (snd.nextGeneral < 0) { snd.nextGeneral = 20 + Math.random() * 20; const v = pickV('GENRAL'); if (v) audio.voice(v); } }
   }
   // ---------- eventos de carrera -> marcador y sonido ----------
   const fmt = t => { if (t == null || !isFinite(t)) return '–:––.––'; const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2); };
@@ -952,7 +953,7 @@
   function handleEvents(h) {
     const first = h === humans[0];   // los sonidos comunes (cuenta atrás) solo una vez
     for (const e of h.race.ev.splice(0)) {
-      if (e.type === 'beep') { flash(h, String(e.n), 1, 'big cnt n' + e.n); if (first && audio) { audio.play('SAMPLES/BEEP3.WAV'); if (e.n === 3 && snd.pickVoice) { const v = snd.pickVoice('READYGO'); if (v) audio.voice(v, true); } } }
+      if (e.type === 'beep') { flash(h, String(e.n), 1, 'big cnt n' + e.n); if (first && audio) { audio.play('SAMPLES/BEEP3.WAV'); if (e.n === 3 && snd.pickVoice) { const v = pickV('READYGO'); if (v) audio.voice(v, true); } } }
       if (e.type === 'go') { flash(h, '¡YA!', 1, 'big cnt go'); if (first && audio) audio.play('SAMPLES/BEEP4.WAV'); }
       if (e.type === 'check') { flash(h, `Control ${e.num}/${e.of}  ·  ${fmt(e.split)}`, 2); if (audio) audio.play('GEN/CHECKPOI.WAV'); }
       if (e.type === 'missed') { flash(h, '¡Te has saltado un control! Vuelve atrás', 2.5, 'warn'); if (audio) audio.play('GEN/CHCKMIS.WAV'); }
@@ -978,7 +979,7 @@
       if (humans.length >= 2) achUnlock('fiesta'); if (opt.paint && myTeamName()) achUnlock('estilo');
       const S = statsGet(); if ((S.races || 0) >= 50) achUnlock('veterano'); if ((S.km || 0) >= 100) achUnlock('km100');
       statsAdd(S2 => { S2.tracks = S2.tracks || {}; S2.tracks[lvl.name] = 1; if (front && front.tracks && Object.keys(S2.tracks).length >= front.tracks.length) achUnlock('turista'); }); }
-    if (audio) { const v = snd.pickVoice && (snd.pickVoice('FINISH') || snd.pickVoice('GAMEOVER')); if (v) audio.voice(v, true); }
+    if (audio) { const v = snd.pickVoice && (pickV('FINISH') || pickV('GAMEOVER')); if (v) audio.voice(v, true); }
     // resultados cuando han llegado todos los jugadores (o 45 s después del primero)
     if (humans.every(x => x.done) && rivals.filter(r => r.remote && !r.isAI).every(r => r.fin != null)) setTimeout(showResults, 1500);
     else if (netRace) { const iv = setInterval(() => { if (state !== 'race' || !netRace) return clearInterval(iv); if (rivals.filter(r => r.remote && !r.isAI).every(r => r.fin != null)) { clearInterval(iv); setTimeout(showResults, 1000); } }, 500); if (!finishTimer) finishTimer = setTimeout(showResults, 45000); }
@@ -1779,7 +1780,7 @@
   // comentarista: voces del CD por nombre (se prueban varios); si no hay una concreta, a veces un comentario general
   function say(prefs, chance = 1, general = true) {
     if (!audio || !snd.pickVoice || Math.random() > chance) return; const now = performance.now() / 1000; if (now < (snd.sayT || 0)) return;
-    let v = null; for (const p of prefs) if ((v = snd.pickVoice(p))) break; if (!v && general && Math.random() < 0.4) v = snd.pickVoice('GENRAL');
+    let v = null; for (const p of prefs) if ((v = pickV(p))) break; if (!v && general && Math.random() < 0.4) v = pickV('GENRAL');
     if (v) { audio.voice(v); snd.sayT = now + 6; snd.nextGeneral = Math.max(snd.nextGeneral || 0, 12); }
   }
   function updatePositions(dt) {
@@ -1789,7 +1790,7 @@
       if (!h.done) { if (race.phase === 'race' && race.t > 5 && h.pos && order.length > 1 && humans.length === 1) { if (pos < h.pos) say(['OVERTAK', 'OVERTK', 'PASS', 'OVER'], 0.55); else if (pos > h.pos) say(['PASSED', 'BEHIND', 'LOSE'], 0.25, false); } h.pos = pos; } }
     const lt = order[0].car.team; leaderT += dt;
     if (race.phase === 'race' && race.t > 6 && lt !== leader && leaderT > 4 && order.length > 1 && snd.pickVoice) {
-      leaderT = 0; const v = snd.pickVoice(TEAM[lt].v); if (v && audio) audio.voice(v);
+      leaderT = 0; const v = pickV(TEAM[lt].v); if (v && audio) audio.voice(v);
     }
     if (race.phase === 'race') leader = lt;
   }
