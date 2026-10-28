@@ -305,6 +305,17 @@
         const xs = G.map(g => g[0]), zs = G.map(g => g[2]); window.BRR_OBJDBG.push({ gy: groundAt(ox, oz), lo, name, cls, x: ox, z: oz, minC: Math.min(...foot), maxC: Math.max(...foot), w: Math.max(...xs) - Math.min(...xs), d: Math.max(...zs) - Math.min(...zs), h: Math.max(...G.map(g => g[1])) - lo }); }
       mb.addModel(mm, xfm, findTM, solid ? (a, b, c) => col.add(a, b, c, name) : null, 1);
       nobj++;
+      // puentes y pasarelas que flotan: pilares en las esquinas hasta el suelo o el agua (sin paredes: las lanchas pasan por debajo)
+      if (solid && !decal && /BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(name)) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1]));
+        const xs = G.map(g => g[0]), zs = G.map(g => g[2]), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
+        let cc = [0.35, 0.3, 0.26]; const f0 = mm.faces.find(f => !f.tex && f.color != null); if (f0) cc = [pal[f0.color * 3] / 255 * 0.8, pal[f0.color * 3 + 1] / 255 * 0.8, pal[f0.color * 3 + 2] / 255 * 0.8];
+        const gC = mb.group('COLOR'), w = 0.22, inset = 0.35;
+        for (const [px, pz] of [[x0 + inset, z0 + inset], [x1 - inset, z0 + inset], [x0 + inset, z1 - inset], [x1 - inset, z1 - inset]]) {
+          const g = groundAt(px / S, -pz / S), top = Math.min(...G.filter(q => Math.abs(q[0] - px) < 1.2 && Math.abs(q[2] - pz) < 1.2).map(q => q[1]).concat([lo + 0.5]));
+          if (top - g < 0.3 || top - g > 14) continue;
+          const C = [[px - w, pz - w], [px + w, pz - w], [px + w, pz + w], [px - w, pz + w]];
+          for (let k = 0; k < 4; k++) { const a2 = C[k], b2 = C[(k + 1) % 4], A = [a2[0], top, a2[1]], B = [b2[0], top, b2[1]], Cq = [b2[0], g - 0.3, b2[1]], D = [a2[0], g - 0.3, a2[1]];
+            for (const t of [[A, B, Cq], [A, Cq, D]]) { col.add(t[0], t[1], t[2], name); for (const order of [[0, 1, 2], [0, 2, 1]]) for (const j of order) { gC.pos.push(...t[j]); gC.col.push(...cc); gC.lay.push(1); } } } } }
       // losas finas que quedan colgando sobre una pendiente (como las de las escaleras de Italia): se cierran con paredes hasta el suelo
       if (solid && !decal && !dGL) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1])), hi = Math.max(...G.map(g => g[1]));
         if (hi - lo < 0.6 && G.length >= 3) { const clear = G.map(g => g[1] - groundAt(g[0] / S, -g[2] / S)), mx = Math.max(...clear);

@@ -139,8 +139,8 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 
 **Mapas**
 - [x] Corrección general en 0.53: lo que flota se apoya solo en el suelo (y lo que tiene encima baja con ello); carteles y vallas siguen la pendiente; el magenta «de recorte» del original ya no se pinta
-- [ ] Pendiente de repasar: puentes (WATER1/2, RIG4, MOON), muro invisible del puente de RUF3, techos de DIRT, postes de CHOPPER1
-- [ ] 48 WATER1 y 49 WATER2 (India): puentes flotantes
+- [x] Puentes y pasarelas que flotaban: pilares en las esquinas hasta el suelo o el agua
+- [x] 48 WATER1 y 49 WATER2 (India): puentes flotantes (pilares hasta el agua)
 - [ ] 50 RUF2 (Egipto): texturas de las pirámides flotando
 - [x] 51 Banderas de checkpoint: solo la salida pone START
 - [ ] 52 WATER3 (China): casa flotante
