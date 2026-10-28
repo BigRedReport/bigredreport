@@ -8,7 +8,7 @@ Cómo jugar
 
 Menú
 - Al empezar sale el MENÚ NUEVO (con el fondo del original):
-  · Un jugador: Carrera rápida, Campeonato (las 7 series del original), Contrarreloj (sin rivales, a por tu
+  · Un jugador: Carrera rápida, Campeonato (las 7 series del original), Contrareloj (sin rivales, a por tu
     mejor vuelta, con clasificación) y Modo libre (sin rivales ni vueltas; cualquier vehículo en cualquier circuito).
   · Multijugador: Pantalla partida (2-8 jugadores) y Online (salas, chat de texto y chat de voz 🎤).
   · Piloto y escudería: elige piloto (6), logo (13 originales o "Logo propio": cualquier PNG/JPG tuyo) y color
@@ -124,4 +124,4 @@ Online (sin instalar nada)
   juegos se conectan directamente entre sí. Algunos routers muy cerrados pueden impedir la conexión directa;
   en ese caso se puede usar un servidor dedicado (abajo).
 - Servidor dedicado (avanzado, opcional): server/iniciar-servidor.bat (necesita Node.js). En Online →
-  "Servidor dedicado" escribe ws://IP:7777. También guarda las clasificaciones de contrarreloj.
+  "Servidor dedicado" escribe ws://IP:7777. También guarda las clasificaciones de contrareloj.

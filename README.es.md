@@ -25,7 +25,7 @@ Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores mod
 - **Multijugador:** pantalla partida hasta 8 y online sin servidor hasta 12, con reconexión, cambio de anfitrión, chat de texto y de voz.
 - **Tu escudería:** cabeza y cuerpo del piloto, nombre de equipo, logos (también propios), color RGB y más de 35 bocinas.
 - **Para todos:** controles a gusto, ayudas de conducción, colores para daltonismo, 6 idiomas y 21 logros.
-- **Extras:** cámaras de televisión, modo foto, contrarreloj con clasificación online, modo libre con rampas y acrobacias, perfiles y mods.
+- **Extras:** cámaras de televisión, modo foto, contrareloj con clasificación online, modo libre con rampas y acrobacias, perfiles y mods.
 
 ## Cómo jugar
 

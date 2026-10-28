@@ -1,0 +1,26 @@
+# Cada hora: copia de seguridad de las clasificaciones (datos/lb.json) y avisos de fallos automáticos del juego → Issues
+name: Clasificaciones y avisos
+on:
+  schedule:
+    - cron: '17 * * * *'
+  workflow_dispatch:
+permissions:
+  contents: write
+  issues: write
+concurrency: nube
+jobs:
+  nube:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: node .github/scripts/nube.mjs
+      - run: |
+          if ! git diff --quiet -- datos/lb.json || [ -n "$(git status --porcelain datos)" ]; then
+            git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add datos/lb.json && git commit -m "Clasificaciones: copia de seguridad" && git push
+          fi

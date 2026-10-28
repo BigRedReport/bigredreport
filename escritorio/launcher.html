@@ -37,6 +37,8 @@ a{color:var(--redink)}
   <section class="page on" id="p_play">
     <div class="card"><div class="lab">Carpeta del juego</div><div class="path" id="dir">—</div><div class="small" id="dirst"></div>
       <div style="margin-top:10px"><button class="sec" id="pick">Elegir carpeta…</button></div></div>
+    <div class="card" id="upd" hidden><div class="lab">Actualización</div><div id="upd_t"></div>
+      <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="upd_game" hidden>Actualizar el juego</button><button class="sec" id="upd_app" hidden>Descargar el programa nuevo</button></div></div>
     <button class="big" id="play" disabled>JUGAR</button>
     <p class="small">Necesitas tu copia original de Big Red Racing: elige la carpeta que contiene <b>BIGRED</b> (y la imagen del CD, <b>IMAGE.img</b>, para la música) o directamente la carpeta BIGRED.</p>
   </section>
@@ -52,6 +54,8 @@ a{color:var(--redink)}
       <div class="row"><span>Puerto</span><input type="number" id="o_port" min="1024" max="65535" style="width:100px"></div>
       <p class="small">Para jugar online no hace falta: las partidas funcionan sin servidor. Actívalo si quieres tu propio servidor (los demás lo añaden en Online → Servidor dedicado como ws://TU_IP:PUERTO).</p>
     </div>
+    <div class="card"><div class="row"><span>Buscar actualizaciones al abrir</span><input type="checkbox" id="o_upd"></div>
+      <div class="row"><span class="small" id="upd_st"></span><button class="sec" id="upd_now">Buscar ahora</button></div></div>
     <p class="small">El resto de opciones (gráficos, sonido, controles…) están dentro del juego, en Opciones.</p>
   </section>
 
@@ -92,6 +96,21 @@ $('o_lang').onchange = () => { const l = $('o_lang').value; N.setCfg({ lang: l }
 $('o_srv').onchange = () => N.setCfg({ server: $('o_srv').checked });
 $('o_port').onchange = () => N.setCfg({ port: Math.max(1024, Math.min(65535, +$('o_port').value || 7777)) });
 addEventListener('keydown', e => { if (e.key === 'Enter' && !$('play').disabled) N.play(); });
+// actualizaciones: el juego se actualiza solo desde GitHub; si cambia el programa, se ofrece descargarlo
+async function checkUpd(manual) {
+  $('upd_st').textContent = 'Buscando…'; const u = await N.checkUpdate().catch(() => null);
+  if (!u || !u.ok) { $('upd_st').textContent = 'No se ha podido comprobar (¿sin Internet?)'; return; }
+  $('upd_st').textContent = 'Juego ' + u.cur + ' · programa ' + u.appVer + ' · última ' + u.ver;
+  if (!u.game && !u.app) { $('upd').hidden = !manual; $('upd_t').textContent = 'Tienes la última versión (' + u.ver + ').'; $('upd_game').hidden = $('upd_app').hidden = true; return; }
+  $('upd').hidden = false; $('upd_t').innerHTML = 'Hay una versión nueva: <b>' + u.ver + '</b> (tienes ' + u.cur + ').';
+  $('upd_game').hidden = !u.game; $('upd_app').hidden = !u.app; $('upd_app').onclick = () => N.openUrl(u.appUrl);
+  $('upd_game').onclick = async () => { $('upd_game').disabled = true; $('upd_game').textContent = 'Descargando…';
+    try { const r = await N.updateGame(); $('upd_t').innerHTML = '✓ Juego actualizado a la ' + r.ver + '.' + (u.app ? ' El programa también tiene versión nueva (opcional).' : ''); $('upd_game').hidden = true; }
+    catch (e) { $('upd_t').textContent = 'No se ha podido actualizar: ' + (e.message || e); $('upd_game').disabled = false; $('upd_game').textContent = 'Reintentar'; } };
+}
+$('upd_now').onclick = () => checkUpd(true);
+$('o_upd').onchange = () => N.setCfg({ noUpd: !$('o_upd').checked });
+N.getCfg().then(c => { $('o_upd').checked = !c.noUpd; if (!c.noUpd) checkUpd(false); });
 refresh();
 </script>
 </body></html>

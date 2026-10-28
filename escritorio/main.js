@@ -1,7 +1,7 @@
 // Big Red Report (escritorio): lanzador + ventana del juego. Lee los archivos de tu copia de Big Red Racing directamente del disco.
 'use strict';
 const { app, BrowserWindow, ipcMain, dialog, shell, utilityProcess } = require('electron');
-const path = require('path'), fs = require('fs');
+const path = require('path'), fs = require('fs'), zlib = require('zlib');
 // Linux: al descomprimir el .tar.gz el ayudante del sandbox de Chromium no tiene permisos de root; sin esto no arranca
 if (process.platform === 'linux' && !process.env.BRR_SANDBOX) app.commandLine.appendSwitch('no-sandbox');
 
@@ -11,7 +11,12 @@ let cfg = { ...DEF }; try { Object.assign(cfg, JSON.parse(fs.readFileSync(CFG, '
 const saveCfg = () => { try { fs.mkdirSync(path.dirname(CFG), { recursive: true }); fs.writeFileSync(CFG, JSON.stringify(cfg, null, 1)); } catch (e) { } };
 
 let launcher = null, game = null, server = null;
-const GAME = path.join(__dirname, 'game', 'BigRedRacing.html');
+// el juego puede venir actualizado (descargado de GitHub a la carpeta de datos del programa); si no, el que trae el programa
+const UPD = path.join(app.getPath('userData'), 'juego');
+const verOf = dir => { try { return (fs.readFileSync(path.join(dir, 'js', 'version.js'), 'utf8').match(/VERSION\s*=\s*'([\d.]+)'/) || [])[1] || '0'; } catch (e) { return '0'; } };
+const newer = (a, b) => { const A = String(a).split('.').map(Number), B = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((A[i] || 0) !== (B[i] || 0)) return (A[i] || 0) > (B[i] || 0); return false; };
+const gameDir = () => fs.existsSync(path.join(UPD, 'BigRedRacing.html')) && newer(verOf(UPD), verOf(path.join(__dirname, 'game'))) ? UPD : path.join(__dirname, 'game');
+const GAME_HTML = () => path.join(gameDir(), 'BigRedRacing.html');
 
 function openLauncher() {
   launcher = new BrowserWindow({ width: 980, height: 620, minWidth: 760, minHeight: 520, title: 'Big Red Report', backgroundColor: '#14121a', autoHideMenuBar: true,
@@ -23,13 +28,13 @@ function openGame() {
   if (game) { game.focus(); return; }
   game = new BrowserWindow({ width: cfg.width, height: cfg.height, fullscreen: !!cfg.fullscreen, title: 'Big Red Report', backgroundColor: '#000', autoHideMenuBar: true,
     icon: path.join(__dirname, 'game', 'icon-512.png'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, backgroundThrottling: false } });
-  game.loadFile(GAME, { query: { native: '1', ...(cfg.lang ? { lang: cfg.lang } : {}) } });
+  game.loadFile(GAME_HTML(), { query: { native: '1', ...(cfg.lang ? { lang: cfg.lang } : {}) } });
   game.on('closed', () => { game = null; if (launcher) launcher.show(); else app.quit(); });
   if (launcher) launcher.hide();
 }
 function startServer() {
   if (server || !cfg.server) return;
-  const js = path.join(__dirname, 'game', 'server', 'brr-server.js'); if (!fs.existsSync(js)) return;
+  const js = path.join(gameDir(), 'server', 'brr-server.js'); if (!fs.existsSync(js)) return;
   server = utilityProcess.fork(js, [String(cfg.port || 7777)], { cwd: app.getPath('userData'), stdio: 'ignore' });
   server.on('exit', () => { server = null; });
 }
@@ -61,6 +66,43 @@ ipcMain.handle('files:read', async (e, rel, start, end) => {
   finally { await fh.close(); }
 });
 ipcMain.handle('game:play', () => { openGame(); return true; });
+// ---------- actualizaciones (Releases de GitHub) ----------
+const REPO = 'BigRedReport/bigredreport';
+async function latest() {
+  const r = await fetch('https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'BigRedReport' } });
+  if (!r.ok) throw new Error('GitHub ' + r.status); const j = await r.json();
+  const asset = n => (j.assets || []).find(a => a.name === n);
+  return { ver: String(j.tag_name || '').replace(/^v/, ''), url: j.html_url, game: asset('BigRedRacing_port.zip'), app: asset(process.platform === 'win32' ? 'BigRedReport-Windows.zip' : 'BigRedReport-Linux.tar.gz') };
+}
+// descomprime un .zip (sin programas externos): directorio central + inflate
+function unzip(buf, dest) {
+  let e = buf.length - 22; while (e >= 0 && buf.readUInt32LE(e) !== 0x06054b50) e--; if (e < 0) throw new Error('zip no válido');
+  const n = buf.readUInt16LE(e + 10); let p = buf.readUInt32LE(e + 16);
+  for (let k = 0; k < n; k++) {
+    const meth = buf.readUInt16LE(p + 10), csz = buf.readUInt32LE(p + 20), nl = buf.readUInt16LE(p + 28), xl = buf.readUInt16LE(p + 30), cl = buf.readUInt16LE(p + 32), off = buf.readUInt32LE(p + 42);
+    const name = buf.toString('utf8', p + 46, p + 46 + nl); p += 46 + nl + xl + cl;
+    const out = path.resolve(dest, name); if (!out.startsWith(path.resolve(dest) + path.sep)) continue;   // nada fuera de la carpeta
+    if (name.endsWith('/')) { fs.mkdirSync(out, { recursive: true }); continue; }
+    const lo = off + 30 + buf.readUInt16LE(off + 26) + buf.readUInt16LE(off + 28), data = buf.subarray(lo, lo + csz);
+    fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, meth === 8 ? zlib.inflateRawSync(data) : data);
+  }
+}
+ipcMain.handle('upd:check', async () => {
+  const cur = verOf(gameDir()), appVer = app.getVersion();
+  try { const L = await latest(); return { ok: true, ver: L.ver, cur, appVer, game: newer(L.ver, cur) && !!L.game, app: newer(L.ver, appVer), appUrl: L.app ? L.app.browser_download_url : L.url, url: L.url }; }
+  catch (e) { return { ok: false, cur, appVer, err: String(e.message || e) }; }
+});
+ipcMain.handle('upd:game', async () => {
+  const L = await latest(); if (!L.game) throw new Error('Esta versión no trae el juego por separado');
+  const r = await fetch(L.game.browser_download_url, { headers: { 'User-Agent': 'BigRedReport' } }); if (!r.ok) throw new Error('Descarga ' + r.status);
+  const buf = Buffer.from(await r.arrayBuffer()), tmp = UPD + '.nuevo';
+  fs.rmSync(tmp, { recursive: true, force: true }); fs.mkdirSync(tmp, { recursive: true }); unzip(buf, tmp);
+  if (!fs.existsSync(path.join(tmp, 'BigRedRacing.html'))) throw new Error('El paquete no trae el juego');
+  fs.rmSync(UPD, { recursive: true, force: true }); fs.renameSync(tmp, UPD);
+  if (game) { const g = game; game = null; g.removeAllListeners('closed'); g.close(); openGame(); }
+  stopServer(); startServer();
+  return { ok: true, ver: verOf(UPD) };
+});
 ipcMain.handle('open:url', (e, url) => { if (/^https:\/\//.test(url)) shell.openExternal(url); });
 ipcMain.handle('app:quit', () => app.quit());
 

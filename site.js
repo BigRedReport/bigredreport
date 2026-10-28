@@ -90,14 +90,19 @@
   const send = (h, body) => { if (ws && ws.readyState === 1) ws.send(new Uint8Array([h, ...len(body.length), ...body])); };
   function parse() { for (;;) { const b = buf; if (b.length < 2) return; let mul = 1, n = 0, i = 1, d; do { if (i >= b.length) return; d = b[i++]; n += (d & 127) * mul; mul *= 128; } while (d & 128);
     if (b.length < i + n) return; const h = b[0], body = b.subarray(i, i + n); buf = b.slice(i + n); const type = h >> 4;
-    if (type === 2) { ready = true; if (cur) sub(cur); $('lb_st').textContent = ''; if (cur) { rows[cur] = undefined; draw(); } clearTimeout(retryTimer); clearInterval(pingTimer); pingTimer = setInterval(() => send(0xC0, []), 25000); }
+    if (type === 2) { ready = true; subbed.clear(); if (cur) sub(cur); $('lb_st').textContent = ''; draw(); clearTimeout(retryTimer); clearInterval(pingTimer); pingTimer = setInterval(() => send(0xC0, []), 25000); }
     else if (type === 3) { const tl = (body[0] << 8) | body[1], topic = td.decode(body.subarray(2, 2 + tl)); let o = 2 + tl; if ((h >> 1) & 3) o += 2;
-      let r = []; try { r = JSON.parse(td.decode(body.subarray(o))) || []; } catch (e) { } rows[topic.slice(T.length)] = Array.isArray(r) ? r : []; if (topic.slice(T.length) === cur) draw(); } } }
+      const lv = topic.slice(T.length).split('/')[0], txt = td.decode(body.subarray(o)); if (!txt) continue;   // un mensaje vacío nunca borra tiempos
+      let r = null; try { r = JSON.parse(txt); } catch (e) { } addRows(lv, Array.isArray(r) ? r : [r]); if (lv === cur) draw(); } } }
+  // tiempos: una fila por piloto y vehículo con su mejor vuelta; se juntan los del buzón y la copia de seguridad (datos/lb.json)
+  const okRow = r => r && typeof r === 'object' && typeof r.lap === 'number' && r.lap > 5 && r.lap < 3600 && typeof r.name === 'string';
+  function addRows(lv, list) { const M = rows[lv] || (rows[lv] = new Map()); for (const r of list) { if (!okRow(r)) continue; const k = (r.pid || r.name) + '|' + (r.veh || ''); const o = M.get(k); if (!o || r.lap < o.lap) M.set(k, r); } }
+  const subbed = new Set(); let snapDone = false;
+  fetch('datos/lb.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).then(j => { for (const lv in j) addRows(lv, j[lv] || []); }).catch(() => { }).finally(() => { snapDone = true; draw(); });
   let retryTimer = null;
   function connect(k = 0) {
     if (k >= BROKERS.length) {
       $('lb_st').textContent = 'No se ha podido conectar con el servidor de clasificaciones. Reintentando…';
-      $('lb_t').tBodies[0].innerHTML = '<tr><td colspan="5" class="empty">Sin conexión con el servidor. Reintentando…</td></tr>';
       clearTimeout(retryTimer);
       retryTimer = setTimeout(() => { buf = new Uint8Array(0); connect(0); }, 15000);
       return;
@@ -124,20 +129,17 @@
       if (!ready) return nextBroker();
       ready = false;
       $('lb_st').textContent = 'Se ha interrumpido la conexión. Reintentando…';
-      $('lb_t').tBodies[0].innerHTML = '<tr><td colspan="5" class="empty">Sin conexión con el servidor. Reintentando…</td></tr>';
       clearTimeout(retryTimer);
       retryTimer = setTimeout(() => { buf = new Uint8Array(0); connect(0); }, 15000);
     };
   }
-  function sub(lv) { const id = pid++ & 0xffff; send(0x82, [id >> 8, id & 255, ...str(T + lv), 0]); }
+  function sub(lv) { if (subbed.has(lv)) return; subbed.add(lv); const id = pid++ & 0xffff; send(0x82, [id >> 8, id & 255, ...str(T + lv + '/#'), 0]); }
   function draw() {
-    const R = rows[cur]; const tb = $('lb_t').tBodies[0];
-    if (!R) { tb.innerHTML = '<tr><td colspan="5" class="empty">Cargando…</td></tr>'; return; }
-    if (!R.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">Aún no hay tiempos en este circuito. ¡Sé el primero!</td></tr>'; return; }
+    const M = rows[cur], R = M ? [...M.values()].sort((a, b) => a.lap - b.lap) : null, tb = $('lb_t').tBodies[0];
+    if (!R || !R.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">' + (!ready && !snapDone ? 'Cargando…' : 'Aún no hay tiempos en este circuito. ¡Sé el primero!' + (ready ? '' : ' (sin conexión con el buzón en directo; reintentando…)')) + '</td></tr>'; return; }
     const f = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2); };
     tb.innerHTML = R.slice(0, 50).map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.name || '?')}</td><td>${esc(VEH[r.veh] || r.veh || '')}</td><td>${f(+r.lap)}</td><td>${r.t ? new Date(r.t).toLocaleDateString('es-ES') : ''}</td></tr>`).join('');
   }
-  $('lb_lv').onchange = () => { cur = $('lb_lv').value; draw(); if (ready && !rows[cur]) { sub(cur); setTimeout(() => { if (!rows[cur]) { rows[cur] = []; draw(); } }, 3000); } };
+  $('lb_lv').onchange = () => { cur = $('lb_lv').value; draw(); if (ready) sub(cur); };
   cur = $('lb_lv').value; draw(); connect();
-  setTimeout(() => { if (ready && !rows[cur]) { rows[cur] = []; draw(); } }, 4000);
 })();

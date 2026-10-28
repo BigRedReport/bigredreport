@@ -51,7 +51,16 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .race .row{display:flex;justify-content:space-between;gap:18px;font-size:14px;color:var(--mut)} .race .row b{color:var(--fg);font-weight:600}
 .race .lap{font-size:26px;font-weight:700;color:var(--fg)} .race .lap small{font-size:13px;color:var(--mut);font-weight:500;margin-right:6px}
 .msg{position:absolute;top:18%;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 22px;font-size:20px;font-weight:600;pointer-events:none;white-space:nowrap}
+.updbar{margin-top:10px;padding:8px 12px;border-radius:10px;background:#1d3b24;border:1px solid #2f6b3b;font-size:14px}.updbar button,.updbar a{margin-left:8px}
 .msg.big{font-size:84px;padding:6px 40px;top:28%} .msg.warn{color:#ffd23f}
+.msg.cnt{background:none;border:0;padding:0;top:20%;font-size:150px;line-height:1;font-weight:900;color:#000;-webkit-text-stroke:3px #fff;paint-order:stroke fill;text-shadow:0 6px 0 #fff,0 10px 24px rgba(0,0,0,.45);animation:cntpop .35s cubic-bezier(.2,1.6,.4,1)}
+.msg.cnt.n3{font-family:Impact,Haettenschweiler,"Arial Narrow Bold","Liberation Sans Narrow",sans-serif;letter-spacing:.02em}
+.msg.cnt.n2{font-family:"Arial Black","Segoe UI Black","DejaVu Sans",sans-serif;font-style:italic}
+.msg.cnt.n1{font-family:"Cooper Black","Georgia","DejaVu Serif",serif;font-size:170px}
+.msg.cnt.go{font-family:Impact,"Arial Black",sans-serif;font-size:120px;color:#e2231a}
+@keyframes cntpop{from{transform:translateX(-50%) scale(1.9);opacity:0}to{transform:translateX(-50%) scale(1);opacity:1}}
+.msg.stunt{background:none;border:0;padding:0;top:3%;font-size:22px;font-weight:800;color:#fff;text-shadow:0 2px 0 #000,0 0 6px #000}
+.phud.small .msg.cnt{transform:translateX(-50%) scale(.6)}
 .wrong{position:absolute;top:38%;left:50%;transform:translateX(-50%);color:#fff;background:#c62828;border-radius:12px;padding:10px 26px;font-size:28px;font-weight:800;letter-spacing:1px;pointer-events:none;animation:blink .6s steps(2) infinite}
 @keyframes blink{50%{opacity:.35}}
 .mini{position:absolute;right:12px;top:12px;width:190px;height:190px;background:rgba(14,17,24,.55);border-radius:12px;border:1px solid var(--line);pointer-events:none}
@@ -134,10 +143,10 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .tcard .tag{position:absolute;left:0;right:0;bottom:0;padding:16px 8px 5px;font-size:12px;background:linear-gradient(transparent,rgba(0,0,0,.85));display:flex;justify-content:space-between}
 .tcard .tag b{font-weight:600}.tcard .lock{position:absolute;inset:0;background:rgba(0,0,0,.65);display:flex;align-items:center;justify-content:center;font-size:13px;color:#ccc}
 .detail{background:var(--panel);border:1px solid var(--line);border-radius:14px;overflow:auto;display:flex;flex-direction:column}
-.dimg{position:relative}.dimg img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;background:#000}
+.dimg{position:relative;background:radial-gradient(circle at 50% 45%,#ffffff14,transparent 70%)}.dimg img{width:100%;display:block;aspect-ratio:16/10;object-fit:cover;background:#000}
 body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{image-rendering:pixelated}
-#d_globe{position:absolute;right:8px;bottom:8px;width:96px;height:96px;filter:drop-shadow(0 2px 6px #000)}
-#d_place{position:absolute;left:10px;bottom:8px;font-size:12px;background:rgba(0,0,0,.7);padding:3px 8px;border-radius:6px}
+#d_globe{display:block;margin:4px auto 0;width:min(100%,250px);height:auto;aspect-ratio:1;filter:drop-shadow(0 4px 12px #000)}#d_img{display:none!important}.ttbest{position:absolute;right:8px;top:8px;text-align:right;background:rgba(0,0,0,.55);padding:6px 10px;border-radius:8px}.ttbest .ttb{font:800 24px/1.1 system-ui;color:#ffd24a}
+#d_place{text-align:center;font-weight:700;font-size:14px;margin:2px 0 4px}
 .dbody{padding:14px 18px 18px}.dhead{display:flex;align-items:center;gap:10px}.dhead h2{margin:0;font-size:20px}
 .diff{margin-left:auto;font-size:12px;padding:3px 8px;border-radius:6px;background:#263}.diff.d2{background:#663}.diff.d3{background:#733}
 #d_desc{white-space:pre-line;color:#cfd5de;margin:8px 0 4px}
@@ -195,11 +204,12 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <div class="hrow"><button class="hbtn small2" data-go="orig">Menú original (1995)</button>
         <button class="hbtn small2 dnt" data-go="donate">❤ Apoyar el proyecto</button>
         <button class="hbtn small2" data-go="exit">Salir</button></div>
+        <div id="updbar" class="updbar" hidden></div>
       </div>
       <div class="hcol" id="h_single" hidden>
         <button class="hbtn" data-go="quick">Carrera rápida</button>
         <button class="hbtn" data-go="tourn">Campeonato</button>
-        <button class="hbtn" data-go="tt">Contrarreloj</button>
+        <button class="hbtn" data-go="tt">Contrareloj</button>
         <button class="hbtn" data-go="free">Modo libre</button>
         <button class="hbtn small2" data-go="back">◀ Volver</button>
       </div>
@@ -226,7 +236,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
       <div class="series"><h3>Logros <small id="pf_achn"></small></h3><div id="pf_ach" class="achs"></div></div>
       <div class="series"><h3>Récords</h3><div id="pf_recs" class="small"></div></div>
     </div>
-    <aside class="detail"><div class="dbody" style="text-align:center"><canvas id="pf_view" width="260" height="260" style="max-width:100%"></canvas><h2 id="pf_title"></h2><p class="small">El piloto y la escudería se usan en carrera rápida, campeonato, contrarreloj y online.</p></div></aside>
+    <aside class="detail"><div class="dbody" style="text-align:center"><canvas id="pf_view" width="260" height="260" style="max-width:100%"></canvas><h2 id="pf_title"></h2><p class="small">El piloto y la escudería se usan en carrera rápida, campeonato, contrareloj y online.</p></div></aside>
   </section>
   <section id="pane_mods" class="pane" hidden>
     <div class="tlist">
@@ -247,7 +257,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <section id="pane_quick" class="pane" hidden>
     <div id="tracks" class="tracks"></div>
     <aside class="detail">
-      <div class="dimg"><img id="d_img" alt=""><div id="d_place"></div><canvas id="d_globe" width="200" height="200"></canvas></div>
+      <div class="dimg"><img id="d_img" alt="" hidden><canvas id="d_globe" width="440" height="440"></canvas><div id="d_place"></div><div id="d_ttbest" class="ttbest" hidden></div></div>
       <div class="dbody">
         <div class="dhead"><h2 id="d_name"></h2><span id="d_diff" class="diff"></span></div>
         <p id="d_desc"></p>
@@ -255,13 +265,13 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <div class="dteam"><div id="d_head" style="display:flex;align-items:center;gap:6px"></div><canvas id="d_vcv" width="180" height="120" aria-hidden="true"></canvas></div>
         <select id="m_level" hidden></select>
         <div class="grid2"><div><label class="row">Vehículo</label><select id="m_veh"></select></div>
-        <div><label class="row">Equipo (color)</label><select id="m_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select></div></div>
+        <div hidden><label class="row">Equipo (color)</label><select id="m_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select></div></div>
         <div class="grid3"><div><label class="row">Rivales</label><select id="m_rivals"><option value="0">Ninguno</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="4">4</option><option value="5">5 (original)</option><option value="7">7</option><option value="9">9</option><option value="11">11</option></select></div>
         <div><label class="row">Dificultad</label><select id="m_diff"><option value="1">Fácil</option><option value="2">Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div>
         <div><label class="row">Vueltas</label><select id="m_laps"><option value="0">Original</option><option value="1">1</option><option value="2">2</option><option value="3">3</option><option value="5">5</option><option value="10">10</option></select></div></div>
         <div class="grid2"><div><label class="row">Jugadores (pantalla partida)</label><select id="m_players"><option value="1">1 jugador</option><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4">4 jugadores</option><option value="5">5 jugadores</option><option value="6">6 jugadores</option><option value="7">7 jugadores</option><option value="8">8 jugadores</option></select></div>
         <div><p class="small" style="margin:30px 0 0">Cada mando es un jugador. Sin mandos suficientes: J1 teclado WASD, J2 flechas.</p></div></div>
-        <div id="d_lb" hidden><label class="row">Clasificación contrarreloj <span class="small" id="d_lbsrc"></span></label><table id="d_lbt" class="lbt"></table></div>
+        <div id="d_lb" hidden><label class="row">Clasificación contrareloj <span class="small" id="d_lbsrc"></span></label><table id="d_lbt" class="lbt"></table></div>
         <button class="main" id="go">Correr</button>
       </div>
     </aside>
@@ -274,7 +284,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <h2>Torneo</h2>
         <p class="small">Como en el original: siete series de circuitos en orden. En cada serie tienes que ganar las carreras que pide para pasar a la siguiente. Siempre corres contra los 5 equipos rivales con el vehículo del circuito. Además se reparten puntos (10, 5, 3, 2, 1) para la clasificación general.</p>
         <div id="t_info"></div>
-        <div class="grid2"><div><label class="row">Equipo (color)</label><select id="t_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select></div>
+        <div class="grid2"><div hidden><label class="row">Equipo (color)</label><select id="t_team"><option value="1">Rojo</option><option value="2">Verde</option><option value="3">Amarillo</option><option value="4">Azul</option><option value="5">Naranja</option><option value="6">Morado</option></select></div>
         <div><label class="row">Dificultad</label><select id="t_diff"><option value="1">Fácil</option><option value="2">Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div></div>
         <button class="main" id="t_go">Siguiente carrera</button>
         <button id="t_reset" style="width:100%;margin-top:8px">Empezar un torneo nuevo</button>
@@ -461,6 +471,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/render.js"></script>
 <script src="js/net.js"></script>
 <script src="js/p2p.js"></script>
+<script src="js/version.js"></script>
+<script src="js/cloud.js"></script>
 <script src="js/front.js"></script>
 <script src="js/origmenu.js"></script>
 <script src="js/logos_data.js"></script>
