@@ -51,6 +51,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .race .row{display:flex;justify-content:space-between;gap:18px;font-size:14px;color:var(--mut)} .race .row b{color:var(--fg);font-weight:600}
 .race .lap{font-size:26px;font-weight:700;color:var(--fg)} .race .lap small{font-size:13px;color:var(--mut);font-weight:500;margin-right:6px}
 .msg{position:absolute;top:18%;left:50%;transform:translateX(-50%);background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px 22px;font-size:20px;font-weight:600;pointer-events:none;white-space:nowrap}
+.vpcard{width:min(860px,94vw)}.vpgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;max-height:62vh;overflow:auto}.vpgrid .pitem{display:flex;flex-direction:column;align-items:center;gap:4px;padding:6px;border-radius:10px;background:#1b1e27;cursor:pointer;border:2px solid transparent}.vpgrid .pitem.on{border-color:#ffd23f}.vpgrid .pitem img{width:120px;height:120px;object-fit:contain}.vpgrid .pitem small{color:#ffd23f}.vpgrid .pitem img:not([src]){visibility:hidden}
 .updbar{margin-top:10px;padding:8px 12px;border-radius:10px;background:#1d3b24;border:1px solid #2f6b3b;font-size:14px}.updbar button,.updbar a{margin-left:8px}
 .msg.big{font-size:84px;padding:6px 40px;top:28%} .msg.warn{color:#ffd23f}
 .msg.cnt{background:none;border:0;padding:0;top:20%;font-size:150px;line-height:1;font-weight:900;color:#000;-webkit-text-stroke:3px #fff;paint-order:stroke fill;text-shadow:0 6px 0 #fff,0 10px 24px rgba(0,0,0,.45);animation:cntpop .35s cubic-bezier(.2,1.6,.4,1)}
@@ -365,6 +366,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <div class="opt"><span>Distancia de dibujado</span><input id="o_far" type="range" min="300" max="4000" step="100"><span id="o_far_v"></span></div>
     <div class="opt"><span>Iluminación</span><select id="o_light"><option value="moderna">Moderna (sol, cielo, sombras)</option><option value="original">Original 1995 (plana)</option></select><span></span></div>
     <div class="opt"><span>Sombras</span><select id="o_shadows"><option value="0">Desactivadas</option><option value="1">Medias</option><option value="2">Altas</option></select><span></span></div>
+    <div class="opt"><span>Suelo</span><select id="o_ground"><option value="suave">Suavizado (redondeado)</option><option value="original">Bloques originales</option></select><span></span></div>
     <div class="opt"><span>Texturas</span><select id="o_filter"><option value="nearest">Pixeladas (original)</option><option value="smooth">Suavizadas</option></select><span></span></div>
     <div class="opt"><span>Antialiasing</span><select id="o_aa"><option value="0">No</option><option value="1">FXAA (suaviza bordes)</option></select><span></span></div>
     <div class="opt"><span>Partículas</span><select id="o_parts"><option value="0.4">Pocas</option><option value="1">Normal</option><option value="1.6">Muchas</option></select><span></span></div>
@@ -428,11 +430,17 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <div class="screen" id="bye" hidden><div class="card"><h1><b>Big Red</b> Racing</h1><p>¡Gracias por jugar! Ya puedes cerrar esta pestaña.</p><button class="main" id="bye_back">Volver al menú</button></div></div>
 <div class="screen" id="loading" hidden><div class="card"><h1><b>Big Red</b> Racing</h1><p id="load_msg">Cargando…</p></div></div>
 
+<div class="screen" id="vehpick" hidden><div class="card vpcard">
+  <h2 style="margin:0 0 10px">Elige vehículo</h2>
+  <div id="vp_grid" class="vpgrid"></div>
+  <button id="vp_back" style="width:100%;margin-top:10px">◀ Volver</button>
+</div></div>
 <div class="screen" id="pause" hidden><div class="card">
   <h1>Pausa</h1>
   <button class="main" id="p_resume">Continuar</button>
   <button id="p_restart" style="width:100%;margin-top:8px">Reiniciar carrera</button>
-  <div id="p_vehrow" class="grid2" style="margin-top:8px" hidden><select id="p_veh"></select><button id="p_swap">Cambiar de vehículo</button></div>
+  <button id="p_swap" style="width:100%;margin-top:8px" hidden>🚗 Cambiar de vehículo</button>
+  <button id="p_photo" style="width:100%;margin-top:8px">📷 Modo foto</button>
   <button class="optbtn" style="width:100%;margin-top:8px">Opciones</button>
   <button id="p_menu" style="width:100%;margin-top:8px">Salir al menú</button>
 </div></div>

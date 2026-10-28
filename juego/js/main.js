@@ -6,7 +6,7 @@
   try { R = new BRR.Renderer(canvas); } catch (e) { $('err').textContent = e.message; return; }
 
   // ---------- opciones ----------
-  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
+  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
   let opt = { ...DEF };
   // perfiles: cada uno guarda sus ajustes, récords, campeonato y estadísticas aparte (claves con @perfil)
   let PROF = ''; try { PROF = localStorage.getItem('brr_profile') || ''; } catch (e) { }
@@ -19,7 +19,7 @@
   if (BRR.HORN_RENAMED && BRR.HORN_RENAMED[opt.horn]) opt.horn = BRR.HORN_RENAMED[opt.horn];
   if (!BRR.HORNS.some(h => h.id === opt.horn)) opt.horn = 'normal';
   if (typeof opt.logo === 'string' && opt.logo.startsWith('x:') && !(BRR.LOGOS_EXTRA || []).some(l => 'x:' + l.id === opt.logo)) opt.logo = 0;
-  setTimeout(() => applyAccess(), 0); BRR.texHD = opt.filter !== 'nearest';   BRR.menuImg = opt.menuImg || 'hd'; document.body.classList.toggle('img-pixel', BRR.menuImg === 'pixel');
+  setTimeout(() => applyAccess(), 0); BRR.texHD = opt.filter !== 'nearest'; BRR.flatGround = opt.ground === 'original';   BRR.menuImg = opt.menuImg || 'hd'; document.body.classList.toggle('img-pixel', BRR.menuImg === 'pixel');
   const save = () => ST.set('brr_opt', JSON.stringify(opt));
   function bindOptions() {
     const sync = () => {
@@ -31,7 +31,7 @@
     for (const k of ['vsfx', 'vmusic', 'vvoice', 'vmaster', 'vengine', 'vui', 'vamb']) { const el = $('o_' + k); el.value = opt[k]; const sv = () => { const v = $('o_' + k + '_v'); if (v) v.textContent = opt[k] + '%'; }; sv(); el.oninput = () => { opt[k] = +el.value; sv(); applyVol(); save(); }; }
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
     { const el = $('o_lang'); el.innerHTML = Object.entries(BRR.LANGS).map(([k, n]) => `<option value="${k}">${n}</option>`).join(''); el.value = BRR.lang(); el.onchange = () => BRR.setLang(el.value); }
-    for (const k of ['aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    for (const k of ['aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
     for (const k of ['hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
@@ -279,7 +279,10 @@
           // carrocería + ruedas (en su sitio, apoyadas) + piezas decorativas (hélices, orugas, timones)
           const parts = d.wheels.map((w, i) => d.wheelMeshes[i] ? { b: R.upload(d.wheelMeshes[i]), W: BRR.M4.fromRT([[1, 0, 0], [0, 1, 0], [0, 0, 1]], w.c) } : null).filter(Boolean);
           for (const x of d.decoParts) parts.push({ b: R.upload(x.mesh), W: BRR.M4.fromRT(x.R, x.p) });
-          up = { body: R.upload(d.mesh), parts, len: Math.max(d.box.h[0], d.box.h[2]) * 2 };
+          // tamaño: lo que ocupa el modelo entero (carrocería + ruedas), no solo la caja de choque (el buggy lunar lleva las ruedas muy fuera)
+          let ext = Math.max(d.box.h[0], d.box.h[2]); const grow = (mb, o) => { for (const g of mb.groups.values()) for (let i = 0; i < g.pos.length; i += 3) ext = Math.max(ext, Math.abs(g.pos[i] + o[0]), Math.abs(g.pos[i + 2] + o[2]), Math.abs(g.pos[i + 1] + o[1]) * 0.8); };
+          grow(d.mesh, [0, 0, 0]); d.wheels.forEach((w, i) => { if (d.wheelMeshes[i]) grow(d.wheelMeshes[i], w.c); });
+          up = { body: R.upload(d.mesh), parts, len: ext * 2 };
           vehCache.set(key, up);
         }
         const cv = document.createElement('canvas');
@@ -455,7 +458,7 @@
   const hexRGB = h => { const m = /^#?([0-9a-f]{6})$/i.exec(h || ''); if (!m) return null; const n = parseInt(m[1], 16); return [n >> 16, (n >> 8) & 255, n & 255]; };
   // bocinas
   function renderHorns() {
-    $('pf_horns').innerHTML = BRR.HORNS.map(h => `<button data-h="${h.id}" class="${opt.horn === h.id ? 'on' : ''}"${h.id === 'propia' && !customHornOk ? ' disabled title="Carga antes tu sonido"' : ''}>📯 ${esc(h.n)}</button>`).join('');
+    $('pf_horns').innerHTML = BRR.HORNS.map(h => `<button data-h="${h.id}" class="${opt.horn === h.id ? 'on' : ''}"${h.id === 'propia' && !customHornOk ? ' disabled title="Carga antes tu sonido"' : ''}>📯 <span>${esc(h.n)}</span></button>`).join('');
     for (const b of document.querySelectorAll('#pf_horns button')) b.onclick = () => { opt.horn = b.dataset.h; save(); if (audio) { audio.init(); if (hornPrev && hornPrev.cut) hornPrev.cut(); hornPrev = BRR.playHorn(audio, opt.horn, 1, 0.8, { dur: 0.6 }); } renderHorns(); const n = document.querySelector(`#pf_horns [data-h="${opt.horn}"]`); if (n) n.focus(); };
     $('pf_hornname').textContent = customHornOk ? 'Tienes una bocina propia cargada.' : '';
   }
@@ -606,6 +609,7 @@
   function navRoot() {
     if (!$('optpanel').hidden) return $('optpanel');
     if (state === 'results' && !$('results').hidden) return $('results');
+    if (!$('vehpick').hidden) return $('vehpick');
     if (state === 'pause' || !$('pause').hidden) return $('pause');
     if (state === 'bye') return $('bye');
     if (state === 'menu') return $('menu');
@@ -632,6 +636,7 @@
   }
   function navBack() {
     if (!$('optpanel').hidden) { $('optpanel').hidden = true; sfx('BEEP2'); navFocusFirst(navRoot()); return; }
+    if (!$('vehpick').hidden) { $('vp_back').click(); return; }
     if (state === 'pause' || !$('pause').hidden) { togglePause(); return; }
     if (state === 'results' && !$('results').hidden) { $('r_menu').click(); return; }
     if (state === 'menu' && view !== 'home') { sfx('BEEP2'); go('back'); }
@@ -897,7 +902,9 @@
     audio.stopNarration(); audio.stopMusic();
     const tm = front && front.tracks.find(t => t.id === level);
     let seed = 0; for (const ch of level) seed = seed * 31 + ch.charCodeAt(0);
-    (tm && tm.music ? audio.playTrack(tm.music) : audio.playMusic(Math.abs(seed))).then(n => { if (n) $('trackinfo').textContent = 'CD pista ' + n; });
+    // la música que pide el circuito; si esa pista dura menos de un minuto es una presentación hablada (WATER2: «This is wet and wild…»), no música
+    (async () => { let mt = tm && tm.music; try { const cd = await audio.cdTracks(), tr = cd && mt && cd.audio.find(t => t.n === mt); if (tr && tr.end - tr.start < 44100 * 4 * 60) mt = 0; } catch (e) { }
+      return mt ? audio.playTrack(mt) : audio.playMusic(Math.abs(seed)); })().then(n => { if (n) $('trackinfo').textContent = 'CD pista ' + n; });
   }
   function soundFrame(dt) {
     if (!audio || !audio.ctx) return;
@@ -1104,11 +1111,11 @@
   function togglePause() { pauseAt = performance.now();
     if (netRace && state === 'race') { $('pause').hidden = !$('pause').hidden; return; }
     if (state === 'race') { state = 'pause'; show('pause'); if (audio && audio.ctx) audio.ctx.suspend();
-      const can = freeMode && humans.length === 1 && !netRace; $('p_vehrow').hidden = !can;
-      if (can) { const s2 = $('p_veh'); s2.innerHTML = BRR.VEHICLES.filter(n => files.has(n + '.VHC')).map(n => `<option value="${n}">${esc(VEH_NAMES[n] || n)}</option>`).join(''); s2.value = humans[0].car.def.name; } }
+      $('p_swap').hidden = !(freeMode && humans.length === 1 && !netRace); }
     else if (state === 'pause') { state = 'race'; show('hud'); last = performance.now(); if (audio && audio.ctx) audio.ctx.resume(); }
   }
   $('p_resume').onclick = togglePause;
+  $('p_photo').onclick = () => { if (state === 'pause') togglePause(); if (state === 'race' && !photo) togglePhoto(); };
   // modo libre: cambiar de vehículo sin salir (aparece en el mismo sitio, mirando hacia donde ibas)
   async function swapVehicle(veh) {
     const h = humans[0]; if (!h || !lvl || veh === h.car.def.name) return;
@@ -1119,7 +1126,15 @@
     try { await startSounds(lvl.name, d); } catch (e) { }
     opt.vehicle = veh; save();
   }
-  $('p_swap').onclick = async () => { $('p_swap').disabled = true; try { await swapVehicle($('p_veh').value); } finally { $('p_swap').disabled = false; } togglePause(); };
+  // menú de vehículos (desde la pausa del modo libre): cuadrícula con la foto de cada uno; los del circuito, primero y marcados
+  $('p_swap').onclick = async () => {
+    show('vehpick'); const cur = humans[0].car.def.name, own = await carsFor(lvl.name), all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')), list = own.filter(n => all.includes(n)).concat(all.filter(n => !own.includes(n)));
+    $('vp_grid').innerHTML = list.map(n => `<div class="pitem${n === cur ? ' on' : ''}" tabindex="0" data-v="${n}"><img alt=""><span>${esc(VEH_NAMES[n] || n)}</span>${own.includes(n) ? '<small>★ <span>De este circuito</span></small>' : ''}</div>`).join('');
+    for (const el of $('vp_grid').querySelectorAll('.pitem')) el.onclick = async () => { el.style.opacity = 0.5; try { await swapVehicle(el.dataset.v); } finally { show('pause'); togglePause(); } };
+    setTimeout(() => navFocusFirst($('vehpick')), 0);
+    for (const el of $('vp_grid').querySelectorAll('.pitem')) { if ($('vehpick').hidden) break; try { const t = await orig.h.carThumb(el.dataset.v, humans[0].car.team || 1, lvl.name, opt.paint); el.querySelector('img').src = t.frame(0.75).toDataURL(); } catch (e) { } }
+  };
+  $('vp_back').onclick = () => { show('pause'); setTimeout(() => navFocusFirst($('pause')), 0); };
   $('p_menu').onclick = () => { if (audio && audio.ctx) audio.ctx.resume(); toMenu(); };
   $('p_restart').onclick = () => { if (audio && audio.ctx) audio.ctx.resume(); restart(); };
   for (const b of document.querySelectorAll('.optbtn')) b.onclick = () => { $('optpanel').hidden = !$('optpanel').hidden; };
@@ -1692,7 +1707,8 @@
   function drawCar(c, body, hide, dd = carDraw) {
     const Rm = c.R; if (hide) return; R.draw(body, BRR.M4.fromRT(Rm, c.p));
     if (c.headDraw && c.def.headPos) R.draw(c.headDraw, BRR.M4.fromRT(Rm, V.add(c.p, BRR.mv(Rm, c.def.headPos))));   // el piloto
-    if (dd.brake && c.brakeLight) R.drawGlow(dd.brake, BRR.M4.fromRT(Rm, c.p), 1.7);   // luces de freno
+    if (dd.brake && c.brakeLight) { R.drawGlow(dd.brake, BRR.M4.fromRT(Rm, c.p), 1.7);   // luces de freno, con halo de luz
+      if (fx && c.def.brakeSpots) for (const q of c.def.brakeSpots) { const p = V.add(c.p, BRR.mv(Rm, [q[0], q[1], q[2] + 0.05])); fx.glow(p, [1, 0.12, 0.08, 0.55], 0.45); fx.glow(p, [1, 0.55, 0.45, 0.6], 0.16); } }
     for (const d of dd.deco) {   // hélices, rotores, timones y orugas
       const a = d.spin ? (c.decoA || 0) * d.spin * (0.4 + Math.min(1, Math.abs(c.speed()) / 20 + (c.K.fly ? 1 : 0))) : 0, ca = Math.cos(a), sa = Math.sin(a);
       R.draw(d.draw, BRR.M4.fromRT(mm3(Rm, mm3(d.R, [[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]])), V.add(c.p, BRR.mv(Rm, d.p))));

@@ -44,6 +44,8 @@ void main(){ float a=vcol.a;
         v: [v[0] * 0.85 + back[0] * 0.8 + (Math.random() - .5) * 0.3, v[1] * 0.85 + Math.random() * 0.2, v[2] * 0.85 + back[2] * 0.8 + (Math.random() - .5) * 0.3],
         col: tint ? (k ? [tint[0], tint[1], tint[2], 0.85] : [0.5 + tint[0] * 0.5, 0.5 + tint[1] * 0.5, 0.5 + tint[2] * 0.5, 0.8]) : k ? [1, 0.55, 0.12, 0.85] : [0.55, 0.75, 1, 0.8], size: k ? 0.11 : 0.08, life: (k ? 0.13 : 0.08) + Math.random() * 0.05, age: 0, grow: 0.5, solid: true });
     }
+    // halo de luz (luces de freno): se suma a lo que hay detrás, solo dura este fotograma
+    glow(p, col, size) { (this.glows || (this.glows = [])).push({ p, col, size }); }
     sparks(p, n = 12) {
       for (let k = 0; k < n; k++) this.parts.push({ p: p.slice(), v: [(Math.random() - .5) * 9, Math.random() * 6, (Math.random() - .5) * 9], col: [1, 0.85 - Math.random() * .3, 0.3, 1], size: 0.12, life: 0.35 + Math.random() * .3, age: 0, grow: 0, grav: 1, solid: true });
     }
@@ -130,12 +132,18 @@ void main(){ float a=vcol.a;
         const P0 = V.sub(V.sub(p, r), u), P1 = V.sub(V.add(p, r), u), P2 = V.add(V.add(p, r), u), P3 = V.add(V.sub(p, r), u);
         put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a);
       }
+      const nPart = n / 9;
+      for (const q of this.glows || []) { const r = V.mul(right, q.size), u = V.mul(up, q.size), p = q.p, a = q.col[3];
+        const P0 = V.sub(V.sub(p, r), u), P1 = V.sub(V.add(p, r), u), P2 = V.add(V.add(p, r), u), P3 = V.add(V.sub(p, r), u);
+        put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a); }
+      if (this.glows) this.glows.length = 0;
       const verts = n / 9; if (!verts) return;
       gl.useProgram(this.pr); gl.uniformMatrix4fv(this.U.VP, false, VP); gl.uniform3fv(this.U.cam, cam); gl.uniform1f(this.U.far, far); gl.uniform3fv(this.U.fogc, fog);
       gl.bindVertexArray(this.vao); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf); gl.bufferData(gl.ARRAY_BUFFER, D.subarray(0, n), gl.DYNAMIC_DRAW);
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.CULL_FACE);
       gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -4); gl.drawArrays(gl.TRIANGLES, 0, nMarks); gl.disable(gl.POLYGON_OFFSET_FILL);
-      gl.drawArrays(gl.TRIANGLES, nMarks, verts - nMarks);
+      gl.drawArrays(gl.TRIANGLES, nMarks, nPart - nMarks);
+      if (verts > nPart) { gl.blendFunc(gl.SRC_ALPHA, gl.ONE); gl.drawArrays(gl.TRIANGLES, nPart, verts - nPart); }
       gl.depthMask(true); gl.disable(gl.BLEND); gl.bindVertexArray(null);
     }
   };

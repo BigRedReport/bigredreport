@@ -11,9 +11,9 @@
     { id: 'claxon', n: 'Claxon antiguo (¡auuga!)' }, { id: 'payaso', n: 'Bocina de payaso' }, { id: 'cucaracha', n: 'La cucaracha' },
     { id: 'trombon', n: 'Trombón triste' }, { id: 'boing', n: 'Muelle (boing)' }, { id: 'silbato', n: 'Silbato de émbolo' },
     { id: 'laser', n: 'Láser' }, { id: 'bici', n: 'Timbre de bici' },
-    { id: 's:FART1', n: 'Pedo (del juego)' }, { id: 's:FART2', n: 'Pedo largo (del juego)' }, { id: 's:BURP1', n: 'Eructo (del juego)' },
-    { id: 's:LAUGH', n: 'Risa (del juego)' }, { id: 's:PARROT', n: 'Loro (del juego)' }, { id: 's:BABY', n: 'Bebé (del juego)' },
-    { id: 's:HEY', n: '¡Hey! (del juego)' }, { id: 's:OOH', n: '¡Ooh! (del juego)' }, { id: 's:SPIT', n: 'Escupitajo (del juego)' },
+    { id: 's:FART1', n: 'Pedo' }, { id: 's:FART2', n: 'Pedo largo' }, { id: 's:BURP1', n: 'Eructo' },
+    { id: 's:LAUGH', n: 'Risa' }, { id: 's:PARROT', n: 'Loro' }, { id: 's:BABY', n: 'Bebé' },
+    { id: 's:HEY', n: '¡Hey!' }, { id: 's:OOH', n: '¡Ooh!' }, { id: 's:SPIT', n: 'Escupitajo' },
     { id: 'propia', n: 'Bocina propia' },
   ];
   // si no está el paquete de clips (horns_data.js), esas bocinas no aparecen

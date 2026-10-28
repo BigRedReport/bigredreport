@@ -5,6 +5,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.55**
+- Luces de freno con halo de luz.
+- Pausa: modo foto y, en el modo libre, cambiar de vehículo con un menú de fotos.
+- Opción de suelo: suavizado o bloques originales.
+- Lanchas: IA por el agua en WATER1, sin frenazos en las rampas; sin la voz repetida de WATER2.
+- Monster truck pintado entero, buggy lunar a su tamaño en el menú, bocinas traducidas y sin «(del juego)».
+
 **Novedades de la 0.54**
 - 26 logos nuevos para la escudería.
 - Actualizador automático del programa arreglado (desde la 0.53, descarga esta una vez a mano; después se actualiza solo).

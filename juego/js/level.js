@@ -196,7 +196,7 @@
         for (let r = 1; r <= 3 && !best; r++) for (let dz = -r; dz <= r && !best; dz++) for (let dx = -r; dx <= r; dx++) { const X = x + dx, Z = z + dz; if (X < 0 || Z < 0 || X > 255 || Z > 255) continue;
           const c2 = C[Z * 256 + X], t2 = T[512 + c2]; if ((t2 !== 255 && (t2 / 48 | 0) < pages.length) || !magCell(T[c2])) { best = c2; break; } }
         if (best != null) { code = best; tile = T[512 + code]; } }
-      const P = [corner(x, z), corner(x + 1, z), corner(x + 1, z + 1), corner(x, z + 1)], Nn = [vnorm(x, z), vnorm(x + 1, z), vnorm(x + 1, z + 1), vnorm(x, z + 1)];
+      const P = [corner(x, z), corner(x + 1, z), corner(x + 1, z + 1), corner(x, z + 1)], Nn = BRR.flatGround ? [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]] : [vnorm(x, z), vnorm(x + 1, z), vnorm(x + 1, z + 1), vnorm(x, z + 1)];   // bloques originales: normal de cada cara (se ven las «placas»)
       const order = [0, 1, 2, 0, 2, 3];   // sentido antihorario visto desde arriba
       if (tile === 255 || (tile / 48 | 0) >= pages.length) {
         const g = mbT.group('COLOR'), c = T[code];

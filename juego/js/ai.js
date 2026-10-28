@@ -91,7 +91,7 @@
     if (mode !== 'fly') for (let iz = 0; iz < H; iz++) for (let ix = 0; ix < W; ix++) {
       const x = x0 + ix + 0.5, z = z0 + iz + 0.5, i = iz * W + ix, q = lvl.surface(x, z);
       if (mode === 'boat' ? q.type === 'agua' : trackT.has(tkey(q)) || (mode === 'hover' && q.type === 'agua')) { wet[i] = 1; if (mode === 'boat' || q.type === 'agua') continue; }
-      lvl.terrain(x, z, nrm); if (nrm[1] < (wet[i] ? 0.68 : 0.8)) grid[i] = 1;
+      lvl.terrain(x, z, nrm); if (nrm[1] < (wet[i] ? 0.68 : mode === 'boat' ? 0.97 : 0.8)) grid[i] = 1;   // la lancha: cualquier cuesta fuera del agua es pared (no subir montañas)
     }
     // si la "pista" ocupa casi todo el mapa (Marte: todo es la misma roca), la pista es una franja de 22 m alrededor del recorrido
     if (mode !== 'boat' && mode !== 'fly') { let nw = 0; for (let i = 0; i < W * H; i++) nw += wet[i];
@@ -99,7 +99,7 @@
         for (let k = 0; k < P.length; k++) { const A = P[k], B = P[(k + 1) % P.length], L = Math.hypot(B[0] - A[0], B[2] - A[2]), st = Math.ceil(L / 2);
           for (let j = 0; j <= st; j++) { const cx = Math.floor(A[0] + (B[0] - A[0]) * j / st - x0), cz = Math.floor(A[2] + (B[2] - A[2]) * j / st - z0);
             for (let dz = -R0; dz <= R0; dz++) for (let dx = -R0; dx <= R0; dx++) { if (dx * dx + dz * dz > R0 * R0) continue; const X = cx + dx, Z = cz + dz; if (X >= 0 && Z >= 0 && X < W && Z < H) wet[Z * W + X] = 1; } } } } }
-    const landCost = mode === 'boat' ? 12 : mode === 'fly' ? 0 : 2.5;   // fuera de la pista cuesta más
+    const landCost = mode === 'boat' ? 45 : mode === 'fly' ? 0 : 2.5;   // fuera de la pista cuesta más
     // distancia a la pared más cercana (en celdas, hasta 10) por BFS
     const dist = new Uint8Array(W * H).fill(255), q = new Int32Array(W * H); let qh = 0, qt = 0;
     for (let i = 0; i < W * H; i++) if (grid[i]) { dist[i] = 0; q[qt++] = i; }
@@ -178,7 +178,7 @@
     return best;
   };
   // caché en IndexedDB de la trazada (tarda unos segundos en calcularse la primera vez)
-  const AIV = 'v12';
+  const AIV = 'v13';   // v13: suelo, objetos apoyados y lanchas sin montañas: las trazadas se recalculan
   const aidb = () => new Promise((ok, ko) => { const r = indexedDB.open('brr_ai', 1); r.onupgradeneeded = () => r.result.createObjectStore('l'); r.onsuccess = () => ok(r.result); r.onerror = ko; });
   const rle = a => { const o = []; let v = a[0], n = 0; for (let i = 0; i < a.length; i++) { if (a[i] === v) n++; else { o.push(n); v = a[i]; n = 1; } } o.push(n); return { first: a[0], runs: o }; };
   const unrle = (r, len) => { const a = new Uint8Array(len); let v = r.first, i = 0; for (const n of r.runs) { if (v) a.fill(1, i, i + n); i += n; v ^= 1; } return a; };

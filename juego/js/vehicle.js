@@ -49,7 +49,7 @@
     for (const i of tmpList) {
       if (skip && skip(C.tags[i])) continue;
       const t = rayTri(o, d, C.T, i);
-      if (t >= 0 && t <= maxT && (!best || t < best.t)) { let nn = triNormal(C.T, i); if (V.dot(nn, d) > 0) nn = V.mul(nn, -1); best = { t, n: nn, surf: 1 }; }
+      if (t >= 0 && t <= maxT && (!best || t < best.t)) { let nn = triNormal(C.T, i); if (V.dot(nn, d) > 0) nn = V.mul(nn, -1); best = { t, n: nn, surf: 1, tag: C.tags[i] }; }
     }
     return best;
   };
@@ -143,7 +143,9 @@
     const findTM = n => find(n + '.TM');
     // pintura propia (color RGB): la gama de 16 tonos del color del equipo se cambia por la del color elegido, con las mismas luces y sombras
     let pal = lvl.pal;
-    if (extra.paint) { pal = BRR.paintPal(lvl.pal, [body], extra.paint); if (pal !== lvl.pal) body.paint = extra.paint.slice(); }
+    // la gama del color del equipo es la 32 + 16·equipo (la que cambia entre JEEP1, JEEP2…): si el modelo la usa, se pinta esa (si no, la más llamativa)
+    if (extra.paint) { const tb = 32 + 16 * team, uses = body.faces.some(f => !f.tex && f.color >= tb && f.color < tb + 16);
+      pal = BRR.paintPal(lvl.pal, [body], extra.paint, uses ? tb : undefined); if (pal !== lvl.pal) body.paint = extra.paint.slice(); }
     const mb = new BRR.MeshBuilder(pal);
     mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), findTM);
     // hojas de textura que llevan el hueco del logo de este equipo (JDSH, MDSH, TRDH...): las que usa alguna cara dentro del hueco
@@ -214,9 +216,13 @@
         if (lo < 1e8) y = lo + r + 0.02; }
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { wl.push({ c: [c[0] + sx * hx, y, c[2] + sz * hz], steer: sz < 0, radius: r, virtual: true }); wheelMeshes.push(null); }
     }
+    // centros de las luces de freno (izquierda y derecha) para el halo de luz
+    const brakeMB = (() => { try { return buildBrake(body, findTM, lvl.pal); } catch (e) { console.warn(e); return null; } })(), brakeSpots = [];
+    if (brakeMB) { const P = []; for (const g of brakeMB.groups.values()) for (let i = 0; i < g.pos.length; i += 3) P.push([g.pos[i], g.pos[i + 1], g.pos[i + 2]]);
+      for (const sd of [-1, 1]) { const Q = P.filter(p => Math.sign(p[0] || sd) === sd); if (Q.length) brakeSpots.push([0, 1, 2].map(a => Q.reduce((s, q) => s + q[a], 0) / Q.length)); } }
     return {
-      dmgFx, tough: (() => { const m = all.match(/hnd damage\s+(\d+)/); return m ? +m[1] : 100; })(),
-      kind, decoParts, brake: (() => { try { return buildBrake(body, findTM, lvl.pal); } catch (e) { console.warn(e); return null; } })(),
+      dmgFx, brakeSpots, tough: (() => { const m = all.match(/hnd damage\s+(\d+)/); return m ? +m[1] : 100; })(),
+      kind, decoParts, brake: brakeMB,
       name, vname, mesh: mb, wheelMeshes, engineWav: engM ? name + '/' + engM[1].toUpperCase() + '.WAV' : null,
       nitro: nitroPos ? BRR.toGL(...nitroPos) : null, headPos: headPos ? BRR.toGL(...headPos) : null,
       head: intM ? BRR.toGL(num(intM[1]), num(intM[2]), num(intM[3])) : [0, 0.5, 0],
@@ -322,7 +328,8 @@
         const mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer ? 0.45 : 1);
         if (w.surface === 'agua' && !K.floats) Flong0 -= vLong * 120;   // el agua frena (salvo a lo que flota)
         let dmul = 1;
-        if (K.boat && (hit.surf || w.surface !== 'agua')) { dmul = 0.3; Flong0 -= vLong * 260; }   // la lancha fuera del agua apenas avanza
+        const rampHit = hit.surf && /RAMP|JUMP|SKI|WEDGE|SLOPE|KICK/.test(hit.tag || ''); if (rampHit) this.onRamp = 0.5;
+        if (K.boat && !rampHit && (hit.surf || w.surface !== 'agua')) { dmul = 0.3; Flong0 -= vLong * 260; }   // la lancha fuera del agua apenas avanza (en las rampas, sí: salta)
         // en el agua lo que flota puede remontar los rápidos (en el original el agua no frena las subidas)
         if (K.floats && !hit.surf && w.surface === 'agua') wetN++;
         const share = this.m / nW;
@@ -346,7 +353,7 @@
       this.grounded = grounded;
       // en el agua lo que flota remonta los rápidos (en el original el agua no impide las subidas): anula la gravedad cuesta arriba
       // hélice / turbina: empuje directo sobre el casco (no depende del agarre)
-      if (K.thrust && (grounded || this.nitroT > 0)) F = V.madd(F, fwd, drive * (K.boat && !wetN ? 0.3 : 1));
+      if (K.thrust && (grounded || this.nitroT > 0)) F = V.madd(F, fwd, drive * (K.boat && !wetN && !(this.onRamp > 0) ? 0.3 : 1)); if (this.onRamp > 0) this.onRamp -= dt;
       // el aerodeslizador/jet sube las cuestas con su turbina (compensa parte de la gravedad en subida)
       if (K.floats && !K.boat && grounded && throttle > 0.1 && fwd[1] > 0 && !wetN) F = V.madd(F, fwd, this.m * 9.81 * fwd[1] * 0.6 * throttle);
       if (wetN && throttle > 0.1 && fwd[1] > 0) F =V.madd(F, fwd, this.m * 9.81 * fwd[1] * 1.05 * throttle * wetN / nW);

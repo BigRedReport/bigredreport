@@ -105,7 +105,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 20 Funciones nuevas activadas por defecto (menos las ayudas de conducción)
 - [x] 21 Excavadora y dumper hundidos en el suelo
 - [x] 22 Quitanieves (SNOW1) hundida
-- [ ] 23 Luces de freno con brillo; valorar faros delanteros
+- [x] 23 Luces de freno con halo de luz (los faros, con el ciclo de día y noche)
 - [x] 24 Sombra de los vehículos también apoyados en el suelo
 - [x] 25 Buggy lunar: faltan las ruedas del lado derecho
 - [x] 26 Jet Car: sin marcas de ruedas; polvo bajo la nave
@@ -130,7 +130,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 
 **Suelo, cielo y objetos**
 - [x] 41 Texturas del suelo en tiras e invertidas; dientes de sierra
-- [ ] 42 Opción de suelo: bloques originales o suavizado
+- [x] 42 Opción de suelo: bloques originales o suavizado
 - [x] 43 RIG1: la bandera de cuadros del suelo levanta los bordes
 - [x] 44 RUF1: la bandera de cuadros sale de lado
 - [ ] 45 Nubes y cielos más realistas (Alemania…)
@@ -161,9 +161,13 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 73 Un logro por visitar cada circuito, uno por usar todos los coches, uno por 10 rampas; pantalla partida con 2 jugadores
 
 **Más (repaso)**
-- [ ] 83 WATER1: la IA de las lanchas intenta ir por las montañas
-- [ ] 84 Lanchas: pierden demasiada velocidad al subir rampas
-- [ ] 85 WATER2: voz «This is wet and wild like me» que se repite muy bajita
+- [x] Pausa: entrar al modo foto; cambiar de vehículo con un menú de fotos
+- [x] Bocinas sin «(del juego)» y traducidas
+- [x] Monster truck: se pinta la carrocería (no la ventana) en todos los circuitos
+- [x] Buggy lunar del tamaño correcto al elegir vehículo
+- [x] 83 WATER1: la IA de las lanchas intenta ir por las montañas
+- [x] 84 Lanchas: pierden demasiada velocidad al subir rampas
+- [x] 85 WATER2: voz «This is wet and wild like me» que se repite muy bajita
 
 **Más grandes (después)**
 - [ ] 74 Recuperar los efectos originales de derrape, polvo y turbo (de los .ENV del juego)
