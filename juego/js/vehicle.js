@@ -113,11 +113,12 @@
     const vi = lines.findIndex(l => /^vehicle\s/.test(l)), vname = lines[vi].trim().split(/\s+/)[1].toUpperCase();
     const block = []; for (let i = vi + 1; i < lines.length && !/^vehicle\s/.test(lines[i]); i++) block.push(lines[i]);
     const shapes = block.filter(l => /^\s*wheelsh\s/.test(l)).map(l => l.trim().split(/\s+/)[1].toUpperCase());
-    const wheels = [], deco = []; let nitroPos = null, headPos = null;
+    const wheels = [], deco = []; let nitroPos = null, headPos = null; const dmgFx = {};
     for (const l of block) {
       const m = l.match(/^\s*wheel\s+(.*)$/); if (!m) continue;
       const f = m[1].split(',').map(num); if (f.length < 8) continue;
       if (f[0] === 0x87 && !nitroPos) nitroPos = [f[2], f[3], f[4]];   // escape del nitro
+      if (f[0] >= 0x8A && f[0] <= 0x8D) dmgFx[{ 0x8A: 80, 0x8B: 90, 0x8C: 95, 0x8D: 100 }[f[0]]] = BRR.toGL(f[2], f[3], f[4]);   // daños: humo al 80/90/95 % y explosión al 100 %
       if (f[0] === 0xFF && (f[1] & 0x40) && !headPos) headPos = [f[2], f[3], f[4]];   // cabeza del piloto
       // piezas decorativas: hélices (129), rotores (131), timones (128) y orugas (&FF con forma < &40)
       if ((f[0] === 128 || f[0] === 129 || f[0] === 131 || f[0] === 0xFF) && !(f[1] & 0x60))
@@ -179,10 +180,16 @@
       if (m) {
         rad = Math.max(...m.verts.filter(Boolean).map(v => Math.hypot(v[0], v[1]))) * S;
         const k = 2 * Math.PI / 65536, R = BRR.rot(w.rot[0] * k, w.rot[1] * k, w.rot[2] * k);
-        const wm = new BRR.MeshBuilder(lvl.pal); wm.addModel(m, v => BRR.toGL(...mv(R, v)), findTM); wheelMeshes.push(wm);
+        const wm = new BRR.MeshBuilder(pal); wm.addModel(m, v => BRR.toGL(...mv(R, v)), findTM); wheelMeshes.push(wm);
       } else wheelMeshes.push(null);
       wheelRad.push(rad);
     }
+    // ruedas cuya forma no está en la lista (las del lado derecho del buggy lunar): la rueda del otro lado, en espejo
+    wheels.forEach((w, i) => { if (wheelMeshes[i]) return;
+      let j = wheels.findIndex((o, k) => wheelMeshes[k] && Math.abs(o.pos[2] - w.pos[2]) < 2 && Math.sign(o.pos[0]) === -Math.sign(w.pos[0])); if (j < 0) j = wheels.findIndex((o, k) => wheelMeshes[k]); if (j < 0) return;
+      const o = wheels[j], m = shapeCache.get(shapes[o.shape]); if (!m) return; const k = 2 * Math.PI / 65536, R = BRR.rot(o.rot[0] * k, o.rot[1] * k, o.rot[2] * k);
+      const wm = new BRR.MeshBuilder(pal); wm.addModel({ ...m, faces: m.faces.map(f => ({ ...f, two: true })) }, v => { const g = BRR.toGL(...mv(R, v)); return [-g[0], g[1], g[2]]; }, findTM);
+      wheelMeshes[i] = wm; wheelRad[i] = wheelRad[j]; });
     const bx = body.boxes[0] || [0, 0, 0, 40, 25, 70];
     // piezas decorativas (malla sin rotar + rotación aparte para poder girarlas)
     const C = M => M.map((r, i) => r.map((x, j) => (i === 0) === (j === 0) ? x : -x));   // cambio de ejes script -> GL
@@ -191,7 +198,7 @@
       let sh = shapes[d.shape]; if (!sh) continue;
       if (d.follow && /1$/.test(sh) && find(sh.replace(/1$/, String(team)) + '.3DW')) sh = sh.replace(/1$/, String(team));   // &80: pieza del color del equipo (timones)
       if (!shapeCache.has(sh)) shapeCache.set(sh, parseM(sh)); const m = shapeCache.get(sh); if (!m) continue;
-      const k = 2 * Math.PI / 65536, wm = new BRR.MeshBuilder(lvl.pal); wm.addModel({ ...m, faces: m.faces.map(f => ({ ...f, two: true })) }, v => BRR.toGL(v[0], v[1], v[2]), findTM);   // hélices y timones: finos, se ven por las dos caras
+      const k = 2 * Math.PI / 65536, wm = new BRR.MeshBuilder(pal); wm.addModel({ ...m, faces: m.faces.map(f => ({ ...f, two: true })) }, v => BRR.toGL(v[0], v[1], v[2]), findTM);   // hélices y timones: finos, se ven por las dos caras
       decoParts.push({ mesh: wm, R: C(BRR.rot(d.rot[0] * k, d.rot[1] * k, d.rot[2] * k)), p: BRR.toGL(...d.pos), spin: d.spin });
     }
     // tipo de vehículo: con ruedas, orugas, aerodeslizador/jet, lancha o helicóptero
@@ -200,10 +207,15 @@
     let wl = wheels.map((w, i) => ({ c: BRR.toGL(...w.pos), steer: (w.flags & 0x10) !== 0, radius: wheelRad[i] }));
     if (!wl.length) {   // puntos de apoyo invisibles en las esquinas de la carrocería
       const c = BRR.toGL(bx[0], bx[1], bx[2]), hx = bx[3] * S * 0.8, hy = bx[4] * S, hz = bx[5] * S * 0.75, r = 0.35;
-      const y = c[1] - hy + r + (kind === 'heli' ? 0 : 0.1);
+      let y = c[1] - hy + r + (kind === 'heli' ? 0 : 0.1);
+      if (kind === 'track') {   // orugas: se apoya en lo más bajo de las orugas (si no, se ven hundidas en el suelo)
+        let lo = 1e9; for (const v of body.verts) if (v) lo = Math.min(lo, BRR.toGL(v[0], v[1], v[2])[1]);
+        for (const d of decoParts) for (const g of d.mesh.groups.values()) for (let q = 1; q < g.pos.length; q += 3) lo = Math.min(lo, g.pos[q] + d.p[1]);
+        if (lo < 1e8) y = lo + r + 0.02; }
       for (const [sx, sz] of [[-1, -1], [1, -1], [-1, 1], [1, 1]]) { wl.push({ c: [c[0] + sx * hx, y, c[2] + sz * hz], steer: sz < 0, radius: r, virtual: true }); wheelMeshes.push(null); }
     }
     return {
+      dmgFx, tough: (() => { const m = all.match(/hnd damage\s+(\d+)/); return m ? +m[1] : 100; })(),
       kind, decoParts, brake: (() => { try { return buildBrake(body, findTM, lvl.pal); } catch (e) { console.warn(e); return null; } })(),
       name, vname, mesh: mb, wheelMeshes, engineWav: engM ? name + '/' + engM[1].toUpperCase() + '.WAV' : null,
       nitro: nitroPos ? BRR.toGL(...nitroPos) : null, headPos: headPos ? BRR.toGL(...headPos) : null,
@@ -232,6 +244,11 @@
       this.I = [this.m / 3 * (h[1] * h[1] + h[2] * h[2]) * 1.2, this.m / 3 * (h[0] * h[0] + h[2] * h[2]) * 1.2, this.m / 3 * (h[0] * h[0] + h[1] * h[1]) * 1.2];
       this.k = this.m * 9.81 / def.wheels.length / 0.15; this.c = 0.7 * Math.sqrt(this.k * this.m / def.wheels.length);
       this.W = def.wheels.map(w => ({ ...w, len: 0.3, prevLen: 0.3, spin: 0, contact: false, load: 0, slip: 0 }));
+      // muelles según el peso que carga cada eje (centro de masas en el origen): todas las ruedas quedan a la misma altura en reposo
+      { const zs = this.W.map(w => w.c[2]), f = Math.min(...zs), r = Math.max(...zs);
+        if (r - f > 0.5 && f < 0 && r > 0) { const nf = this.W.filter(w => w.c[2] - f < (r - f) / 2).length, nr = this.W.length - nf;
+          for (const w of this.W) { const t = (w.c[2] - f) / (r - f), share = Math.min(0.8, Math.max(0.2, t < 0.5 ? r / (r - f) : -f / (r - f))) / (t < 0.5 ? nf : nr);
+            w.k = this.m * 9.81 * share / 0.15; w.cd = 0.7 * Math.sqrt(w.k * this.m * share); } } }
       this.ndrive = def.wheels.length;
       // parámetros según el tipo: altura de suspensión, agarre lateral, giro por par (sin ruedas), flota, vuela
       this.K = { wheels: { L0: 0.45, lat: 1 }, track: { L0: 0.45, lat: 1.1, muFix: 1 },
@@ -258,7 +275,7 @@
     steerLock() { const def = this.def, spd = Math.abs(this.speed()) / SPEED_K, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spd - s1) / (s2 - s1))); return (a1 + (a2 - a1) * tt) / 0x280 * 0.55; }
     get topSpeed() { if (this._top) return this._top; if (this.K.fly) return this._top = 48; const r = this.def.gearF; let v = r[r.length - 1][0]; for (const x of r) if (x[1] <= 0) { v = x[0]; break; } return this._top = Math.min(60, v * SPEED_K); }
     get wheelBase() { const z = this.W.map(w => w.c[2]); return Math.max(1.5, Math.max(...z) - Math.min(...z)); }
-    fireNitro() { if (this.nitroT > 0 || !(this.nitros > 0)) return false; this.nitros--; this.nitroT = 2.6; return true; }
+    fireNitro() { if (this.nitroT > 0 || !(this.nitros > 0 || this.nitroInf)) return false; if (!this.nitroInf) this.nitros--; this.nitroT = 2.6; return true; }
     get R() { return BRR.Q.mat(this.q); }
     // régimen del motor 0..255 según la tabla "hnd gear" (columnas 4 y 5) -> tono del sonido
     rpm() {
@@ -292,7 +309,7 @@
         if (!hit) { w.prevLen = w.len = L0; w.load = 0; w.spin += (w.spinRate || 0) * dt; continue; }
         grounded++;
         const len = Math.max(0, hit.t - w.radius), dl = (len - w.prevLen) / dt; w.prevLen = w.len = len;
-        let Fs = this.k * (L0 - len) - this.c * dl; if (len <= 0.01) Fs += this.k * 4 * (0.01 - len);
+        const kw = w.k || this.k, cw = w.cd || this.c; let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
         Fs = Math.max(0, Fs); w.load = Fs;
         const n = hit.n, cp = V.madd(top, down, hit.t), r = V.sub(cp, this.p);
         const vc = V.add(this.v, V.cross(this.w, r));
@@ -325,7 +342,7 @@
         w.spinRate = vLong / w.radius; w.spin += w.spinRate * dt;
       }
       if (!grounded) { this.air = (this.air || 0) + dt; this.fallV = Math.min(this.fallV || 0, this.v[1]); }
-      else { if ((this.air || 0) > 0.35) this.landed = Math.max(this.landed || 0, -(this.fallV || 0)); this.lastAir = this.air || 0; this.air = 0; this.fallV = 0; }
+      else { if ((this.air || 0) > 0.35) { this.landed = Math.max(this.landed || 0, -(this.fallV || 0)); this.landEv = -(this.fallV || 0); } this.lastAir = this.air || 0; this.air = 0; this.fallV = 0; }
       this.grounded = grounded;
       // en el agua lo que flota remonta los rápidos (en el original el agua no impide las subidas): anula la gravedad cuesta arriba
       // hélice / turbina: empuje directo sobre el casco (no depende del agarre)

@@ -194,7 +194,7 @@
         g.nrm = g.nrm || []; for (const k of order) { g.pos.push(...P[k]); g.nrm.push(...Nn[k]); g.lay.push(0); g.col.push(pal[c * 3] / 255, pal[c * 3 + 1] / 255, pal[c * 3 + 2] / 255); }
       } else {
         const g = mbT.group('TERRENO'), u0 = (tile % 16) * 48 + 8, v0 = (tile / 16 | 0) * 48 + 8;
-        const UV = [[u0, v0], [u0 + 32, v0], [u0 + 32, v0 + 32], [u0, v0 + 32]]; g.tiles = g.tiles || [];
+        const UV = [[u0, v0 + 32], [u0 + 32, v0 + 32], [u0 + 32, v0], [u0, v0]]; g.tiles = g.tiles || [];   // las filas de la baldosa van al revés respecto al eje z (así encajan unas con otras, sin dientes de sierra)
         g.nrm = g.nrm || []; for (const k of order) { g.pos.push(...P[k]); g.nrm.push(...Nn[k]); g.lay.push(0); g.uv.push(UV[k][0] / AW, UV[k][1] / AH); g.tiles.push(tile); }
       }
     }

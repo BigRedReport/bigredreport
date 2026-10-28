@@ -34,7 +34,7 @@ console.log('buzones:', R.map((r, i) => BROKERS[i][0] + ' ' + r.got.size).join('
 const okRow = r => r && typeof r === 'object' && typeof r.lap === 'number' && r.lap > 5 && r.lap < 3600 && typeof r.name === 'string';
 fs.mkdirSync('datos', { recursive: true });
 let LB = {}; try { LB = JSON.parse(fs.readFileSync('datos/lb.json', 'utf8')); } catch (e) { }
-const add = (lv, r) => { if (!okRow(r) || !/^[A-Z0-9]{3,12}$/.test(lv)) return; const row = { name: String(r.name).slice(0, 20), veh: String(r.veh || '').slice(0, 10), lap: r.lap, total: typeof r.total === 'number' ? r.total : undefined, team: r.team | 0, pid: r.pid ? String(r.pid).slice(0, 12) : undefined, t: r.t | 0 };
+const add = (lv, r) => { if (!okRow(r) || !/^[A-Z0-9]{3,12}$/.test(lv)) return; const row = { name: String(r.name).slice(0, 20), veh: String(r.veh || '').slice(0, 10), lap: r.lap, total: typeof r.total === 'number' ? r.total : undefined, team: r.team | 0, pid: r.pid ? String(r.pid).slice(0, 12) : undefined, t: typeof r.t === 'number' && r.t > 1e12 ? Math.round(r.t) : 0 };
   (LB[lv] = LB[lv] || []).push(row); };
 for (const { got } of R) for (const [topic, p] of got) {
   const m = topic.match(/^bigredracing\/v1\/lb\/([A-Z0-9]+)(?:\/.*)?$/); if (!m) continue; let v; try { v = JSON.parse(p); } catch (e) { continue; }

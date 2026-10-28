@@ -38,11 +38,11 @@ void main(){ float a=vcol.a;
           v: [v[0] + (Math.random() - .5) * 1.5, v[1] + Math.random() * 1.2, v[2] + (Math.random() - .5) * 1.5], col, size, life, age: 0, grow });
       }
     }
-    flame(p, back, v) {   // llamarada del nitro
+    flame(p, back, v, tint) {   // llamarada del nitro (tint: color del equipo, 0..1)
       // llama fina: núcleo azul pequeño y una cola naranja corta
       for (let k = 0; k < 2; k++) this.parts.push({ p: [p[0] + (Math.random() - .5) * .06, p[1] + (Math.random() - .5) * .06, p[2] + (Math.random() - .5) * .06],
         v: [v[0] * 0.85 + back[0] * 0.8 + (Math.random() - .5) * 0.3, v[1] * 0.85 + Math.random() * 0.2, v[2] * 0.85 + back[2] * 0.8 + (Math.random() - .5) * 0.3],
-        col: k ? [1, 0.55, 0.12, 0.85] : [0.55, 0.75, 1, 0.8], size: k ? 0.11 : 0.08, life: (k ? 0.13 : 0.08) + Math.random() * 0.05, age: 0, grow: 0.5, solid: true });
+        col: tint ? (k ? [tint[0], tint[1], tint[2], 0.85] : [0.5 + tint[0] * 0.5, 0.5 + tint[1] * 0.5, 0.5 + tint[2] * 0.5, 0.8]) : k ? [1, 0.55, 0.12, 0.85] : [0.55, 0.75, 1, 0.8], size: k ? 0.11 : 0.08, life: (k ? 0.13 : 0.08) + Math.random() * 0.05, age: 0, grow: 0.5, solid: true });
     }
     sparks(p, n = 12) {
       for (let k = 0; k < n; k++) this.parts.push({ p: p.slice(), v: [(Math.random() - .5) * 9, Math.random() * 6, (Math.random() - .5) * 9], col: [1, 0.85 - Math.random() * .3, 0.3, 1], size: 0.12, life: 0.35 + Math.random() * .3, age: 0, grow: 0, grav: 1, solid: true });
@@ -57,6 +57,14 @@ void main(){ float a=vcol.a;
           if (s.type !== 'agua') { const col = [...(s.type === 'asfalto' ? [0.7, 0.7, 0.72] : s.col.map(x => x * 0.6 + 0.22)), s.type === 'asfalto' ? 0.25 : 0.45];
             for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; this.puff([c.p[0] + Math.cos(a) * 0.8, c.p[1] - 0.3, c.p[2] + Math.sin(a) * 0.8], [Math.cos(a) * 3.5 + c.v[0] * 0.3, 0.6, Math.sin(a) * 3.5 + c.v[2] * 0.3], col, 0.55, 1.6 + Math.random(), 3, 1, 0.4); } } }
         this.air.set(id, 0); }
+      if (c.def.kind === 'hover') {   // flota: sin marcas de ruedas; levanta polvo (o agua) por debajo del centro
+        const low = c.W.some(w => w.contact); if (!low || sp < 2) return;
+        const bc = V.add(c.p, BRR.mv(R, [0, c.def.box.c[1] - c.def.box.h[1], c.def.box.c[2]])), s = this.lvl.surface(bc[0], bc[2]), gy = this.lvl.terrain(bc[0], bc[2]);
+        if (Math.random() < Math.min(1, sp / 20) * dt * 26) { const a = Math.random() * 6.283, out = 1.2 + sp * 0.04, p0 = [bc[0], Math.max(gy, bc[1] - 0.6) + 0.05, bc[2]];
+          const col = s.type === 'agua' ? [0.9, 0.96, 1, 0.4] : [...(s.type === 'asfalto' ? [0.72, 0.72, 0.74] : s.col.map(x => x * 0.6 + 0.22)), s.type === 'asfalto' ? 0.18 : 0.32];
+          this.puff(p0, [Math.cos(a) * out - fw[0] * sp * 0.15, 0.35, Math.sin(a) * out - fw[2] * sp * 0.15], col, 0.5, 1.2 + Math.random(), 2.6, 1, 0.6); }
+        return;
+      }
       c.W.forEach((w, i) => {
         const key = id + ':' + i;
         if (!w.contact) { this.last.delete(key); return; }

@@ -44,7 +44,10 @@
               c.v = V.mul(c.v, 0.99); hits.push({ o, car: c, speed: Math.max(sp, 8) }); continue; }
             const push = V.norm([dx, 0, dz]);
             o.v = V.add(V.mul(c.v, 0.85), [push[0] * 3 + (Math.random() - .5) * 2, 3 + sp * 0.18, push[2] * 3 + (Math.random() - .5) * 2]);
-            o.w = { ax: V.norm([Math.random() - .5, Math.random() - .5, Math.random() - .5]), r: 4 + Math.random() * 8 }; o.t = 0;
+            // plantas y circuitos de lanchas: giro libre (queda bien); carteles y demás: se vuelcan hacia atrás, sobre un eje horizontal
+            const free = /PLANT|TREE|SHRUB|BUSH|GRASS|FLOWER|CACT|PALM|FERN|BAMB|WEED/.test(o.name || '') || /^WATER/.test(this.lvl.name || '');
+            o.w = free ? { ax: V.norm([Math.random() - .5, Math.random() - .5, Math.random() - .5]), r: 4 + Math.random() * 8 }
+              : { ax: V.norm(V.add(V.cross([0, 1, 0], push), [(Math.random() - .5) * 0.25, (Math.random() - .5) * 0.15, (Math.random() - .5) * 0.25])), r: 3 + Math.random() * 4 + sp * 0.12 }; o.t = 0;   // positivo: la parte de arriba se va hacia donde lo empujan
             c.v = V.mul(c.v, o.cls === 4 ? 0.985 : 0.96);
             hits.push({ o, car: c, speed: sp });
           }

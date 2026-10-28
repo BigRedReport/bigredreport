@@ -99,38 +99,40 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 16 Start del mando: la pausa se cierra sola (sobre todo a mucha velocidad)
 
 **Vehículos y jugabilidad**
-- [ ] 17 Daños del original: progresivos hasta romperse al 100 %
+- [x] 17 Daños del original: progresivos hasta romperse al 100 %
 - [x] 18 Modo libre: marcar los vehículos del mapa pero dejar elegir cualquiera
-- [ ] 19 Modo libre: cambiar de vehículo desde la pausa
+- [x] 19 Modo libre: cambiar de vehículo desde la pausa
 - [x] 20 Funciones nuevas activadas por defecto (menos las ayudas de conducción)
-- [ ] 21 Excavadora y dumper hundidos en el suelo
-- [ ] 22 Quitanieves (SNOW1) hundida
+- [x] 21 Excavadora y dumper hundidos en el suelo
+- [x] 22 Quitanieves (SNOW1) hundida
 - [ ] 23 Luces de freno con brillo; valorar faros delanteros
-- [ ] 24 Sombra de los vehículos también apoyados en el suelo
-- [ ] 25 Buggy lunar: faltan las ruedas del lado derecho
-- [ ] 26 Jet Car: sin marcas de ruedas; polvo bajo la nave
-- [ ] 27 Modo libre: turbo infinito
-- [ ] 28 Color del nitro = color del equipo
+- [x] 24 Sombra de los vehículos también apoyados en el suelo
+- [x] 25 Buggy lunar: faltan las ruedas del lado derecho
+- [x] 26 Jet Car: sin marcas de ruedas; polvo bajo la nave
+- [x] 27 Modo libre: turbo infinito
+- [x] 28 Color del nitro = color del equipo
 - [ ] 29 Garaje (futuro): color del turbo aparte
-- [ ] 30 Tarjeta del menú principal: logo con sus colores originales
-- [ ] 31 El recuadro del logo no recibe sombras (monster truck)
-- [ ] 32 Carteles golpeables: girar por el eje correcto (las plantas y las lanchas ya van bien)
-- [ ] 33 Bocinas nuevas que no suenan; un solo icono para todas
-- [ ] 36 Modo libre: segunda rampa tipo half pipe (cruceta →); la original sigue en ←
-- [ ] 37 Botón de salto moderado (cruceta libre)
+- [x] 30 Tarjeta del menú principal: logo con sus colores originales
+- [x] 31 El recuadro del logo no recibe sombras (monster truck)
+- [x] 32 Carteles golpeables: girar por el eje correcto (las plantas y las lanchas ya van bien)
+- [x] 33 Bocinas nuevas que no suenan; un solo icono para todas
+- [x] 36 Modo libre: segunda rampa tipo half pipe (cruceta →); la original sigue en ←
+- [x] 37 Botón de salto moderado (cruceta libre)
 - Se conservan tal cual: las rampas actuales (34) y el aplastamiento de ovejas (35)
 
 **Online**
-- [ ] 38 Modo libre online
-- [ ] 39 Quitar la elección de coche de Multijugador > Online (se elige en la sala)
-- [ ] 40 Bola del mundo del mapa bajo el código de invitación
+- [ ] Partidas en red local (LAN), con las mismas salas que el online
+- [x] Monster truck: los bujes de las ruedas no cogían el color RGB
+- [x] 38 Modo libre online
+- [x] 39 Quitar la elección de coche de Multijugador > Online (se elige en la sala)
+- [x] 40 Bola del mundo del mapa bajo el código de invitación
 - [x] 72 Clasificaciones online fiables: una sola fuente para juego y web, sin perder tiempos si falla la conexión
 
 **Suelo, cielo y objetos**
-- [ ] 41 Texturas del suelo en tiras e invertidas; dientes de sierra
+- [x] 41 Texturas del suelo en tiras e invertidas; dientes de sierra
 - [ ] 42 Opción de suelo: bloques originales o suavizado
-- [ ] 43 RIG1: la bandera de cuadros del suelo levanta los bordes
-- [ ] 44 RUF1: la bandera de cuadros sale de lado
+- [x] 43 RIG1: la bandera de cuadros del suelo levanta los bordes
+- [x] 44 RUF1: la bandera de cuadros sale de lado
 - [ ] 45 Nubes y cielos más realistas (Alemania…)
 - [ ] 46 Cielo coherente con el clima
 - [ ] 47 Vallas y carteles flotantes: apoyarlos y seguir la pendiente
@@ -154,7 +156,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [ ] 71 DIRT1/2/3: techos transparentes
 
 **Logros**
-- [ ] 73 Un logro por visitar cada circuito, uno por usar todos los coches, uno por 10 rampas; pantalla partida con 2 jugadores
+- [x] 73 Un logro por visitar cada circuito, uno por usar todos los coches, uno por 10 rampas; pantalla partida con 2 jugadores
 
 **Más (repaso)**
 - [ ] 83 WATER1: la IA de las lanchas intenta ir por las montañas

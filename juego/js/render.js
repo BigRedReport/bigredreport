@@ -29,7 +29,7 @@ out vec4 o;
 float shadow(vec3 n){
   if(shadows==0) return 1.;
   vec3 q=lp.xyz/lp.w*.5+.5; if(q.x<0.||q.x>1.||q.y<0.||q.y>1.||q.z>1.) return 1.;
-  float b=0.0012+0.0025*(1.-max(dot(n,L),0.)); float s=0.;
+  float b=0.00012+0.0005*(1.-max(dot(n,L),0.)); /* ~7-37 cm de 600 m: los coches en el suelo también dan sombra */ float s=0.;
   for(int i=-1;i<=1;i++) for(int j=-1;j<=1;j++) s+=texture(SM,vec3(q.xy+vec2(i,j)*smTexel,q.z-b));
   float fade=smoothstep(.85,1.,max(abs(q.x-.5),abs(q.y-.5))*2.);
   return mix(s/9.,1.,fade); }
@@ -165,7 +165,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
       const smooth = this.filter === 'smooth' || t._smooth;
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, smooth ? gl.LINEAR : gl.NEAREST);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, smooth ? gl.LINEAR_MIPMAP_LINEAR : gl.NEAREST_MIPMAP_LINEAR);
-      if (this.aniso) gl.texParameterf(gl.TEXTURE_2D, this.aniso.TEXTURE_MAX_ANISOTROPY_EXT, smooth ? Math.min(8, gl.getParameter(this.aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)) : 1);
+      if (this.aniso) gl.texParameterf(gl.TEXTURE_2D, this.aniso.TEXTURE_MAX_ANISOTROPY_EXT, smooth ? Math.min(16, gl.getParameter(this.aniso.MAX_TEXTURE_MAX_ANISOTROPY_EXT)) : 1);
     }
     setFilterAll(f) { this.filter = f; for (const t of this.allTex || []) this.setFilter(t); }
     // ---- sombras: caja ortográfica del sol que sigue a la cámara (ajustada a la rejilla para que no tiemble) ----
@@ -174,7 +174,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
       const up = Math.abs(L[1]) > 0.95 ? [1, 0, 0] : [0, 1, 0], s = V.norm(V.cross(up, L)), u = V.cross(L, s), tex = 2 * h / size;
       const cx = V.dot(center, s), cy = V.dot(center, u), snap = v => Math.round(v / tex) * tex;
       const c = V.add(center, V.add(V.mul(s, snap(cx) - cx), V.mul(u, snap(cy) - cy)));
-      const view = BRR.M4.lookAt(V.madd(c, L, 400), c, up), proj = BRR.M4.ortho(-h, h, -h, h, 1, 900);
+      const view = BRR.M4.lookAt(V.madd(c, L, 400), c, up), proj = BRR.M4.ortho(-h, h, -h, h, 100, 700);
       this.LVP = BRR.M4.mul(proj, view);
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.smFbo); gl.viewport(0, 0, size, size); gl.clear(gl.DEPTH_BUFFER_BIT);
       gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.5, 3);

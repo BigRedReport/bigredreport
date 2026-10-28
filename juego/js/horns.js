@@ -125,8 +125,8 @@
     try {
       if (id === 'propia' || id.startsWith('s:') || id.startsWith('u:')) {
         const go = async () => { const b = id === 'propia' ? A.customHorn : id.startsWith('u:') ? await clip(A, id.slice(2)).catch(() => null) : await A.buf('SAMPLES/' + id.slice(2) + '.WAV'); if (!b) return SYN.normal(A, pitch, vol).stop(0.3);
-          if (h.cut) return; const s = A.ctx.createBufferSource(), g = A.ctx.createGain(); s.buffer = b; s.playbackRate.value = id === 'propia' || id.startsWith('u:') ? 1 : pitch; g.gain.value = vol; s.connect(g); g.connect(wrap); s.start(); };
-        const h = { stop() { }, cut() { h.cut = true; cut(); }, oneShot: true }; go(); return h;
+          if (h.dead) return; const s = A.ctx.createBufferSource(), g = A.ctx.createGain(); s.buffer = b; s.playbackRate.value = id === 'propia' || id.startsWith('u:') ? 1 : pitch; g.gain.value = vol; s.connect(g); g.connect(wrap); s.start(); };
+        const h = { stop() { }, cut() { h.dead = true; cut(); }, oneShot: true }; go(); return h;
       }
       if (info.hold) { const h = SYN[id](A, pitch, vol); if (o.dur) h.stop(o.dur); h.cut = () => { try { h.stop(0.02); } catch (e) { } cut(); }; return h; }
       ONE[id](A, pitch, vol); return { stop() { }, cut, oneShot: true };
