@@ -52,6 +52,8 @@
           if (!this.textures.has(f.tex)) { const tm = findTM(f.tex); this.textures.set(f.tex, tm ? BRR.tmRGBA(tm, pal) : null); }
           if (!this.textures.get(f.tex) || f.uv.length !== idx.length) continue;
           g = this.group('tex:' + f.tex); uv = f.uv;
+        } else if (BRR.isKey(pal, f.color) && !this.keepKey) {   // caras del color "de recorte" del original (magenta): no se pintan, pero siguen chocando
+          if (tri) for (let k = 1; k < idx.length - 1; k++) tri(V[idx[0]], V[idx[k + 1]], V[idx[k]]); continue;
         } else { g = this.group('COLOR'); rgb = [pal[f.color * 3] / 255, pal[f.color * 3 + 1] / 255, pal[f.color * 3 + 2] / 255]; }
         for (let k = 1; k < idx.length - 1; k++) {
           for (const order of f.two ? [[0, k + 1, k], [0, k, k + 1]] : [[0, k + 1, k]]) for (const j of order) {
@@ -184,9 +186,16 @@
         const cx = Math.floor(dv0.getInt32(i + 1, true) / CELL), cz = Math.floor(dv0.getInt32(i + 9, true) / CELL);
         for (let dz = -4; dz <= 4; dz++) for (let dx = -4; dx <= 4; dx++) { const X = cx + dx, Z = cz + dz; if (X >= 0 && Z >= 0 && X < 256 && Z < 256) tunnel[Z * 256 + X] = 1; } } }
     const isHole = i => tunnel[i] && T[512 + C[i]] === 255;
+    // casillas sin baldosa de color magenta (relleno de los laterales de escaleras, etc.): en Marte/Venus los morados son roca de verdad
+    const magCell = c => BRR.isKey(pal, c) || (env !== 'MOON' && pal[c * 3] > 120 && pal[c * 3 + 1] < 40 && pal[c * 3 + 2] > 70);
     for (let z = 0; z < 255; z++) for (let x = 0; x < 255; x++) {
-      const code = C[z * 256 + x], tile = T[512 + code];
+      let code = C[z * 256 + x], tile = T[512 + code];
       if (isHole(z * 256 + x)) continue;   // boca del túnel: sin terreno
+      // casilla sin baldosa del color "transparente" (magenta) del original: toma la de la casilla vecina más cercana
+      if ((tile === 255 || (tile / 48 | 0) >= pages.length) && magCell(T[code])) { let best = null;
+        for (let r = 1; r <= 3 && !best; r++) for (let dz = -r; dz <= r && !best; dz++) for (let dx = -r; dx <= r; dx++) { const X = x + dx, Z = z + dz; if (X < 0 || Z < 0 || X > 255 || Z > 255) continue;
+          const c2 = C[Z * 256 + X], t2 = T[512 + c2]; if ((t2 !== 255 && (t2 / 48 | 0) < pages.length) || !magCell(T[c2])) { best = c2; break; } }
+        if (best != null) { code = best; tile = T[512 + code]; } }
       const P = [corner(x, z), corner(x + 1, z), corner(x + 1, z + 1), corner(x, z + 1)], Nn = [vnorm(x, z), vnorm(x + 1, z), vnorm(x + 1, z + 1), vnorm(x, z + 1)];
       const order = [0, 1, 2, 0, 2, 3];   // sentido antihorario visto desde arriba
       if (tile === 255 || (tile / 48 | 0) >= pages.length) {
@@ -210,6 +219,33 @@
     const groundAt = (x, z) => { const fx = x / CELL, fz = z / CELL, ix = Math.max(0, Math.min(254, Math.floor(fx))), iz = Math.max(0, Math.min(254, Math.floor(fz))), u = fx - ix, v = fz - iz, h = (a, b) => hgt[b * 256 + a]; return (h(ix, iz) * (1 - u) + h(ix + 1, iz) * u) * (1 - v) + (h(ix, iz + 1) * (1 - u) + h(ix + 1, iz + 1) * u) * v; };
     let nobj = 0, tGrey = -1, decalN = 0; const checkpoints = [], props = [], posts = [];
     for (let i = 0; i + 22 <= dat.length; i += 22) if (/POST/.test(names[dat[i]] || '')) posts.push([dv.getInt32(i + 1, true), dv.getInt32(i + 5, true), dv.getInt32(i + 9, true)]);
+    // objetos que flotan sobre el terreno (en el original casi no se notaba): se bajan al suelo, y lo que está encima (copas, tejados) baja con ellos.
+    // No se tocan puentes, tubos, nubes ni lo que se apoya en otro objeto. Los carteles y vallas siguen la pendiente.
+    const KEEP_UP = /CLOUD|SKY|BRIDG(?!END)|BRIJ|TUBE|ROOF|PLAT|BIRD|BALLOON|BLIMP|AIRSHIP|ZEPP|PLANE|KITE|WIRE|CABLE|START|CHECKP|SUN$|STAR|RAINBOW|FX$/;
+    const THIN = /FENCE|BILBORD|BILLB|BOARD|SIGN|BANNER|WALL|BARR|RAIL|HOARD/;
+    const drop = new Map(), drape = new Set();
+    if (!window.BRR_NOGROUND) {
+      const B = [];
+      for (let i = 0; i + 22 <= dat.length; i += 22) {
+        const name = names[dat[i]], cls = dat[i + 20]; if (!name || cls === 50 || cls === 3 || cls === 7 || cls === 8 || /TUNN/.test(name)) continue;
+        const m = getModel(name); if (!m) continue; const Vs = m.verts.filter(Boolean); if (!Vs.length) continue;
+        const ox = dv.getInt32(i + 1, true), oy = dv.getInt32(i + 5, true), oz = dv.getInt32(i + 9, true), k = 2 * Math.PI / 65536, Rm = BRR.rot(dv.getInt16(i + 13, true) * k, dv.getUint16(i + 15, true) * k, dv.getInt16(i + 17, true) * k);
+        const G = Vs.map(v => BRR.toGL(ox + Rm[0][0] * v[0] + Rm[0][1] * v[1] + Rm[0][2] * v[2], oy + Rm[1][0] * v[0] + Rm[1][1] * v[1] + Rm[1][2] * v[2], oz + Rm[2][0] * v[0] + Rm[2][1] * v[1] + Rm[2][2] * v[2]));
+        const lo = Math.min(...G.map(g => g[1])), hi = Math.max(...G.map(g => g[1])), xs = G.map(g => g[0]), zs = G.map(g => g[2]);
+        const foot = G.filter(g => g[1] < lo + 0.3).map(g => g[1] - groundAt(g[0] / S, -g[2] / S));
+        B.push({ i, name, lo, hi, x0: Math.min(...xs), x1: Math.max(...xs), z0: Math.min(...zs), z1: Math.max(...zs), minC: Math.min(...foot), maxC: Math.max(...foot), sup: null });
+      }
+      // ¿se apoya en otro objeto? (su parte de arriba está justo debajo y se solapan en planta)
+      const over = (a, b) => a.x0 < b.x1 - 0.05 && b.x0 < a.x1 - 0.05 && a.z0 < b.z1 - 0.05 && b.z0 < a.z1 - 0.05;
+      B.sort((a, b) => a.lo - b.lo);
+      for (const a of B) { let best = null; for (const b of B) { if (b === a || b.lo >= a.lo) continue; if (b.hi >= a.lo - 0.7 && b.hi <= a.lo + 1.2 && over(a, b) && (!best || b.hi > best.hi)) best = b; } a.sup = best; }
+      for (const a of B) {   // en orden de abajo arriba: lo de encima hereda la bajada de lo de abajo
+        let d = 0;
+        if (a.sup) d = drop.get(a.sup.i) || 0;
+        else if (!KEEP_UP.test(a.name) && a.minC > 0.12 && a.minC < 10) { d = a.minC + 0.06; if (THIN.test(a.name) || (Math.min(a.x1 - a.x0, a.z1 - a.z0) < 1.6 && Math.max(a.x1 - a.x0, a.z1 - a.z0) > 2.5 && a.hi - a.lo < 8)) drape.add(a.i); }
+        if (d) drop.set(a.i, d);
+      }
+    }
     const tunnelGrey = () => { if (tGrey < 0) { let best = 1e9; for (let c = 1; c < 256; c++) { const d = (pal[c * 3] - 92) ** 2 + (pal[c * 3 + 1] - 90) ** 2 + (pal[c * 3 + 2] - 86) ** 2; if (d < best) { best = d; tGrey = c; } } } return tGrey; };
     for (let i = 0; i + 22 <= dat.length; i += 22) {
       const name = names[dat[i]]; if (!name) continue;
@@ -226,11 +262,14 @@
       // decorado lejano que flota sobre el terreno (icebergs del ártico...): se apoya en el suelo
       if (env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(name) && farFromCourse(ox, oz)) { const lift = -oy * S - groundAt(ox, oz); if (lift > 3) oy += lift / S; }   // icebergs del ártico
       const k = 2 * Math.PI / 65536, R = BRR.rot(dv.getInt16(i + 13, true) * k, dv.getUint16(i + 15, true) * k, dv.getInt16(i + 17, true) * k);
+      const dGL = drop.get(i) || 0, dr = drape.has(i); if (dGL && !dr) oy += dGL / S;
       if (cls === 4 || cls === 5 || cls === 10 || SOFT.test(name)) {   // derribable: instancia aparte
         props.push({ name, cls, o: BRR.toGL(ox, oy, oz), R: [[R[0][0], -R[0][1], -R[0][2]], [-R[1][0], R[1][1], R[1][2]], [-R[2][0], R[2][1], R[2][2]]], r: Math.max(0.4, m.radius * S * 0.5) });
         continue;
       }
-      const xf = v => BRR.toGL(ox + R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], oy + R[1][0] * v[0] + R[1][1] * v[1] + R[1][2] * v[2], oz + R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2]);
+      const xf0 = v => BRR.toGL(ox + R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], oy + R[1][0] * v[0] + R[1][1] * v[1] + R[1][2] * v[2], oz + R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2]);
+      // carteles y vallas: cada punto sube o baja con el suelo que tiene debajo (siguen la pendiente)
+      let xf = xf0; if (dr) { const lo0 = Math.min(...m.verts.filter(Boolean).map(v => xf0(v)[1])); xf = v => { const g = xf0(v); g[1] = g[1] - lo0 + groundAt(g[0] / S, -g[2] / S) - 0.06; return g; }; }
       // clases 3, 7 y 8: marcas pintadas en el suelo (líneas blancas, parrilla, salida): no chocan y se pegan al terreno
       const decal = cls === 3 || cls === 7 || cls === 8, solid = !(decal || cls === 40);
       let xfm = xf;
@@ -257,6 +296,8 @@
         xfm = v => { const g = xf(v), wx = ox + R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2];
           g[1] = Math.min(g[1], groundAt(wx, wz) - 0.05); return g; };
       }
+      if (window.BRR_OBJDBG && !decal) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1])), foot = G.filter(g => g[1] < lo + 0.3).map(g => g[1] - groundAt(g[0] / S, -g[2] / S));
+        const xs = G.map(g => g[0]), zs = G.map(g => g[2]); window.BRR_OBJDBG.push({ gy: groundAt(ox, oz), lo, name, cls, x: ox, z: oz, minC: Math.min(...foot), maxC: Math.max(...foot), w: Math.max(...xs) - Math.min(...xs), d: Math.max(...zs) - Math.min(...zs), h: Math.max(...G.map(g => g[1])) - lo }); }
       mb.addModel(mm, xfm, findTM, solid ? (a, b, c) => col.add(a, b, c, name) : null, 1);
       nobj++;
     }

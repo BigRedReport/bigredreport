@@ -135,24 +135,26 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 44 RUF1: la bandera de cuadros sale de lado
 - [ ] 45 Nubes y cielos más realistas (Alemania…)
 - [ ] 46 Cielo coherente con el clima
-- [ ] 47 Vallas y carteles flotantes: apoyarlos y seguir la pendiente
+- [x] 47 Vallas y carteles flotantes: apoyarlos y seguir la pendiente
 
 **Mapas**
+- [x] Corrección general en 0.53: lo que flota se apoya solo en el suelo (y lo que tiene encima baja con ello); carteles y vallas siguen la pendiente; el magenta «de recorte» del original ya no se pinta
+- [ ] Pendiente de repasar: puentes (WATER1/2, RIG4, MOON), muro invisible del puente de RUF3, techos de DIRT, postes de CHOPPER1
 - [ ] 48 WATER1 y 49 WATER2 (India): puentes flotantes
 - [ ] 50 RUF2 (Egipto): texturas de las pirámides flotando
 - [ ] 51 Banderas de checkpoint: solo la salida pone START
 - [ ] 52 WATER3 (China): casa flotante
-- [ ] 53–56 DIRT1 (Japón): nubes rosas, arcos rojos flotantes, árboles tumbados, árbol golpeable desmontado
-- [ ] 57 TEST1: bandera START a ras de suelo
+- [x] 53–56 DIRT1 (Japón): nubes rosas, arcos rojos flotantes, árboles tumbados, árbol golpeable desmontado
+- [x] 57 TEST1: bandera START a ras de suelo
 - [ ] 58 SNOW1 (Ártico): montañas flotantes o partidas
-- [ ] 59–60 CITY4 (Italia): texturas lilas junto a las escaleras y línea lila en la salida
+- [x] 59–60 CITY4 (Italia): texturas lilas junto a las escaleras y línea lila en la salida
 - [ ] 61–63, 66 MOON1/2/3: torres, puentes, carteles, vallas y edificios flotantes; parrilla de salida torcida
 - [ ] 64 SNOW2 (Escocia): carteles flotantes y montaña del checkpoint 2 rota
 - [ ] 65 RUF3 (Francia): muro invisible en el puente rojo; carteles flotantes
 - [ ] 67 RIG3: cartel START pequeño; árboles flotantes
 - [ ] 68 RIG4 (España): piedras amarillas mal colocadas
 - [ ] 69 CHOPPER1: postes de checkpoint que no llegan al suelo
-- [ ] 70 CITY1: cuadrados lilas flotando tras los edificios
+- [x] 70 CITY1: cuadrados lilas flotando tras los edificios
 - [ ] 71 DIRT1/2/3: techos transparentes
 
 **Logros**

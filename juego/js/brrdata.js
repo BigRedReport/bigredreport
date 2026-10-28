@@ -98,11 +98,15 @@ BRR.Files = class {
 BRR.pal6 = p => { const o = new Uint8Array(768); for (let i = 0; i < 768; i++) o[i] = Math.min(255, ((p[i] & 63) * 255 / 63) | 0); return o; };
 
 // Textura .TM (256x192 indexada) -> RGBA; índice 0 transparente
+// colores "de recorte" del original: magenta puro en la paleta (no se pintan)
+BRR.isKey = (pal, c) => !!pal && pal[c * 3] >= 190 && pal[c * 3 + 1] <= 8 && pal[c * 3 + 2] >= 190;
 BRR.tmRGBA = function (tm, pal, opaque) {
   const o = new Uint8Array(256 * 192 * 4);
+  // transparentes: el color 0 y el 255 cuando es el lila/magenta "de recorte" del original (nubes, ventanas, marcas de salida)
+  const key = new Uint8Array(256); for (let c = 0; c < 256; c++) key[c] = c === 0 || BRR.isKey(pal, c) ? 1 : 0;
   for (let i = 0; i < 256 * 192; i++) {
     const c = tm[i]; o[i * 4] = pal[c * 3]; o[i * 4 + 1] = pal[c * 3 + 1]; o[i * 4 + 2] = pal[c * 3 + 2];
-    o[i * 4 + 3] = (c === 0 && !opaque) ? 0 : 255;
+    o[i * 4 + 3] = (key[c] && !opaque) ? 0 : 255;
   }
   return o;
 };

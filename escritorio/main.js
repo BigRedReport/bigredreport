@@ -99,9 +99,55 @@ function unzip(buf, dest) {
   }
 }
 ipcMain.handle('upd:check', async () => {
-  const cur = verOf(gameDir()), appVer = app.getVersion();
+  const cur = process.env.BRR_FAKE_VER || verOf(gameDir()), appVer = process.env.BRR_FAKE_VER || app.getVersion();   // BRR_FAKE_VER: solo para probar el actualizador
   try { const L = await latest(); return { ok: true, ver: L.ver, cur, appVer, game: newer(L.ver, cur) && !!L.game, app: newer(L.ver, appVer), appUrl: L.app ? L.app.browser_download_url : L.url, url: L.url }; }
   catch (e) { return { ok: false, cur, appVer, err: String(e.message || e) }; }
+});
+// descarga con progreso (para la barra del lanzador)
+async function download(url, onPct) {
+  const r = await fetch(url, { headers: { 'User-Agent': 'BigRedReport' } }); if (!r.ok) throw new Error('Descarga ' + r.status);
+  const total = +r.headers.get('content-length') || 0, rd = r.body.getReader(), parts = []; let got = 0, last = -1;
+  for (;;) { const { done, value } = await rd.read(); if (done) break; parts.push(value); got += value.length; const p = total ? Math.floor(got * 100 / total) : 0; if (p !== last) { last = p; onPct && onPct(p, got, total); } }
+  return Buffer.concat(parts.map(u => Buffer.from(u)));
+}
+// .tar.gz (Linux) sin programas externos
+function untar(buf, dest) {
+  const t = zlib.gunzipSync(buf); let o = 0, long = null;
+  while (o + 512 <= t.length) {
+    const h = t.subarray(o, o + 512); if (h.every(b => b === 0)) break;
+    const str = (a, b) => h.toString('utf8', a, b).replace(/\0.*$/s, ''), size = parseInt(str(124, 136).trim() || '0', 8), type = String.fromCharCode(h[156] || 48), mode = parseInt(str(100, 108).trim() || '644', 8);
+    let name = long || ((str(345, 500) ? str(345, 500) + '/' : '') + str(0, 100)); long = null; const data = t.subarray(o + 512, o + 512 + size); o += 512 + Math.ceil(size / 512) * 512;
+    if (type === 'L') { long = data.toString('utf8').replace(/\0.*$/s, ''); continue; }
+    const out = path.resolve(dest, name); if (!out.startsWith(path.resolve(dest) + path.sep)) continue;
+    if (type === '5') fs.mkdirSync(out, { recursive: true });
+    else if (type === '0' || type === '\0') { fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, data); try { fs.chmodSync(out, mode & 0o777); } catch (e) { } }
+    else if (type === '2') { try { fs.mkdirSync(path.dirname(out), { recursive: true }); fs.rmSync(out, { force: true }); fs.symlinkSync(str(157, 257), out); } catch (e) { } }
+  }
+}
+// actualizar el PROGRAMA entero (lanzador + juego): se descarga, se descomprime aparte y, al cerrarse, un pequeño guion copia los archivos encima y lo vuelve a abrir
+ipcMain.handle('upd:app', async (e) => {
+  const L = await latest(); if (!L.app) throw new Error('No hay paquete para este sistema');
+  const send = (p, got, total) => { try { e.sender.send('upd:progress', { p, got, total }); } catch (x) { } };
+  const buf = await download(L.app.browser_download_url, send);
+  const tmp = path.join(app.getPath('userData'), 'programa-nuevo'); fs.rmSync(tmp, { recursive: true, force: true }); fs.mkdirSync(tmp, { recursive: true });
+  if (process.platform === 'win32') unzip(buf, tmp); else untar(buf, tmp);
+  const src = fs.existsSync(path.join(tmp, 'BigRedReport')) ? path.join(tmp, 'BigRedReport') : tmp, dst = path.dirname(process.execPath), exe = path.basename(process.execPath);
+  if (!fs.existsSync(path.join(src, exe))) throw new Error('El paquete descargado no trae el programa');
+  fs.rmSync(UPD, { recursive: true, force: true });   // el juego nuevo ya viene dentro del programa
+  const { spawn } = require('child_process');
+  if (process.platform === 'win32') {
+    const bat = path.join(app.getPath('temp'), 'brr-actualizar.cmd');
+    fs.writeFileSync(bat, ['@echo off', ':espera', `tasklist /FI "PID eq ${process.pid}" | find "${process.pid}" >nul && (timeout /t 1 /nobreak >nul & goto espera)`,
+      `robocopy "${src}" "${dst}" /E /R:5 /W:1 /NFL /NDL /NJH /NJS /NP >nul`, `start "" "${path.join(dst, exe)}"`, `rmdir /s /q "${tmp}"`, '(goto) 2>nul & del "%~f0"'].join('\r\n'));
+    spawn('cmd.exe', ['/c', bat], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  } else {
+    const sh = path.join(app.getPath('temp'), 'brr-actualizar.sh');
+    fs.writeFileSync(sh, ['#!/bin/sh', `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done`, `cp -rf "${src}/." "${dst}/"`, `chmod +x "${path.join(dst, exe)}" "${path.join(dst, 'BigRedReport.sh')}" 2>/dev/null`,
+      `rm -rf "${tmp}"`, `nohup "${path.join(dst, exe)}" >/dev/null 2>&1 &`, 'rm -f "$0"'].join('\n'), { mode: 0o755 });
+    spawn('/bin/sh', [sh], { detached: true, stdio: 'ignore' }).unref();
+  }
+  setTimeout(() => { stopServer(); app.exit(0); }, 400);
+  return { ok: true, ver: L.ver };
 });
 ipcMain.handle('upd:game', async () => {
   const L = await latest(); if (!L.game) throw new Error('Esta versión no trae el juego por separado');
