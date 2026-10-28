@@ -5,6 +5,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.57**
+- Actualizador del lanzador arreglado («Invalid package» en Windows). Descarga esta versión una vez a mano; después se actualiza sola.
+- DIRT: techos de los boxes que se veían transparentes desde arriba.
+
 **Novedades de la 0.56**
 - Buggy lunar: dirección 6×6 (antes iba de lado).
 - Salto con carga más rápido: un toque, ≈0,7 s y ≈1,5 s.

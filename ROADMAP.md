@@ -155,7 +155,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [ ] 68 RIG4 (España): piedras amarillas mal colocadas
 - [ ] 69 CHOPPER1: postes de checkpoint que no llegan al suelo
 - [x] 70 CITY1: cuadrados lilas flotando tras los edificios
-- [ ] 71 DIRT1/2/3: techos transparentes
+- [x] 71 DIRT1/2/3: techos transparentes
 
 **Logros**
 - [x] 73 Un logro por visitar cada circuito, uno por usar todos los coches, uno por 10 rampas; pantalla partida con 2 jugadores

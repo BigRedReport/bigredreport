@@ -95,7 +95,7 @@ function unzip(buf, dest) {
     const out = path.resolve(dest, name); if (!out.startsWith(path.resolve(dest) + path.sep)) continue;   // nada fuera de la carpeta
     if (name.endsWith('/')) { fs.mkdirSync(out, { recursive: true }); continue; }
     const lo = off + 30 + buf.readUInt16LE(off + 26) + buf.readUInt16LE(off + 28), data = buf.subarray(lo, lo + csz);
-    fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, meth === 8 ? zlib.inflateRawSync(data) : data);
+    fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(/\.asar$/i.test(out) ? out + '_' : out, meth === 8 ? zlib.inflateRawSync(data) : data);   // los .asar con otro nombre: Electron no deja escribirlos tal cual
   }
 }
 ipcMain.handle('upd:check', async () => {
@@ -120,7 +120,7 @@ function untar(buf, dest) {
     if (type === 'L') { long = data.toString('utf8').replace(/\0.*$/s, ''); continue; }
     const out = path.resolve(dest, name); if (!out.startsWith(path.resolve(dest) + path.sep)) continue;
     if (type === '5') fs.mkdirSync(out, { recursive: true });
-    else if (type === '0' || type === '\0') { fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(out, data); try { fs.chmodSync(out, mode & 0o777); } catch (e) { } }
+    else if (type === '0' || type === '\0') { const o2 = /\.asar$/i.test(out) ? out + '_' : out; fs.mkdirSync(path.dirname(out), { recursive: true }); fs.writeFileSync(o2, data); try { fs.chmodSync(o2, mode & 0o777); } catch (e) { } }
     else if (type === '2') { try { fs.mkdirSync(path.dirname(out), { recursive: true }); fs.rmSync(out, { force: true }); fs.symlinkSync(str(157, 257), out); } catch (e) { } }
   }
 }
@@ -129,10 +129,11 @@ ipcMain.handle('upd:app', async (e) => {
   const L = await latest(); if (!L.app) throw new Error('No hay paquete para este sistema');
   const send = (p, got, total) => { try { e.sender.send('upd:progress', { p, got, total }); } catch (x) { } };
   const buf = await download(L.app.browser_download_url, send);
-  const tmp = path.join(app.getPath('userData'), 'programa-nuevo');
-  // Electron trata los .asar como carpetas: para poder escribirlos tal cual hay que desactivarlo mientras se descomprime
+  // carpeta nueva en cada intento (lo que quedara de un intento fallido se borra si se puede; si no, da igual)
   const na = process.noAsar; process.noAsar = true;
-  try { fs.rmSync(tmp, { recursive: true, force: true }); fs.mkdirSync(tmp, { recursive: true }); if (process.platform === 'win32') unzip(buf, tmp); else untar(buf, tmp); }
+  try { for (const d of fs.readdirSync(app.getPath('userData'))) if (/^programa-nuevo/.test(d)) try { fs.rmSync(path.join(app.getPath('userData'), d), { recursive: true, force: true }); } catch (x) { } } catch (x) { }
+  const tmp = path.join(app.getPath('userData'), 'programa-nuevo-' + Date.now());
+  try { fs.mkdirSync(tmp, { recursive: true }); if (process.platform === 'win32') unzip(buf, tmp); else untar(buf, tmp); }
   finally { process.noAsar = na; }
   const src = fs.existsSync(path.join(tmp, 'BigRedReport')) ? path.join(tmp, 'BigRedReport') : tmp, dst = path.dirname(process.execPath), exe = path.basename(process.execPath);
   if (!fs.existsSync(path.join(src, exe))) throw new Error('El paquete descargado no trae el programa');
@@ -141,11 +142,11 @@ ipcMain.handle('upd:app', async (e) => {
   if (process.platform === 'win32') {
     const bat = path.join(app.getPath('temp'), 'brr-actualizar.cmd');
     fs.writeFileSync(bat, ['@echo off', ':espera', `tasklist /FI "PID eq ${process.pid}" | find "${process.pid}" >nul && (timeout /t 1 /nobreak >nul & goto espera)`,
-      `robocopy "${src}" "${dst}" /E /R:5 /W:1 /NFL /NDL /NJH /NJS /NP >nul`, `start "" "${path.join(dst, exe)}"`, `rmdir /s /q "${tmp}"`, '(goto) 2>nul & del "%~f0"'].join('\r\n'));
+      `robocopy "${src}" "${dst}" /E /R:5 /W:1 /NFL /NDL /NJH /NJS /NP >nul`, `for /r "${path.join(dst, 'resources')}" %%f in (*.asar_) do move /y "%%f" "%%~dpnf.asar" >nul`, `start "" "${path.join(dst, exe)}"`, `rmdir /s /q "${tmp}"`, '(goto) 2>nul & del "%~f0"'].join('\r\n'));
     spawn('cmd.exe', ['/c', bat], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   } else {
     const sh = path.join(app.getPath('temp'), 'brr-actualizar.sh');
-    fs.writeFileSync(sh, ['#!/bin/sh', `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done`, `cp -rf "${src}/." "${dst}/"`, `chmod +x "${path.join(dst, exe)}" "${path.join(dst, 'BigRedReport.sh')}" 2>/dev/null`,
+    fs.writeFileSync(sh, ['#!/bin/sh', `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done`, `cp -rf "${src}/." "${dst}/"`, `for f in "${dst}"/resources/*.asar_; do [ -e "$f" ] && mv -f "$f" "\${f%_}"; done`, `chmod +x "${path.join(dst, exe)}" "${path.join(dst, 'BigRedReport.sh')}" 2>/dev/null`,
       `rm -rf "${tmp}"`, `nohup "${path.join(dst, exe)}" >/dev/null 2>&1 &`, 'rm -f "$0"'].join('\n'), { mode: 0o755 });
     spawn('/bin/sh', [sh], { detached: true, stdio: 'ignore' }).unref();
   }

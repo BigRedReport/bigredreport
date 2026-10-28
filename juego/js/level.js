@@ -290,6 +290,7 @@
           const gap = -(oy + ymax) * S - groundAt(ox, oz);   // >0: el pie queda por encima del suelo (metros)
           if (gap > 0.05 && gap < 12) { const base = xfm; xfm = v => { const g = base(v); if (v[1] >= ymax - 1) { const wx = ox + R[0][0] * v[0] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][2] * v[2]; g[1] = groundAt(wx, wz) - 0.1; } return g; }; } } }
       let mm = m;
+      if (/ROOF|CANOP|AWN|SHELTER|TENT/.test(name)) mm = { ...m, faces: m.faces.map(f => ({ ...f, two: true })) };   // tejados: de una sola cara en el original (desde arriba se veían transparentes)
       if (/TUNN/.test(name)) {   // túneles: el original los pintaba negros y tapados por la colina (sin z-buffer); aquí gris oscuro,
         // visibles desde dentro (doble cara) y sin asomar por encima de la colina
         mm = { ...m, faces: m.faces.map(f => f.tex ? f : { ...f, two: true, color: tunnelGrey() }) };
