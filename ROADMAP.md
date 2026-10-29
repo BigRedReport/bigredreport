@@ -45,7 +45,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 
 ## Bloque 5 · Mi coche (medio)
 - [ ] Editor de decoración: metalizados, vinilos y capas de pegatinas, que se vean en online
-- [ ] Garaje con mejoras (motor, ruedas, nitro) pagadas con lo ganado en el campeonato
+- [x] Garaje con mejoras (motor, ruedas, nitro) pagadas con lo ganado contra la máquina
 
 ## Bloque 6 · Social (medio-largo)
 - [x] Invitaciones con enlace y revancha inmediata
@@ -117,7 +117,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 26 Jet Car: sin marcas de ruedas; polvo bajo la nave
 - [x] 27 Modo libre: turbo infinito
 - [x] 28 Color del nitro = color del equipo
-- [ ] 29 Garaje (futuro): color del turbo aparte
+- [x] 29 Garaje: color del turbo aparte
 - [x] 30 Tarjeta del menú principal: logo con sus colores originales
 - [x] 31 El recuadro del logo no recibe sombras (monster truck)
 - [x] 32 Carteles golpeables: girar por el eje correcto (las plantas y las lanchas ya van bien)

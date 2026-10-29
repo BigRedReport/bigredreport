@@ -5,6 +5,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.76**
+- **Garaje** (Un jugador → 🔧 Garaje): ganas créditos corriendo contra la máquina (más en el campeonato y en dificultades altas) y mejoras cada vehículo en tres niveles: motor (aceleración y punta), neumáticos (agarre) y nitro (más largo y uno más). No cuentan en contrarreloj, reto semanal ni online.
+- **Color del turbo** a tu gusto (en el garaje).
+
 **Novedades de la 0.75**
 - **Modo espectador online:** si entras en una sala con la carrera empezada, pulsa «👀 Ver la carrera en curso». Cambias de piloto con ◀ ▶ (o las flechas) y de cámara con C. En cuanto empieza la siguiente carrera, entras a correr.
 

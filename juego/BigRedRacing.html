@@ -108,8 +108,8 @@ input[type=range]{width:100%;accent-color:var(--red)}
 #title .tpress{position:absolute;left:50%;bottom:3.2%;transform:translateX(-50%);font:900 clamp(20px,3.4vw,40px)/1 system-ui;letter-spacing:.16em;color:#ff2a2a;background:rgba(0,0,0,.88);padding:.45em .9em;border-radius:12px;border:2px solid #ff2a2a;box-shadow:0 6px 24px #0007;animation:tblink 1.2s ease-in-out infinite;white-space:nowrap}
 #title .tfoot{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;font-size:12px;color:#222;background:#fffd;padding:2px 10px;border-radius:6px}
 @keyframes tblink{50%{opacity:.55}}
-#donate,#reto{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center}#donate[hidden],#reto[hidden]{display:none}
-#donate .card,#reto .card{max-width:560px;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}#donate h2,#reto h2{margin:0 0 8px} #reto .rtimg{width:100%;border-radius:10px;aspect-ratio:16/9;object-fit:cover;background:#0b0e14} #reto .rtgrid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0} #reto .rtgrid span{color:var(--mut)}
+#donate,#reto,#garage{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center}#donate[hidden],#reto[hidden],#garage[hidden]{display:none}
+#donate .card,#reto .card,#garage .card{max-width:560px;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}#donate h2,#reto h2,#garage h2{margin:0 0 8px} .grhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0} .grhead b{color:#ffd23f} .grrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)} .grrow button{width:auto;margin:0} .grdots{display:flex;gap:4px;margin-top:4px} .grdots i{width:22px;height:6px;border-radius:3px;background:rgba(255,255,255,.15)} .grdots i.on{background:#ff4a3a} #gr_turbo{width:44px;height:30px;padding:0;border:none;background:none;vertical-align:middle} #reto .rtimg{width:100%;border-radius:10px;aspect-ratio:16/9;object-fit:cover;background:#0b0e14} #reto .rtgrid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0} #reto .rtgrid span{color:var(--mut)}
 .dnrow{display:flex;gap:16px;align-items:center;justify-content:space-between;margin:14px 0}.dnrow>div{display:flex;flex-direction:column;gap:10px;flex:1}.dnrow img{border-radius:10px;background:#fff;padding:6px}
 .dnb{display:block;text-align:center;padding:12px 14px;border-radius:10px;font-weight:800;text-decoration:none;color:#fff}.dnb.kofi{background:#29abe0}.dnb.pp{background:#003087}
 .hbtn.dnt{color:#ff6b81}
@@ -229,6 +229,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="tt">Contrareloj</button>
         <button class="hbtn" data-go="free">Modo libre</button>
         <button class="hbtn" data-go="reto">⭐ Reto semanal</button>
+        <button class="hbtn" data-go="garage">🔧 Garaje</button>
         <button class="hbtn small2" data-go="back">◀ Volver</button>
       </div>
       <div class="hcol" id="h_multi" hidden>
@@ -493,6 +494,14 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <label><input id="ph_hud" type="checkbox"> Mostrar marcador</label><button id="ph_shot">Guardar foto</button><button id="ph_exit">Salir (F)</button></div>
 <div id="fps"></div><div id="netbar" hidden></div>
 
+<div id="garage" hidden><div class="card">
+  <h2>🔧 Garaje</h2>
+  <p class="small">Gana créditos corriendo contra la máquina (más en el campeonato) y mejora cada vehículo. Las mejoras no valen en contrarreloj, en el reto semanal ni online.</p>
+  <div class="grhead"><select id="gr_veh"></select><b id="gr_money"></b></div>
+  <div id="gr_rows"></div>
+  <div class="grrow"><div><b>Color del turbo</b> <span class="small">en todas las carreras</span></div><div><input type="color" id="gr_turbo"> <button id="gr_turbo0">Como el coche</button></div></div>
+  <button id="gr_close" style="margin-top:12px">Cerrar</button>
+</div></div>
 <div id="reto" hidden><div class="card">
   <h2>⭐ Reto semanal</h2>
   <div id="rt_body"></div>

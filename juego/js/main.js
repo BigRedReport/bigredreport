@@ -387,6 +387,7 @@
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
     if (v === 'reto') { retoOpen(); return; }
+    if (v === 'garage') { $('garage').hidden = false; garRender(); setTimeout(() => navFocusFirst($('garage')), 0); return; }
     if (v === 'donate') { $('donate').hidden = false; setTimeout(() => navFocusFirst($('donate')), 0); return; }
     if (v === 'exit') { show('bye'); state = 'bye'; if (audio) audio.stopMusic(); try { window.close(); } catch (e) { } if (NAT) setTimeout(() => window.close(), 300); return; }
     if (v === 'back') v = (VIEWS[view] || {}).back || 'home';
@@ -903,8 +904,9 @@
       const r = rivals.find(q => q.car === c); if (r && r.replay) r.replay.setStart(ox, oz, (lvl.start.a16 || 0) + da); });
     if (replayBand) replayBand.reset();
     for (const r of rivals) { r.race.reset(); if (r.ai) r.ai.reset(); r.hornStart = r.hornFin = false; r.rankWas = null; }
-    for (const h of humans) { h.race.reset(); h.cam.init = false; h.cam.posInit = false; h.done = false; h.q('done').hidden = true; h.q('msg').hidden = true; }
-    for (const c of all) { c.dmg = 0; c.broken = 0; c.nitros = lvl.nitros; c.nitroInf = freeMode && c.isPlayer; }   // modo libre: turbo sin límite
+    for (const h of humans) { h.prize = 0; h.race.reset(); h.cam.init = false; h.cam.posInit = false; h.done = false; h.q('done').hidden = true; h.q('msg').hidden = true; }
+    for (const c of all) { c.dmg = 0; c.broken = 0; c.nitros = lvl.nitros; c.nitroInf = freeMode && c.isPlayer; }
+    if (humans[0]) { garApply(humans[0].car); humans[0].car.nitros += humans[0].car.garNitro || 0; }   // modo libre: turbo sin límite
     if (props) props.reset(); if (fx) fx.reset(); crazyInit(); rpStart();
   }
   function restart() {
@@ -998,6 +1000,7 @@
     if (h.newLap) rec.lap = e.lapTime; if (h.newTotal) rec.total = e.total;
     ST.set(recKey(h), JSON.stringify(rec));
     h.done = true; h.total = e.total; updatePositions(0); h.pos = order.findIndex(o => o.h === h) + 1;
+    if (h === humans[0]) h.prize = garPrize(h.pos, order.length, tourMode);
     if (h === humans[0] && !freeMode) { const withRivals = order.length > 1; statsAdd(S => { S.races = (S.races || 0) + 1; if (withRivals && h.pos === 1) S.wins = (S.wins || 0) + 1; if (withRivals && h.pos <= 3) S.podiums = (S.podiums || 0) + 1; if (h.newLap) S.recLaps = (S.recLaps || 0) + 1; }); statsFlush(); }
     if (humans.length > 1) { h.q('done').textContent = h.pos === 1 ? '¡1º! ¡GANADOR!' : h.pos + 'º'; h.q('done').hidden = false; }
     if (h === humans[0] && !freeMode) { const withR = order.length > 1, win = withR && h.pos === 1;
@@ -1029,6 +1032,7 @@
     if (crazyR() && !multi) { const me = h0.car; $('r_title').textContent = (crazy.mode === 'bomba' ? (me.out ? '¡Bum! Has perdido' : '¡Te has librado de la bomba!') : crazy.mode === 'zombie' ? (me.zombie ? 'Te han infectado' : '¡Has sobrevivido!') : crazy.mode === 'polis' ? (crazy.team === 'cops' ? '¡Ganan los polis!' : '¡Ganan los cacos!') + ((crazy.team === 'cops') === me.cop ? ' · ¡HAS GANADO!' : ' · has perdido') : myPos === 1 ? '¡Último superviviente!' : 'Eliminado · ' + myPos + 'º') + ' · ' + lvl.name; }
     if (ttMode && !multi && bestLap) { lbSubmit(lvl.name, car.def.name, bestLap, h0.total); $('r_title').textContent = 'Contrareloj · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap);
       if (reto && reto.level === lvl.name) { lbSubmit(reto.id, car.def.name, bestLap, h0.total); $('r_title').textContent = '⭐ Reto semanal · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap); } }
+    if (h0.prize && !crazyR()) $('r_rec').textContent += ' +' + h0.prize.toLocaleString('es-ES') + ' créditos para el garaje.';
     if (tourMode && rivals.length) { $('r_rec').textContent += ' ' + tournResult(myPos); $('r_again').hidden = true; $('r_menu').textContent = 'Volver al torneo'; }
     else { $('r_again').hidden = false; $('r_menu').textContent = 'Menú'; }
     if (netRace) { $('r_again').hidden = !BRR_net.isHost; $('r_again').textContent = 'Revancha'; $('r_again').onclick = BRR_net.isHost ? () => { toMenu(); setTimeout(() => { if (BRR_net.isHost && BRR_net.room) netLaunch(); }, 900); } : null; }
@@ -2395,6 +2399,40 @@
     reto = { ...w, prev: { hora: opt.hora, clima: opt.clima, ghost: opt.ghost } }; opt.hora = w.hora; opt.clima = w.clima;
     tourMode = false; ttMode = true; freeMode = false; crazyPick = 'normal'; startRace(w.level, w.veh, opt.team || 1, w.laps, 1); };
   function retoEnd() { if (!reto) return; Object.assign(opt, { hora: reto.prev.hora, clima: reto.prev.clima }); save(); reto = null; }
+
+  // ---------- garaje: mejoras por vehículo (motor, agarre, nitro) pagadas con los créditos que ganas corriendo contra la IA ----------
+  // solo valen en carreras contra la máquina (rápida, campeonato, pantalla partida, modos extra), no en contrarreloj, reto ni online
+  const GAR_UP = { eng: { n: 'Motor', d: 'más aceleración y velocidad punta', k: 0.04 }, grip: { n: 'Neumáticos', d: 'más agarre en las curvas', k: 0.05 }, nitro: { n: 'Nitro', d: 'turbo más largo y uno más', k: 0.15 } };
+  const GAR_COST = [600, 1500, 3200], GAR_PRIZE = [900, 550, 380, 260, 170, 110, 80, 60];
+  const garGet = () => { try { return JSON.parse(ST.get('brr_garage') || '{}'); } catch (e) { return {}; } };
+  const garSet = G => ST.set('brr_garage', JSON.stringify(G));
+  const garLv = (G, veh, k) => ((G.up || {})[veh] || {})[k] || 0;
+  function garApply(c) {   // al empezar la carrera (jugador 1)
+    if (!c) return; c.upgEng = c.upgGrip = c.upgNitro = 1;
+    if (opt.turboCol && hexRGB(opt.turboCol)) c._tint = hexRGB(opt.turboCol).map(x => x / 255);
+    if (ttMode || netRace || reto) return; const G = garGet(), v = c.def.name;
+    c.upgEng = 1 + GAR_UP.eng.k * garLv(G, v, 'eng'); c.upgGrip = 1 + GAR_UP.grip.k * garLv(G, v, 'grip'); c.upgNitro = 1 + GAR_UP.nitro.k * garLv(G, v, 'nitro'); c.garNitro = garLv(G, v, 'nitro') > 0 ? 1 : 0;
+  }
+  function garPrize(pos, n, tourn) {   // créditos por terminar (más en el campeonato)
+    if (ttMode || netRace || reto || freeMode || n < 2) return 0; const p = Math.round((GAR_PRIZE[pos - 1] || 40) * (tourn ? 1.6 : 1) * (0.6 + 0.4 * Math.min(1, (n - 1) / 5)) * ([0, 0.7, 1, 1.3, 1.6][opt.diff] || 1) / 10) * 10;
+    const G = garGet(); G.money = (G.money || 0) + p; garSet(G); return p;
+  }
+  function garRender() {
+    const G = garGet(), all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')), v = all.includes($('gr_veh').value) ? $('gr_veh').value : (all.includes(opt.vehicle) ? opt.vehicle : all[0]);
+    if (!$('gr_veh').options.length) $('gr_veh').innerHTML = all.map(n => `<option value="${n}">${esc(VEH_NAMES[n] || n)}</option>`).join(''); $('gr_veh').value = v;
+    $('gr_money').textContent = (G.money || 0).toLocaleString('es-ES') + ' créditos';
+    $('gr_rows').innerHTML = Object.entries(GAR_UP).map(([k, u]) => { const l = garLv(G, v, k), cost = GAR_COST[l];
+      return `<div class="grrow"><div><b>${u.n}</b> <span class="small">${u.d}</span><div class="grdots">${[0, 1, 2].map(i => `<i class="${i < l ? 'on' : ''}"></i>`).join('')}</div></div>
+        <button data-k="${k}" ${cost == null || (G.money || 0) < cost ? 'disabled' : ''}>${cost == null ? 'Al máximo' : 'Mejorar · ' + cost.toLocaleString('es-ES')}</button></div>`; }).join('');
+    for (const b of $('gr_rows').querySelectorAll('button[data-k]')) b.onclick = () => { const G2 = garGet(), k = b.dataset.k, l = garLv(G2, v, k), cost = GAR_COST[l]; if (cost == null || (G2.money || 0) < cost) return;
+      G2.money -= cost; G2.up = G2.up || {}; G2.up[v] = G2.up[v] || {}; G2.up[v][k] = l + 1; garSet(G2); sfx('BEEP4'); garRender(); };
+    $('gr_turbo').value = opt.turboCol || '#ff8c1e';
+  }
+  $('gr_close').onclick = () => { $('garage').hidden = true; };
+  $('garage').onclick = e => { if (e.target.id === 'garage') $('garage').hidden = true; };
+  $('gr_veh').onchange = garRender;
+  $('gr_turbo').oninput = () => { opt.turboCol = $('gr_turbo').value; save(); };
+  $('gr_turbo0').onclick = () => { opt.turboCol = null; save(); garRender(); };
 
   // ---------- bucle ----------
   let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, shTick = 0;
