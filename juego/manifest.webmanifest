@@ -1,6 +1,6 @@
 {
- "name": "Big Red Racing (port)",
- "short_name": "Big Red Racing",
+ "name": "Big Red Report",
+ "short_name": "Big Red Report",
  "start_url": "./BigRedRacing.html",
  "display": "fullscreen",
  "background_color": "#0e1119",
@@ -17,5 +17,7 @@
    "type": "image/png",
    "purpose": "any maskable"
   }
- ]
+ ],
+ "orientation": "landscape",
+ "description": "Big Red Racing (1995) en ordenadores y móviles modernos"
 }
