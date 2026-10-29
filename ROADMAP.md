@@ -186,7 +186,8 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Salpicaduras y chispas originales (SPOTFX)
 - [x] El garaje se ve online y la IA lleva su propio aspecto
 - [x] 75 Cámara cenital lejana estilo Micro Machines
-- [ ] 76 Interiores originales de los coches (volante, salpicadero)
+- [x] 76 Interiores originales de los coches (volante, salpicadero)
+- [ ] Agujas de los relojes del salpicadero que se muevan
 - [ ] 77 Sprites con más resolución
 - [ ] 78 Editor de circuitos al estilo LittleBigPlanet Karting: brochas de terreno, carretera dibujada con waypoints y checkpoints automáticos, biblioteca de objetos, cielo y luz, guardar, probar y volver a editar
 

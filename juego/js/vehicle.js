@@ -223,11 +223,24 @@
     }
     // centros de las luces de freno (izquierda y derecha) para el halo de luz
     const brakeMB = (() => { try { return buildBrake(body, findTM, lvl.pal); } catch (e) { console.warn(e); return null; } })(), brakeSpots = [];
+    // interior para la cámara de cabina (bloque «vehicle IN_xxx» del .TXT): salpicadero/marco y volante, en coordenadas de la cabeza del piloto
+    let interior = null;
+    try { const ii = lines.findIndex(l => /^vehicle\s+IN_/i.test(l)); if (ii >= 0) { const iname = lines[ii].trim().split(/\s+/)[1].toUpperCase(), ib = []; for (let i = ii + 1; i < lines.length && !/^vehicle\s/.test(lines[i]); i++) ib.push(lines[i]);
+      const ish = ib.filter(l => /^\s*wheelsh\s/.test(l)).map(l => l.trim().split(/\s+/)[1].toUpperCase()), im = parseM(iname + team) || parseM(iname + '1');
+      if (im) { const imb = new BRR.MeshBuilder(pal); imb.addModel({ ...im, faces: im.faces.map(f => ({ ...f, two: true })) }, v => BRR.toGL(v[0], v[1], v[2]), findTM);
+        let steer = null; for (const l of ib) { const m = l.match(/^\s*wheel\s+(.*)$/); if (!m) continue; const f = m[1].split(',').map(num); if (f[0] !== 0x82) continue;
+          const sm = parseM(ish[f[1] & 0x1f] || ''); if (!sm) continue; const smb = new BRR.MeshBuilder(pal); smb.addModel({ ...sm, faces: sm.faces.map(q => ({ ...q, two: true })) }, v => BRR.toGL(v[0], v[1], v[2]), findTM);
+          steer = { mesh: smb, pos: BRR.toGL(f[2], f[3], f[4]), tilt: f[5] * 2 * Math.PI / 65536 }; break; }
+        // «ndial copy sx,sy, dx,dy, w,h»: el original copia las esferas de los relojes dentro de la hoja del salpicadero
+        const dash = (txt.match(/^\s*dash\s+(\w+)/m) || [])[1]; const T = dash && imb.textures.get(dash.toUpperCase());
+        if (T) for (const l of ib) { const m = l.match(/^\s*ndial\s+copy\s+(.*)$/); if (!m) continue; const [sx, sy, dx, dy, w, h] = m[1].split(',').map(num); const src = new Uint8Array(T);
+          for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const a = ((sy + y) * 256 + sx + x) * 4, b = ((dy + y) * 256 + dx + x) * 4; if (a + 3 < src.length && b + 3 < T.length) for (let c = 0; c < 4; c++) T[b + c] = src[a + c]; } }
+        interior = { mesh: imb, steer }; } } } catch (e) { interior = null; }
     if (brakeMB) { const P = []; for (const g of brakeMB.groups.values()) for (let i = 0; i < g.pos.length; i += 3) P.push([g.pos[i], g.pos[i + 1], g.pos[i + 2]]);
       for (const sd of [-1, 1]) { const Q = P.filter(p => Math.sign(p[0] || sd) === sd); if (Q.length) brakeSpots.push([0, 1, 2].map(a => Q.reduce((s, q) => s + q[a], 0) / Q.length)); } }
     return {
       dmgFx, brakeSpots, tough: (() => { const m = all.match(/hnd damage\s+(\d+)/); return m ? +m[1] : 100; })(),
-      kind, decoParts, brake: brakeMB,
+      kind, decoParts, brake: brakeMB, interior,
       name, vname, mesh: mb, wheelMeshes, engineWav: engM ? name + '/' + engM[1].toUpperCase() + '.WAV' : null,
       nitro: nitroPos ? BRR.toGL(...nitroPos) : null, headPos: headPos ? BRR.toGL(...headPos) : null,
       head: intM ? BRR.toGL(num(intM[1]), num(intM[2]), num(intM[3])) : [0, 0.5, 0],

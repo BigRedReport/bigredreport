@@ -6,7 +6,7 @@
   try { R = new BRR.Renderer(canvas); } catch (e) { $('err').textContent = e.message; return; }
 
   // ---------- opciones ----------
-  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', fxs: 'original', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
+  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, cabin: true, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', fxs: 'original', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
   let opt = { ...DEF };
   // perfiles: cada uno guarda sus ajustes, récords, campeonato y estadísticas aparte (claves con @perfil)
   let PROF = ''; try { PROF = localStorage.getItem('brr_profile') || ''; } catch (e) { }
@@ -32,7 +32,7 @@
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
     { const el = $('o_lang'); el.innerHTML = Object.entries(BRR.LANGS).map(([k, n]) => `<option value="${k}">${n}</option>`).join(''); el.value = BRR.lang(); el.onchange = () => BRR.setLang(el.value); }
     for (const k of ['fxs', 'aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'clouds']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
-    for (const k of ['hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
+    for (const k of ['cabin', 'hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
     R.fxaa = opt.aa === '1';
@@ -866,7 +866,7 @@
   let helpT = 0, replayBand = null;
   const vdCache = new Map();
   function vehDraw(d) { const k = d.name; if (vdCache.has(k) && vdCache.get(k).lvl === lvl) return vdCache.get(k).v;
-    const v = { brake: d.brake ? R.upload(d.brake) : null, wheels: d.wheelMeshes.map(m => m ? R.upload(m) : null), deco: d.decoParts.map(x => ({ ...x, draw: R.upload(x.mesh) })) }; vdCache.set(k, { lvl, v }); return v; }
+    const v = { brake: d.brake ? R.upload(d.brake) : null, wheels: d.wheelMeshes.map(m => m ? R.upload(m) : null), deco: d.decoParts.map(x => ({ ...x, draw: R.upload(x.mesh) })), interior: d.interior ? { body: R.upload(d.interior.mesh), steer: d.interior.steer ? { ...d.interior.steer, draw: R.upload(d.interior.steer.mesh) } : null } : null }; vdCache.set(k, { lvl, v }); return v; }
   // carrera de una marioneta de red: lo que se sabe de ella llega en sus mensajes
   function puppetRace(ent, laps) { return { laps, lapTimes: [], ev: [], phase: 'race', get finishT() { return ent.fin; }, score: () => ent.sc || 0, reset() { ent.fin = null; ent.sc = 0; }, update() { } }; }
   // ---------- online: estado ----------
@@ -1863,8 +1863,19 @@
   }
   function camShare() { BRR.aiCams = humans.map(h => { const f = V.sub(h.cam.look, h.cam.pos), L = V.len(f) || 1; return { p: h.cam.pos, f: V.mul(f, 1 / L) }; }); }
   const mm3 = (A, B) => A.map(r => [0, 1, 2].map(j => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
+  // interior original (cámara de cabina): el salpicadero y el volante, colocados en la cabeza del piloto
+  window.BRR_INTK = window.BRR_INTK || [1, 0, -0.3, 0];   // escala y desplazamiento del interior (ajustado a ojo)
+  function drawInterior(c, I) {
+    const Rm = c.R, hd = c.def.head, [k, ox, oy, oz] = window.BRR_INTK, e = V.add(c.p, BRR.mv(Rm, [hd[0] + ox, hd[1] + 0.25 + oy, hd[2] + oz])), Ks = Rm.map(r => r.map(x => x * k));
+    R.draw(I.body, BRR.M4.fromRT(Ks, e));
+    if (I.steer) { const t = I.steer.tilt, a = -c.steerAng * 2.5, ct = Math.cos(t), st = Math.sin(t), ca = Math.cos(a), sa = Math.sin(a);
+      const Rt = [[1, 0, 0], [0, ct, -st], [0, st, ct]], Rz = [[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]], M = mm3(Rm, mm3(Rt, Rz)).map(r => r.map(x => x * k));
+      R.draw(I.steer.draw, BRR.M4.fromRT(M, V.add(e, BRR.mv(Rm, I.steer.pos.map(x => x * k))))); }
+  }
   function drawCar(c, body, hide, dd = carDraw) {
-    const Rm = c.R; if (hide || c.out) return; R.draw(body, BRR.M4.fromRT(Rm, c.p));
+    const Rm = c.R; if (c.out) return;
+    if (hide) { if (hide === 'capo' && dd.interior && opt.cabin !== false) drawInterior(c, dd.interior); return; }
+    R.draw(body, BRR.M4.fromRT(Rm, c.p));
     if (c.headDraw && c.def.headPos) R.draw(c.headDraw, BRR.M4.fromRT(Rm, V.add(c.p, BRR.mv(Rm, c.def.headPos))));   // el piloto
     if (dd.brake && c.brakeLight) { R.drawGlow(dd.brake, BRR.M4.fromRT(Rm, c.p), 1.7);   // luces de freno, con halo de luz
       if (fx && c.def.brakeSpots) for (const q of c.def.brakeSpots) { const p = V.add(c.p, BRR.mv(Rm, [q[0], q[1], q[2] + 0.05])); fx.glow(p, [1, 0.12, 0.08, 0.55], 0.45); fx.glow(p, [1, 0.55, 0.45, 0.6], 0.16); } }
@@ -2648,7 +2659,7 @@
       R.viewRect = [vx, vy, vw, vh];
       R.begin(cam.pos, view, proj, far, lvl.sky);
       R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far); for (const q of netRamps.values()) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of humans) { if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p)); if (q.pipe) R.draw(q.pipe.up, BRR.M4.fromRT(q.pipe.R, q.pipe.p)); }
-      for (const hh of humans) drawCar(hh.car, hh.draw, hh === h && ['capo', 'parachoques'].includes(h.camMode || opt.cam));
+      for (const hh of humans) drawCar(hh.car, hh.draw, hh === h && ['capo', 'parachoques'].includes(h.camMode || opt.cam) ? (h.camMode || opt.cam) : false, hh === humans[0] ? carDraw : undefined);
       for (const r of rivals) { const d2 = (r.car.p[0] - cam.pos[0]) ** 2 + (r.car.p[2] - cam.pos[2]) ** 2; if (d2 < far * far) drawCar(r.car, r.draw, false, r.dd); }
       kartDraw(); ghostDraw(h);
       fx.draw(BRR.M4.mul(proj, view), cam.pos, view, far, R.fogUsed || lvl.sky);
