@@ -471,7 +471,7 @@
     const mine = typeof opt.logo === 'number' ? opt.logo : opt.logo, logos = [...Array.from({ length: 13 }, (_, i) => i), ...(BRR.LOGOS_EXTRA || []).map(l => 'x:' + l.id)].filter(l => l !== mine).sort(() => Math.random() - 0.5);
     for (let k = 0; k < n; k++) { let best = 0, bd = -1;
       for (let t = 0; t < 40; t++) { const h = Math.random() * 360, d = Math.min(360, ...hues.map(q => Math.min(Math.abs(h - q), 360 - Math.abs(h - q)))); if (d > bd) { bd = d; best = h; } }
-      hues.push(best); out.push({ paint: hslHex(best, 0.7 + Math.random() * 0.3, 0.42 + Math.random() * 0.16), horn: horns[k % horns.length], teamName: names[k % names.length], logo: logos[k % logos.length] }); }
+      hues.push(best); out.push({ paint: hslHex(best, 0.7 + Math.random() * 0.3, 0.42 + Math.random() * 0.16), horn: horns[k % horns.length], teamName: names[k % names.length], logo: logos[k % logos.length], gar: garRandom() }); }
     return out; }
   const carCol = c => c.paintHex || TEAM[c.team].c;
   // logo elegido como imagen: el propio del jugador o uno de los añadidos al port ('x:id')
@@ -795,8 +795,9 @@
         for (const e of net.order) {
           if (e.id === net.myId) continue;
           $('load_msg').textContent = 'Cargando ' + (e.name || 'rival') + '…';
-          const t = e.team || 1, d = await BRR.loadVehicle(files, e.veh || veh, lvl, t, { logo: e.logo != null ? await logoRGBAOf(e.logo) : null, logoHi: typeof e.logo === 'string' ? await logoHiOf(e.logo) : null, paint: hexRGB(e.paint) }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = e.paint || null; c.teamName = cleanTeamName(e.teamName) || null; c.headDraw = await driverHead(specFrom(e) || (e.char != null ? e.char : t - 1), t, hexRGB(e.paint));
-          const rr = new BRR.Race(lvl, laps || lvl.laps), ent = { id: e.id, name: e.name, car: c, race: rr, ai: null, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, isAI: !!e.ai, hornType: e.horn || null };
+          const t = e.team || 1, d = await BRR.loadVehicle(files, e.veh || veh, lvl, t, { logo: e.logo != null ? await logoRGBAOf(e.logo) : null, logoHi: typeof e.logo === 'string' ? await logoHiOf(e.logo) : null, paint: hexRGB(e.paint), glass: e.gar ? garGlass(e.gar) : null }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = e.paint || null; c.teamName = cleanTeamName(e.teamName) || null; c.headDraw = await driverHead(specFrom(e) || (e.char != null ? e.char : t - 1), t, hexRGB(e.paint));
+          if (e.gar) garApply(c, e.gar);
+          const rr = new BRR.Race(lvl, laps || lvl.laps), ent = { id: e.id, name: e.name, car: c, race: rr, ai: null, draw: R.upload(d.mesh), dd: e.gar ? withRims(vehDraw(d), d, { ...e.gar, paint: e.paint }) : vehDraw(d), inp: null, isAI: !!e.ai, hornType: e.horn || null };
           if (e.ai && net.role === 'host') ent.ai = new BRR.AIDriver(c, rr, (skill) * (0.97 + 0.03 * Math.random()), lanes[ak % lanes.length], e.profile || profiles[ak % profiles.length]);
           else { ent.remote = true; c.puppet = true; ent.race = puppetRace(ent, laps || lvl.laps); }
           if (e.ai) ak++;
@@ -818,10 +819,10 @@
           $('load_msg').textContent = 'Cargando rivales… ' + (rivals.length + 1) + '/' + nR;
           let t = rec.team + 1; if (used.has(t)) t = [1, 2, 3, 4, 5, 6].find(x => !used.has(x)) || t; used.add(t);
           const lk = looks[rivals.length] || {}, pt = hexRGB(lk.paint);
-          const vn = cars[rec.veh] || veh, d = await BRR.loadVehicle(files, files.path(vn + '.VHC') ? vn : veh, lvl, t, { paint: pt, logo: lk.logo != null ? await logoRGBAOf(lk.logo) : null }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
+          const vn = cars[rec.veh] || veh, d = await BRR.loadVehicle(files, files.path(vn + '.VHC') ? vn : veh, lvl, t, { paint: pt, glass: lk.gar ? garGlass(lk.gar) : null, logo: lk.logo != null ? await logoRGBAOf(lk.logo) : null }), c = new BRR.Car(d, lvl); if (lk.gar) garApply(c, lk.gar); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
           const rr = new BRR.Race(lvl, laps || lvl.laps);
           per.push(BRR.replayPace(rec) * BRR.S / (0.88 * c.topSpeed));
-          rivals.push({ car: c, race: rr, ai: null, replay: new BRR.ReplayDriver(c, rr, rec, replayBand, 0.23), draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, hornType: lk.horn || null });
+          rivals.push({ car: c, race: rr, ai: null, replay: new BRR.ReplayDriver(c, rr, rec, replayBand, 0.23), draw: R.upload(d.mesh), dd: lk.gar ? withRims(vehDraw(d), d, { ...lk.gar, paint: lk.paint }) : vehDraw(d), inp: null, hornType: lk.horn || null });
         }
         per.sort((a, b) => a - b); const T = Math.max(0.12, Math.min(0.4, per[per.length >> 1]));
         for (const r of rivals) if (r.replay) r.replay.period = T;
@@ -834,16 +835,18 @@
       for (let k = rivals.length; k < (net ? 0 : nR); k++) {
         $('load_msg').textContent = 'Cargando rivales… ' + (k + 1) + '/' + nR;
         const lk = looks[k] || {}, pt = hexRGB(lk.paint);
-        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t, { paint: pt, logo: lk.logo != null ? await logoRGBAOf(lk.logo) : null }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
+        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t, { paint: pt, glass: lk.gar ? garGlass(lk.gar) : null, logo: lk.logo != null ? await logoRGBAOf(lk.logo) : null }), c = new BRR.Car(d, lvl); if (lk.gar) garApply(c, lk.gar); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
         const rr = new BRR.Race(lvl, laps || lvl.laps), ai = new BRR.AIDriver(c, rr, skill * (0.97 + 0.03 * Math.random()), lanes[k], profiles[k]);
         if (recLines.length) ai.line = recLines[k % recLines.length];
-        rivals.push({ car: c, race: rr, ai, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, hornType: lk.horn || null });
+        rivals.push({ car: c, race: rr, ai, draw: R.upload(d.mesh), dd: lk.gar ? withRims(vehDraw(d), d, { ...lk.gar, paint: lk.paint }) : vehDraw(d), inp: null, hornType: lk.horn || null });
       }
       const firstAI = rivals.find(r => r.ai); if (firstAI) { const md = BRR.aiMode(firstAI.car);
         if (!(lvl.aiLines || {})[md] && !(await BRR.loadAILine(lvl, md))) { $('load_msg').textContent = 'Preparando a los pilotos (solo la primera vez)…'; await new Promise(r => setTimeout(r, 30)); BRR.buildAILine(lvl, firstAI.race, md); BRR.saveAILine(lvl, md); } }
       props = new BRR.Props(lvl, R); fx = new BRR.Effects(R.gl, lvl);
       fx.orig = opt.fxs !== 'moderno';   // humo y polvo: los sprites animados del original (o los modernos)
-      try { const E = files.has(lvl.env + '.ENV') ? await files.archive(lvl.env + '.ENV') : null, tm = E && E.get('SPOTFX2.TM'); if (tm) { const rgba = BRR.tmRGBA(tm, lvl.pal); fx.setSprites({ w: 256, h: tm.length / 256, data: new Uint8Array(rgba.data ? rgba.data.buffer : rgba.buffer) }); } } catch (e) { }
+      try { const E = files.has(lvl.env + '.ENV') ? await files.archive(lvl.env + '.ENV') : null, tm = E && E.get('SPOTFX2.TM'), tm2 = E && E.get('SPOTFX.TM'); if (tm) { const a2 = BRR.tmRGBA(tm, lvl.pal), b2 = tm2 ? BRR.tmRGBA(tm2, lvl.pal) : null, all = new Uint8Array(256 * 384 * 4);
+        if (b2) for (let y = 12; y < 80; y++) for (let x = 0; x < 256; x++) { const k = (y * 256 + x) * 4; if (!b2[k + 3]) continue; const l = Math.max(b2[k], b2[k + 1], b2[k + 2]); b2[k] = Math.min(255, l * 0.62 + 40); b2[k + 1] = Math.min(255, l * 0.8 + 45); b2[k + 2] = Math.min(255, l * 0.95 + 55); } /* agua: azul blanquecino (con algunas paletas salía verde) */
+        all.set(a2, 0); if (b2) all.set(b2, 256 * 192 * 4); fx.setSprites({ w: 256, h: b2 ? 384 : 192, data: b2 ? all : a2 }); } } catch (e) { }   // SPOTFX2 (humo, polvo) + SPOTFX (agua, chispas)
       if (net && net.role === 'spec') humans[0].car.spec = true;
       placeGrid(); layoutViews();
       R.setFilterAll(opt.filter);
@@ -1402,7 +1405,7 @@
     const A = R.atmos; if (!A || !A.lights || !R.mode) { R.headl = null; return; }
     const cars = [...humans.map(h => h.car), ...rivals.map(r => r.car)].filter(c => V.len(V.sub(c.p, cam)) < 90).sort((a, b) => V.len(V.sub(a.p, cam)) - V.len(V.sub(b.p, cam))).slice(0, 8), H = [];
     for (const c of cars) { const Rm = c.R, b = c.def.box, d = V.norm(BRR.mv(Rm, [0, -0.1, -1]));
-      const lt = c.isPlayer && humans[0] && c === humans[0].car ? ({ blanca: 1, intermedia: 2, amarilla: 3 }[opt.lightCol] || 0) : 0, gc = [[1, 0.95, 0.8], [0.82, 0.9, 1], [1, 0.96, 0.88], [1, 0.78, 0.32]][lt];   // color de las luces del garaje
+      const lt = c.lightT || 0, gc = [[1, 0.95, 0.8], [0.82, 0.9, 1], [1, 0.96, 0.88], [1, 0.78, 0.32]][lt];   // color de las luces del garaje
       for (const sx of [-1, 1]) { const p = V.add(c.p, BRR.mv(Rm, [b.c[0] + sx * b.h[0] * 0.62, b.c[1], b.c[2] - b.h[2] * 0.98])); H.push({ p, d, k: 2.4, t: lt });
         if (fx) { fx.glow(p, [gc[0], gc[1], gc[2], 0.5], 0.42); fx.glow(p, [Math.min(1, gc[0] + 0.05), Math.min(1, gc[1] + 0.05), Math.min(1, gc[2] + 0.1), 0.8], 0.14); } } }
     R.headl = H;
@@ -1571,7 +1574,7 @@
   function netTracks() { return front ? front.tracks : []; }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const myLogo = () => myLogoData() || (typeof opt.logo === 'number' ? opt.logo : null);
-  const myData = () => ({ team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, head: myHead(), body: myBody(), paint: opt.paint || null, teamName: myTeamName() || null });
+  const myData = () => ({ gar: garMine(), team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, head: myHead(), body: myBody(), paint: opt.paint || null, teamName: myTeamName() || null });
   const tById = id => netTracks().find(x => x.id === id);
   const tLabel = id => { const t = tById(id); return t ? (t.place || t.id) + ' · ' + t.id : id || '?'; };
   $('n_url').value = opt.netUrl && /^wss?:/.test(opt.netUrl) ? opt.netUrl : '';
@@ -1771,7 +1774,7 @@
   }
   function netLaunch() {
     const r = BRR_net.room; if (!r || !BRR_net.isHost) return; const info = r.info || {};
-    const players = BRR_net.members.map(m => ({ id: m.id, name: m.name, team: m.data.team || 1, veh: m.data.veh, logo: m.data.logo || null, char: m.data.char || 0, paint: m.data.paint || null }));
+    const players = BRR_net.members.map(m => ({ id: m.id, name: m.name, team: m.data.team || 1, veh: m.data.veh, logo: m.data.logo || null, char: m.data.char || 0, paint: m.data.paint || null, gar: m.data.gar || null }));
     const t = tById(info.level), cars = (t && t.cars && t.cars.length) ? t.cars : ['JEEP'];
     const freeR = info.mode === 'free'; for (const p of players) if (!freeR && !cars.includes(p.veh) || !p.veh) p.veh = cars[0];
     const used = new Set(players.map(p => p.team)), free = [1, 2, 3, 4, 5, 6].filter(x => !used.has(x)), prof = ['experto', 'agresivo', 'imprevisible', 'prudente', 'torpe'];
@@ -2403,16 +2406,23 @@
 
   // ---------- garaje: solo estética (los coches son los que son): ruedas, color del turbo, neones debajo del coche y tintado de ventanas ----------
   const GLASS = { normal: null, oscuro: 0.45, negro: 0.18, color: 'c' };
-  function garGlass() {   // color de los cristales (null = el de siempre)
-    const g = opt.glass || 'normal'; if (g === 'normal') return null; const base = hexRGB(opt.glassCol || '#46607a') || [70, 96, 122];
+  // lo del garaje de un coche: el tuyo sale de las opciones; el de los demás (online) y el de la IA llega en sus datos
+  const garMine = () => ({ rim: opt.rim || 'orig', rimSize: opt.rimSize || 17, rimCol: opt.rimCol || 'plata', neon: opt.neon || 'no', neonCol: opt.neonCol || '#00e5ff', glass: opt.glass || 'normal', glassCol: opt.glassCol || '#46607a', turboCol: opt.turboCol || null, lightCol: opt.lightCol || 'normal', paint: opt.paint || null });
+  function garRandom() {   // un aspecto al azar para la IA (a veces tuneado, a veces de serie)
+    const pick = a => a[Math.random() * a.length | 0], hue = Math.random() * 360, tuned = Math.random() < 0.55;
+    return { rim: tuned ? pick(['malla', 'radios5', 'multi', 'estrella', 'disco', 'acero']) : 'orig', rimSize: pick([15, 16, 17, 17, 18, 19]), rimCol: pick(['plata', 'plata', 'negro', 'gris', 'oro', 'bronce', 'blanco', 'carro']),
+      neon: tuned && Math.random() < 0.35 ? 'si' : 'no', neonCol: hslHex(hue, 1, 0.55), glass: tuned ? pick(['normal', 'oscuro', 'negro', 'normal']) : 'normal', glassCol: '#46607a', turboCol: null, lightCol: pick(['normal', 'normal', 'blanca', 'intermedia', 'amarilla']) };
+  }
+  function garGlass(G = garMine()) {   // color de los cristales (null = el de siempre)
+    const g = G.glass || 'normal'; if (!GLASS[g] && g !== 'color' || g === 'normal') return null; const base = hexRGB(G.glassCol || '#46607a') || [70, 96, 122];
     return g === 'color' ? base : [70, 92, 122].map(x => Math.round(x * GLASS[g]));
   }
-  function garApply(c) {   // al empezar la carrera (jugador 1)
-    if (!c) return; if (opt.turboCol && hexRGB(opt.turboCol)) c._tint = hexRGB(opt.turboCol).map(x => x / 255);
-    c.neon = opt.neon === 'si' && hexRGB(opt.neonCol || '#00e5ff') ? hexRGB(opt.neonCol || '#00e5ff').map(x => x / 255) : null;
+  function garApply(c, G = garMine()) {   // al empezar la carrera
+    if (!c || !G) return; c.gar = G; if (G.turboCol && hexRGB(G.turboCol)) c._tint = hexRGB(G.turboCol).map(x => x / 255);
+    c.neon = G.neon === 'si' && hexRGB(G.neonCol || '#00e5ff') ? hexRGB(G.neonCol || '#00e5ff').map(x => x / 255) : null; c.lightT = { blanca: 1, intermedia: 2, amarilla: 3 }[G.lightCol] || 0;
   }
   function neonFrame() {   // neones: luz de color bajo la carrocería (como los coches tuneados)
-    for (const h of humans) { const c = h.car; if (!c || !c.neon || c.out) continue; const b = c.def.box, R = c.R, y = b.c[1] - b.h[1] + 0.12, pul = 0.85 + 0.15 * Math.sin(performance.now() / 260);
+    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { if (!c || !c.neon || c.out || camDist(c.p) > 120) continue; const b = c.def.box, R = c.R, y = b.c[1] - b.h[1] + 0.12, pul = 0.85 + 0.15 * Math.sin(performance.now() / 260);
       // mancha de luz en el suelo (rectángulo algo más grande que el coche, pegado al terreno) y un brillo en los bajos
       const rt = BRR.mv(R, [1, 0, 0]), fw = BRR.mv(R, [0, 0, 1]), cc = V.add(c.p, BRR.mv(R, [0, 0, b.c[2]])), W = b.h[0] * 2.0, L = b.h[2] * 1.45;
       const pt = (sx, sz) => { const q = V.add(cc, V.add(V.mul(rt, sx * W), V.mul(fw, sz * L))); return [q[0], lvl.terrain(q[0], q[2]) + 0.06, q[2]]; };
@@ -2484,10 +2494,11 @@
     return R.upload(mb);
   }
   const rimCache = new Map();
-  function rimWheels(d) {   // las ruedas del vehículo con las llantas elegidas (null si no se usan)
-    const st = opt.rim || 'orig'; if (st === 'orig' || !d.wheelMeshes || /hover|boat|track/.test(d.kind || '')) return null;
-    const key = d.name + '|' + st + '|' + (opt.rimCol || 'plata') + '|' + (opt.rimSize || 17); if (rimCache.has(key) && rimCache.get(key).lvl === lvl) return rimCache.get(key).w;
-    const col = opt.rimCol === 'carro' ? (hexRGB(opt.paint) || [200, 40, 30]).map(x => x / 255) : RIM_COLS[opt.rimCol] || RIM_COLS.plata, frac = RIM_SIZES[opt.rimSize] || 0.7;
+  const withRims = (dd, d, G) => { const rw = rimWheels(d, G); return rw ? { ...dd, wheels: dd.wheels.map((w, i) => rw[i] || w) } : dd; };
+  function rimWheels(d, G = garMine()) {   // las ruedas del vehículo con las llantas elegidas (null si no se usan)
+    const st = (G && G.rim) || 'orig'; if (st === 'orig' || !d.wheelMeshes || /hover|boat|track/.test(d.kind || '')) return null;
+    const key = d.name + '|' + st + '|' + (G.rimCol || 'plata') + '|' + (G.rimSize || 17) + '|' + (G.rimCol === 'carro' ? G.paint : ''); if (rimCache.has(key) && rimCache.get(key).lvl === lvl) return rimCache.get(key).w;
+    const col = G.rimCol === 'carro' ? (hexRGB(G.paint) || [200, 40, 30]).map(x => x / 255) : RIM_COLS[G.rimCol] || RIM_COLS.plata, frac = RIM_SIZES[G.rimSize] || 0.7;
     const W = d.wheelMeshes.map((mb, wi) => { if (!mb) return null; let x0 = 1e9, x1 = -1e9, r = 0; for (const g of mb.groups.values()) for (let i = 0; i < g.pos.length; i += 3) { x0 = Math.min(x0, g.pos[i]); x1 = Math.max(x1, g.pos[i]); r = Math.max(r, Math.hypot(g.pos[i + 1], g.pos[i + 2])); }
       if (!(r > 0.05) || x1 - x0 < 0.02) return null; const hw = (x1 - x0) / 2, cx = (x0 + x1) / 2, side = d.wheels && d.wheels[wi] ? (d.wheels[wi].c[0] < 0 ? -1 : 1) : (Math.abs(x1) >= Math.abs(x0) ? 1 : -1);
       const m = rimMesh(r, hw, side, st, col, frac, cx); return { m, cx }; });

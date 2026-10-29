@@ -15,6 +15,8 @@ const cleanData = d => { const o = {}; if (!d || typeof d !== 'object') return o
     if (typeof d.logo === 'number' && d.logo >= 0 && d.logo < 64) o.logo = d.logo | 0;
     else if (typeof d.logo === 'string' && d.logo.length <= 200000 && /^data:image\/(png|webp|jpeg);base64,[A-Za-z0-9+/=]+$/.test(d.logo)) o.logo = d.logo;
     else if ('logo' in d) o.logo = null;
+    if (d.gar && typeof d.gar === 'object') { const g = d.gar, q = {}, hx = v => typeof v === 'string' && /^#[0-9a-f]{6}$/i.test(v) ? v : null, w = (v, n) => typeof v === 'string' && new RegExp('^[a-z0-9]{1,' + n + '}$').test(v) ? v : null;   // garaje (estética)
+      q.rim = w(g.rim, 10); if ([15, 16, 17, 18, 19].includes(+g.rimSize)) q.rimSize = +g.rimSize; q.rimCol = w(g.rimCol, 8); q.neon = g.neon === 'si' ? 'si' : 'no'; q.neonCol = hx(g.neonCol); q.glass = w(g.glass, 8); q.glassCol = hx(g.glassCol); q.turboCol = hx(g.turboCol); q.lightCol = w(g.lightCol, 10); o.gar = q; }
     return o; };
 // clasificaciones de contrarreloj por circuito (se guardan en clasificaciones.json junto al servidor)
 const LBF = path.join(__dirname, 'clasificaciones.json'); let LB = {}; try { LB = JSON.parse(fs.readFileSync(LBF, 'utf8')); } catch (e) { }

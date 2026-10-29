@@ -183,7 +183,8 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 
 **Más grandes (después)**
 - [x] 74 Humo y polvo originales (sprites de los .ENV), como opción
-- [ ] Salpicaduras y chispas originales (SPOTFX)
+- [x] Salpicaduras y chispas originales (SPOTFX)
+- [x] El garaje se ve online y la IA lleva su propio aspecto
 - [x] 75 Cámara cenital lejana estilo Micro Machines
 - [ ] 76 Interiores originales de los coches (volante, salpicadero)
 - [ ] 77 Sprites con más resolución

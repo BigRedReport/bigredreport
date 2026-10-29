@@ -2,6 +2,9 @@
 "use strict";
 (function () {
   const BRR = window.BRR, V = BRR.V;
+  // hojas de sprites del original (SPOTFX2 arriba, SPOTFX debajo): posición del primer fotograma, tamaño, columnas y número de fotogramas
+  const SPR = { smoke: { x: 0, y: 0, w: 40, h: 40, cols: 6, n: 12 }, dust: { x: 0, y: 80, w: 40, h: 40, cols: 6, n: 12 },
+    splash: { x: 0, y: 192 + 56, w: 24, h: 24, cols: 9, n: 9, k: 1.2 }, spark: { x: 0, y: 192 + 80, w: 32, h: 24, cols: 3, n: 6, k: 0.9, mid: true } };
   BRR.Effects = class {
     constructor(gl, lvl) {
       this.gl = gl; this.lvl = lvl; this.parts = []; this.marks = []; this.maxMarks = 2600; this.last = new Map();
@@ -61,6 +64,7 @@ void main(){ float a=vcol.a;
     glow(p, col, size) { (this.glows || (this.glows = [])).push({ p, col, size }); }
     glowQuad(P, col) { (this.glows || (this.glows = [])).push({ quad: P, col }); }   // mancha de luz plana (neones en el suelo)
     sparks(p, n = 12) {
+      if (this.sprTex && this.orig && this.sprH > 192) { for (let k = 0; k < Math.max(1, Math.min(3, n / 10 | 0)); k++) this.parts.push({ p: [p[0] + (Math.random() - .5) * 0.4, p[1] + Math.random() * 0.3, p[2] + (Math.random() - .5) * 0.4], v: [0, 0.3, 0], col: [1, 1, 1, 1], size: 0.5, life: 0.3, age: 0, grow: 0, solid: true, spr: 'spark' }); n = Math.ceil(n / 3); }   // chispas del original + unas pocas sueltas
       for (let k = 0; k < n; k++) this.parts.push({ p: p.slice(), v: [(Math.random() - .5) * 9, Math.random() * 6, (Math.random() - .5) * 9], col: [1, 0.85 - Math.random() * .3, 0.3, 1], size: 0.12, life: 0.35 + Math.random() * .3, age: 0, grow: 0, grav: 1, solid: true });
     }
     // un coche: polvo/agua según superficie y velocidad, marcas al derrapar o en tierra
@@ -96,6 +100,7 @@ void main(){ float a=vcol.a;
               for (let k = 0; k < 3; k++) this.parts.push({ p: [wc[0], wc[1] + 0.05, wc[2]], v: [back[0] * 0.5 + rt[0] * side * (1.5 + Math.random() * 2.5) + (Math.random() - .5), 1.8 + Math.random() * (1.5 + sp * 0.06), back[2] * 0.5 + rt[2] * side * (1.5 + Math.random() * 2.5) + (Math.random() - .5)],
                 col: [0.86, 0.94, 1, 0.75], size: 0.07 + Math.random() * 0.07, life: 0.45 + Math.random() * 0.35, age: 0, grow: 0.3, grav: 1, solid: true });
               if (Math.random() < 0.35) this.puff([wc[0], wc[1] + 0.02, wc[2]], [back[0] * 0.2, 0.05, back[2] * 0.2], [0.92, 0.97, 1, 0.35], 0.35, 0.9, 1.4, 1, 0.4);
+              if (this.sprTex && this.orig && this.sprH > 192 && Math.random() < 0.5) this.parts.push({ p: [wc[0], wc[1] - 0.1, wc[2]], v: [back[0] * 0.3, 0, back[2] * 0.3], col: [1, 1, 1, 1], size: 0.45 + Math.min(0.5, sp / 40), life: 0.55, age: 0, grow: 0, solid: true, spr: 'splash' });   // salpicón del original
             }
             else {   // polvo: una nube que se queda flotando, crece y se deja llevar
               const big = Math.min(1, sp / 25), col = [...(s.type === 'nieve' ? s.col : s.col.map(x => x * 0.6 + 0.22)), s.type === 'nieve' ? 0.6 : 0.3 + 0.1 * big];
@@ -144,10 +149,10 @@ void main(){ float a=vcol.a;
         const t = q.age / q.life, sz = q.size * (1 + q.grow * t), a = q.col[3] * (q.solid ? 1 - t : (1 - t) * Math.min(1, t * 6));
         let r = V.mul(right, sz), u = V.mul(up, sz); const p = q.p;
         if (q.streak) { const L0 = V.len(q.v) || 1; u = V.mul(q.v, q.streak / L0); }   // gota: rayita en la dirección en que cae
-        if (q.spr) {   // fotograma de la animación original según la edad (12 fotogramas de 40×40)
-          const f = Math.min(11, Math.floor(t * 12)), fx = f % 6, fy = (f / 6) | 0, base = q.spr === 'dust' ? 80 : 0, H = this.sprH || 192;
-          const u0 = 10 + fx * 40 / 256, u1 = 10 + (fx * 40 + 40) / 256, v0 = (base + fy * 40) / H, v1 = (base + fy * 40 + 40) / H, s2 = 0.3 + q.size * 0.55, aa = Math.min(1, (1 - t) * 3) * 0.9;
-          r = V.mul(right, s2); u = V.mul(up, s2); const c2 = [p[0], p[1] + s2 * 0.6, p[2]], Q0 = V.sub(V.sub(c2, r), u), Q1 = V.sub(V.add(c2, r), u), Q2 = V.add(V.add(c2, r), u), Q3 = V.add(V.sub(c2, r), u);
+        if (q.spr) {   // fotograma de la animación original según la edad
+          const S = SPR[q.spr], f = Math.min(S.n - 1, Math.floor(t * S.n)), fx = f % S.cols, fy = (f / S.cols) | 0, H = this.sprH || 384;
+          const u0 = 10 + (S.x + fx * S.w) / 256, u1 = 10 + (S.x + fx * S.w + S.w) / 256, v0 = (S.y + fy * S.h) / H, v1 = (S.y + fy * S.h + S.h) / H, s2 = (S.k || 1) * (0.3 + q.size * 0.55), aa = Math.min(1, (1 - t) * 3) * 0.9;
+          r = V.mul(right, s2 * S.w / S.h); u = V.mul(up, s2); const c2 = [p[0], p[1] + s2 * (S.mid ? 0 : 0.6), p[2]], Q0 = V.sub(V.sub(c2, r), u), Q1 = V.sub(V.add(c2, r), u), Q2 = V.add(V.add(c2, r), u), Q3 = V.add(V.sub(c2, r), u);
           put(Q0, u0, v1, q.col, aa); put(Q1, u1, v1, q.col, aa); put(Q2, u1, v0, q.col, aa); put(Q0, u0, v1, q.col, aa); put(Q2, u1, v0, q.col, aa); put(Q3, u0, v0, q.col, aa); continue; }
         const P0 = V.sub(V.sub(p, r), u), P1 = V.sub(V.add(p, r), u), P2 = V.add(V.add(p, r), u), P3 = V.add(V.sub(p, r), u);
         put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a);
