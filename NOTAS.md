@@ -5,6 +5,16 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.64**
+- Modos de juego nuevos (Carrera rápida y pantalla partida → «Modo de juego»):
+  - **Eliminación por controles:** el último en llegar a la marca queda fuera (cada vuelta, cada media vuelta o cada pocos controles según lo grande que sea el circuito).
+  - **Eliminación cada minuto:** cae el que va último.
+  - **Bomba caliente:** sin vueltas; la bomba pasa al coche con el que chocas; a los 5 minutos explota y pierde quien la lleve.
+  - **Infección zombi:** sin vueltas; un coche empieza de zombi (verde) y contagia al que toca; gana el último sin infectar.
+  - En bomba y zombi se puede saltar (V / cruceta ↑). La IA con la bomba o zombi va a por ti.
+- Daño mucho más suave: los roces no hacen nada y hacen falta muchos choques fuertes para destrozar el coche.
+- La IA ya no se acerca a toda velocidad cuando te alcanza (golpes enormes).
+
 **Novedades de la 0.63**
 - Cámara cenital lejana estilo Micro Machines (C o el botón de cámara).
 

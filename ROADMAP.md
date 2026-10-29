@@ -58,11 +58,12 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 ## Bloque 8 · Modos locos (largo)
 - [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
 - [ ] Daños visuales en los vehículos
-- [ ] 79 Modo «Mario Kart / Crazy Kart»: objetos para recoger y usar, como modo aparte
-- [ ] 80 Eliminación por tiempo: cada minuto cae el último, hasta que quede uno
-- [ ] 81 Bomba caliente: bomba flotante encima del coche con 60 s; se pasa al chocar; si explota, eliminado y pasa al más cercano
-- [ ] 82 Policías y cacos: por equipos en mapa abierto, una vida, 5 minutos
-- [ ] Modo eliminación: el último en pasar por un checkpoint queda eliminado y gana el último que queda. Según el tamaño del mapa: en los grandes cada X checkpoints; en los pequeños a mitad de vuelta o por vuelta
+- [ ] 79 Modo «Mario Kart / Crazy Kart»: objetos para recoger y usar, como modo aparte: mancha de aceite que se deja caer y hace resbalar (plátano), misil recto (tortuga verde), misil que busca al de delante (tortuga roja), bomba que se deja detrás (caja falsa), turbo extra…
+- [x] 80 Eliminación por tiempo: cada minuto cae el último, hasta que quede uno
+- [x] 81 Bomba caliente: sin vueltas, se pasa al chocar; a los 5 minutos explota y pierde quien la lleve (se puede saltar)
+- [ ] 82 Policías y cacos: por equipos en mapa abierto, una vida, 5 minutos (con salto)
+- [x] Infección zombi: un coche empieza de zombi (verde) y contagia al que toca; gana el último sin infectar; sin vueltas, con salto
+- [x] Modo eliminación: el último en pasar por un checkpoint queda eliminado y gana el último que queda. Según el tamaño del mapa: en los grandes cada X checkpoints; en los pequeños a mitad de vuelta o por vuelta
 
 ## Bloque 9 · Creadores (largo)
 - [ ] Coches y circuitos nuevos en formatos normales (glTF, OBJ, imagen de alturas), gestor de mods y catálogo
@@ -166,6 +167,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Buggy lunar del tamaño correcto al elegir vehículo y con dirección 6×6 (delante y detrás giran al revés)
 - [x] Salto con carga más rápido (≈0,7 s y ≈1,5 s)
 - [x] Cabezas con el mismo tamaño en el menú y dos cabezas nuevas de mujer
+- [x] Daño de los choques reajustado (duraba muy poco) y la IA ya no llega a toda velocidad al alcanzarte
 - [x] 83 WATER1: la IA de las lanchas intenta ir por las montañas
 - [x] 84 Lanchas: pierden demasiada velocidad al subir rampas
 - [x] 85 WATER2: voz «This is wet and wild like me» que se repetía (fallo del juego original)
