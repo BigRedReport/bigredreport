@@ -462,9 +462,11 @@
   const hslHex = (h, s2, l) => { const f = n => { const k = (n + h / 30) % 12, a = s2 * Math.min(l, 1 - l); return Math.round(255 * (l - a * Math.max(-1, Math.min(k - 3, 9 - k, 1)))).toString(16).padStart(2, '0'); }; return '#' + f(0) + f(8) + f(4); };
   function rivalLooks(n, avoid) {
     const out = [], names = RIVAL_TEAMS.filter(n => n !== myTeamName()).sort(() => Math.random() - 0.5), hues = avoid.filter(x => x != null), horns = BRR.HORNS.map(x => x.id).filter(x => x !== 'propia').sort(() => Math.random() - 0.5);
+    // logos distintos para cada rival (los 13 del original y los añadidos), sin repetir el del jugador
+    const mine = typeof opt.logo === 'number' ? opt.logo : opt.logo, logos = [...Array.from({ length: 13 }, (_, i) => i), ...(BRR.LOGOS_EXTRA || []).map(l => 'x:' + l.id)].filter(l => l !== mine).sort(() => Math.random() - 0.5);
     for (let k = 0; k < n; k++) { let best = 0, bd = -1;
       for (let t = 0; t < 40; t++) { const h = Math.random() * 360, d = Math.min(360, ...hues.map(q => Math.min(Math.abs(h - q), 360 - Math.abs(h - q)))); if (d > bd) { bd = d; best = h; } }
-      hues.push(best); out.push({ paint: hslHex(best, 0.7 + Math.random() * 0.3, 0.42 + Math.random() * 0.16), horn: horns[k % horns.length], teamName: names[k % names.length] }); }
+      hues.push(best); out.push({ paint: hslHex(best, 0.7 + Math.random() * 0.3, 0.42 + Math.random() * 0.16), horn: horns[k % horns.length], teamName: names[k % names.length], logo: logos[k % logos.length] }); }
     return out; }
   const carCol = c => c.paintHex || TEAM[c.team].c;
   // logo elegido como imagen: el propio del jugador o uno de los añadidos al port ('x:id')
@@ -560,6 +562,7 @@
       g.clearRect(0, 0, cv.width, cv.height); g.drawImage(im, 0, 0, cv.width, cv.height); setTimeout(step, 50); }; step(); }
   // logo propio (PNG/JPG del jugador), guardado en el navegador como imagen de 40×40
   async function logoRGBAOf(v) {
+    if (typeof v === 'string' && v.startsWith('x:')) v = (extraLogo(v.slice(2)) || {}).src || null;
     try { if (typeof v === 'string' && v.startsWith('data:image')) { if (v.length > 200000) return null; const im = new Image(); im.src = v; await im.decode(); if (im.width > 2048 || im.height > 2048) return null; const cv = document.createElement('canvas'); cv.width = cv.height = 40; const g = cv.getContext('2d'); g.drawImage(im, 0, 0, 40, 40); return g.getImageData(0, 0, 40, 40).data; }
       if (typeof v === 'number' && orig) return await orig.logoRGBA(v); } catch (e) { } return null; }
   // logo propio en alta resolución (256×256) para la calcomanía del coche
@@ -810,7 +813,7 @@
           $('load_msg').textContent = 'Cargando rivales… ' + (rivals.length + 1) + '/' + nR;
           let t = rec.team + 1; if (used.has(t)) t = [1, 2, 3, 4, 5, 6].find(x => !used.has(x)) || t; used.add(t);
           const lk = looks[rivals.length] || {}, pt = hexRGB(lk.paint);
-          const vn = cars[rec.veh] || veh, d = await BRR.loadVehicle(files, files.path(vn + '.VHC') ? vn : veh, lvl, t, { paint: pt }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
+          const vn = cars[rec.veh] || veh, d = await BRR.loadVehicle(files, files.path(vn + '.VHC') ? vn : veh, lvl, t, { paint: pt, logo: lk.logo != null ? await logoRGBAOf(lk.logo) : null }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
           const rr = new BRR.Race(lvl, laps || lvl.laps);
           per.push(BRR.replayPace(rec) * BRR.S / (0.88 * c.topSpeed));
           rivals.push({ car: c, race: rr, ai: null, replay: new BRR.ReplayDriver(c, rr, rec, replayBand, 0.23), draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, hornType: lk.horn || null });
@@ -826,7 +829,7 @@
       for (let k = rivals.length; k < (net ? 0 : nR); k++) {
         $('load_msg').textContent = 'Cargando rivales… ' + (k + 1) + '/' + nR;
         const lk = looks[k] || {}, pt = hexRGB(lk.paint);
-        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t, { paint: pt }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
+        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t, { paint: pt, logo: lk.logo != null ? await logoRGBAOf(lk.logo) : null }), c = new BRR.Car(d, lvl); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
         const rr = new BRR.Race(lvl, laps || lvl.laps), ai = new BRR.AIDriver(c, rr, skill * (0.97 + 0.03 * Math.random()), lanes[k], profiles[k]);
         if (recLines.length) ai.line = recLines[k % recLines.length];
         rivals.push({ car: c, race: rr, ai, draw: R.upload(d.mesh), dd: vehDraw(d), inp: null, hornType: lk.horn || null });
@@ -893,7 +896,7 @@
       c.reset(ox * S, -oz * S, lvl.start.yaw - da * 2 * Math.PI / 65536);
       const r = rivals.find(q => q.car === c); if (r && r.replay) r.replay.setStart(ox, oz, (lvl.start.a16 || 0) + da); });
     if (replayBand) replayBand.reset();
-    for (const r of rivals) { r.race.reset(); if (r.ai) r.ai.reset(); }
+    for (const r of rivals) { r.race.reset(); if (r.ai) r.ai.reset(); r.hornStart = r.hornFin = false; r.rankWas = null; }
     for (const h of humans) { h.race.reset(); h.cam.init = false; h.cam.posInit = false; h.done = false; h.q('done').hidden = true; h.q('msg').hidden = true; }
     for (const c of all) { c.dmg = 0; c.broken = 0; c.nitros = lvl.nitros; c.nitroInf = freeMode && c.isPlayer; }   // modo libre: turbo sin límite
     if (props) props.reset(); if (fx) fx.reset(); crazyInit();
@@ -1414,8 +1417,8 @@
       if (c.broken <= 0) { c.dmg = 0; const h = humans.find(q => q.car === c); if (h) recoverHuman(h); else c.v = V.mul(c.v, 0.2); } return; }
     // daño (v0.70): los roces y los toques de lado quitan poco pero algo (rozar una pared un rato, un 1-2 % por segundo);
     // un golpe a ~30 km/h ≈ 1 %, a ~70 km/h ≈ 4 %, a ~110 km/h ≈ 8 %; como mucho un 15 % por golpe
-    const hit = c.lastHit || 0, tnow = performance.now(); c.dmgScr = c.dmgScr || 0;
-    if (hit > 1.2 && hit !== c.dmgHit && (hit > 4 || tnow - c.dmgScr > 200)) { c.dmg += Math.min(15, Math.pow(hit - 1.2, 1.4) * 0.075 * k); if (hit <= 4) c.dmgScr = tnow; } c.dmgHit = hit;   // roces: como mucho 5 veces por segundo
+    const hit = c.lastHit || 0, tnow = performance.now(); c.dmgScr = c.dmgScr || 0;   // desde ~10 km/h ya se nota (≈0,4 %)
+    if (hit > 1.2 && hit !== c.dmgHit && (hit > 4 || tnow - c.dmgScr > 200)) { c.dmg += Math.min(15, (0.25 + Math.pow(hit - 1.2, 1.3) * 0.1) * k); if (hit <= 4) c.dmgScr = tnow; } c.dmgHit = hit;   // roces: como mucho 5 veces por segundo
     if ((c.landEv || 0) > 14) c.dmg += Math.min(10, (c.landEv - 14) * 0.5 * k); c.landEv = 0;
     const R = c.R;
     for (const lv of [80, 90, 95]) if (c.dmg >= lv && Math.random() < dt * (lv === 80 ? 6 : lv === 90 ? 10 : 16)) { const q = c.def.dmgFx && c.def.dmgFx[lv] || [0, 0.4, 0];
@@ -1855,7 +1858,14 @@
     for (const r of rivals) { const c = r.car; if (r.remote) continue;
       if ((r.hornCd || 0) > now) continue;
       let why = null;
-      if (c.bumpT && now - c.bumpT < 0.2 && c.bumpBy && c.bumpBy.isPlayer) why = 'golpe';
+      if (c.bumpT && now - c.bumpT < 0.35 && c.bumpBy) { why = c.bumpBy.isPlayer || Math.random() < 0.5 ? 'golpe' : null; c.bumpT = 0; }
+      // más motivos para pitar: al salir, al adelantar, cuando alguien lento le tapa y al cruzar la meta
+      const rk = order.findIndex(o => o.car === c);
+      if (!why && r.race.phase === 'race' && r.race.t < 2.5 && !r.hornStart) { r.hornStart = true; if (Math.random() < 0.35) why = 'salida'; }
+      if (!why && r.rankWas != null && rk >= 0 && rk < r.rankWas) { const ov = order[rk + 1]; if (ov && V.len(V.sub(ov.car.p, c.p)) < 18 && Math.random() < 0.45) why = 'adelanta'; }
+      if (rk >= 0) r.rankWas = rk;
+      if (!why && rk > 0) { const a = order[rk - 1].car, d2 = V.sub(a.p, c.p), dl = V.len(d2); if (dl < 9 && V.dot(d2, c.forward()) > dl * 0.8 && Math.abs(a.speed()) < Math.abs(c.speed()) + 1) { r.blockT = (r.blockT || 0) + dt; if (r.blockT > 1.2) { why = 'tapon'; r.blockT = 0; } } else r.blockT = 0; }
+      if (!why && r.race.finishT != null && !r.hornFin) { r.hornFin = true; if (Math.random() < 0.6) why = 'meta'; }
       if ((c.landed || 0) > 7) { why = why || 'salto'; c.landed = 0; }
       if (c.R[1][1] < 0.25) { r.flipT = (r.flipT || 0) + dt; if (r.flipT > 0.6) why = 'vuelco'; } else r.flipT = 0;
       if (r.honked && now - r.honked < 0.6 && now - r.honked > 0.3) { why = why || 'respuesta'; r.honked = 0; }
@@ -1867,7 +1877,7 @@
       else if (!hold) audio.horn(p, v, null, type, c.p);
       else if (why === 'vuelco' || why === 'golpe') { audio.horn(p, v, 0.18, type, c.p); setTimeout(() => audio.horn(p, v, 0.18, type, c.p), 260); if (why === 'vuelco') setTimeout(() => audio.horn(p, v, 0.45, type, c.p), 520); }
       else audio.horn(p, v, 0.35, type, c.p);
-      r.hornCd = now + 2.5 + Math.random() * 3;
+      r.hornCd = now + 1.5 + Math.random() * 2.5;
     }
   }
   function nitroFx(c) {

@@ -5,6 +5,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.71**
+- Daño desde unos 10 km/h (poco), roces incluidos.
+- Las pancartas de los controles ya no salen dobles (la lisa arriba y la de START debajo): solo la franja lisa.
+- Italia: la pancarta de salida llega hasta los semáforos.
+- Cada rival lleva un logo distinto (y colores bien separados).
+- La IA pita más: al salir, al adelantar, cuando alguien lento le tapa, al llegar a meta, al chocar y al volcar.
+
 **Novedades de la 0.70.1**
 - Windows: si el programa está en una carpeta protegida (Program Files, otro disco con permisos), el actualizador pide permiso de administrador en vez de fallar.
 - Las líneas blancas de la parrilla de salida ya no flotan sobre el suelo.
