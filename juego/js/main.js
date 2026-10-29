@@ -6,7 +6,7 @@
   try { R = new BRR.Renderer(canvas); } catch (e) { $('err').textContent = e.message; return; }
 
   // ---------- opciones ----------
-  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, cabin: true, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', fxs: 'original', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
+  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, cabin: true, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', fxs: 'original', engSnd: 'mejorado', gloss: 'si', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
   let opt = { ...DEF };
   // perfiles: cada uno guarda sus ajustes, récords, campeonato y estadísticas aparte (claves con @perfil)
   let PROF = ''; try { PROF = localStorage.getItem('brr_profile') || ''; } catch (e) { }
@@ -31,7 +31,7 @@
     for (const k of ['vsfx', 'vmusic', 'vvoice', 'vmaster', 'vengine', 'vui', 'vamb']) { const el = $('o_' + k); el.value = opt[k]; const sv = () => { const v = $('o_' + k + '_v'); if (v) v.textContent = opt[k] + '%'; }; sv(); el.oninput = () => { opt[k] = +el.value; sv(); applyVol(); save(); }; }
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
     { const el = $('o_lang'); el.innerHTML = Object.entries(BRR.LANGS).map(([k, n]) => `<option value="${k}">${n}</option>`).join(''); el.value = BRR.lang(); el.onchange = () => BRR.setLang(el.value); }
-    for (const k of ['fxs', 'aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'clouds']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    for (const k of ['gloss', 'engSnd', 'fxs', 'aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'clouds']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
     for (const k of ['cabin', 'hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
@@ -42,6 +42,12 @@
     $('o_fps').checked = opt.fps; $('o_fps').onchange = () => { opt.fps = $('o_fps').checked; save(); };
     $('o_origai').value = opt.origAI !== false ? '1' : '0'; $('o_origai').onchange = () => { opt.origAI = $('o_origai').value === '1'; save(); };
     $('o_auto').checked = opt.autoRes !== false; $('o_auto').onchange = () => { opt.autoRes = $('o_auto').checked; dyn = 1; resize(); save(); };
+    // modo clásico: todo como se veía en 1995 (y vuelta a como lo tenías)
+    const CLASSIC = { light: 'original', scale: 50, filter: 'nearest', far: 700, aa: '0', gloss: 'no', clouds: 'originales', ground: 'original', shadows: 0, fxs: 'original', hora: 'original', clima: 'despejado', engSnd: 'original', cabin: true, autoRes: false };
+    const clUI = () => { $('o_classic').textContent = opt.classicPrev ? 'Volver a mis ajustes' : 'Verlo como en 1995'; };
+    $('o_classic').onclick = () => { if (opt.classicPrev) { Object.assign(opt, opt.classicPrev); opt.classicPrev = null; } else { const prev = {}; for (const k in CLASSIC) prev[k] = opt[k]; opt.classicPrev = prev; Object.assign(opt, CLASSIC); }
+      save(); location.reload(); };
+    clUI();
     $('o_full').onclick = () => document.fullscreenElement ? document.exitFullscreen() : document.documentElement.requestFullscreen();
     sync();
   }
@@ -866,7 +872,7 @@
   let helpT = 0, replayBand = null;
   const vdCache = new Map();
   function vehDraw(d) { const k = d.name; if (vdCache.has(k) && vdCache.get(k).lvl === lvl) return vdCache.get(k).v;
-    const v = { brake: d.brake ? R.upload(d.brake) : null, wheels: d.wheelMeshes.map(m => m ? R.upload(m) : null), deco: d.decoParts.map(x => ({ ...x, draw: R.upload(x.mesh) })), interior: d.interior ? { body: R.upload(d.interior.mesh), steer: d.interior.steer ? { ...d.interior.steer, draw: R.upload(d.interior.steer.mesh) } : null } : null }; vdCache.set(k, { lvl, v }); return v; }
+    const v = { brake: d.brake ? R.upload(d.brake) : null, wheels: d.wheelMeshes.map(m => m ? R.upload(m) : null), deco: d.decoParts.map(x => ({ ...x, draw: R.upload(x.mesh) })), interior: d.interior ? { src: d.interior, body: R.upload(d.interior.mesh), steer: d.interior.steer ? { ...d.interior.steer, draw: R.upload(d.interior.steer.mesh) } : null } : null }; vdCache.set(k, { lvl, v }); return v; }
   // carrera de una marioneta de red: lo que se sabe de ella llega en sus mensajes
   function puppetRace(ent, laps) { return { laps, lapTimes: [], ev: [], phase: 'race', get finishT() { return ent.fin; }, score: () => ent.sc || 0, reset() { ent.fin = null; ent.sc = 0; }, update() { } }; }
   // ---------- online: estado ----------
@@ -931,7 +937,7 @@
     const GR = { tierra: 'DRV_GRAV', arena: 'SAND', nieve: 'SNOW2', agua: 'DRV_WAT', hierba: 'GRASS', roca: 'DRV_ROCK' };
     for (const h of humans) {
       const S2 = h.snd = { skidL: {}, groundL: {} };
-      S2.engine = def.engineWav ? await audio.loop(def.engineWav, 0, 'engine') : null;
+      S2.engine = def.engineWav ? (opt.engSnd === 'original' ? await audio.loop(def.engineWav, 0, 'engine') : await audio.engine(def.engineWav)) : null;
       for (const [k, n] of Object.entries(SK)) if (files.path('GEN/' + n + '.WAV')) S2.skidL[k] = await audio.loop('GEN/' + n + '.WAV', 0);
       for (const [k, n] of Object.entries(GR)) if (files.path('GEN/' + n + '.WAV')) S2.groundL[k] = await audio.loop('GEN/' + n + '.WAV', 0);
       audio.loops.push(S2.engine, ...Object.values(S2.skidL), ...Object.values(S2.groundL));
@@ -950,7 +956,9 @@
     const paused = state !== 'race', mix = humans.length > 1 ? 0.6 : 1;
     for (const h of humans) {
       const c = h.car, S2 = h.snd; if ((c.lastHit || 0) > (h.rbHit || 0)) h.rbHit = c.lastHit; if (c.landed) h.rbLand = Math.max(h.rbLand || 0, c.landed); if (!S2) continue;
-      if (S2.engine) S2.engine.set(paused ? 0 : (0.35 + 0.25 * (h.inp ? h.inp.throttle : 0)) * mix, 0.8 + c.rpm() / 255 * 1.1);
+      { const thr = h.inp ? h.inp.throttle : 0, air = !c.W.some(w => w.contact), tgt = air && thr > 0.3 ? 255 : c.rpm();   // en el aire, acelerando: se revoluciona
+        S2.rpmS = S2.rpmS == null ? tgt : S2.rpmS + (tgt - S2.rpmS) * Math.min(1, dt * (tgt > S2.rpmS ? 6 : 3.5)); S2.thrS = (S2.thrS || 0) + (thr - (S2.thrS || 0)) * Math.min(1, dt * 8);
+        if (S2.engine) S2.engine.set(paused ? 0 : (0.33 + 0.27 * S2.thrS) * mix, 0.8 + S2.rpmS / 255 * 1.1, S2.thrS); }
       let slip = 0; const cnt = {}; let nc = 0;
       for (const w of c.W) if (w.contact) { slip = Math.max(slip, w.slip); let t = w.surface || 'asfalto'; if (t === 'tierra' && w.green) t = 'hierba'; cnt[t] = (cnt[t] || 0) + 1; nc++; }
       const spd = Math.abs(c.speed()), surf = nc ? Object.keys(cnt).sort((a, b) => cnt[b] - cnt[a])[0] : null;
@@ -1865,9 +1873,21 @@
   const mm3 = (A, B) => A.map(r => [0, 1, 2].map(j => r[0] * B[0][j] + r[1] * B[1][j] + r[2] * B[2][j]));
   // interior original (cámara de cabina): el salpicadero y el volante, colocados en la cabeza del piloto
   window.BRR_INTK = window.BRR_INTK || [1, 0, -0.3, 0];   // escala y desplazamiento del interior (ajustado a ojo)
+  // agujas del velocímetro y del cuentarrevoluciones: se pintan en la hoja del salpicadero (20 veces por segundo)
+  function dialsFrame(c, I) {
+    const S0 = I.src; if (!S0 || !S0.dashBase || !S0.dials || !S0.dials.some(d => d.kind !== 'pill')) return; const now = performance.now(); if (now - (I.dT || 0) < 50) return; I.dT = now;
+    const bt = I.body.find(b => b.key === 'tex:' + S0.dash); if (!bt || !bt.tex) return;
+    const W = 256, H = S0.dashBase.length / 1024, buf = I.buf || (I.buf = new Uint8Array(S0.dashBase.length)); buf.set(S0.dashBase); const pal = S0.pal;
+    const px = (x, y, rgb) => { x |= 0; y |= 0; if (x < 0 || y < 0 || x >= W || y >= H) return; const k = (y * W + x) * 4; buf[k] = rgb[0]; buf[k + 1] = rgb[1]; buf[k + 2] = rgb[2]; buf[k + 3] = 255; };
+    for (const d of S0.dials) { if (d.kind === 'pill') continue;
+      // la esfera de la izquierda es el cuentarrevoluciones y la de la derecha el velocímetro (como se ven dibujadas)
+      const fr = d.kind === 'speed' ? c.rpm() / 255 : Math.abs(c.speed()) / (BRR.SPEED_K || 1) / 45000, a = d.a0 + d.ar * Math.max(0, Math.min(1.02, fr)), sx = Math.sin(a), sy = -Math.cos(a);
+      for (let r = d.r0; r <= d.r1; r += 0.5) { const x = d.cx + sx * r, y = d.cy + sy * r; px(x + sy * 0.8, y - sx * 0.8, [70, 10, 6]); px(x - sy * 0.8, y + sx * 0.8, [70, 10, 6]); px(x, y, [255, 70, 40]); } }
+    const gl = R.gl; gl.bindTexture(gl.TEXTURE_2D, bt.tex); gl.texSubImage2D(gl.TEXTURE_2D, 0, 0, 0, W, H, gl.RGBA, gl.UNSIGNED_BYTE, buf); gl.generateMipmap(gl.TEXTURE_2D);
+  }
   function drawInterior(c, I) {
     const Rm = c.R, hd = c.def.head, [k, ox, oy, oz] = window.BRR_INTK, e = V.add(c.p, BRR.mv(Rm, [hd[0] + ox, hd[1] + 0.25 + oy, hd[2] + oz])), Ks = Rm.map(r => r.map(x => x * k));
-    R.draw(I.body, BRR.M4.fromRT(Ks, e));
+    dialsFrame(c, I); R.draw(I.body, BRR.M4.fromRT(Ks, e));
     if (I.steer) { const t = I.steer.tilt, a = -c.steerAng * 2.5, ct = Math.cos(t), st = Math.sin(t), ca = Math.cos(a), sa = Math.sin(a);
       const Rt = [[1, 0, 0], [0, ct, -st], [0, st, ct]], Rz = [[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]], M = mm3(Rm, mm3(Rt, Rz)).map(r => r.map(x => x * k));
       R.draw(I.steer.draw, BRR.M4.fromRT(M, V.add(e, BRR.mv(Rm, I.steer.pos.map(x => x * k))))); }
@@ -1875,7 +1895,7 @@
   function drawCar(c, body, hide, dd = carDraw) {
     const Rm = c.R; if (c.out) return;
     if (hide) { if (hide === 'capo' && dd.interior && opt.cabin !== false) drawInterior(c, dd.interior); return; }
-    R.draw(body, BRR.M4.fromRT(Rm, c.p));
+    if (opt.gloss !== 'no' && R.mode) R.drawGloss(body, BRR.M4.fromRT(Rm, c.p), 1); else R.draw(body, BRR.M4.fromRT(Rm, c.p));   // reflejos en la carrocería
     if (c.headDraw && c.def.headPos) R.draw(c.headDraw, BRR.M4.fromRT(Rm, V.add(c.p, BRR.mv(Rm, c.def.headPos))));   // el piloto
     if (dd.brake && c.brakeLight) { R.drawGlow(dd.brake, BRR.M4.fromRT(Rm, c.p), 1.7);   // luces de freno, con halo de luz
       if (fx && c.def.brakeSpots) for (const q of c.def.brakeSpots) { const p = V.add(c.p, BRR.mv(Rm, [q[0], q[1], q[2] + 0.05])); fx.glow(p, [1, 0.12, 0.08, 0.55], 0.45); fx.glow(p, [1, 0.55, 0.45, 0.6], 0.16); } }

@@ -59,6 +59,20 @@
       s.connect(g); let p = null; if (pos) { p = this.panner(pos); g.connect(p); p.connect(this.bus(bus)); } else g.connect(this.bus(bus)); s.start();
       return { set: (v, r, at) => { const t = this.ctx.currentTime; g.gain.setTargetAtTime(v, t, 0.05); if (r) s.playbackRate.setTargetAtTime(r, t, 0.05); if (p && at) this.movePanner(p, at); }, stop: () => { try { s.stop(); } catch (e) { } } };
     }
+    // motor con dos capas de la misma muestra: una grave (a media velocidad, filtrada) que manda a bajas vueltas y la normal arriba,
+    // un filtro que se abre al acelerar (al soltar suena ahogado) y una leve vibración; así los cambios de régimen suenan suaves
+    async engine(rel, bus = 'engine') {
+      const b = await this.buf(rel); if (!b) return null; const c = this.ctx, mk = () => { const s = c.createBufferSource(); s.buffer = b; s.loop = true; s.loopStart = 0; s.loopEnd = b.duration; return s; };
+      const s1 = mk(), s2 = mk(), g1 = c.createGain(), g2 = c.createGain(), lp = c.createBiquadFilter(), lp2 = c.createBiquadFilter(), out = c.createGain();
+      lp.type = 'lowpass'; lp.frequency.value = 2400; lp.Q.value = 0.5; lp2.type = 'lowpass'; lp2.frequency.value = 900; g1.gain.value = 0; g2.gain.value = 0; out.gain.value = 0;
+      s1.connect(lp2); lp2.connect(g1); s2.connect(g2); g1.connect(lp); g2.connect(lp); lp.connect(out); out.connect(this.bus(bus));
+      try { s2.start(0, b.duration * 0.37); } catch (e) { s2.start(); } s1.start();
+      const lfo = c.createOscillator(), lg = c.createGain(); lfo.frequency.value = 7; lg.gain.value = 0.012; lfo.connect(lg); lg.connect(s2.playbackRate); lg.connect(s1.playbackRate); lfo.start();
+      return { set: (v, r, thr = 0.5) => { const t = c.currentTime, x = Math.max(0, Math.min(1, (r - 0.8) / 1.1));
+          out.gain.setTargetAtTime(v, t, 0.06); g1.gain.setTargetAtTime(0.9 * (1 - x) + 0.1, t, 0.08); g2.gain.setTargetAtTime(0.35 + 0.65 * x, t, 0.08);
+          s1.playbackRate.setTargetAtTime(r * 0.62, t, 0.07); s2.playbackRate.setTargetAtTime(r, t, 0.07); lp.frequency.setTargetAtTime(900 + 3200 * thr + 1500 * x, t, 0.1); lfo.frequency.setTargetAtTime(5 + 9 * x, t, 0.2); },
+        stop: () => { for (const n of [s1, s2, lfo]) try { n.stop(); } catch (e) { } } };
+    }
     // ambiente: viento según la velocidad (ruido filtrado), en su propio canal
     ambient() {
       if (!this.ctx || this.amb) return this.amb; const c = this.ctx, n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);

@@ -5,6 +5,12 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.85**
+- **Agujas de los relojes** que se mueven en la cámara de cabina (cuentarrevoluciones y velocímetro).
+- **Motor con mejor sonido:** dos capas de la misma muestra (grave abajo, aguda arriba), filtro que se abre al acelerar y se ahoga al soltar, subidas y bajadas de vueltas suaves y se revoluciona en el aire. El de antes, en Opciones → Sonido → «Sonido del motor: Original».
+- **Reflejos en los coches:** el cielo y el brillo del sol en la carrocería (Opciones → Gráficos, se pueden quitar).
+- **Modo clásico 1995** (Opciones → Gráficos): un botón que lo pone todo como entonces (resolución baja, píxeles, luz plana, nubes y suelo originales, niebla cercana) y otro para volver a tus ajustes.
+
 **Novedades de la 0.84**
 - **Daños visuales:** la carrocería se abolla donde golpeas (más cuanto más fuerte; los coches duros, menos), y al reventar saltan trozos de chapa y cristales. Se arregla al reiniciar la carrera. Se quita junto con el daño (Opciones → Juego → Daños).
 

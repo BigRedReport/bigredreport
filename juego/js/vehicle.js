@@ -235,7 +235,10 @@
         const dash = (txt.match(/^\s*dash\s+(\w+)/m) || [])[1]; const T = dash && imb.textures.get(dash.toUpperCase());
         if (T) for (const l of ib) { const m = l.match(/^\s*ndial\s+copy\s+(.*)$/); if (!m) continue; const [sx, sy, dx, dy, w, h] = m[1].split(',').map(num); const src = new Uint8Array(T);
           for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const a = ((sy + y) * 256 + sx + x) * 4, b = ((dy + y) * 256 + dx + x) * 4; if (a + 3 < src.length && b + 3 < T.length) for (let c = 0; c < 4; c++) T[b + c] = src[a + c]; } }
-        interior = { mesh: imb, steer }; } } } catch (e) { interior = null; }
+        // agujas de los relojes («ndial point n, cx,cy, ángulo0, recorrido, máximo, r0,r1, color1,color2») y luces de nitro («ndial pill»)
+        const dials = []; for (const l of ib) { let m = l.match(/^\s*ndial\s+point\s+(.*)$/); if (m) { const f = m[1].split(',').map(num); dials.push({ kind: f[0] === 0 ? 'speed' : 'rpm', cx: f[1], cy: f[2], a0: f[3] * 2 * Math.PI / 65536, ar: f[4] * 2 * Math.PI / 65536, max: f[5], r0: f[6], r1: f[7], c: [f[8], f[9]] }); continue; }
+          m = l.match(/^\s*ndial\s+pill\s+(.*)$/); if (m) { const f = m[1].split(',').map(num); dials.push({ kind: 'pill', x: f[1], y: f[2], w: f[3], h: f[4], n: f[7], pw: f[8], ph: f[9] }); } }
+        interior = { mesh: imb, steer, dials, dash: dash ? dash.toUpperCase() : null, dashBase: T ? new Uint8Array(T) : null, pal }; } } } catch (e) { interior = null; }
     if (brakeMB) { const P = []; for (const g of brakeMB.groups.values()) for (let i = 0; i < g.pos.length; i += 3) P.push([g.pos[i], g.pos[i + 1], g.pos[i + 2]]);
       for (const sd of [-1, 1]) { const Q = P.filter(p => Math.sign(p[0] || sd) === sd); if (Q.length) brakeSpots.push([0, 1, 2].map(a => Q.reduce((s, q) => s + q[a], 0) / Q.length)); } }
     return {

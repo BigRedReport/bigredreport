@@ -25,7 +25,7 @@ in vec2 vuv; in vec3 vcol; in vec3 wp; in vec4 lp; in float vwat; in vec3 vn;
 uniform float time; uniform vec3 animPal[16]; uniform int animN; uniform float animStep;
 uniform sampler2D T; uniform sampler2DShadow SM; uniform int useTex; uniform int mode; uniform int shadows; uniform float smTexel;
 uniform vec3 cam; uniform float far; uniform vec3 fogc; uniform vec3 L; uniform vec3 sunC; uniform vec3 skyC; uniform vec3 gndC; uniform float glow;
-uniform float fogK; uniform float wet; uniform vec4 hlP[16]; uniform vec4 hlD[16]; uniform int hlN;
+uniform float fogK; uniform float wet; uniform float gloss; uniform vec4 hlP[16]; uniform vec4 hlD[16]; uniform int hlN;
 out vec4 o;
 /* faros: focos que alumbran hacia delante (de noche, con niebla o lluvia) */
 vec3 headl(vec3 n){ vec3 s=vec3(0.); for(int i=0;i<16;i++){ if(i>=hlN) break; vec3 v=wp-hlP[i].xyz; float dd=length(v); if(dd>48.) continue; vec3 l=v/max(dd,.01);
@@ -62,6 +62,8 @@ void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
   float occ=mix(.62,1.,clamp(n.y*.5+.75,0.,1.));
   vec3 light=hemi*.36*occ+sunC*ndl*sh*1.3+headl(n)*1.3;
   rgb=c.rgb*light*1.25*(1.-wet*.18*clamp(n.y,0.,1.));
+  if(gloss>0.){ vec3 Vd=normalize(cam-wp); float fr=pow(1.-max(dot(n,Vd),0.),3.); vec3 rf=reflect(-Vd,n);   /* carrocería: reflejo del cielo/suelo y brillo del sol */
+    vec3 env=mix(gndC*.8,skyC*1.15,smoothstep(-.25,.35,rf.y)); rgb=mix(rgb,env*max(vec3(.5),rgb*1.6),(.02+fr*.3)*gloss)+sunC*pow(max(dot(rf,L),0.),60.)*.45*gloss*sh; }
   // tonemapping filmico (ACES aproximado) y algo de saturación
   rgb=clamp((rgb*(2.51*rgb+.03))/(rgb*(2.43*rgb+.59)+.14),0.,1.);
   float lu=dot(rgb,vec3(.299,.587,.114)); rgb=mix(vec3(lu),rgb,1.12);
@@ -69,7 +71,7 @@ void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
   float f=1.-exp(-d*2.2*fogK/far); f=max(f*.75,clamp((d-far*.7)/(far*.3),0.,1.));
   o=vec4(mix(rgb,fogc,f),1.); }`;
       this.pr = prog(gl, VS, FS, ['p', 'uv', 'col', 'lay', 'nrm']); gl.vertexAttrib3f(4, 0, 0, 0);
-      this.U = uniforms(gl, this.pr, ['VP', 'W', 'LVP', 'T', 'SM', 'useTex', 'mode', 'shadows', 'smTexel', 'cam', 'far', 'fogc', 'layK', 'L', 'sunC', 'skyC', 'gndC', 'glow', 'time', 'animPal', 'animN', 'animStep', 'fogK', 'wet', 'hlP', 'hlD', 'hlN']);
+      this.U = uniforms(gl, this.pr, ['VP', 'W', 'LVP', 'T', 'SM', 'useTex', 'mode', 'shadows', 'smTexel', 'cam', 'far', 'fogc', 'layK', 'L', 'sunC', 'skyC', 'gndC', 'glow', 'time', 'animPal', 'animN', 'animStep', 'fogK', 'wet', 'gloss', 'hlP', 'hlD', 'hlN']);
       // pase de sombras (solo profundidad, con recorte por transparencia para árboles y vallas)
       this.dpr = prog(gl, `#version 300 es
 in vec3 p; in vec2 uv; uniform mat4 LVP; uniform mat4 W; out vec2 vuv; void main(){ vuv=uv; gl_Position=LVP*W*vec4(p,1.); }`,
@@ -177,7 +179,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
         if (g.col) put(2, g.col, 3); else gl.vertexAttrib3f(2, 1, 1, 1);
         if (g.lay && g.lay.length) put(3, g.lay, 1); else gl.vertexAttrib1f(3, 0);
         if (g.nrm && g.nrm.length === g.pos.length) put(4, g.nrm, 3);
-        out.push({ vao, n: g.pos.length / 3, tex, pbuf, base: g.pos });   // base/pbuf: para abollar la carrocería
+        out.push({ vao, n: g.pos.length / 3, tex, pbuf, base: g.pos, key });   // base/pbuf: para abollar la carrocería
       }
       gl.bindVertexArray(null);
       (this.allTex = this.allTex || []).push(...texs.values());
@@ -274,7 +276,7 @@ void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
       gl.uniformMatrix4fv(U.VP, false, VP); gl.uniformMatrix4fv(U.LVP, false, this.LVP || BRR.M4.I);
       gl.uniform3fv(U.cam, camPos); gl.uniform1f(U.far, far); gl.uniform3fv(U.fogc, fogc); gl.uniform1i(U.T, 0); gl.uniform1f(U.layK, this.layers === false ? 0 : 1);
       gl.uniform1i(U.mode, modern ? 1 : 0); gl.uniform1i(U.shadows, modern && this.shadowQ && this.LVP ? 1 : 0); gl.uniform1f(U.smTexel, 1 / this.shadowSize);
-      { const A = this.atmos || {}; gl.uniform1f(U.fogK, A.fogK || 1); gl.uniform1f(U.wet, A.wet || 0); const H = this.headl || []; gl.uniform1i(U.hlN, Math.min(16, H.length)); if (H.length) { const P = new Float32Array(64), D = new Float32Array(64); H.slice(0, 16).forEach((q, i) => { P.set([q.p[0], q.p[1], q.p[2], q.t || 0], i * 4); D.set([q.d[0], q.d[1], q.d[2], q.k], i * 4); }); gl.uniform4fv(U.hlP, P); gl.uniform4fv(U.hlD, D); } }
+      { const A = this.atmos || {}; gl.uniform1f(U.fogK, A.fogK || 1); gl.uniform1f(U.gloss, 0); gl.uniform1f(U.wet, A.wet || 0); const H = this.headl || []; gl.uniform1i(U.hlN, Math.min(16, H.length)); if (H.length) { const P = new Float32Array(64), D = new Float32Array(64); H.slice(0, 16).forEach((q, i) => { P.set([q.p[0], q.p[1], q.p[2], q.t || 0], i * 4); D.set([q.d[0], q.d[1], q.d[2], q.k], i * 4); }); gl.uniform4fv(U.hlP, P); gl.uniform4fv(U.hlD, D); } }
       gl.uniform3fv(U.L, this.L); gl.uniform3fv(U.sunC, this.sunC || [1, 1, 1]); gl.uniform3fv(U.skyC, this.skyC || [.8, .8, .8]); gl.uniform3fv(U.gndC, this.gndC || [.4, .4, .4]);
       gl.uniform1f(U.glow, 0); const tnow = performance.now() / 1000; gl.uniform1f(U.time, tnow % 3600);
       const PA = this.palAnim; gl.uniform1i(U.animN, PA ? PA.n : 0); if (PA) { gl.uniform3fv(U.animPal, PA.cols); gl.uniform1f(U.animStep, Math.floor(tnow * PA.rate) % PA.n); }
@@ -286,6 +288,7 @@ void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
       for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) cols[i * 3 + k] = pal[(pa[1] + i) * 3 + k] / 255; this.palAnim = { n, cols, rate: 24 / Math.max(1, pa[0]) }; }
     drawGhost(batches, W, a = 0.4) { const gl = this.gl; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.uniform1f(this.U.glow, -a);
       BRR.Renderer.prototype.draw.call(this, batches, W); gl.uniform1f(this.U.glow, 0); gl.depthMask(true); gl.disable(gl.BLEND); }
+    drawGloss(batches, W, k = 1) { this.gl.uniform1f(this.U.gloss, k); this.draw(batches, W); this.gl.uniform1f(this.U.gloss, 0); }
     drawGlow(batches, W, g = 1) { this.gl.uniform1f(this.U.glow, g); this.draw(batches, W); this.gl.uniform1f(this.U.glow, 0); }
     draw(batches, W) {
       const gl = this.gl; gl.uniformMatrix4fv(this.U.W, false, W || BRR.M4.I);

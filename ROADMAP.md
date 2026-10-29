@@ -28,12 +28,14 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [x] Pilotos nuevos con el estilo del original: niño y gordo
 
 ## Bloque 2 · Nostalgia (rápido-medio)
-- [ ] Modo clásico auténtico: resolución, distancia, iluminación, marcador y sonido como en 1995
+- [x] Modo clásico 1995 (resolución, píxeles, luz, distancia, sonido)
+- [ ] Marcador original de 1995 en carrera
 
 ## Bloque 3 · Ambiente (medio)
 - [x] Clima y horas del día: lluvia, niebla, nieve, nublado, amanecer, mediodía, atardecer y noche con faros
-- [ ] Efectos modernos: oclusión ambiental y reflejos
-- [ ] Motores con mejor sonido (más muestras y transiciones suaves)
+- [x] Reflejos en las carrocerías
+- [ ] Oclusión ambiental (SSAO)
+- [x] Motores con mejor sonido (capas, filtro y transiciones suaves)
 
 ## Bloque 4 · Competir (medio)
 - [x] Fantasma de tu mejor vuelta en contrarreloj
@@ -187,7 +189,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] El garaje se ve online y la IA lleva su propio aspecto
 - [x] 75 Cámara cenital lejana estilo Micro Machines
 - [x] 76 Interiores originales de los coches (volante, salpicadero)
-- [ ] Agujas de los relojes del salpicadero que se muevan
+- [x] Agujas de los relojes del salpicadero que se muevan
 - [ ] 77 Sprites con más resolución
 - [ ] 78 Editor de circuitos al estilo LittleBigPlanet Karting: brochas de terreno, carretera dibujada con waypoints y checkpoints automáticos, biblioteca de objetos, cielo y luz, guardar, probar y volver a editar
 
