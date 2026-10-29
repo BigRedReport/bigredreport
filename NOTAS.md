@@ -5,6 +5,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.67**
+- **Modo kart** (en Modos extra, también online): cajas de objetos repartidas por el circuito. Al pasar por una te toca un objeto, según cómo vayas: 🛢️ mancha de aceite que dejas detrás y hace trompear, 🟢 misil recto, 🔴 misil que busca al de delante, 💣 bomba que dejas detrás y ⚡ turbo extra. Se usan con V (o G / cruceta ↑). La IA también los coge y los usa.
+- Más textos traducidos en la sala online.
+
 **Novedades de la 0.66**
 - Los **modos extra** (eliminación, bomba caliente, infección zombi, polis y cacos) ahora también en **online y LAN**: se eligen al crear la sala. El anfitrión lleva la partida y cada jugador avisa de sus choques.
 - **Bomba caliente:** al primero que le explota la bomba pierde y se acaba la partida.

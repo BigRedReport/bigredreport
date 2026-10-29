@@ -58,7 +58,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 ## Bloque 8 · Modos extra (largo)
 - [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
 - [ ] Daños visuales en los vehículos
-- [ ] 79 Modo «Mario Kart / Crazy Kart»: objetos para recoger y usar, como modo aparte: mancha de aceite que se deja caer y hace resbalar (plátano), misil recto (tortuga verde), misil que busca al de delante (tortuga roja), bomba que se deja detrás (caja falsa), turbo extra…
+- [x] 79 Modo kart: cajas de objetos en el circuito; mancha de aceite (trompo), misil recto, misil que busca al de delante, bomba que se deja detrás y turbo extra; la IA también los usa; también online
 - [x] 80 ~~Eliminación por tiempo~~ (quitado: solo hay un modo de eliminación, por controles)
 - [x] 81 Bomba caliente: sin vueltas; cada coche tiene 2 minutos de vida con la bomba (su reloj solo corre mientras la lleva); se pasa al chocar; al primero que le explota pierde y se acaba (se puede saltar)
 - [x] Modos extra también en online y LAN
