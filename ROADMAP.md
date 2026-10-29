@@ -57,7 +57,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Android (2): app instalable (.apk)
 
 ## Bloque 8 · Modos extra (largo)
-- [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
+- [x] Modo kart: objetos, misiles, aceite y turbos, también online
 - [ ] Daños visuales en los vehículos
 - [x] 79 Modo kart: cajas de objetos en el circuito; mancha de aceite (trompo), misil recto, misil que busca al de delante, bomba que se deja detrás y turbo extra; la IA también los usa; también online
 - [x] 80 ~~Eliminación por tiempo~~ (quitado: solo hay un modo de eliminación, por controles)
