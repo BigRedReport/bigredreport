@@ -5,6 +5,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.66**
+- Los **modos extra** (eliminación, bomba caliente, infección zombi, polis y cacos) ahora también en **online y LAN**: se eligen al crear la sala. El anfitrión lleva la partida y cada jugador avisa de sus choques.
+- **Bomba caliente:** al primero que le explota la bomba pierde y se acaba la partida.
+- Lista de partidas públicas: modo (y modo extra), jugadores y **señal** (barras y milisegundos).
+- En el menú se llaman «Modos extra».
+- Los coches pequeños (Mini, Escarabajo…) ya no derrapan ni dejan marcas en cualquier curva: solo al resbalar de verdad, frenar fuerte o con el freno de mano.
+
 **Novedades de la 0.65**
 - Modo nuevo **Polis y cacos**: la mitad son polis (con sirena roja y azul, salen de la salida) y la otra mitad cacos (salen en la otra punta del circuito). Los polis eliminan a los cacos chocándolos; si algún caco aguanta 5 minutos, ganan los cacos. Se puede saltar.
 - **Bomba caliente** cambiada: cada coche tiene 2 minutos de vida con la bomba encima y su reloj solo corre mientras la lleva. Si llega a cero, explota y la bomba pasa al más cercano. Gana el último que queda.

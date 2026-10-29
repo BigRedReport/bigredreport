@@ -55,12 +55,14 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
 - [ ] Android: cargar el juego desde un .zip, controles táctiles y app instalable
 
-## Bloque 8 · Modos locos (largo)
+## Bloque 8 · Modos extra (largo)
 - [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
 - [ ] Daños visuales en los vehículos
 - [ ] 79 Modo «Mario Kart / Crazy Kart»: objetos para recoger y usar, como modo aparte: mancha de aceite que se deja caer y hace resbalar (plátano), misil recto (tortuga verde), misil que busca al de delante (tortuga roja), bomba que se deja detrás (caja falsa), turbo extra…
 - [x] 80 ~~Eliminación por tiempo~~ (quitado: solo hay un modo de eliminación, por controles)
-- [x] 81 Bomba caliente: sin vueltas; cada coche tiene 2 minutos de vida con la bomba (su reloj solo corre mientras la lleva); se pasa al chocar; si llega a cero explota y la bomba pasa al más cercano; gana el último (se puede saltar)
+- [x] 81 Bomba caliente: sin vueltas; cada coche tiene 2 minutos de vida con la bomba (su reloj solo corre mientras la lleva); se pasa al chocar; al primero que le explota pierde y se acaba (se puede saltar)
+- [x] Modos extra también en online y LAN
+- [x] Lista de partidas públicas: modo, jugadores y señal (ping)
 - [x] 82 Polis y cacos: mitad polis (sirena, salen de la salida) y mitad cacos (salen lejos); los polis eliminan chocando; 5 minutos (con salto)
 - [x] Infección zombi: un coche empieza de zombi (verde) y contagia al que toca; gana el último sin infectar; sin vueltas, con salto
 - [x] Modo eliminación: el último en pasar por un checkpoint queda eliminado y gana el último que queda. Según el tamaño del mapa: en los grandes cada X checkpoints; en los pequeños a mitad de vuelta o por vuelta

@@ -18,6 +18,7 @@
           let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
           if (m.t === 'hello') { clearTimeout(to); this.id = m.id; ok(m); }
           if (m.t === 'room') { this.room = m.room; this.members = m.members; }
+          if (m.t === 'pong') { if (typeof m.ts !== 'number') return; m = { t: 'pong', id: m.id, ms: Math.max(1, Date.now() - m.ts) }; }
           if (m.t === 'closed') { this.room = null; this.members = []; }
           this.emit(m.t, m);
         };
@@ -27,6 +28,7 @@
     get isHost() { return !!(this.members.find(x => x.id === this.id) || {}).host; }
     send(m) { if (this.connected) this.ws.send(JSON.stringify(m)); }
     list() { this.send({ t: 'list' }); }
+    ping(id) { this.send({ t: 'ping', id, ts: Date.now() }); }
     create(o) { this.send({ t: 'create', ...o }); }
     join(id, pass, data) { this.send({ t: 'join', id, pass, data }); }
     leave() { this.send({ t: 'leave' }); this.room = null; this.members = []; }

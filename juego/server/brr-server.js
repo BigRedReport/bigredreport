@@ -70,6 +70,7 @@ function drop(c) { if (!c.alive) return; c.alive = false; leave(c); }
 function onMsg(c, m) {
   switch (m.t) {
     case 'hello': c.name = String(m.name || 'Jugador').slice(0, 20); send(c, { t: 'hello', id: c.id, version: VERSION }); break;
+    case 'ping': send(c, { t: 'pong', id: String(m.id || '').slice(0, 12), ts: +m.ts || 0 }); break;
     case 'list': send(c, { t: 'list', rooms: [...rooms.values()].filter(r => r.pub).map(roomInfo) }); break;
     case 'create': {
       leave(c); const id = crypto.randomBytes(3).toString('hex').toUpperCase();

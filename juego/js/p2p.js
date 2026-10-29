@@ -114,7 +114,10 @@
       if (!now && !m.left) { if (m.lost) return; m.lost = Date.now(); this.roomUpdate(); m.lostT = setTimeout(() => { if (m.lost) this.dropMember(m, true); }, 30000); return; }
       r.members.delete(m.id); clearTimeout(m.lostT); try { m.pc && m.pc.close(); } catch (e) { }
       for (const o of r.members.values()) this.toMember(o, { t: 'left', id: m.id }); this.roomUpdate(); this.advertise(); }
+    ping(code) { if (this.connected) this.sig(code, { type: 'ping', ts: Date.now() }); }   // señal aproximada hasta el anfitrión (ida y vuelta por el buzón)
     async onSig(s) {
+      if (s.type === 'ping') { if (this.host) this.sig(s.from, { type: 'pong', ts: s.ts }); return; }
+      if (s.type === 'pong') { if (typeof s.ts === 'number') this.emit('pong', { t: 'pong', id: s.from, ms: Math.max(1, Date.now() - s.ts) }); return; }
       if (s.type === 'error') { this.emit('error', { t: 'error', msg: s.msg }); this.joining = null; return; }
       if (this.host && s.type === 'offer') {   // alguien quiere entrar
         const r = this.host;
@@ -223,7 +226,7 @@
     get id() { return this.cur.id; } get room() { return this.cur.room; } get members() { return this.cur.members; }
     get connected() { return this.cur.connected; } get isHost() { return this.cur.isHost; }
     connect(url, name) { if (url && /^wss?:\/\//.test(url)) { this.use('server'); return this.srv.connect(url, name); } this.use('p2p'); return this.p2p.connect(null, name); }
-    list() { this.cur.list(); } create(o) { this.cur.create(o); } join(id, pass, data) { this.cur.join(id, pass, data); } leave() { this.cur.leave(); }
+    list() { this.cur.list(); } ping(id) { if (this.cur.ping) this.cur.ping(id); } create(o) { this.cur.create(o); } join(id, pass, data) { this.cur.join(id, pass, data); } leave() { this.cur.leave(); }
     kick(id) { this.cur.kick ? this.cur.kick(id) : this.cur.send({ t: 'kick', id }); }
     data(d) { this.cur.data(d); } info(i, s) { this.cur.info(i, s); } chat(t) { this.cur.chat(t); } game(d, to) { this.cur.game(d, to); } send(m) { this.cur.send(m); }
   };

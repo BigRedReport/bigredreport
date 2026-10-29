@@ -345,7 +345,9 @@
         if (inp.handbrake && !w.steer) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
         if (!throttle && !brake && Math.abs(vLong) < 1.5) Flong -= vLong * Math.min(0.3 * share / dt, 6000);
         const lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong);
-        w.slip = tot > lim ? 1 - lim / tot : 0;
+        // derrape visible (marcas, humo, chirrido): de lado solo si la rueda resbala de verdad (>~1 m/s), no por el tope de agarre
+        // en una curva normal (a los coches pequeños les pasaba siempre); de frente (frenazo o acelerón), según el exceso de fuerza
+        { const raw = tot > lim ? 1 - lim / tot : 0; w.slip = !raw ? 0 : Math.abs(Flong) > Math.abs(Flat) ? raw * 0.7 : Math.min(raw, Math.max(0, (Math.abs(vLat) - 0.9) / 2.5)); }
         if (tot > lim) { Flat *= lim / tot; Flong *= lim / tot; }
         // suspensión en el punto real; tracción/agarre aplicados cerca de la altura del centro de masas
         // (truco arcade para que no vuelque en cada curva, como en el original)
