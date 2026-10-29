@@ -285,7 +285,7 @@
           if (lx < 0 && (xl === null || lx > xl)) xl = lx; if (lx > 0 && (xr === null || lx < xr)) xr = lx; }
         if (xl !== null && xr !== null && hm > 0) { const cx = (xl + xr) / 2, sx = Math.max(1, ((xr - xl) / 2 - 4) / hm); /* se estira hasta los postes, pero nunca se encoge (RIG3) */ xfm = v => xf([cx + v[0] * sx, v[1], v[2]]); } }
       if (decal) { const ys = m.verts.filter(Boolean).map(v => v[1]), flat = ys.length && Math.max(...ys) - Math.min(...ys) < 24;
-        const lift = 0.08 + 0.025 * (decalN++ % 8);   // cada marca un poco más alta que la anterior: el orden de pintado del original (la parrilla negra sobre la blanca)
+        decalN++; const lift = 0.02;   // pegadas al suelo (antes flotaban hasta 25 cm); el orden de pintado del original va por capas de profundidad (decLay)
         if (flat && Math.abs(-oy * S - groundAt(ox, oz)) < 2.5) xfm = v => { const g = xf(v), wx = ox + R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2];
           g[1] = groundAt(wx, wz) + lift; return g; }; }
       // postes finos y altos (los de las pancartas de salida y control) que en el original quedan colgando: se alargan hasta el suelo
@@ -307,7 +307,7 @@
       }
       if (window.BRR_OBJDBG && !decal) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1])), foot = G.filter(g => g[1] < lo + 0.3).map(g => g[1] - groundAt(g[0] / S, -g[2] / S));
         const xs = G.map(g => g[0]), zs = G.map(g => g[2]); window.BRR_OBJDBG.push({ gy: groundAt(ox, oz), lo, name, cls, x: ox, z: oz, minC: Math.min(...foot), maxC: Math.max(...foot), w: Math.max(...xs) - Math.min(...xs), d: Math.max(...zs) - Math.min(...zs), h: Math.max(...G.map(g => g[1])) - lo }); }
-      mb.addModel(mm, xfm, findTM, solid ? (a, b, c) => col.add(a, b, c, name) : null, 1);
+      mb.addModel(mm, xfm, findTM, solid ? (a, b, c) => col.add(a, b, c, name) : null, decal ? 3 + (decalN % 8) * 2 : 1);
       nobj++;
       // puentes y pasarelas que flotan: pilares en las esquinas hasta el suelo o el agua (sin paredes: las lanchas pasan por debajo)
       if (solid && !decal && !offWorld && /BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(name)) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1]));

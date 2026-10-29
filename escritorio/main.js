@@ -153,7 +153,12 @@ ipcMain.handle('upd:app', async (e) => {
       `robocopy ${q(src)} ${q(dst)} /E /R:30 /W:1 /NFL /NDL /NJH /NJS /NP >nul`,
       `if %ERRORLEVEL% GEQ 8 (echo No se pudieron copiar los archivos > ${q(fail)}) else (for /r ${q(path.join(dst, 'resources'))} %%f in (*.asar_) do move /y "%%f" "%%~dpnf.asar" >nul)`,
       `start "" ${q(path.join(dst, exe))}`, `rmdir /s /q ${q(tmp)}`, `del ${q(vbs)}`, '(goto) 2>nul & del "%~f0"'].join('\r\n'));
-    fs.writeFileSync(vbs, `CreateObject("WScript.Shell").Run "cmd /c """ & "${bat.replace(/"/g, '""')}" & """", 0, False\r\n`);
+    // ¿se puede escribir en la carpeta del programa? (en Program Files o en discos protegidos, no sin permisos de administrador):
+    // si no, el guion se lanza como administrador (Windows lo pregunta una vez) en vez de fallar en silencio
+    let canWrite = true; try { const t = path.join(dst, '.brr-prueba-escritura'); fs.writeFileSync(t, 'ok'); fs.rmSync(t, { force: true }); } catch (x) { canWrite = false; }
+    const b2 = bat.replace(/"/g, '""');
+    fs.writeFileSync(vbs, canWrite ? `CreateObject("WScript.Shell").Run "cmd /c """ & "${b2}" & """", 0, False\r\n`
+      : `CreateObject("Shell.Application").ShellExecute "cmd.exe", "/c """ & "${b2}" & """", "", "runas", 0\r\n`);
     spawn('wscript.exe', [vbs], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   } else {
     const sh = path.join(app.getPath('temp'), 'brr-actualizar.sh'), ex = path.join(dst, exe);
