@@ -7,6 +7,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.92**
+- **Carreras justas:** los rivales son ahora por defecto la **IA con físicas** (siguen las trazadas de las carreras de 1995, pero conducen de verdad: chocan, derrapan y se apartan). Los «originales» grabados, que iban por raíles, atravesaban cosas y volaban, quedan como opción (Opciones → Rivales).
+- **Sin pelotón por defecto:** se acabó que los rivales frenen o aceleren según dónde vayas tú; cada uno va a su ritmo según la dificultad. Si lo quieres, Opciones → Pelotón (goma elástica) → Sí.
+- La IA ya no atraviesa vallas a la vista (solo si nadie la ve, para no quedarse atascada), intenta salir sola de los atascos mucho más tiempo antes de recolocarse y, al recolocarse, ya no gana terreno.
+
 **Novedades de la 0.91**
 - **Marcador original de 1995** (Opciones → Marcador → Estilo del marcador): los gráficos del juego (posición grande 1st/2nd…, vueltas, latas de nitro con la «r» que gira con el turbo, piloto y barra del turbo, DAMAGE:% y los avisos WRONG WAY, FINAL LAP y MISSED CHECK). También entra en el modo clásico 1995.
 - **Repeticiones guardadas:** al terminar una carrera (o desde la repetición) pulsa «💾 Guardar repetición»; en el menú principal, **🎬 Repeticiones** las lista (circuito, modo, puesto, vehículo, duración) para verlas otra vez con todas las cámaras, exportarlas a un archivo `.brrrep` o importar las de un amigo. Se guardan las 40 últimas.

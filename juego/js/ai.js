@@ -252,7 +252,7 @@
       const line = this.line || (this.line = BRR.buildAILine(car.lvl, race, BRR.aiMode(car)));
       let pj = BRR.aiProject(line, car.p, this.li); if (pj.d > 900) pj = BRR.aiProject(line, car.p, null); this.li = pj.i;
       const v = Math.max(0, car.speed()), s = pj.i * line.step;
-      car.ghost = line.corridorAt(car.p[0], car.p[2]);
+      car.ghost = line.corridorAt(car.p[0], car.p[2]) && this.hidden();   // vallas finas de su pasillo: solo las atraviesa si nadie lo ve (a la vista choca como todos)
       const here = BRR.aiAt(line, s), half = Math.max(0, Math.min(here.w / 2 - 3, 6));
       // rubber banding suave: según la distancia (en controles) al jugador
       if (playerScore != null) {
@@ -339,7 +339,7 @@
         for (let k = 0; k <= back; k++) { const j = ((i0 - k) % N0 + N0) % N0; this.vprof[j] = Math.max(7, this.vprof[j] * (0.86 + 0.14 * k / back)); } }
       if (this.overT) this.overT = Math.max(0, this.overT - dt);
       this.crossT = ae > 1.5 ? (this.crossT || 0) + dt : 0;
-      if (this.crossT > 1.6 && !(this.revT > 0)) { this.crossT = 0; if (this.hidden()) this.recover(s); else { this.revT = 1.1; this.revSteer = Math.sign(err) || 1; } }
+      if (this.crossT > 1.6 && !(this.revT > 0)) { this.crossT = 0; if (this.hidden() && this.crossN > 1) { this.recover(s); this.crossN = 0; } else { this.crossN = (this.crossN || 0) + 1; this.revT = 1.1; this.revSteer = Math.sign(err) || 1; } }
       if (blockSpeed != null) vt = Math.min(vt, Math.max(8, blockSpeed));
       this.dbg = { err: +err.toFixed(2), vt: +vt.toFixed(1), lat: +latOff.toFixed(1), look: +look.toFixed(1), blk: blockSpeed, half: +half.toFixed(1) };
       inp.throttle = v < vt ? 1 : (v < vt + 2 ? 0.3 : 0);
@@ -356,13 +356,13 @@
       const hidden = this.hidden();
       if (this.stuckT > (hidden ? 1.4 : 2.5)) {
         const prog = this.lastS == null ? 99 : ((s - this.lastS) % line.total + line.total) % line.total;
-        if (prog < 4) { this.fails++; if (this.fails >= (hidden ? 1 : 2)) { this.recover(s); this.fails = 0; } else this.revT = 1.2; }
+        if (prog < 4) { this.fails++; if (this.fails >= (hidden ? 2 : 6)) { this.recover(s); this.fails = 0; } else { this.revT = 1.2; this.revSteer = this.fails % 2 ? 1 : -1; } }   // a la vista intenta salir solo mucho más tiempo antes de recolocarse
         else this.fails = 0;
         this.stuckT = 0; this.lastS = s;
       }
       const lat = Math.hypot(car.p[0] - here.p[0], car.p[2] - here.p[2]);
       this.offT = lat > here.w * 0.75 + 12 ? this.offT + dt : 0;
-      if (this.offT > (hidden ? 2 : 5)) { this.recover(s); this.offT = 0; }
+      if (this.offT > (hidden ? 4 : 14)) { this.recover(s); this.offT = 0; }
       return inp;
     }
     // ¿lo ve el jugador? (lejos de la cámara o detrás de ella)
@@ -374,7 +374,8 @@
       // si vuelve a atascarse en el mismo tramo, lo salta
       const tot = this.line.total, near = this.lastRecS != null && ((s - this.lastRecS) % tot + tot) % tot < 30;
       this.recStreak = near ? (this.recStreak || 0) + 1 : 0; this.lastRecS = s;
-      const s1 = s + 6 + Math.min(3, this.recStreak) * 14, c = BRR.aiAt(this.line, s1), p = c.p; this.li = null;
+      const s1 = s + 1 + Math.min(3, this.recStreak) * 8,   // sin ganar terreno: casi donde estaba (solo avanza si se vuelve a atascar en el mismo sitio)
+        c = BRR.aiAt(this.line, s1), p = c.p; this.li = null;
       // los controles que quedan entre el punto de atasco y el de recolocación cuentan como pasados
       const race = this.race, rs0 = race.project(this.car.p).s, rs1 = race.project(p).s, span = ((rs1 - rs0) % race.total + race.total) % race.total;
       if (span < 200) for (const g of race.gates.slice().sort((a, b) => (((a.s - rs0) % race.total + race.total) % race.total) - (((b.s - rs0) % race.total + race.total) % race.total)))
