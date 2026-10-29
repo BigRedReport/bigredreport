@@ -1,0 +1,26 @@
+plugins { id 'com.android.application' }
+// versión: la del archivo VERSION del repositorio (0.88.0 → código 8800)
+def ver = new File(rootDir, '../VERSION').text.trim()
+def p = ver.tokenize('.').collect { it.toInteger() }
+android {
+    namespace 'com.bigredreport.app'
+    compileSdk 34
+    defaultConfig {
+        applicationId 'com.bigredreport.app'
+        minSdk 24
+        targetSdk 34
+        versionCode p[0] * 1000000 + p[1] * 1000 + p[2]
+        versionName ver
+    }
+    signingConfigs {
+        rel {
+            storeFile file('../brr-release.jks')
+            storePassword System.getenv('BRR_KS_PASS') ?: 'bigredreport'
+            keyAlias 'brr'
+            keyPassword System.getenv('BRR_KS_PASS') ?: 'bigredreport'
+        }
+    }
+    buildTypes { release { minifyEnabled false; signingConfig signingConfigs.rel } }
+    compileOptions { sourceCompatibility JavaVersion.VERSION_17; targetCompatibility JavaVersion.VERSION_17 }
+    sourceSets { main { assets.srcDirs = ['../build-assets'] } }
+}

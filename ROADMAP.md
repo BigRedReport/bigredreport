@@ -61,7 +61,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Volantes, pedales y cambio de marchas; force feedback si es posible
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
 - [x] Android (1): cargar el juego desde un .zip y controles táctiles, en el navegador del móvil
-- [ ] Android (2): app instalable (.apk)
+- [x] Android (2): app instalable (.apk) con actualizador propio
 
 ## Bloque 8 · Modos extra (largo)
 - [x] Modo kart: objetos, misiles, aceite y turbos, también online

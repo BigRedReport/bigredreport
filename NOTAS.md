@@ -3,7 +3,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 **Descargas**
 - **Windows:** `BigRedReport-Windows.zip` → descomprime y abre `BigRedReport.exe` (si ya lo tienes, el lanzador actualiza el juego solo).
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
+- **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
+
+**Novedades de la 0.89**
+- **App de Android** (`BigRedReport-Android.apk`, primera versión de prueba): el juego entero dentro de la app, a pantalla completa y en horizontal, con controles táctiles y mandos. La primera vez elige el .zip con tu carpeta BIGRED. **Se actualiza sola:** al abrirla mira si hay versión nueva y la descarga e instala (pide permiso para instalar la primera vez).
+- **Garaje:** vista previa del coche girando con los cambios (llantas, ventanas, neones) al momento.
+- **Logros** ordenados por secciones (primeros pasos, carreras, campeonato, modos extra, modo libre, multijugador, constancia y circuitos), con cuántos llevas de cada una.
 
 **Novedades de la 0.88**
 - **IA libre en bomba, zombi y polis y cacos:** ya no corre por el circuito; los cazadores persiguen y los demás huyen por todo el mapa (montañas, agua…), esquivan obstáculos, dan marcha atrás si se atascan y, si vuelcan, se enderezan donde están (nunca vuelven al circuito). Saltan para esquivar cuando el cazador está encima.

@@ -75,3 +75,26 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "v$(tr -d ' \r\n' < VERSION)" "escritorio/dist/${{ matrix.asset }}" --clobber
+
+  android:
+    needs: publicar
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: '8.9'
+      - name: Construir la APK
+        working-directory: android
+        run: |
+          mkdir -p build-assets && cp -r ../juego build-assets/juego
+          gradle --no-daemon assembleRelease
+          cp app/build/outputs/apk/release/app-release.apk BigRedReport-Android.apk
+      - name: Subir a la versión
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "v$(tr -d ' \r\n' < VERSION)" android/BigRedReport-Android.apk --clobber

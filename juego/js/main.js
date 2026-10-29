@@ -301,15 +301,16 @@
       charThumb: async (ci, color, dirty) => { const m = await charMesh(ci, color, dirty, false), cv = document.createElement('canvas');
         return { frame: a => R.thumb(m.up, { size: 192, yaw: Math.PI + a, pitch: -0.12, dist: m.size * 3.1, target: [0, m.cy, 0], canvas: cv }) }; },
       tournNext: () => { const T = tget() || tnew(); if (T.over) return null; return front.tracks.find(x => x.id === front.series[T.series].use[T.idx]); },
-      carThumb: async (veh, team, level, paint) => {
-        const key = veh + team + level + (paint || ''); let up = vehCache.get(key);
+      carThumb: async (veh, team, level, paint, gar) => {
+        const key = veh + team + level + (paint || '') + (gar ? JSON.stringify(gar) : ''); let up = vehCache.get(key);
         if (!up) {
           const A = await files.archive(level + '.LEV'), colk = [...A.keys()].find(k => k.endsWith('.COL'));
           const fake = { pal: BRR.pal6((colk ? A.get(colk) : (await files.archive('ALWAYS.WAP')).get('DEFAULT.COL')).subarray(0, 768)), find: n => A.get(n) || null };
-          const d = await BRR.loadVehicle(files, veh, fake, team, { paint: hexRGB(paint) });
+          const d = await BRR.loadVehicle(files, veh, fake, team, { paint: hexRGB(paint), glass: gar ? garGlass(gar) : null });
+          const rw = gar ? rimWheels(d, { ...gar, paint }) : null;   // garaje: llantas
           if (!R.L) R.setEnvironment([-0.35, 0.75, 0.55], [0.62, 0.7, 0.82]);
           // carrocería + ruedas (en su sitio, apoyadas) + piezas decorativas (hélices, orugas, timones)
-          const parts = d.wheels.map((w, i) => d.wheelMeshes[i] ? { b: R.upload(d.wheelMeshes[i]), W: BRR.M4.fromRT([[1, 0, 0], [0, 1, 0], [0, 0, 1]], w.c) } : null).filter(Boolean);
+          const parts = d.wheels.map((w, i) => d.wheelMeshes[i] ? { b: (rw && rw[i]) || R.upload(d.wheelMeshes[i]), W: BRR.M4.fromRT([[1, 0, 0], [0, 1, 0], [0, 0, 1]], w.c) } : null).filter(Boolean);
           for (const x of d.decoParts) parts.push({ b: R.upload(x.mesh), W: BRR.M4.fromRT(x.R, x.p) });
           // tamaño: lo que ocupa el modelo entero (carrocería + ruedas), no solo la caja de choque (el buggy lunar lleva las ruedas muy fuera)
           let ext = Math.max(d.box.h[0], d.box.h[2]); const grow = (mb, o) => { for (const g of mb.groups.values()) for (let i = 0; i < g.pos.length; i += 3) ext = Math.max(ext, Math.abs(g.pos[i] + o[0]), Math.abs(g.pos[i + 2] + o[2]), Math.abs(g.pos[i + 1] + o[1]) * 0.8); };
@@ -559,7 +560,14 @@
   function achCount(k, n, id) { let v = 0; statsAdd(S => { S[k] = v = (S[k] || 0) + 1; }); if (v >= n) achUnlock(id); }
   function renderAch() { addVisitAch(); const A = achGet(), n = ACH.filter(a => A[a[0]]).length;
     $('pf_achn').textContent = n + ' / ' + ACH.length;
-    $('pf_ach').innerHTML = ACH.map(a => `<div class="ach${A[a[0]] ? ' on' : ''}" title="${a[3]}"><span class="ai">${A[a[0]] ? achIco(a[1]) : '🔒'}</span><div><b>${a[2]}</b><span>${a[3]}</span></div></div>`).join(''); }
+    // por secciones, de lo básico a lo más difícil
+    const SEC = [['Primeros pasos', ['primera', 'victoria', 'estilo', 'foto', 'bocinazos']], ['Carreras', ['sinnitro', 'remontada', 'record', 'vuelo', 'vuelco', 'ovejas', 'destrozos']],
+      ['Campeonato', ['serie', 'torneo']], ['Modos extra', ['m_elim', 'm_bomba', 'm_zombi', 'm_poli', 'm_caco', 'm_kart', 'm_misil']], ['Modo libre', ['libre', 'rampero']],
+      ['Multijugador', ['fiesta', 'online', 'onlinewin']], ['Constancia', ['km100', 'veterano', 'garaje', 'turista']], ['Circuitos', ACH.filter(x => x[0].startsWith('v_')).map(x => x[0])]];
+    const used = new Set(SEC.flatMap(x => x[1])); const rest = ACH.filter(x => !used.has(x[0])).map(x => x[0]); if (rest.length) SEC.push(['Otros', rest]);
+    const card = a => `<div class="ach${A[a[0]] ? ' on' : ''}" title="${a[3]}"><span class="ai">${A[a[0]] ? achIco(a[1]) : '🔒'}</span><div><b>${a[2]}</b><span>${a[3]}</span></div></div>`;
+    $('pf_ach').innerHTML = SEC.map(([t, ids]) => { const L = ids.map(id => ACH.find(x => x[0] === id)).filter(Boolean); if (!L.length) return '';
+      return `<div class="achsec"><span>${t}</span> <small>${L.filter(a => A[a[0]]).length} / ${L.length}</small></div>` + L.map(card).join(''); }).join(''); }
   function renderStats() {
     const S = statsGet(), fav = Object.entries(S.veh || {}).sort((a, b) => b[1] - a[1])[0], hrs = (S.time || 0) / 3600;
     const cell = (v, l) => `<div><b>${v}</b><span>${l}</span></div>`;
@@ -2476,7 +2484,7 @@
   // cada vehículo guarda su propio aspecto (opt.garVeh[VEHÍCULO]); lo que había antes (para todos) sirve de punto de partida
   let garSel = null;
   function garCfg(veh) { const A = opt.garVeh || (opt.garVeh = {}); if (!A[veh]) A[veh] = { rim: opt.rim || 'orig', rimSize: opt.rimSize || 17, rimCol: opt.rimCol || 'plata', neon: opt.neon || 'no', neonCol: opt.neonCol || '#00e5ff', glass: opt.glass || 'normal', glassCol: opt.glassCol || '#46607a', turboCol: opt.turboCol || null, lightCol: opt.lightCol || 'normal' }; return A[veh]; }
-  const GC = () => garCfg(garSel), garSave = () => save();
+  let garT = 0; const GC = () => garCfg(garSel), garSave = () => { save(); clearTimeout(garT); garT = setTimeout(garPreview, 120); };
   const garMine = (veh = opt.vehicle) => ({ ...garCfg(veh), paint: opt.paint || null });
   function garRandom() {   // un aspecto al azar para la IA (a veces tuneado, a veces de serie)
     const pick = a => a[Math.random() * a.length | 0], hue = Math.random() * 360, tuned = Math.random() < 0.55;
@@ -2500,11 +2508,21 @@
         fx.glowQuad([pt(-0.6, -0.75), pt(0.6, -0.75), pt(0.6, 0.75), pt(-0.6, 0.75)], [c.neon[0], c.neon[1], c.neon[2], 0.35 * pul]); }
       for (const [x, z] of [[-b.h[0] * 0.8, b.c[2]], [b.h[0] * 0.8, b.c[2]]]) fx.glow(V.add(c.p, BRR.mv(R, [x, y, z])), [c.neon[0], c.neon[1], c.neon[2], 0.5 * pul], 0.5); }
   }
+  // vista previa del garaje: el coche elegido girando, con los cambios aplicados al momento
+  let grThumb = null, grKey = '', grA = 0, grRun = false;
+  async function garPreview() {
+    const v = garSel, G = garMine(v), key = v + JSON.stringify(G); if (key === grKey || !orig) return; grKey = key;
+    try { const t = await orig.h.carThumb(v, opt.team || 1, opt.level || 'CITY1', opt.paint, G); if (grKey === key) grThumb = t; } catch (e) { }
+    if (!grRun) { grRun = true; const step = () => { if ($('garage').hidden) { grRun = false; return; }
+        if (grThumb) { const cv = $('gr_car'), g = cv.getContext('2d'), im = grThumb.frame(grA += 0.02); g.clearRect(0, 0, cv.width, cv.height); const sz = Math.min(cv.width, cv.height * 1.3); g.drawImage(im, (cv.width - sz) / 2, (cv.height - sz) / 2, sz, sz);
+          const N = garMine(v); if (N.neon === 'si') { const gr = g.createRadialGradient(cv.width / 2, cv.height * 0.78, 4, cv.width / 2, cv.height * 0.78, cv.width * 0.32); gr.addColorStop(0, N.neonCol + 'aa'); gr.addColorStop(1, N.neonCol + '00'); g.globalCompositeOperation = 'destination-over'; g.fillStyle = gr; g.fillRect(0, 0, cv.width, cv.height); g.globalCompositeOperation = 'source-over'; } }
+        setTimeout(() => requestAnimationFrame(step), 40); }; step(); }
+  }
   function garRender() {
     const all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')); if (!all.includes(garSel)) garSel = all.includes(opt.vehicle) ? opt.vehicle : all[0];
     if ($('gr_vsel').options.length !== all.length) $('gr_vsel').innerHTML = all.map(n => `<option value="${n}">${esc(VEH_NAMES[n] || n)}</option>`).join(''); $('gr_vsel').value = garSel;
     $('gr_rim').value = RIM_STYLES[GC().rim] ? GC().rim : 'orig'; $('gr_rimsize').value = String(GC().rimSize || 17); $('gr_rimcol').value = GC().rimCol || 'plata'; $('gr_rimsize').hidden = $('gr_rimcol').hidden = $('gr_rim').value === 'orig'; rimPreview();
-    $('gr_lights').value = GC().lightCol || 'normal';
+    $('gr_lights').value = GC().lightCol || 'normal'; setTimeout(garPreview, 0);
     $('gr_turbo').value = GC().turboCol || '#ff8c1e'; $('gr_neon').value = GC().neon === 'si' ? 'si' : 'no'; $('gr_neoncol').value = GC().neonCol || '#00e5ff';
     $('gr_glass').value = GC().glass || 'normal'; $('gr_glasscol').value = GC().glassCol || '#46607a'; $('gr_glasscol').hidden = (GC().glass || 'normal') !== 'color'; $('gr_neoncol').hidden = GC().neon !== 'si';
   }
