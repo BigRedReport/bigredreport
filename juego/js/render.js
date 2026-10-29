@@ -44,6 +44,7 @@ void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
   vec3 n; if(dot(vn,vn)>0.25) n=normalize(vn); else { n=normalize(cross(dFdx(wp),dFdy(wp))); if(dot(n,cam-wp)<0.) n=-n; }
   float d=length(wp-cam); vec3 rgb;
   if(glow>0.){ float f=clamp((d-far*.55)/(far*.45),0.,1.); o=vec4(mix(c.rgb*glow,fogc,f*.7),1.); return; }   // luces: sin sombreado
+  if(glow<0.){ float l=.62+.38*abs(dot(n,normalize(vec3(.4,.85,.3)))); o=vec4(mix(c.rgb*l,vec3(.62,.86,1.),.45),-glow); return; }   /* fantasma: translúcido azulado */
   if(mode==0){ float l=.66+.34*abs(dot(n,normalize(vec3(.4,.85,.3)))); rgb=c.rgb*l;
     float f=clamp((d-far*.55)/(far*.45),0.,1.); o=vec4(mix(rgb,fogc,f),1.); return; }
   // agua: olas que se mueven, brillo del sol y reflejo del cielo
@@ -283,6 +284,8 @@ void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
     // palanim del nivel: [velocidad, primero, último] con la paleta (bytes 0-255)
     setPalAnim(pa, pal) { if (!pa) { this.palAnim = null; return; } const n = pa[2] - pa[1] + 1, cols = new Float32Array(48);
       for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) cols[i * 3 + k] = pal[(pa[1] + i) * 3 + k] / 255; this.palAnim = { n, cols, rate: 24 / Math.max(1, pa[0]) }; }
+    drawGhost(batches, W, a = 0.4) { const gl = this.gl; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.uniform1f(this.U.glow, -a);
+      BRR.Renderer.prototype.draw.call(this, batches, W); gl.uniform1f(this.U.glow, 0); gl.depthMask(true); gl.disable(gl.BLEND); }
     drawGlow(batches, W, g = 1) { this.gl.uniform1f(this.U.glow, g); this.draw(batches, W); this.gl.uniform1f(this.U.glow, 0); }
     draw(batches, W) {
       const gl = this.gl; gl.uniformMatrix4fv(this.U.W, false, W || BRR.M4.I);

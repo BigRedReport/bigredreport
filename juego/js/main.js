@@ -190,6 +190,7 @@
     ls.onchange = fillVehicles; fillVehicles();
     { const H = { normal: 'Gana el primero en terminar las vueltas.', elim_cp: 'Cada pocos controles (según lo grande que sea el circuito) el último en pasar queda eliminado. Gana el que queda.', bomba: 'Sin vueltas: la bomba pasa al coche que chocas. Cada coche tiene 2 minutos de vida con la bomba encima (su reloj solo corre mientras la lleva); si llega a cero, explota. Gana el último que queda. Puedes saltar (V).', kart: 'Carrera con cajas de objetos en el circuito: mancha de aceite, misil recto, misil que busca al de delante, bomba que dejas detrás y turbo. Se usan con V (o G / cruceta ↑).', polis: 'Sin vueltas: la mitad son polis (con sirena, salen de la salida) y la otra mitad cacos (salen a medio circuito). Los polis eliminan a los cacos chocándolos; si algún caco aguanta 5 minutos, ganan los cacos. Puedes saltar (V).', zombie: 'Sin vueltas: un coche empieza de zombi (verde) y contagia al que toca. Gana el último sin infectar. Puedes saltar (V).' };
       const cz = $('m_crazy'); cz.value = H[opt.crazy] && opt.crazy !== 'elim_t' ? opt.crazy : 'normal'; const up = () => { $('m_crazyhelp').textContent = H[cz.value]; $('m_laps').disabled = cz.value !== 'normal' && cz.value !== 'kart'; }; cz.onchange = () => { opt.crazy = cz.value; save(); up(); }; up(); }
+    $('m_ghost').value = opt.ghost === 'no' ? 'no' : 'si'; $('m_ghost').onchange = () => { opt.ghost = $('m_ghost').value; save(); };
     $('m_hora').value = opt.hora || 'original'; $('m_clima').value = opt.clima || 'despejado'; $('m_hora').onchange = () => { opt.hora = $('m_hora').value; save(); }; $('m_clima').onchange = () => { opt.clima = $('m_clima').value; save(); };
     $('m_team').value = opt.team; $('m_rivals').value = opt.rivals; $('m_diff').value = opt.diff; $('m_players').value = opt.players || 1;
     $('t_team').value = opt.team; $('t_diff').value = opt.diff;
@@ -400,7 +401,7 @@
   $('bye_back').onclick = () => { state = 'menu'; show('menu'); go('home'); menuMusic(); };
   function setQuickMode(v) {
     qmode = v; const tt = v === 'tt', split = v === 'split', free = v === 'free';
-    $('m_rivals').parentElement.hidden = tt || free; $('m_diff').parentElement.hidden = tt || free; $('m_laps').parentElement.hidden = free; $('m_crazy').parentElement.hidden = tt || free; $('m_laps').disabled = !(tt || free) && $('m_crazy').value !== 'normal' && $('m_crazy').value !== 'kart';
+    $('m_rivals').parentElement.hidden = tt || free; $('m_diff').parentElement.hidden = tt || free; $('m_laps').parentElement.hidden = free; $('m_crazy').parentElement.hidden = tt || free; $('m_ghost').parentElement.hidden = !tt; $('m_laps').disabled = !(tt || free) && $('m_crazy').value !== 'normal' && $('m_crazy').value !== 'kart';
     $('m_players').parentElement.parentElement.hidden = !split;
     const pl = $('m_players'); for (const o of pl.options) o.hidden = split && o.value === '1';
     if (split && +pl.value < 2) pl.value = String(Math.max(2, opt.players || 2)); if (!split) pl.value = '1';
@@ -838,7 +839,7 @@
       // sin parpadeo negro: los primeros fotogramas (que suben texturas y compilan sombreadores) se dibujan aún tapados por la pantalla de carga
       $('results').hidden = true; state = 'race';
       for (let k = 0; k < 4; k++) await new Promise(r => requestAnimationFrame(r));
-      show('hud'); window.BRR_READY = true;
+      await ghostLoad(); show('hud'); window.BRR_READY = true;
       // logros: visitar el circuito y conducir todos los vehículos
       if (!net || true) { addVisitAch(); achUnlock('v_' + lvl.name); let nv = 0; statsAdd(S2 => { S2.vehs = S2.vehs || {}; S2.vehs[humans[0].car.def.name] = 1; nv = Object.keys(S2.vehs).length; });
         if (nv >= BRR.VEHICLES.filter(n => files.has(n + '.VHC')).length) achUnlock('garaje'); }
@@ -898,7 +899,7 @@
     if (props) props.reset(); if (fx) fx.reset(); crazyInit();
   }
   function restart() {
-    if (!lvl) return; placeGrid(); leader = null;
+    if (!lvl) return; placeGrid(); leader = null; for (const h of humans) h.gRec = []; if (ghost) ghost.i = 0;
     $('results').hidden = true; state = 'race'; show('hud'); last = performance.now();
   }
   // ---------- sonido ----------
@@ -974,6 +975,7 @@
       if (e.type === 'check') { flash(h, `Control ${e.num}/${e.of}  ·  ${fmt(e.split)}`, 2); if (audio) audio.play('GEN/CHECKPOI.WAV'); }
       if (e.type === 'missed') { flash(h, '¡Te has saltado un control! Vuelve atrás', 2.5, 'warn'); if (audio) audio.play('GEN/CHCKMIS.WAV'); }
       if (e.type === 'wrong') { if (audio) audio.play('GEN/WRGWAY.WAV'); if (h === humans[0]) say(['WRONG', 'WRGWAY', 'BACKW'], 0.7, false); }
+      if (e.type === 'lap' || e.type === 'finish') ghostLap(h, e.lapTime);
       if (e.type === 'lap') {
         const rec = getRec(h), best = !rec.lap || e.lapTime < rec.lap; if (best) { rec.lap = e.lapTime; ST.set(recKey(h), JSON.stringify(rec)); }
         flash(h, `Vuelta ${e.lap}: ${fmt(e.lapTime)}${best ? '  ·  ¡récord!' : ''}${e.final ? '  ·  ÚLTIMA VUELTA' : ''}`, 3);
@@ -2191,6 +2193,45 @@
     const k = it || ''; if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = it ? `<b>${KITEMS[it].e}</b><span>${KITEMS[it].n}</span><small>V / ↑</small>` : '<b style="opacity:.35">?</b>'; }
   }
 
+  // ---------- fantasma en contrarreloj: tu mejor vuelta con este vehículo en este circuito, translúcida ----------
+  // se graba cada vuelta (20 muestras por segundo) y, si mejora la guardada, se queda como fantasma (en este navegador)
+  let ghost = null;   // { t, veh, f: Float32Array [t, x,y,z, qx,qy,qz,qw]..., car }
+  const ghostKey = (lv, veh) => 'ghost_' + lv + '_' + veh;
+  async function ghostLoad() {
+    ghost = null; if (!ttMode || !humans[0] || opt.ghost === 'no') return;
+    try { const g = await idbGet(ghostKey(lvl.name, humans[0].car.def.name)); if (g && g.f && g.f.length >= 16) { ghost = { ...g, car: new BRR.Car(humans[0].car.def, lvl), i: 0 }; ghost.car.headDraw = humans[0].car.headDraw; } } catch (e) { ghost = null; }
+  }
+  function ghostRecord(h) {   // después de la lógica de carrera de ese fotograma
+    if (!ttMode || h !== humans[0]) return; const rc = h.race; if (rc.phase !== 'race') return;
+    const t = rc.t - rc.lapStart, R = h.gRec || (h.gRec = []); if (R.length && t - R[R.length - 8] < 0.05) return; const c = h.car;
+    R.push(t, c.p[0], c.p[1], c.p[2], c.q[0], c.q[1], c.q[2], c.q[3]);
+  }
+  async function ghostLap(h, lapTime) {   // al cerrar una vuelta: ¿mejor que el fantasma guardado?
+    if (!ttMode || h !== humans[0]) return; const R = h.gRec || []; h.gRec = [];
+    const c = h.car; R.push(lapTime, c.p[0], c.p[1], c.p[2], c.q[0], c.q[1], c.q[2], c.q[3]);
+    if (ghost && ghost.t) { const d = lapTime - ghost.t; setTimeout(() => flash(h, (d < 0 ? '−' : '+') + Math.abs(d).toFixed(2) + ' s · fantasma', 2.2, d < 0 ? 'stunt' : ''), 1600); }
+    if (R.length < 16 || R[0] > 1 || (ghost && ghost.t && lapTime >= ghost.t)) return;
+    const g = { t: lapTime, veh: c.def.name, lvl: lvl.name, f: new Float32Array(R), date: Date.now() };
+    try { await idbSet(ghostKey(lvl.name, c.def.name), g); } catch (e) { }
+    const old = ghost; ghost = { ...g, car: (old && old.car) || new BRR.Car(c.def, lvl), i: 0 }; ghost.car.headDraw = c.headDraw;
+  }
+  function ghostFrame() {   // coloca el fantasma en el tiempo de la vuelta actual
+    if (!ghost || !humans[0]) return; const rc = humans[0].race, g = ghost, F = g.f, n = F.length / 8;
+    const t = rc.phase === 'race' ? rc.t - rc.lapStart : 0; g.show = rc.phase !== 'finished' && t <= g.t + 0.3;
+    if (!g.show) return; let i = Math.min(g.i, n - 2); if (F[i * 8] > t) i = 0; while (i < n - 2 && F[(i + 1) * 8] < t) i++; g.i = i;
+    const a = i * 8, b = a + 8, u = Math.max(0, Math.min(1, (t - F[a]) / Math.max(1e-3, F[b] - F[a]))), c = g.car;
+    const p0 = c.p ? c.p.slice() : null; c.p = [0, 1, 2].map(k => F[a + 1 + k] + (F[b + 1 + k] - F[a + 1 + k]) * u);
+    let q = [0, 1, 2, 3].map(k => F[a + 4 + k]), qb = [0, 1, 2, 3].map(k => F[b + 4 + k]); if (q[0] * qb[0] + q[1] * qb[1] + q[2] * qb[2] + q[3] * qb[3] < 0) qb = qb.map(x => -x);
+    q = q.map((x, k) => x + (qb[k] - x) * u); const l = Math.hypot(...q) || 1; c.q = q.map(x => x / l);
+    const sp = p0 ? Math.hypot(c.p[0] - p0[0], c.p[2] - p0[2]) : 0; for (const w of c.W) { w.spin += sp / (w.radius || 0.3); w.len = 0.3; } c.v = [0, 0, 0];
+  }
+  function ghostDraw(h) {
+    if (!ghost || !ghost.show || h !== humans[0]) return; const c = ghost.car;
+    if (V.len(V.sub(c.p, h.cam.pos)) < 2.5) return;   // no tapar la cámara
+    const raw = R.draw; R.draw = (b, W) => R.drawGhost(b, W, 0.5);
+    try { drawCar(c, h.draw, false, carDraw); } finally { R.draw = raw; }
+  }
+
   // ---------- bucle ----------
   let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, shTick = 0;
   const DT = 1 / 240;
@@ -2297,7 +2338,7 @@
       packFrame(dt);
       for (const r of rivals) if (r.replay && !r.car.out) r.replay.update(dt);
       BRR.carCollisions(allCars, softStart()); const tC = performance.now(); const P = BRR.PERF || (BRR.PERF = { ai: 0, phys: 0, n: 0 }); P.ai += tB - tA; P.phys += tC - tB; P.n++;
-      for (const h of humans) { h.race.update(dt, h.car); handleEvents(h); }
+      for (const h of humans) { h.race.update(dt, h.car); handleEvents(h); ghostRecord(h); } ghostFrame();
       for (const r of rivals) { if (r.remote || r.car.out) continue; r.race.update(dt, r.car); r.race.ev.length = 0; }
       if (netRace) netFrame(dt);
       updatePositions(dt); crazyFrame(dt); kartFrame(dt); crazySirens(); if (netRace) { crazyNetHits(); crazyNetSend(dt); } for (const c of allCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
@@ -2335,7 +2376,7 @@
       R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far); for (const q of netRamps.values()) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of humans) { if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p)); if (q.pipe) R.draw(q.pipe.up, BRR.M4.fromRT(q.pipe.R, q.pipe.p)); }
       for (const hh of humans) drawCar(hh.car, hh.draw, hh === h && ['capo', 'parachoques'].includes(h.camMode || opt.cam));
       for (const r of rivals) { const d2 = (r.car.p[0] - cam.pos[0]) ** 2 + (r.car.p[2] - cam.pos[2]) ** 2; if (d2 < far * far) drawCar(r.car, r.draw, false, r.dd); }
-      kartDraw();
+      kartDraw(); ghostDraw(h);
       fx.draw(BRR.M4.mul(proj, view), cam.pos, view, far, R.fogUsed || lvl.sky);
       // marcador del jugador
       const c = h.car, rc = h.race;
@@ -2391,5 +2432,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, get ghost() { return ghost; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

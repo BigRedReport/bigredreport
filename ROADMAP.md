@@ -36,7 +36,8 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Motores con mejor sonido (más muestras y transiciones suaves)
 
 ## Bloque 4 · Competir (medio)
-- [ ] Fantasmas descargables y retos semanales iguales para todos
+- [x] Fantasma de tu mejor vuelta en contrarreloj
+- [ ] Fantasma del mejor tiempo de la clasificación online; compartir y descargar fantasmas; retos semanales
 - [ ] Repeticiones: guardar la carrera, verla con las cámaras de televisión y exportarla a vídeo
 - [ ] Modo espectador en online
 

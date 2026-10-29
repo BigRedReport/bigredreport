@@ -5,6 +5,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.69**
+- **Fantasma en contrarreloj:** corres contra tu mejor vuelta, que se ve como un coche azulado y transparente. Se guarda por circuito y vehículo y se actualiza cada vez que la mejoras. Al cerrar cada vuelta te dice cuánto le has sacado o perdido. Se puede quitar en la pantalla del circuito («Fantasma»).
+
 **Novedades de la 0.68**
 - **Jugar en el móvil (prueba) desde el navegador:** comprime la carpeta BIGRED en un .zip, pásalo al móvil, abre la web del juego y pulsa «Elegir un .zip con la carpeta BIGRED». Se guarda en el navegador para la próxima vez.
 - **Controles táctiles** en carrera: girar (◀ ▶), acelerar, frenar, nitro, freno de mano, ★ (objeto en kart / salto), y arriba pausa, cámara, volver a la pista y bocina. Aparecen solos en pantallas táctiles. Mejor en horizontal.
