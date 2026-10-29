@@ -498,7 +498,10 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <div id="garage" hidden><div class="card">
   <h2>🔧 Garaje</h2>
   <p class="small">Solo estética: los coches corren igual, cambia cómo se ven (tu coche, en todas las carreras).</p>
-  <div class="grrow"><div><b>Ruedas</b> <span class="small">llantas nuevas, próximamente</span></div><select id="gr_wheels" disabled><option>Originales</option></select></div>
+  <div class="grrow"><div><b>Llantas</b> <span class="small">neumático y llanta nuevos (mismo tamaño de rueda)</span><br><canvas id="gr_rimcv" width="96" height="96" style="margin-top:6px"></canvas></div>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><select id="gr_rim"><option value="orig">Originales</option><option value="malla">Malla (cruzada)</option><option value="radios5">5 radios</option><option value="multi">Radios finos</option><option value="estrella">Estrella partida</option><option value="disco">Disco</option><option value="acero">De acero</option></select>
+    <select id="gr_rimsize"><option value="15">15"</option><option value="16">16"</option><option value="17">17"</option><option value="18">18"</option><option value="19">19"</option></select>
+    <select id="gr_rimcol"><option value="plata">Plata</option><option value="negro">Negro</option><option value="gris">Grafito</option><option value="oro">Oro</option><option value="bronce">Bronce</option><option value="blanco">Blanco</option><option value="carro">Color del coche</option></select></div></div>
   <div class="grrow"><div><b>Color del turbo</b></div><div><input type="color" id="gr_turbo"> <button id="gr_turbo0">Como el coche</button></div></div>
   <div class="grrow"><div><b>Neones</b> <span class="small">luz de color bajo el coche</span></div><div><select id="gr_neon"><option value="no">Sin neones</option><option value="si">Con neones</option></select> <input type="color" id="gr_neoncol"></div></div>
   <div class="grrow"><div><b>Ventanas</b></div><div><select id="gr_glass"><option value="normal">Normales</option><option value="oscuro">Tintadas</option><option value="negro">Muy oscuras</option><option value="color">De color</option></select> <input type="color" id="gr_glasscol"></div></div>

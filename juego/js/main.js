@@ -786,7 +786,7 @@
         const h = newHuman(i, c, new BRR.Race(lvl, laps || lvl.laps), teams[i % 6]); h.draw = R.upload(d.mesh); humans.push(h);
       }
       car = humans[0].car; race = humans[0].race;
-      carDraw = { body: humans[0].draw, ...vehDraw(def0) };
+      carDraw = { body: humans[0].draw, ...vehDraw(def0) }; { const rw = rimWheels(def0); if (rw) carDraw = { ...carDraw, wheels: carDraw.wheels.map((w, i) => rw[i] || w) }; }   // llantas del garaje
       // rivales de la máquina: los demás equipos, con el mismo vehículo
       rivals = []; const nR = ttMode || freeMode ? 0 : Math.min(12 - nPlayers, opt.rivals | 0), skill = [0, 0.86, 0.95, 1.0, 1.06][opt.diff] || 0.95, lanes = [-0.45, 0.45, -0.15, 0.15, 0, -0.3, 0.3, -0.6, 0.6, -0.05, 0.05];
       const profiles = ['experto', 'agresivo', 'torpe', 'prudente', 'imprevisible'].sort(() => Math.random() - .5); while (profiles.length < 11) profiles.push(profiles[profiles.length % 5]);
@@ -1188,7 +1188,7 @@
     const old = h.car, d = await BRR.loadVehicle(files, veh, lvl, old.team, { glass: garGlass(), logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) });
     const c = new BRR.Car(d, lvl); Object.assign(c, { team: old.team, isPlayer: true, human: 0, paintHex: old.paintHex, teamName: old.teamName, headDraw: old.headDraw, nitros: old.nitros, nitroInf: old.nitroInf });
     const f = old.forward(); c.reset(old.p[0], old.p[2], Math.atan2(-f[0], -f[2]), old.p[1]);
-    h.car = car = c; h.draw = R.upload(d.mesh); carDraw = { body: h.draw, ...vehDraw(d) }; h.cam.init = h.cam.posInit = false; if (fx) fx.reset();
+    h.car = car = c; h.draw = R.upload(d.mesh); carDraw = { body: h.draw, ...vehDraw(d) }; { const rw = rimWheels(d); if (rw) carDraw = { ...carDraw, wheels: carDraw.wheels.map((w, i) => rw[i] || w) }; } h.cam.init = h.cam.posInit = false; if (fx) fx.reset();
     try { await startSounds(lvl.name, d); } catch (e) { }
     opt.vehicle = veh; save();
   }
@@ -2420,8 +2420,25 @@
       for (const [x, z] of [[-b.h[0] * 0.8, b.c[2]], [b.h[0] * 0.8, b.c[2]]]) fx.glow(V.add(c.p, BRR.mv(R, [x, y, z])), [c.neon[0], c.neon[1], c.neon[2], 0.5 * pul], 0.5); }
   }
   function garRender() {
+    $('gr_rim').value = RIM_STYLES[opt.rim] ? opt.rim : 'orig'; $('gr_rimsize').value = String(opt.rimSize || 17); $('gr_rimcol').value = opt.rimCol || 'plata'; $('gr_rimsize').hidden = $('gr_rimcol').hidden = $('gr_rim').value === 'orig'; rimPreview();
     $('gr_turbo').value = opt.turboCol || '#ff8c1e'; $('gr_neon').value = opt.neon === 'si' ? 'si' : 'no'; $('gr_neoncol').value = opt.neonCol || '#00e5ff';
     $('gr_glass').value = opt.glass || 'normal'; $('gr_glasscol').value = opt.glassCol || '#46607a'; $('gr_glasscol').hidden = (opt.glass || 'normal') !== 'color'; $('gr_neoncol').hidden = opt.neon !== 'si';
+  }
+  for (const id of ['gr_rim', 'gr_rimsize', 'gr_rimcol']) $(id).onchange = () => { opt.rim = $('gr_rim').value; opt.rimSize = +$('gr_rimsize').value; opt.rimCol = $('gr_rimcol').value; save(); garRender(); };
+  // vista previa de la llanta (dibujo 2D de frente)
+  function rimPreview() {
+    const cv = $('gr_rimcv'), g = cv.getContext('2d'), W = cv.width, c = W / 2, R0 = W * 0.46, st = opt.rim || 'orig'; g.clearRect(0, 0, W, W); if (st === 'orig') { cv.hidden = true; return; } cv.hidden = false;
+    const col = opt.rimCol === 'carro' ? (hexRGB(opt.paint) || [200, 40, 30]) : (RIM_COLS[opt.rimCol] || RIM_COLS.plata).map(x => x * 255), css = a => `rgb(${col.map(x => Math.round(x * a)).join(',')})`, rr = R0 * (RIM_SIZES[opt.rimSize] || 0.7);
+    g.fillStyle = '#121214'; g.beginPath(); g.arc(c, c, R0, 0, 7); g.fill(); g.fillStyle = '#0a0a0b'; g.beginPath(); g.arc(c, c, rr, 0, 7); g.fill();
+    g.strokeStyle = css(1); g.lineWidth = rr * 0.08; g.beginPath(); g.arc(c, c, rr * 0.95, 0, 7); g.stroke();
+    const sp = (a, w0, w1, r0, r1, f = css(1)) => { const ca = Math.cos(a), sa = Math.sin(a), px = -sa, py = ca; g.fillStyle = f; g.beginPath(); g.moveTo(c + ca * r0 - px * w0, c + sa * r0 - py * w0); g.lineTo(c + ca * r1 - px * w1, c + sa * r1 - py * w1); g.lineTo(c + ca * r1 + px * w1, c + sa * r1 + py * w1); g.lineTo(c + ca * r0 + px * w0, c + sa * r0 + py * w0); g.fill(); };
+    const hub = rr * 0.2;
+    if (st === 'disco' || st === 'acero') { g.fillStyle = css(1); g.beginPath(); g.arc(c, c, rr * 0.88, 0, 7); g.fill(); for (let i = 0; i < (st === 'acero' ? 8 : 5); i++) sp(i / (st === 'acero' ? 8 : 5) * 6.2832 + (st === 'disco' ? 0.6 : 0), rr * 0.07, rr * 0.07, rr * 0.5, rr * 0.66, '#0a0a0b'); }
+    if (st === 'malla') { for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; sp(a - 0.16, rr * 0.03, rr * 0.03, hub, rr * 0.86); sp(a + 0.16, rr * 0.03, rr * 0.03, hub, rr * 0.86); } g.strokeStyle = css(0.9); g.lineWidth = rr * 0.06; g.beginPath(); g.arc(c, c, rr * 0.53, 0, 7); g.stroke(); }
+    if (st === 'radios5') for (let i = 0; i < 5; i++) sp(i / 5 * 6.2832, rr * 0.16, rr * 0.22, hub * 0.8, rr * 0.88);
+    if (st === 'multi') for (let i = 0; i < 14; i++) sp(i / 14 * 6.2832, rr * 0.03, rr * 0.06, hub * 0.8, rr * 0.88);
+    if (st === 'estrella') for (let i = 0; i < 6; i++) { const a = i / 6 * 6.2832; sp(a, rr * 0.08, rr * 0.05, hub * 0.8, rr * 0.45); sp(a - 0.13, rr * 0.04, rr * 0.05, rr * 0.42, rr * 0.88); sp(a + 0.13, rr * 0.04, rr * 0.05, rr * 0.42, rr * 0.88); }
+    g.fillStyle = css(1.1); g.beginPath(); g.arc(c, c, hub, 0, 7); g.fill();
   }
   $('gr_close').onclick = () => { $('garage').hidden = true; };
   $('garage').onclick = e => { if (e.target.id === 'garage') $('garage').hidden = true; };
@@ -2431,6 +2448,48 @@
   $('gr_neoncol').oninput = () => { opt.neonCol = $('gr_neoncol').value; save(); };
   $('gr_glass').onchange = () => { opt.glass = $('gr_glass').value; save(); garRender(); };
   $('gr_glasscol').oninput = () => { opt.glassCol = $('gr_glasscol').value; save(); };
+
+  // ---------- llantas del garaje: ruedas hechas aquí (neumático + llanta) con estilos genéricos y tamaños de 15" a 19" ----------
+  // el tamaño total de la rueda no cambia (la física es la misma): una llanta más grande deja menos goma (perfil más bajo)
+  const RIM_STYLES = { orig: 'Originales', malla: 'Malla (cruzada)', radios5: '5 radios', multi: 'Radios finos', estrella: 'Estrella partida', disco: 'Disco', acero: 'De acero' };
+  const RIM_COLS = { plata: [0.78, 0.8, 0.83], negro: [0.09, 0.09, 0.1], oro: [0.86, 0.68, 0.26], bronce: [0.55, 0.38, 0.2], blanco: [0.92, 0.92, 0.92], gris: [0.35, 0.36, 0.38] };
+  const RIM_SIZES = { 15: 0.6, 16: 0.65, 17: 0.7, 18: 0.75, 19: 0.8 };
+  function rimMesh(rad, hw, side, style, col, frac, cx = 0) {
+    const mb = new BRR.MeshBuilder(null), g = mb.group('COLOR'), N = 28, T = (a, b, c, k) => { for (const v of [a, b, c, a, c, b]) { g.pos.push(...v); g.col.push(...k); g.lay.push(0); } };
+    const P = (x, r, a) => [x, Math.cos(a) * r, Math.sin(a) * r], Q = (a, b, c, d, k) => { T(a, b, c, k); T(a, c, d, k); };
+    const tyre = [0.07, 0.07, 0.08], wall = [0.11, 0.11, 0.12], rr = rad * frac, out = side * hw, inn = -side * hw, face = side * hw * 0.55;
+    for (let i = 0; i < N; i++) { const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832;
+      Q(P(inn * 0.92, rad, a0), P(out * 0.92, rad, a0), P(out * 0.92, rad, a1), P(inn * 0.92, rad, a1), tyre);   // banda de rodadura
+      for (const x of [out, inn]) { const sx = x * 0.92 / x; Q(P(x * 0.92, rad, a0), P(x, rad * 0.93, a0), P(x, rad * 0.93, a1), P(x * 0.92, rad, a1), wall); Q(P(x, rad * 0.93, a0), P(x, rr, a0), P(x, rr, a1), P(x, rad * 0.93, a1), wall); }
+      Q(P(out, rr, a0), P(out, rr * 0.93, a0), P(out, rr * 0.93, a1), P(out, rr, a1), col);   // labio exterior de la llanta
+      Q(P(out, rr * 0.93, a0), P(face, rr * 0.9, a0), P(face, rr * 0.9, a1), P(out, rr * 0.93, a1), col.map(x => x * 0.7));   // fondo (hacia dentro)
+      Q(P(face, rr * 0.9, a0), P(inn * 0.6, rr * 0.9, a0), P(inn * 0.6, rr * 0.9, a1), P(face, rr * 0.9, a1), [0.05, 0.05, 0.06]);   // interior oscuro (barril)
+      Q(P(face - side * 0.01, rr * 0.88, a0), P(face - side * 0.01, 0, a0), P(face - side * 0.01, 0, a1), P(face - side * 0.01, rr * 0.88, a1), [0.04, 0.04, 0.05]);   // fondo negro (huecos entre radios)
+      if (style === 'disco' || style === 'acero') Q(P(face + side * 0.005, rr * 0.88, a0), P(face + side * 0.005, rr * 0.18, a0), P(face + side * 0.005, rr * 0.18, a1), P(face + side * 0.005, rr * 0.88, a1), col);
+    }
+    const fx2 = face + side * 0.012, spoke = (a, w0, w1, r0, r1, k = col, x = fx2) => { const c0 = Math.cos(a), s0 = Math.sin(a), px = -s0, py = c0, pt = (r, w) => [x, c0 * r + px * w, s0 * r + py * w]; Q(pt(r0, -w0), pt(r1, -w1), pt(r1, w1), pt(r0, w0), k); };
+    const hubR = rr * 0.2;
+    if (style === 'malla') { for (let i = 0; i < 10; i++) { const a = i / 10 * 6.2832; spoke(a - 0.16, rr * 0.03, rr * 0.03, hubR, rr * 0.86); spoke(a + 0.16, rr * 0.03, rr * 0.03, hubR, rr * 0.86); }
+      for (let i = 0; i < 20; i++) { const a = i / 20 * 6.2832; spoke(a, rr * 0.05, rr * 0.05, rr * 0.5, rr * 0.56, col.map(x => x * 0.9), fx2 + side * 0.004); } }
+    else if (style === 'radios5') for (let i = 0; i < 5; i++) spoke(i / 5 * 6.2832, rr * 0.16, rr * 0.22, hubR * 0.8, rr * 0.88);
+    else if (style === 'multi') for (let i = 0; i < 14; i++) spoke(i / 14 * 6.2832, rr * 0.03, rr * 0.06, hubR * 0.8, rr * 0.88);
+    else if (style === 'estrella') for (let i = 0; i < 6; i++) { const a = i / 6 * 6.2832; spoke(a, rr * 0.08, rr * 0.05, hubR * 0.8, rr * 0.45); spoke(a - 0.13, rr * 0.04, rr * 0.05, rr * 0.42, rr * 0.88); spoke(a + 0.13, rr * 0.04, rr * 0.05, rr * 0.42, rr * 0.88); }
+    else if (style === 'disco') for (let i = 0; i < 5; i++) { const a = i / 5 * 6.2832 + 0.6; spoke(a, rr * 0.07, rr * 0.07, rr * 0.5, rr * 0.66, [0.05, 0.05, 0.06], fx2 + side * 0.006); }
+    else if (style === 'acero') for (let i = 0; i < 8; i++) { const a = i / 8 * 6.2832; spoke(a, rr * 0.06, rr * 0.08, rr * 0.48, rr * 0.66, [0.05, 0.05, 0.06], fx2 + side * 0.006); }
+    for (let i = 0; i < N; i++) { const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832; Q(P(fx2 + side * 0.008, hubR, a0), P(fx2 + side * 0.02, 0, a0), P(fx2 + side * 0.02, 0, a1), P(fx2 + side * 0.008, hubR, a1), col.map(x => Math.min(1, x * 1.1))); }   // buje
+    if (cx) for (let i = 0; i < g.pos.length; i += 3) g.pos[i] += cx;
+    return R.upload(mb);
+  }
+  const rimCache = new Map();
+  function rimWheels(d) {   // las ruedas del vehículo con las llantas elegidas (null si no se usan)
+    const st = opt.rim || 'orig'; if (st === 'orig' || !d.wheelMeshes || /hover|boat|track/.test(d.kind || '')) return null;
+    const key = d.name + '|' + st + '|' + (opt.rimCol || 'plata') + '|' + (opt.rimSize || 17); if (rimCache.has(key) && rimCache.get(key).lvl === lvl) return rimCache.get(key).w;
+    const col = opt.rimCol === 'carro' ? (hexRGB(opt.paint) || [200, 40, 30]).map(x => x / 255) : RIM_COLS[opt.rimCol] || RIM_COLS.plata, frac = RIM_SIZES[opt.rimSize] || 0.7;
+    const W = d.wheelMeshes.map((mb, wi) => { if (!mb) return null; let x0 = 1e9, x1 = -1e9, r = 0; for (const g of mb.groups.values()) for (let i = 0; i < g.pos.length; i += 3) { x0 = Math.min(x0, g.pos[i]); x1 = Math.max(x1, g.pos[i]); r = Math.max(r, Math.hypot(g.pos[i + 1], g.pos[i + 2])); }
+      if (!(r > 0.05) || x1 - x0 < 0.02) return null; const hw = (x1 - x0) / 2, cx = (x0 + x1) / 2, side = d.wheels && d.wheels[wi] ? (d.wheels[wi].c[0] < 0 ? -1 : 1) : (Math.abs(x1) >= Math.abs(x0) ? 1 : -1);
+      const m = rimMesh(r, hw, side, st, col, frac, cx); return { m, cx }; });
+    const out = W.map(x => x && x.m); if (out.every(x => !x)) return null; rimCache.set(key, { lvl, w: out }); return out;
+  }
 
   // ---------- bucle ----------
   let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, shTick = 0;
