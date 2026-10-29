@@ -147,8 +147,10 @@
     if (extra.paint) { const tb = 32 + 16 * team, uses = body.faces.some(f => !f.tex && f.color >= tb && f.color < tb + 16);
       pal = BRR.paintPal(lvl.pal, [body], extra.paint, uses ? tb : undefined); if (pal !== lvl.pal) body.paint = extra.paint.slice(); }
     // cristales: el original usa colores del final de la paleta (238…) que cambian en cada circuito (lila, morado, magenta): se dejan como cristal tintado
+    // con tintado del garaje, también los cristales azul cielo (colores 99-106 de la paleta: Escarabajo, Mini…) pasan a un color de cristal propio
+    if (extra.glass) for (const f of body.faces) if (!f.tex && f.color >= 99 && f.color <= 106 && f.cond == null) f.color = 230;
     { const glass = new Set(); for (const f of body.faces) if (!f.tex && f.color >= 224 && f.cond == null) glass.add(f.color);
-      if (glass.size) { if (pal === lvl.pal) pal = new Uint8Array(lvl.pal); for (const c of glass) { pal[c * 3] = 70; pal[c * 3 + 1] = 92; pal[c * 3 + 2] = 122; } } }
+      if (glass.size) { if (pal === lvl.pal) pal = new Uint8Array(lvl.pal); const gl3 = extra.glass || [70, 92, 122]; for (const c of glass) { pal[c * 3] = gl3[0]; pal[c * 3 + 1] = gl3[1]; pal[c * 3 + 2] = gl3[2]; } } }   // extra.glass: tintado del garaje
     const mb = new BRR.MeshBuilder(pal);
     mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), findTM);
     // hojas de textura que llevan el hueco del logo de este equipo (JDSH, MDSH, TRDH...): las que usa alguna cara dentro del hueco
@@ -287,7 +289,7 @@
     steerLock() { const def = this.def, spd = Math.abs(this.speed()) / SPEED_K, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spd - s1) / (s2 - s1))); return (a1 + (a2 - a1) * tt) / 0x280 * 0.55; }
     get topSpeed() { if (this._top) return this._top; if (this.K.fly) return this._top = 48; const r = this.def.gearF; let v = r[r.length - 1][0]; for (const x of r) if (x[1] <= 0) { v = x[0]; break; } return this._top = Math.min(60, v * SPEED_K); }
     get wheelBase() { const z = this.W.map(w => w.c[2]); return Math.max(1.5, Math.max(...z) - Math.min(...z)); }
-    fireNitro() { if (this.nitroT > 0 || !(this.nitros > 0 || this.nitroInf)) return false; if (!this.nitroInf) this.nitros--; this.nitroT = 2.6 * (this.upgNitro || 1); return true; }
+    fireNitro() { if (this.nitroT > 0 || !(this.nitros > 0 || this.nitroInf)) return false; if (!this.nitroInf) this.nitros--; this.nitroT = 2.6; return true; }
     get R() { return BRR.Q.mat(this.q); }
     // régimen del motor 0..255 según la tabla "hnd gear" (columnas 4 y 5) -> tono del sonido
     rpm() {
@@ -309,7 +311,7 @@
       const throttle = inp.throttle, brake = inp.brake; this.thr = throttle;
       // marcha: adelante, freno o atrás
       let drive = 0;
-      if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m * (this.upgEng || 1);   // upgEng: mejora del garaje
+      if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m;
       // nitro: empuje extra y supera la velocidad máxima
       if (this.nitroT > 0) { this.nitroT -= dt; drive = Math.max(drive, curve(def.gearF, Math.max(0, spdScript) * 0.7) / 600 * 7.5 * this.m) + 0.38 * 9.81 * this.m; }
       let braking = 0; this.brakeLight = brake > 0.05 && Math.abs(this.speed()) > 0.3;
@@ -344,7 +346,7 @@
         if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * share, Math.abs(vLong) * share / dt * 0.5);
         if (inp.handbrake && !w.steer) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
         if (!throttle && !brake && Math.abs(vLong) < 1.5) Flong -= vLong * Math.min(0.3 * share / dt, 6000);
-        const lim = mu * Fs * 1.15 * (this.upgGrip || 1), tot = Math.hypot(Flat, Flong);
+        const lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong);
         // derrape visible (marcas, humo, chirrido): de lado solo si la rueda resbala de verdad (>~1 m/s), no por el tope de agarre
         // en una curva normal (a los coches pequeños les pasaba siempre); de frente (frenazo o acelerón), según el exceso de fuerza
         { const raw = tot > lim ? 1 - lim / tot : 0; w.slip = !raw ? 0 : Math.abs(Flong) > Math.abs(Flat) ? raw * 0.7 : Math.min(raw, Math.max(0, (Math.abs(vLat) - 0.9) / 2.5)); }

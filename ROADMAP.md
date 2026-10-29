@@ -45,7 +45,8 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 
 ## Bloque 5 · Mi coche (medio)
 - [ ] Editor de decoración: metalizados, vinilos y capas de pegatinas, que se vean en online
-- [x] Garaje con mejoras (motor, ruedas, nitro) pagadas con lo ganado contra la máquina
+- [x] Garaje estético: color del turbo, neones RGB, tintado de ventanas
+- [ ] Garaje: ruedas/llantas nuevas (diseñarlas)
 
 ## Bloque 6 · Social (medio-largo)
 - [x] Invitaciones con enlace y revancha inmediata

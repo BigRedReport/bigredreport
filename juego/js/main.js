@@ -781,7 +781,7 @@
       const teams = [team, ...[1, 2, 3, 4, 5, 6].filter(t => t !== team)];
       let def0 = null;
       for (let i = 0; i < nPlayers; i++) {
-        const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) } : {}); if (!def0) def0 = d;
+        const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { glass: garGlass(), logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) } : {}); if (!def0) def0 = d;
         const c = new BRR.Car(d, lvl); c.team = teams[i % 6]; c.isPlayer = true; c.human = i; if (i === 0 && opt.paint) c.paintHex = opt.paint; if (i === 0 && myTeamName()) c.teamName = myTeamName(); c.headDraw = await driverHead(i === 0 ? mySpec() : (i % 6), teams[i % 6], i === 0 ? hexRGB(opt.paint) : null);
         const h = newHuman(i, c, new BRR.Race(lvl, laps || lvl.laps), teams[i % 6]); h.draw = R.upload(d.mesh); humans.push(h);
       }
@@ -906,9 +906,9 @@
       const r = rivals.find(q => q.car === c); if (r && r.replay) r.replay.setStart(ox, oz, (lvl.start.a16 || 0) + da); });
     if (replayBand) replayBand.reset();
     for (const r of rivals) { r.race.reset(); if (r.ai) r.ai.reset(); r.hornStart = r.hornFin = false; r.rankWas = null; }
-    for (const h of humans) { h.prize = 0; h.race.reset(); h.cam.init = false; h.cam.posInit = false; h.done = false; h.q('done').hidden = true; h.q('msg').hidden = true; }
+    for (const h of humans) { h.race.reset(); h.cam.init = false; h.cam.posInit = false; h.done = false; h.q('done').hidden = true; h.q('msg').hidden = true; }
     for (const c of all) { c.dmg = 0; c.broken = 0; c.nitros = lvl.nitros; c.nitroInf = freeMode && c.isPlayer; }
-    if (humans[0]) { garApply(humans[0].car); humans[0].car.nitros += humans[0].car.garNitro || 0; }   // modo libre: turbo sin límite
+    if (humans[0]) garApply(humans[0].car);   // modo libre: turbo sin límite
     if (props) props.reset(); if (fx) fx.reset(); crazyInit(); rpStart();
   }
   function restart() {
@@ -1002,7 +1002,6 @@
     if (h.newLap) rec.lap = e.lapTime; if (h.newTotal) rec.total = e.total;
     ST.set(recKey(h), JSON.stringify(rec));
     h.done = true; h.total = e.total; updatePositions(0); h.pos = order.findIndex(o => o.h === h) + 1;
-    if (h === humans[0]) h.prize = garPrize(h.pos, order.length, tourMode);
     if (h === humans[0] && !freeMode) { const withRivals = order.length > 1; statsAdd(S => { S.races = (S.races || 0) + 1; if (withRivals && h.pos === 1) S.wins = (S.wins || 0) + 1; if (withRivals && h.pos <= 3) S.podiums = (S.podiums || 0) + 1; if (h.newLap) S.recLaps = (S.recLaps || 0) + 1; }); statsFlush(); }
     if (humans.length > 1) { h.q('done').textContent = h.pos === 1 ? '¡1º! ¡GANADOR!' : h.pos + 'º'; h.q('done').hidden = false; }
     if (h === humans[0] && !freeMode) { const withR = order.length > 1, win = withR && h.pos === 1;
@@ -1034,7 +1033,6 @@
     if (crazyR() && !multi) { const me = h0.car; $('r_title').textContent = (crazy.mode === 'bomba' ? (me.out ? '¡Bum! Has perdido' : '¡Te has librado de la bomba!') : crazy.mode === 'zombie' ? (me.zombie ? 'Te han infectado' : '¡Has sobrevivido!') : crazy.mode === 'polis' ? (crazy.team === 'cops' ? '¡Ganan los polis!' : '¡Ganan los cacos!') + ((crazy.team === 'cops') === me.cop ? ' · ¡HAS GANADO!' : ' · has perdido') : myPos === 1 ? '¡Último superviviente!' : 'Eliminado · ' + myPos + 'º') + ' · ' + lvl.name; }
     if (ttMode && !multi && bestLap) { lbSubmit(lvl.name, car.def.name, bestLap, h0.total); $('r_title').textContent = 'Contrareloj · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap);
       if (reto && reto.level === lvl.name) { lbSubmit(reto.id, car.def.name, bestLap, h0.total); $('r_title').textContent = '⭐ Reto semanal · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap); } }
-    if (h0.prize && !crazyR()) $('r_rec').textContent += ' +' + h0.prize.toLocaleString('es-ES') + ' créditos para el garaje.';
     if (tourMode && rivals.length) { $('r_rec').textContent += ' ' + tournResult(myPos); $('r_again').hidden = true; $('r_menu').textContent = 'Volver al torneo'; }
     else { $('r_again').hidden = false; $('r_menu').textContent = 'Menú'; }
     if (netRace) { $('r_again').hidden = !BRR_net.isHost; $('r_again').textContent = 'Revancha'; $('r_again').onclick = BRR_net.isHost ? () => { toMenu(); setTimeout(() => { if (BRR_net.isHost && BRR_net.room) netLaunch(); }, 900); } : null; }
@@ -1187,7 +1185,7 @@
   // modo libre: cambiar de vehículo sin salir (aparece en el mismo sitio, mirando hacia donde ibas)
   async function swapVehicle(veh) {
     const h = humans[0]; if (!h || !lvl || !veh || veh === h.car.def.name || !files.has(veh + '.VHC')) return;   // (aviso de la 0.53: vehículo vacío)
-    const old = h.car, d = await BRR.loadVehicle(files, veh, lvl, old.team, { logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) });
+    const old = h.car, d = await BRR.loadVehicle(files, veh, lvl, old.team, { glass: garGlass(), logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) });
     const c = new BRR.Car(d, lvl); Object.assign(c, { team: old.team, isPlayer: true, human: 0, paintHex: old.paintHex, teamName: old.teamName, headDraw: old.headDraw, nitros: old.nitros, nitroInf: old.nitroInf });
     const f = old.forward(); c.reset(old.p[0], old.p[2], Math.atan2(-f[0], -f[2]), old.p[1]);
     h.car = car = c; h.draw = R.upload(d.mesh); carDraw = { body: h.draw, ...vehDraw(d) }; h.cam.init = h.cam.posInit = false; if (fx) fx.reset();
@@ -2402,39 +2400,37 @@
     tourMode = false; ttMode = true; freeMode = false; crazyPick = 'normal'; startRace(w.level, w.veh, opt.team || 1, w.laps, 1); };
   function retoEnd() { if (!reto) return; Object.assign(opt, { hora: reto.prev.hora, clima: reto.prev.clima }); save(); reto = null; }
 
-  // ---------- garaje: mejoras por vehículo (motor, agarre, nitro) pagadas con los créditos que ganas corriendo contra la IA ----------
-  // solo valen en carreras contra la máquina (rápida, campeonato, pantalla partida, modos extra), no en contrarreloj, reto ni online
-  const GAR_UP = { eng: { n: 'Motor', d: 'más aceleración y velocidad punta', k: 0.04 }, grip: { n: 'Neumáticos', d: 'más agarre en las curvas', k: 0.05 }, nitro: { n: 'Nitro', d: 'turbo más largo y uno más', k: 0.15 } };
-  const GAR_COST = [600, 1500, 3200], GAR_PRIZE = [900, 550, 380, 260, 170, 110, 80, 60];
-  const garGet = () => { try { return JSON.parse(ST.get('brr_garage') || '{}'); } catch (e) { return {}; } };
-  const garSet = G => ST.set('brr_garage', JSON.stringify(G));
-  const garLv = (G, veh, k) => ((G.up || {})[veh] || {})[k] || 0;
-  function garApply(c) {   // al empezar la carrera (jugador 1)
-    if (!c) return; c.upgEng = c.upgGrip = c.upgNitro = 1;
-    if (opt.turboCol && hexRGB(opt.turboCol)) c._tint = hexRGB(opt.turboCol).map(x => x / 255);
-    if (ttMode || netRace || reto) return; const G = garGet(), v = c.def.name;
-    c.upgEng = 1 + GAR_UP.eng.k * garLv(G, v, 'eng'); c.upgGrip = 1 + GAR_UP.grip.k * garLv(G, v, 'grip'); c.upgNitro = 1 + GAR_UP.nitro.k * garLv(G, v, 'nitro'); c.garNitro = garLv(G, v, 'nitro') > 0 ? 1 : 0;
+  // ---------- garaje: solo estética (los coches son los que son): ruedas, color del turbo, neones debajo del coche y tintado de ventanas ----------
+  const GLASS = { normal: null, oscuro: 0.45, negro: 0.18, color: 'c' };
+  function garGlass() {   // color de los cristales (null = el de siempre)
+    const g = opt.glass || 'normal'; if (g === 'normal') return null; const base = hexRGB(opt.glassCol || '#46607a') || [70, 96, 122];
+    return g === 'color' ? base : [70, 92, 122].map(x => Math.round(x * GLASS[g]));
   }
-  function garPrize(pos, n, tourn) {   // créditos por terminar (más en el campeonato)
-    if (ttMode || netRace || reto || freeMode || n < 2) return 0; const p = Math.round((GAR_PRIZE[pos - 1] || 40) * (tourn ? 1.6 : 1) * (0.6 + 0.4 * Math.min(1, (n - 1) / 5)) * ([0, 0.7, 1, 1.3, 1.6][opt.diff] || 1) / 10) * 10;
-    const G = garGet(); G.money = (G.money || 0) + p; garSet(G); return p;
+  function garApply(c) {   // al empezar la carrera (jugador 1)
+    if (!c) return; if (opt.turboCol && hexRGB(opt.turboCol)) c._tint = hexRGB(opt.turboCol).map(x => x / 255);
+    c.neon = opt.neon === 'si' && hexRGB(opt.neonCol || '#00e5ff') ? hexRGB(opt.neonCol || '#00e5ff').map(x => x / 255) : null;
+  }
+  function neonFrame() {   // neones: luz de color bajo la carrocería (como los coches tuneados)
+    for (const h of humans) { const c = h.car; if (!c || !c.neon || c.out) continue; const b = c.def.box, R = c.R, y = b.c[1] - b.h[1] + 0.12, pul = 0.85 + 0.15 * Math.sin(performance.now() / 260);
+      // mancha de luz en el suelo (rectángulo algo más grande que el coche, pegado al terreno) y un brillo en los bajos
+      const rt = BRR.mv(R, [1, 0, 0]), fw = BRR.mv(R, [0, 0, 1]), cc = V.add(c.p, BRR.mv(R, [0, 0, b.c[2]])), W = b.h[0] * 2.0, L = b.h[2] * 1.45;
+      const pt = (sx, sz) => { const q = V.add(cc, V.add(V.mul(rt, sx * W), V.mul(fw, sz * L))); return [q[0], lvl.terrain(q[0], q[2]) + 0.06, q[2]]; };
+      if (Math.abs(c.p[1] - lvl.terrain(c.p[0], c.p[2])) < 2.5) { fx.glowQuad([pt(-1, -1), pt(1, -1), pt(1, 1), pt(-1, 1)], [c.neon[0], c.neon[1], c.neon[2], 0.5 * pul]);
+        fx.glowQuad([pt(-0.6, -0.75), pt(0.6, -0.75), pt(0.6, 0.75), pt(-0.6, 0.75)], [c.neon[0], c.neon[1], c.neon[2], 0.35 * pul]); }
+      for (const [x, z] of [[-b.h[0] * 0.8, b.c[2]], [b.h[0] * 0.8, b.c[2]]]) fx.glow(V.add(c.p, BRR.mv(R, [x, y, z])), [c.neon[0], c.neon[1], c.neon[2], 0.5 * pul], 0.5); }
   }
   function garRender() {
-    const G = garGet(), all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')), v = all.includes($('gr_veh').value) ? $('gr_veh').value : (all.includes(opt.vehicle) ? opt.vehicle : all[0]);
-    if (!$('gr_veh').options.length) $('gr_veh').innerHTML = all.map(n => `<option value="${n}">${esc(VEH_NAMES[n] || n)}</option>`).join(''); $('gr_veh').value = v;
-    $('gr_money').textContent = (G.money || 0).toLocaleString('es-ES') + ' créditos';
-    $('gr_rows').innerHTML = Object.entries(GAR_UP).map(([k, u]) => { const l = garLv(G, v, k), cost = GAR_COST[l];
-      return `<div class="grrow"><div><b>${u.n}</b> <span class="small">${u.d}</span><div class="grdots">${[0, 1, 2].map(i => `<i class="${i < l ? 'on' : ''}"></i>`).join('')}</div></div>
-        <button data-k="${k}" ${cost == null || (G.money || 0) < cost ? 'disabled' : ''}>${cost == null ? 'Al máximo' : 'Mejorar · ' + cost.toLocaleString('es-ES')}</button></div>`; }).join('');
-    for (const b of $('gr_rows').querySelectorAll('button[data-k]')) b.onclick = () => { const G2 = garGet(), k = b.dataset.k, l = garLv(G2, v, k), cost = GAR_COST[l]; if (cost == null || (G2.money || 0) < cost) return;
-      G2.money -= cost; G2.up = G2.up || {}; G2.up[v] = G2.up[v] || {}; G2.up[v][k] = l + 1; garSet(G2); sfx('BEEP4'); garRender(); };
-    $('gr_turbo').value = opt.turboCol || '#ff8c1e';
+    $('gr_turbo').value = opt.turboCol || '#ff8c1e'; $('gr_neon').value = opt.neon === 'si' ? 'si' : 'no'; $('gr_neoncol').value = opt.neonCol || '#00e5ff';
+    $('gr_glass').value = opt.glass || 'normal'; $('gr_glasscol').value = opt.glassCol || '#46607a'; $('gr_glasscol').hidden = (opt.glass || 'normal') !== 'color'; $('gr_neoncol').hidden = opt.neon !== 'si';
   }
   $('gr_close').onclick = () => { $('garage').hidden = true; };
   $('garage').onclick = e => { if (e.target.id === 'garage') $('garage').hidden = true; };
-  $('gr_veh').onchange = garRender;
   $('gr_turbo').oninput = () => { opt.turboCol = $('gr_turbo').value; save(); };
   $('gr_turbo0').onclick = () => { opt.turboCol = null; save(); garRender(); };
+  $('gr_neon').onchange = () => { opt.neon = $('gr_neon').value; save(); garRender(); };
+  $('gr_neoncol').oninput = () => { opt.neonCol = $('gr_neoncol').value; save(); };
+  $('gr_glass').onchange = () => { opt.glass = $('gr_glass').value; save(); garRender(); };
+  $('gr_glasscol').oninput = () => { opt.glassCol = $('gr_glasscol').value; save(); };
 
   // ---------- bucle ----------
   let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, shTick = 0;
@@ -2546,7 +2542,7 @@
       for (const h of humans) { h.race.update(dt, h.car); handleEvents(h); ghostRecord(h); } ghostFrame();
       for (const r of rivals) { if (r.remote || r.car.out) continue; r.race.update(dt, r.car); r.race.ev.length = 0; }
       if (netRace) netFrame(dt);
-      updatePositions(dt); crazyFrame(dt); kartFrame(dt); crazySirens(); rpRecord(dt); if (netRace) { crazyNetHits(); crazyNetSend(dt); } for (const c of allCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
+      updatePositions(dt); crazyFrame(dt); kartFrame(dt); crazySirens(); neonFrame(); rpRecord(dt); if (netRace) { crazyNetHits(); crazyNetSend(dt); } for (const c of allCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
       if (humans[0] && humans[0].race.phase === 'race') { const h0 = humans[0]; if (h0.race.t > 8 && order.length >= 4 && h0.pos === order.length) h0.wasLast = true; if (freeMode && (h0.freeT = (h0.freeT || 0) + dt) > 300) achUnlock('libre'); statAcc.km += Math.abs(humans[0].car.speed()) * dt / 1000; statAcc.t += dt; statAcc.veh = humans[0].car.def.name; }
       for (const hit of props.update(dt, allCars)) propSound(hit);
       for (const c of allCars) if (c.nitroT > 0) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc); }

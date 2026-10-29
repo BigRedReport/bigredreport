@@ -497,10 +497,11 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 
 <div id="garage" hidden><div class="card">
   <h2>🔧 Garaje</h2>
-  <p class="small">Gana créditos corriendo contra la máquina (más en el campeonato) y mejora cada vehículo. Las mejoras no valen en contrarreloj, en el reto semanal ni online.</p>
-  <div class="grhead"><select id="gr_veh"></select><b id="gr_money"></b></div>
-  <div id="gr_rows"></div>
-  <div class="grrow"><div><b>Color del turbo</b> <span class="small">en todas las carreras</span></div><div><input type="color" id="gr_turbo"> <button id="gr_turbo0">Como el coche</button></div></div>
+  <p class="small">Solo estética: los coches corren igual, cambia cómo se ven (tu coche, en todas las carreras).</p>
+  <div class="grrow"><div><b>Ruedas</b> <span class="small">llantas nuevas, próximamente</span></div><select id="gr_wheels" disabled><option>Originales</option></select></div>
+  <div class="grrow"><div><b>Color del turbo</b></div><div><input type="color" id="gr_turbo"> <button id="gr_turbo0">Como el coche</button></div></div>
+  <div class="grrow"><div><b>Neones</b> <span class="small">luz de color bajo el coche</span></div><div><select id="gr_neon"><option value="no">Sin neones</option><option value="si">Con neones</option></select> <input type="color" id="gr_neoncol"></div></div>
+  <div class="grrow"><div><b>Ventanas</b></div><div><select id="gr_glass"><option value="normal">Normales</option><option value="oscuro">Tintadas</option><option value="negro">Muy oscuras</option><option value="color">De color</option></select> <input type="color" id="gr_glasscol"></div></div>
   <button id="gr_close" style="margin-top:12px">Cerrar</button>
 </div></div>
 <div id="reto" hidden><div class="card">

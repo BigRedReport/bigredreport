@@ -59,6 +59,7 @@ void main(){ float a=vcol.a;
     }
     // halo de luz (luces de freno): se suma a lo que hay detrás, solo dura este fotograma
     glow(p, col, size) { (this.glows || (this.glows = [])).push({ p, col, size }); }
+    glowQuad(P, col) { (this.glows || (this.glows = [])).push({ quad: P, col }); }   // mancha de luz plana (neones en el suelo)
     sparks(p, n = 12) {
       for (let k = 0; k < n; k++) this.parts.push({ p: p.slice(), v: [(Math.random() - .5) * 9, Math.random() * 6, (Math.random() - .5) * 9], col: [1, 0.85 - Math.random() * .3, 0.3, 1], size: 0.12, life: 0.35 + Math.random() * .3, age: 0, grow: 0, grav: 1, solid: true });
     }
@@ -152,7 +153,8 @@ void main(){ float a=vcol.a;
         put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a);
       }
       const nPart = n / 9;
-      for (const q of this.glows || []) { const r = V.mul(right, q.size), u = V.mul(up, q.size), p = q.p, a = q.col[3];
+      for (const q of this.glows || []) { if (q.quad) { const [A, B, C, Dd] = q.quad, a = q.col[3]; put(A, 0, 0, q.col, a); put(B, 1, 0, q.col, a); put(C, 1, 1, q.col, a); put(A, 0, 0, q.col, a); put(C, 1, 1, q.col, a); put(Dd, 0, 1, q.col, a); continue; }
+        const r = V.mul(right, q.size), u = V.mul(up, q.size), p = q.p, a = q.col[3];
         const P0 = V.sub(V.sub(p, r), u), P1 = V.sub(V.add(p, r), u), P2 = V.add(V.add(p, r), u), P3 = V.add(V.sub(p, r), u);
         put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a); }
       if (this.glows) this.glows.length = 0;
