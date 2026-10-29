@@ -6,7 +6,7 @@
   try { R = new BRR.Renderer(canvas); } catch (e) { $('err').textContent = e.message; return; }
 
   // ---------- opciones ----------
-  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
+  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
   let opt = { ...DEF };
   // perfiles: cada uno guarda sus ajustes, récords, campeonato y estadísticas aparte (claves con @perfil)
   let PROF = ''; try { PROF = localStorage.getItem('brr_profile') || ''; } catch (e) { }
@@ -19,7 +19,7 @@
   if (BRR.HORN_RENAMED && BRR.HORN_RENAMED[opt.horn]) opt.horn = BRR.HORN_RENAMED[opt.horn];
   if (!BRR.HORNS.some(h => h.id === opt.horn)) opt.horn = 'normal';
   if (typeof opt.logo === 'string' && opt.logo.startsWith('x:') && !(BRR.LOGOS_EXTRA || []).some(l => 'x:' + l.id === opt.logo)) opt.logo = 0;
-  setTimeout(() => applyAccess(), 0); BRR.texHD = opt.filter !== 'nearest'; BRR.flatGround = opt.ground === 'original';   BRR.menuImg = opt.menuImg || 'hd'; document.body.classList.toggle('img-pixel', BRR.menuImg === 'pixel');
+  setTimeout(() => applyAccess(), 0); BRR.texHD = opt.filter !== 'nearest'; BRR.flatGround = opt.ground === 'original'; BRR.newClouds = opt.clouds !== 'originales';   BRR.menuImg = opt.menuImg || 'hd'; document.body.classList.toggle('img-pixel', BRR.menuImg === 'pixel');
   const save = () => ST.set('brr_opt', JSON.stringify(opt));
   function bindOptions() {
     const sync = () => {
@@ -31,7 +31,7 @@
     for (const k of ['vsfx', 'vmusic', 'vvoice', 'vmaster', 'vengine', 'vui', 'vamb']) { const el = $('o_' + k); el.value = opt[k]; const sv = () => { const v = $('o_' + k + '_v'); if (v) v.textContent = opt[k] + '%'; }; sv(); el.oninput = () => { opt[k] = +el.value; sv(); applyVol(); save(); }; }
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
     { const el = $('o_lang'); el.innerHTML = Object.entries(BRR.LANGS).map(([k, n]) => `<option value="${k}">${n}</option>`).join(''); el.value = BRR.lang(); el.onchange = () => BRR.setLang(el.value); }
-    for (const k of ['aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    for (const k of ['aa', 'parts', 'fpslim', 'hudw', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'clouds']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
     for (const k of ['hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
@@ -177,6 +177,7 @@
     }
     ls.value = files.has(opt.level + '.LEV') ? opt.level : ls.options[0].value;
     ls.onchange = fillVehicles; fillVehicles();
+    $('m_hora').value = opt.hora || 'original'; $('m_clima').value = opt.clima || 'despejado'; $('m_hora').onchange = () => { opt.hora = $('m_hora').value; save(); }; $('m_clima').onchange = () => { opt.clima = $('m_clima').value; save(); };
     $('m_team').value = opt.team; $('m_rivals').value = opt.rivals; $('m_diff').value = opt.diff; $('m_players').value = opt.players || 1;
     $('t_team').value = opt.team; $('t_diff').value = opt.diff;
     BRR.loadFront(files).then(async F => { front = F; try { await makeHeads(); } catch (e) { console.error(e); } renderFront(); await startOrigMenu(); }).catch(e => console.error(e));
@@ -751,7 +752,7 @@
       await new Promise(r => setTimeout(r, 30));
       lvl = await BRR.loadLevel(files, level, s => $('load_msg').textContent = 'Cargando ' + level + ': ' + s + '…');
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
-      R.setEnvironment(lvl.sun, lvl.sky); R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
+      R.setEnvironment(lvl.sun, lvl.sky); { const at = makeAtmos(level, lvl.sun, lvl.sky); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
       // jugadores humanos: el equipo elegido para J1 y los siguientes colores para los demás
       $('phuds').innerHTML = ''; humans = [];
       const teams = [team, ...[1, 2, 3, 4, 5, 6].filter(t => t !== team)];
@@ -1302,6 +1303,47 @@
     if (!lvl || !freeMode) return; const D = kind === 'pipe' ? makePipe() : await loadRamp(); if (!D) return;
     netRamps.set(id + kind, { up: D.up, R: M, p }); lvl.collider.setDyn('net' + kind + id, D.tris.map(t => t.map(q => V.add(p, BRR.mv(M, q)))), 'RAMP');
   }
+  // ---------- ambiente: hora del día y clima (bloque 3) ----------
+  // 'original' deja la luz del circuito; el resto cambia sol, cielo, niebla y nubes. Los faros se encienden de noche, con niebla y con lluvia
+  const HORAS = { original: 'Original', manana: 'Amanecer', dia: 'Mediodía', tarde: 'Atardecer', noche: 'Noche', azar: 'Al azar' };
+  const CLIMAS = { despejado: 'Despejado', nublado: 'Nublado', niebla: 'Niebla', lluvia: 'Lluvia', nieve: 'Nieve', azar: 'Al azar' };
+  function pickAtmos(level) {
+    const env = String(level || '').replace(/\d+$/, ''); let h = opt.hora || 'original', c = opt.clima || 'despejado';
+    if (h === 'azar') h = ['manana', 'dia', 'tarde', 'noche', 'original'][Math.random() * 5 | 0];
+    if (c === 'azar') c = env === 'MOON' ? 'despejado' : env === 'SNOW' ? ['despejado', 'nieve', 'niebla'][Math.random() * 3 | 0] : env === 'RUF' ? ['despejado', 'despejado', 'nublado'][Math.random() * 3 | 0] : ['despejado', 'nublado', 'niebla', 'lluvia'][Math.random() * 4 | 0];
+    if (env === 'MOON') c = 'despejado';   // en Marte y Venus no llueve ni hay nubes
+    return { h, c, env };
+  }
+  function makeAtmos(level, sun, sky) {
+    const { h, c, env } = pickAtmos(level); if (h === 'original' && c === 'despejado') return { h, c, A: { cloudK: env === 'MOON' ? 0 : 0.22, cloudC: [0.97, 0.97, 0.99], sunCol: [1, 0.9, 0.7] } };
+    const az = Math.atan2(sun[2], sun[0]), el = d => { const e = d * Math.PI / 180; return [Math.cos(az) * Math.cos(e), Math.sin(e), Math.sin(az) * Math.cos(e)]; };
+    const mix = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t), mul = (a, k) => a.map(x => x * k);
+    let A = { cloudK: 0.22, cloudC: [0.97, 0.97, 0.99], sunCol: [1, 0.9, 0.7], fogK: 1, wet: 0, night: 0, lights: false };
+    const base = { zen: sky.map(x => x * 0.78), hor: sky.map(x => Math.min(1, x * 0.85 + 0.2)), skyC: sky.map(x => 0.6 + x * 0.55), sunC: [1.05, 0.98, 0.88], gndC: [0.45, 0.4, 0.34] };
+    Object.assign(A, base);
+    if (h === 'manana') Object.assign(A, { L: el(11), zen: [0.36, 0.48, 0.7], hor: [0.98, 0.74, 0.56], skyC: [0.78, 0.7, 0.68], sunC: [1.18, 0.8, 0.52], sunCol: [1, 0.7, 0.42], cloudC: [1, 0.86, 0.78] });
+    if (h === 'dia') Object.assign(A, { L: el(58), zen: [0.24, 0.45, 0.82], hor: [0.7, 0.8, 0.93], skyC: [0.76, 0.83, 0.96], sunC: [1.12, 1.04, 0.94] });
+    if (h === 'tarde') Object.assign(A, { L: el(7).map((x, i) => i === 1 ? x : -x), zen: [0.3, 0.3, 0.52], hor: [1, 0.56, 0.36], skyC: [0.68, 0.52, 0.56], sunC: [1.25, 0.62, 0.34], sunCol: [1, 0.52, 0.28], cloudC: [1, 0.66, 0.55] });
+    if (h === 'noche') Object.assign(A, { L: el(38), zen: [0.012, 0.02, 0.06], hor: [0.05, 0.065, 0.12], skyC: [0.15, 0.17, 0.27], sunC: [0.24, 0.28, 0.42], gndC: [0.05, 0.05, 0.07], sunCol: [0.6, 0.65, 0.8], cloudC: [0.12, 0.13, 0.18], night: 1, lights: true });
+    const dark = h === 'noche' ? 0.35 : 1;
+    if (c === 'nublado') Object.assign(A, { cloudK: 0.82, sunC: mul(A.sunC, 0.55), skyC: mix(A.skyC, [0.7, 0.72, 0.75].map(x => x * dark), 0.5), zen: mix(A.zen, [0.55, 0.58, 0.62].map(x => x * dark), 0.65), hor: mix(A.hor, [0.72, 0.74, 0.77].map(x => x * dark), 0.6), cloudC: mix(A.cloudC, [0.78, 0.8, 0.83].map(x => x * dark), 0.6) });
+    if (c === 'niebla') { const g = [0.74, 0.76, 0.78].map(x => x * dark); Object.assign(A, { cloudK: 0, fogK: 11, sunC: mul(A.sunC, 0.6), hor: mix(A.hor, g, 0.92), zen: mix(A.zen, g, 0.85), skyC: mix(A.skyC, g, 0.5), lights: true }); }
+    if (c === 'lluvia') Object.assign(A, { cloudK: 0.95, fogK: 2.4, wet: 0.7, sunC: mul(A.sunC, 0.42), skyC: mix(A.skyC, [0.55, 0.58, 0.62].map(x => x * dark), 0.6), zen: mix(A.zen, [0.4, 0.42, 0.46].map(x => x * dark), 0.75), hor: mix(A.hor, [0.56, 0.58, 0.62].map(x => x * dark), 0.7), cloudC: [0.5, 0.52, 0.56].map(x => x * dark), rain: 1, lights: true });
+    if (c === 'nieve') Object.assign(A, { cloudK: 0.85, fogK: 2, sunC: mul(A.sunC, 0.55), skyC: mix(A.skyC, [0.8, 0.82, 0.86].map(x => x * dark), 0.6), zen: mix(A.zen, [0.7, 0.72, 0.76].map(x => x * dark), 0.7), hor: mix(A.hor, [0.84, 0.86, 0.9].map(x => x * dark), 0.7), cloudC: [0.82, 0.84, 0.88].map(x => x * dark), snow: 1 });
+    if (env === 'MOON') A.cloudK = 0;
+    return { h, c, A };
+  }
+  // faros de los coches cercanos a la cámara (para la luz) y su brillo
+  function headlightsFrame(cam) {
+    const A = R.atmos; if (!A || !A.lights || !R.mode) { R.headl = null; return; }
+    const cars = [...humans.map(h => h.car), ...rivals.map(r => r.car)].filter(c => V.len(V.sub(c.p, cam)) < 90).sort((a, b) => V.len(V.sub(a.p, cam)) - V.len(V.sub(b.p, cam))).slice(0, 8), H = [];
+    for (const c of cars) { const Rm = c.R, b = c.def.box, d = V.norm(BRR.mv(Rm, [0, -0.1, -1]));
+      for (const sx of [-1, 1]) { const p = V.add(c.p, BRR.mv(Rm, [b.c[0] + sx * b.h[0] * 0.62, b.c[1], b.c[2] - b.h[2] * 0.98])); H.push({ p, d, k: 2.4 });
+        if (fx) { fx.glow(p, [1, 0.95, 0.8, 0.5], 0.42); fx.glow(p, [1, 1, 0.95, 0.8], 0.14); } } }
+    R.headl = H;
+  }
+  // lluvia y nieve alrededor de la cámara
+  function weatherFrame(cam, dt) { const A = R.atmos; if (!A || !fx || !R.mode) return; if (A.rain) fx.weather(cam, 'rain', dt, A.rain); if (A.snow) fx.weather(cam, 'snow', dt, A.snow); }
   // salto con carga: un toque = saltito; mantenido 2 s = más alto; 5 s = más alto todavía (salta al soltar)
   const JUMP_LV = [[0, 4.2, 'Saltito'], [0.7, 6.2, 'Salto'], [1.5, 8.4, 'Supersalto']];   // un toque · ~0,7 s · ~1,5 s
   function jumpCharge(h, down) {
@@ -1914,7 +1956,7 @@
     if (netRace) puppets(dt);
     soundFrame(dt); hornFrame(dt); if (state === 'race') for (const h of humans) rumble(h, dt);
     for (const h of humans) if (!(photo && h.i === 0)) updateCamera(h, dt);
-    camShare(); listenerFrame();
+    camShare(); listenerFrame(); if (humans[0]) { headlightsFrame(humans[0].cam.pos); if (state === 'race') weatherFrame(humans[0].cam.pos, dt); }
     // una vista por jugador (con su propio mapa de sombras centrado en su coche)
     const W = canvas.width, H = canvas.height, far = opt.far;
     R.frameBegin(W, H);

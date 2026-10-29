@@ -25,7 +25,11 @@ in vec2 vuv; in vec3 vcol; in vec3 wp; in vec4 lp; in float vwat; in vec3 vn;
 uniform float time; uniform vec3 animPal[16]; uniform int animN; uniform float animStep;
 uniform sampler2D T; uniform sampler2DShadow SM; uniform int useTex; uniform int mode; uniform int shadows; uniform float smTexel;
 uniform vec3 cam; uniform float far; uniform vec3 fogc; uniform vec3 L; uniform vec3 sunC; uniform vec3 skyC; uniform vec3 gndC; uniform float glow;
+uniform float fogK; uniform float wet; uniform vec4 hlP[16]; uniform vec4 hlD[16]; uniform int hlN;
 out vec4 o;
+/* faros: focos que alumbran hacia delante (de noche, con niebla o lluvia) */
+vec3 headl(vec3 n){ vec3 s=vec3(0.); for(int i=0;i<16;i++){ if(i>=hlN) break; vec3 v=wp-hlP[i].xyz; float dd=length(v); if(dd>48.) continue; vec3 l=v/max(dd,.01);
+  float cone=smoothstep(.78,.94,dot(l,hlD[i].xyz)); float att=hlD[i].w*cone/(1.+dd*dd*.010); s+=vec3(1.,.94,.8)*att*(max(dot(n,-l),0.)*.75+.25); } return s; }
 float shadow(vec3 n){
   if(shadows==0) return 1.;
   vec3 q=lp.xyz/lp.w*.5+.5; if(q.x<0.||q.x>1.||q.y<0.||q.y>1.||q.z>1.) return 1.;
@@ -50,21 +54,21 @@ void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
     float ndl=max(dot(nw,L),0.), sh=shadow(n); vec3 hemi=mix(gndC,skyC,.9);
     vec3 col=c.rgb*(hemi*.4+sunC*ndl*sh*1.1)*1.25; col=mix(col,skyC*1.05,fres*.55+.08)+sunC*sp*1.4*sh;
     col=clamp((col*(2.51*col+.03))/(col*(2.43*col+.59)+.14),0.,1.);
-    float f=1.-exp(-d*2.2/far); f=max(f*.75,clamp((d-far*.7)/(far*.3),0.,1.)); o=vec4(mix(col,fogc,f),1.); return; }
+    float f=1.-exp(-d*2.2*fogK/far); f=max(f*.75,clamp((d-far*.7)/(far*.3),0.,1.)); o=vec4(mix(col,fogc,f),1.); return; }
   float ndl=max(dot(n,L),0.), sh=shadow(n);
   vec3 hemi=mix(gndC,skyC,n.y*.5+.5);
   // más contraste entre caras al sol y a la sombra (volumen), oclusión aproximada en caras que miran abajo
   float occ=mix(.62,1.,clamp(n.y*.5+.75,0.,1.));
-  vec3 light=hemi*.36*occ+sunC*ndl*sh*1.3;
-  rgb=c.rgb*light*1.25;
+  vec3 light=hemi*.36*occ+sunC*ndl*sh*1.3+headl(n)*1.3;
+  rgb=c.rgb*light*1.25*(1.-wet*.18*clamp(n.y,0.,1.));
   // tonemapping filmico (ACES aproximado) y algo de saturación
   rgb=clamp((rgb*(2.51*rgb+.03))/(rgb*(2.43*rgb+.59)+.14),0.,1.);
   float lu=dot(rgb,vec3(.299,.587,.114)); rgb=mix(vec3(lu),rgb,1.12);
   // niebla atmosférica + desvanecido al final de la distancia de dibujado
-  float f=1.-exp(-d*2.2/far); f=max(f*.75,clamp((d-far*.7)/(far*.3),0.,1.));
+  float f=1.-exp(-d*2.2*fogK/far); f=max(f*.75,clamp((d-far*.7)/(far*.3),0.,1.));
   o=vec4(mix(rgb,fogc,f),1.); }`;
       this.pr = prog(gl, VS, FS, ['p', 'uv', 'col', 'lay', 'nrm']); gl.vertexAttrib3f(4, 0, 0, 0);
-      this.U = uniforms(gl, this.pr, ['VP', 'W', 'LVP', 'T', 'SM', 'useTex', 'mode', 'shadows', 'smTexel', 'cam', 'far', 'fogc', 'layK', 'L', 'sunC', 'skyC', 'gndC', 'glow', 'time', 'animPal', 'animN', 'animStep']);
+      this.U = uniforms(gl, this.pr, ['VP', 'W', 'LVP', 'T', 'SM', 'useTex', 'mode', 'shadows', 'smTexel', 'cam', 'far', 'fogc', 'layK', 'L', 'sunC', 'skyC', 'gndC', 'glow', 'time', 'animPal', 'animN', 'animStep', 'fogK', 'wet', 'hlP', 'hlD', 'hlN']);
       // pase de sombras (solo profundidad, con recorte por transparencia para árboles y vallas)
       this.dpr = prog(gl, `#version 300 es
 in vec3 p; in vec2 uv; uniform mat4 LVP; uniform mat4 W; out vec2 vuv; void main(){ vuv=uv; gl_Position=LVP*W*vec4(p,1.); }`,
@@ -76,10 +80,21 @@ precision mediump float; in vec2 vuv; uniform sampler2D T; uniform int useTex; o
 in vec2 p; uniform mat4 IVP; out vec3 dir; void main(){ vec4 a=IVP*vec4(p,1.,1.); dir=a.xyz/a.w; gl_Position=vec4(p,0.9999,1.); }`,
         `#version 300 es
 precision highp float; in vec3 dir; uniform vec3 cam; uniform vec3 hor; uniform vec3 zen; uniform vec3 L; uniform int mode; out vec4 o;
+uniform float night; uniform float cloudK; uniform vec3 cloudC; uniform float time; uniform vec3 sunCol;
+float hs(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
+float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y); }
+float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=vn(p)*a; p=p*2.03+vec2(17.1,9.3); a*=.5; } return s; }
 void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
-  float h=clamp(d.y,0.,1.); vec3 c=mix(hor,zen,pow(h,.55)); c+=vec3(1.,.9,.7)*pow(max(dot(d,L),0.),180.)*.8+vec3(1.,.85,.6)*pow(max(dot(d,L),0.),8.)*.18;
+  float h=clamp(d.y,0.,1.); vec3 c=mix(hor,zen,pow(h,.55)); float sd=max(dot(d,L),0.);
+  c+=sunCol*(pow(sd,180.)*.8*(1.-night)+pow(sd,8.)*.18);
+  /* estrellas de noche */
+  if(night>0.){ vec2 g=floor(vec2(atan(d.z,d.x)*180.,asin(clamp(d.y,-1.,1.))*180.)); float st=step(.996,hs(g))*smoothstep(.02,.25,d.y); c+=vec3(.9,.92,1.)*st*night*(.6+.4*sin(time*3.+hs(g+3.)*20.)); }
+  /* nubes procedurales en una capa alta: más o menos cielo cubierto según el clima, iluminadas por el sol */
+  if(cloudK>0. && d.y>0.01){ vec2 uv=d.xz/(d.y+.08)*.9+vec2(time*.012,time*.004); float n=fbm(uv)*.75+fbm(uv*3.1+5.)*.25;
+    float cov=smoothstep(1.-cloudK*.9,1.15-cloudK*.75,n)*smoothstep(.01,.18,d.y); vec3 cc=cloudC*(.78+.32*fbm(uv*2.+11.))+sunCol*pow(sd,6.)*.25;
+    c=mix(c,cc,cov*.95); }
   o=vec4(c,1.); }`, ['p']);
-      this.SU = uniforms(gl, this.spr, ['IVP', 'cam', 'hor', 'zen', 'L', 'mode']);
+      this.SU = uniforms(gl, this.spr, ['IVP', 'cam', 'hor', 'zen', 'L', 'mode', 'night', 'cloudK', 'cloudC', 'time', 'sunCol']);
       this.skyVao = gl.createVertexArray(); gl.bindVertexArray(this.skyVao); const sb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, sb);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); gl.bindVertexArray(null);
       this.aniso = gl.getExtension('EXT_texture_filter_anisotropic');
@@ -106,6 +121,13 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
       const lum = sky[0] * .3 + sky[1] * .59 + sky[2] * .11;
       this.zen = sky.map(c => c * 0.78); this.hor = sky.map(c => Math.min(1, c * 0.85 + 0.2));
       this.skyC = sky.map(c => 0.6 + c * 0.55); this.gndC = [0.45, 0.4, 0.34]; this.sunC = [1.05, 0.98, 0.88].map(c => c * (0.85 + lum * 0.3));
+      this.base = { L: this.L, zen: this.zen, hor: this.hor, skyC: this.skyC, gndC: this.gndC, sunC: this.sunC }; this.atmos = null;
+    }
+    // ambiente (hora del día y clima): cambia el sol, el cielo, la niebla y las nubes sobre la luz base del circuito
+    setAtmos(A) {
+      const B = this.base; if (!B) return; this.atmos = A;
+      if (!A) { Object.assign(this, { L: B.L, zen: B.zen, hor: B.hor, skyC: B.skyC, gndC: B.gndC, sunC: B.sunC }); return; }
+      this.L = BRR.V.norm(A.L || B.L); this.zen = A.zen || B.zen; this.hor = A.hor || B.hor; this.skyC = A.skyC || B.skyC; this.gndC = A.gndC || B.gndC; this.sunC = A.sunC || B.sunC;
     }
     // dibuja un modelo suelto en una imagen (caras de los pilotos para el menú)
     thumb(batches, { size = 160, yaw = 0, pitch = -0.1, dist = 3, target = [0, 0, 0], fov = 0.5, canvas = null, parts = null } = {}) {
@@ -117,13 +139,13 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
       gl.bindRenderbuffer(gl.RENDERBUFFER, this.thDep); gl.renderbufferStorage(gl.RENDERBUFFER, gl.DEPTH_COMPONENT24, size, size);
       gl.bindFramebuffer(gl.FRAMEBUFFER, this.thFbo);
       gl.framebufferTexture2D(gl.FRAMEBUFFER, gl.COLOR_ATTACHMENT0, gl.TEXTURE_2D, this.thCol, 0); gl.framebufferRenderbuffer(gl.FRAMEBUFFER, gl.DEPTH_ATTACHMENT, gl.RENDERBUFFER, this.thDep);
-      const keep = [this.viewRect, this.shadowQ, this.mode, this.LVP]; this.viewRect = [0, 0, size, size]; this.shadowQ = 0; this.mode = 1; this.thumbMode = true;
+      const keep = [this.viewRect, this.shadowQ, this.mode, this.LVP], keepA = [this.atmos, this.headl, this.L, this.sunC, this.skyC]; this.atmos = null; this.headl = null; if (this.base) Object.assign(this, { L: this.base.L, sunC: this.base.sunC, skyC: this.base.skyC });   /* miniaturas: siempre con luz de día neutra */ this.viewRect = [0, 0, size, size]; this.shadowQ = 0; this.mode = 1; this.thumbMode = true;
       const eye = [target[0] + Math.sin(yaw) * Math.cos(pitch) * dist, target[1] - Math.sin(pitch) * dist, target[2] + Math.cos(yaw) * Math.cos(pitch) * dist];
       const view = BRR.M4.lookAt(eye, target, [0, 1, 0]), proj = BRR.M4.persp(fov, 1, 0.05, 100);
       this.begin(eye, view, proj, 1000, [0.5, 0.5, 0.5]); this.draw(batches); if (parts) for (const q of parts) this.draw(q.b, q.W);
       const px = new Uint8Array(size * size * 4); gl.readPixels(0, 0, size, size, gl.RGBA, gl.UNSIGNED_BYTE, px);
       gl.disable(gl.SCISSOR_TEST); gl.bindFramebuffer(gl.FRAMEBUFFER, this.target || null);
-      [this.viewRect, this.shadowQ, this.mode, this.LVP] = keep; this.thumbMode = false;
+      [this.viewRect, this.shadowQ, this.mode, this.LVP] = keep; [this.atmos, this.headl, this.L, this.sunC, this.skyC] = keepA; this.thumbMode = false;
       const c = canvas || document.createElement('canvas'); c.width = c.height = size; const g = c.getContext('2d'), im = g.createImageData(size, size);
       for (let y = 0; y < size; y++) im.data.set(px.subarray((size - 1 - y) * size * 4, (size - y) * size * 4), y * size * 4);
       g.putImageData(im, 0, 0); return canvas ? c : c.toDataURL();
@@ -243,6 +265,7 @@ void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
       gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.useProgram(this.spr);
       gl.uniformMatrix4fv(this.SU.IVP, false, BRR.M4.inv(VP)); gl.uniform3fv(this.SU.cam, camPos);
       gl.uniform3fv(this.SU.hor, fogc); gl.uniform3fv(this.SU.zen, this.zen || fog); gl.uniform3fv(this.SU.L, this.L); gl.uniform1i(this.SU.mode, modern ? 1 : 0);
+      { const A = this.atmos || {}; gl.uniform1f(this.SU.night, A.night || 0); gl.uniform1f(this.SU.cloudK, A.cloudK || 0); gl.uniform3fv(this.SU.cloudC, A.cloudC || [1, 1, 1]); gl.uniform1f(this.SU.time, (performance.now() / 1000) % 10000); gl.uniform3fv(this.SU.sunCol, A.sunCol || [1, .9, .7]); }
       if (!this.thumbMode) { gl.bindVertexArray(this.skyVao); gl.drawArrays(gl.TRIANGLES, 0, 3); }
       gl.enable(gl.DEPTH_TEST); gl.useProgram(this.pr);
       if (this.cull !== false) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CCW); } else gl.disable(gl.CULL_FACE);
@@ -250,6 +273,7 @@ void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
       gl.uniformMatrix4fv(U.VP, false, VP); gl.uniformMatrix4fv(U.LVP, false, this.LVP || BRR.M4.I);
       gl.uniform3fv(U.cam, camPos); gl.uniform1f(U.far, far); gl.uniform3fv(U.fogc, fogc); gl.uniform1i(U.T, 0); gl.uniform1f(U.layK, this.layers === false ? 0 : 1);
       gl.uniform1i(U.mode, modern ? 1 : 0); gl.uniform1i(U.shadows, modern && this.shadowQ && this.LVP ? 1 : 0); gl.uniform1f(U.smTexel, 1 / this.shadowSize);
+      { const A = this.atmos || {}; gl.uniform1f(U.fogK, A.fogK || 1); gl.uniform1f(U.wet, A.wet || 0); const H = this.headl || []; gl.uniform1i(U.hlN, Math.min(16, H.length)); if (H.length) { const P = new Float32Array(64), D = new Float32Array(64); H.slice(0, 16).forEach((q, i) => { P.set([q.p[0], q.p[1], q.p[2], 0], i * 4); D.set([q.d[0], q.d[1], q.d[2], q.k], i * 4); }); gl.uniform4fv(U.hlP, P); gl.uniform4fv(U.hlD, D); } }
       gl.uniform3fv(U.L, this.L); gl.uniform3fv(U.sunC, this.sunC || [1, 1, 1]); gl.uniform3fv(U.skyC, this.skyC || [.8, .8, .8]); gl.uniform3fv(U.gndC, this.gndC || [.4, .4, .4]);
       gl.uniform1f(U.glow, 0); const tnow = performance.now() / 1000; gl.uniform1f(U.time, tnow % 3600);
       const PA = this.palAnim; gl.uniform1i(U.animN, PA ? PA.n : 0); if (PA) { gl.uniform3fv(U.animPal, PA.cols); gl.uniform1f(U.animStep, Math.floor(tnow * PA.rate) % PA.n); }

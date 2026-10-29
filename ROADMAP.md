@@ -31,7 +31,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Modo clásico auténtico: resolución, distancia, iluminación, marcador y sonido como en 1995
 
 ## Bloque 3 · Ambiente (medio)
-- [ ] Clima y horas del día: lluvia, niebla, amanecer, atardecer
+- [x] Clima y horas del día: lluvia, niebla, nieve, nublado, amanecer, mediodía, atardecer y noche con faros
 - [ ] Efectos modernos: oclusión ambiental y reflejos
 - [ ] Motores con mejor sonido (más muestras y transiciones suaves)
 
@@ -131,8 +131,8 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 42 Opción de suelo: bloques originales o suavizado
 - [x] 43 RIG1: la bandera de cuadros del suelo levanta los bordes
 - [x] 44 RUF1: la bandera de cuadros sale de lado
-- [ ] 45 Nubes y cielos más realistas (Alemania…)
-- [ ] 46 Cielo coherente con el clima
+- [x] 45 Nubes y cielos más realistas (Alemania…)
+- [x] 46 Cielo coherente con el clima
 - [x] 47 Vallas y carteles flotantes: apoyarlos y seguir la pendiente
 
 **Mapas**

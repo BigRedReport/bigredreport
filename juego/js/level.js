@@ -258,6 +258,7 @@
       //          10 bandera · 40 baliza · 50 punto de control invisible · resto: sólido
       const cls = dat[i + 20];
       if (cls === 50) continue;
+      if (BRR.newClouds && /^CLOUD/.test(name)) continue;   // nubes nuevas (en el cielo): fuera las planas del original
       const m = getModel(name); if (!m) continue;
       const ox = dv.getInt32(i + 1, true), oz = dv.getInt32(i + 9, true); let oy = dv.getInt32(i + 5, true);
       // decorado lejano que flota sobre el terreno (icebergs del ártico...): se apoya en el suelo

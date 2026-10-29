@@ -44,6 +44,13 @@ void main(){ float a=vcol.a;
         v: [v[0] * 0.85 + back[0] * 0.8 + (Math.random() - .5) * 0.3, v[1] * 0.85 + Math.random() * 0.2, v[2] * 0.85 + back[2] * 0.8 + (Math.random() - .5) * 0.3],
         col: tint ? (k ? [tint[0], tint[1], tint[2], 0.85] : [0.5 + tint[0] * 0.5, 0.5 + tint[1] * 0.5, 0.5 + tint[2] * 0.5, 0.8]) : k ? [1, 0.55, 0.12, 0.85] : [0.55, 0.75, 1, 0.8], size: k ? 0.11 : 0.08, life: (k ? 0.13 : 0.08) + Math.random() * 0.05, age: 0, grow: 0.5, solid: true });
     }
+    // lluvia (gotas alargadas que caen en diagonal) y nieve (copos lentos) en una caja alrededor de la cámara
+    weather(cam, kind, dt, k = 1) {
+      const rain = kind === 'rain', n = Math.min(60, (rain ? 420 : 160) * k * dt * (this.density || 1) | 0) + (Math.random() < 0.5 ? 1 : 0);
+      for (let i = 0; i < n; i++) { const R0 = rain ? 22 : 26, p = [cam[0] + (Math.random() * 2 - 1) * R0, cam[1] + 6 + Math.random() * 10, cam[2] + (Math.random() * 2 - 1) * R0];
+        if (rain) this.parts.push({ p, v: [1.2, -22 - Math.random() * 6, 0.6], col: [0.82, 0.86, 0.95, 0.6], size: 0.022, life: 0.9, age: 0, grow: 0, solid: true, streak: 0.9 });
+        else this.parts.push({ p, v: [(Math.random() - .5) * 0.8, -1.6 - Math.random(), (Math.random() - .5) * 0.8], col: [0.97, 0.98, 1, 0.85], size: 0.05, life: 6, age: 0, grow: 0, solid: true, snow: 1 }); }
+    }
     // halo de luz (luces de freno): se suma a lo que hay detrás, solo dura este fotograma
     glow(p, col, size) { (this.glows || (this.glows = [])).push({ p, col, size }); }
     sparks(p, n = 12) {
@@ -128,7 +135,8 @@ void main(){ float a=vcol.a;
       const right = [view[0], view[4], view[8]], up = [view[1], view[5], view[9]];
       for (const q of this.parts) {
         const t = q.age / q.life, sz = q.size * (1 + q.grow * t), a = q.col[3] * (q.solid ? 1 - t : (1 - t) * Math.min(1, t * 6));
-        const r = V.mul(right, sz), u = V.mul(up, sz), p = q.p;
+        let r = V.mul(right, sz), u = V.mul(up, sz); const p = q.p;
+        if (q.streak) { const L0 = V.len(q.v) || 1; u = V.mul(q.v, q.streak / L0); }   // gota: rayita en la dirección en que cae
         const P0 = V.sub(V.sub(p, r), u), P1 = V.sub(V.add(p, r), u), P2 = V.add(V.add(p, r), u), P3 = V.add(V.sub(p, r), u);
         put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a);
       }
