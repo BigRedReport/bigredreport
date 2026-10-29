@@ -151,11 +151,12 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 57 TEST1: bandera START a ras de suelo
 - [ ] 58 SNOW1 (Ártico): montañas flotantes o partidas
 - [x] 59–60 CITY4 (Italia): texturas lilas junto a las escaleras y línea lila en la salida
-- [ ] 61–63, 66 MOON1/2/3: torres, puentes, carteles, vallas y edificios flotantes; parrilla de salida torcida
+- [x] 61–63, 66 MOON1/2/3: edificios y señales flotan como en el original; puentes sin postes de más
+- [ ] MOON: parrilla de salida torcida (por confirmar)
 - [ ] 64 SNOW2 (Escocia): carteles flotantes y montaña del checkpoint 2 rota
 - [x] 65 RUF3 (Francia): muro invisible en el puente rojo; carteles flotantes (ya se pasa por debajo)
 - [x] 67 RIG3: cartel START pequeño; árboles flotantes
-- [ ] 68 RIG4 (España): piedras amarillas mal colocadas
+- [x] 68 RIG4 (España): piedras amarillas mal colocadas (estaban enterradas)
 - [x] 69 CHOPPER1: postes de checkpoint que no llegan al suelo
 - [x] 70 CITY1: cuadrados lilas flotando tras los edificios
 - [x] 71 DIRT1/2/3: techos transparentes

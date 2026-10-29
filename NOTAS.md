@@ -5,6 +5,12 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.70**
+- Daño: los roces y los golpes de lado vuelven a quitar algo (poco); los choques fuertes, como en la 0.64.
+- Marte, Venus y la Luna: los edificios y las señales vuelven a flotar como en el original, y los puentes ya no tienen postes de más.
+- Puentes hechos de varios tramos: un solo pilar en cada junta (antes salían dos juntos), y ninguno si el original ya tiene un poste ahí.
+- Piedras, pinos y señales que quedaban enterrados (RIG4 España, SNOW1 Ártico…) ahora asoman.
+
 **Novedades de la 0.69**
 - **Fantasma en contrarreloj:** corres contra tu mejor vuelta, que se ve como un coche azulado y transparente. Se guarda por circuito y vehículo y se actualiza cada vez que la mejoras. Al cerrar cada vuelta te dice cuánto le has sacado o perdido. Se puede quitar en la pantalla del circuito («Fantasma»).
 

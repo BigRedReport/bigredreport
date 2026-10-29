@@ -224,9 +224,11 @@
     // No se tocan puentes, tubos, nubes ni lo que se apoya en otro objeto. Los carteles y vallas siguen la pendiente.
     const KEEP_UP = /CLOUD|SKY|BRIDG(?!END)|BRIJ|TUBE|ROOF|PLAT|BIRD|BALLOON|BLIMP|AIRSHIP|ZEPP|PLANE|KITE|WIRE|CABLE|START|CHECKP|SUN$|STAR|RAINBOW|FX$/;
     const THIN = /FENCE|BILBORD|BILLB|BOARD|SIGN|BANNER|WALL|BARR|RAIL|HOARD/;
-    const drop = new Map(), drape = new Set();
+    const drop = new Map(), drape = new Set(), objB = [], pillarsAt = [];
+    // en otros planetas (MOON1-3: Marte, Venus, Luna) las construcciones y señales flotan a propósito: no se bajan al suelo
+    const offWorld = /^MOON/i.test(level);
     if (!window.BRR_NOGROUND) {
-      const B = [];
+      const B = objB;
       for (let i = 0; i + 22 <= dat.length; i += 22) {
         const name = names[dat[i]], cls = dat[i + 20]; if (!name || cls === 50 || cls === 3 || cls === 7 || cls === 8 || /TUNN/.test(name)) continue;
         const m = getModel(name); if (!m) continue; const Vs = m.verts.filter(Boolean); if (!Vs.length) continue;
@@ -243,7 +245,8 @@
       for (const a of B) {   // en orden de abajo arriba: lo de encima hereda la bajada de lo de abajo
         let d = 0;
         if (a.sup) d = drop.get(a.sup.i) || 0;
-        else if (!KEEP_UP.test(a.name) && a.minC > 0.12 && a.minC < 10) { d = a.minC + 0.06; if (THIN.test(a.name) || (Math.min(a.x1 - a.x0, a.z1 - a.z0) < 1.6 && Math.max(a.x1 - a.x0, a.z1 - a.z0) > 2.5 && a.hi - a.lo < 8)) drape.add(a.i); }
+        else if (!offWorld && !KEEP_UP.test(a.name) && a.maxC < -0.8 && a.minC > -9 && a.hi - a.lo < 14 && !/TUNN|HOLE|PIT|WATER|SEA|POOL|ROAD|TRACK|RAMP|JUMP/.test(a.name)) d = a.maxC + 0.25;   // enterrado (piedras, pinos, señales): se sube hasta asomar
+        else if (!offWorld && !KEEP_UP.test(a.name) && a.minC > 0.12 && a.minC < 10) { d = a.minC + 0.06; if (THIN.test(a.name) || (Math.min(a.x1 - a.x0, a.z1 - a.z0) < 1.6 && Math.max(a.x1 - a.x0, a.z1 - a.z0) > 2.5 && a.hi - a.lo < 8)) drape.add(a.i); }
         if (d) drop.set(a.i, d);
       }
     }
@@ -307,13 +310,17 @@
       mb.addModel(mm, xfm, findTM, solid ? (a, b, c) => col.add(a, b, c, name) : null, 1);
       nobj++;
       // puentes y pasarelas que flotan: pilares en las esquinas hasta el suelo o el agua (sin paredes: las lanchas pasan por debajo)
-      if (solid && !decal && /BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(name)) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1]));
+      if (solid && !decal && !offWorld && /BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(name)) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1]));
         const xs = G.map(g => g[0]), zs = G.map(g => g[2]), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
         let cc = [0.35, 0.3, 0.26]; const f0 = mm.faces.find(f => !f.tex && f.color != null); if (f0) cc = [pal[f0.color * 3] / 255 * 0.8, pal[f0.color * 3 + 1] / 255 * 0.8, pal[f0.color * 3 + 2] / 255 * 0.8];
         const gC = mb.group('COLOR'), w = 0.22, inset = 0.35;
         for (const [px, pz] of [[x0 + inset, z0 + inset], [x1 - inset, z0 + inset], [x0 + inset, z1 - inset], [x1 - inset, z1 - inset]]) {
           const g = groundAt(px / S, -pz / S), top = Math.min(...G.filter(q => Math.abs(q[0] - px) < 1.2 && Math.abs(q[2] - pz) < 1.2).map(q => q[1]).concat([lo + 0.5]));
           if (top - g < 0.3 || top - g > 14) continue;
+          // dos tramos de puente seguidos: un solo pilar en la junta (no dos juntos)
+          if (pillarsAt.some(q => Math.abs(q[0] - px) < 1.8 && Math.abs(q[1] - pz) < 1.8)) continue; pillarsAt.push([px, pz]);
+          // ya hay un poste o un pilar del original debajo de esa esquina: no se pone otro al lado
+          if (objB.some(o => o.i !== i && !/BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(o.name) && o.x0 < px + 2.2 && o.x1 > px - 2.2 && o.z0 < pz + 2.2 && o.z1 > pz - 2.2 && o.lo < g + 2 && o.hi > top - 2.5)) continue;
           const C = [[px - w, pz - w], [px + w, pz - w], [px + w, pz + w], [px - w, pz + w]];
           for (let k = 0; k < 4; k++) { const a2 = C[k], b2 = C[(k + 1) % 4], A = [a2[0], top, a2[1]], B = [b2[0], top, b2[1]], Cq = [b2[0], g - 0.3, b2[1]], D = [a2[0], g - 0.3, a2[1]];
             for (const t of [[A, B, Cq], [A, Cq, D]]) { col.add(t[0], t[1], t[2], name); for (const order of [[0, 1, 2], [0, 2, 1]]) for (const j of order) { gC.pos.push(...t[j]); gC.col.push(...cc); gC.lay.push(1); } } } } }

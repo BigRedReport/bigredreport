@@ -1412,8 +1412,10 @@
     const k = 100 / Math.max(30, c.def.tough || 100); c.dmg = c.dmg || 0;
     if (c.broken > 0) { c.broken -= dt; if (Math.random() < dt * 25) fx.puff(V.add(c.p, [0, 0.6, 0]), [0, 2.2, 0], [0.1, 0.1, 0.1, 0.5], 0.7, 2.5, 3, 1, 0.5);
       if (c.broken <= 0) { c.dmg = 0; const h = humans.find(q => q.car === c); if (h) recoverHuman(h); else c.v = V.mul(c.v, 0.2); } return; }
-    // daño reajustado (v0.64): los roces y toques no hacen nada; un choque fuerte (~70 km/h) quita un 6 %, uno brutal (~110 km/h) un 14 %; como mucho un 15 % por golpe
-    const hit = c.lastHit || 0; if (hit > 6 && hit !== c.dmgHit) c.dmg += Math.min(15, Math.pow(hit - 6, 1.5) * 0.12 * k); c.dmgHit = hit;
+    // daño (v0.70): los roces y los toques de lado quitan poco pero algo (rozar una pared un rato, un 1-2 % por segundo);
+    // un golpe a ~30 km/h ≈ 1 %, a ~70 km/h ≈ 4 %, a ~110 km/h ≈ 8 %; como mucho un 15 % por golpe
+    const hit = c.lastHit || 0, tnow = performance.now(); c.dmgScr = c.dmgScr || 0;
+    if (hit > 1.2 && hit !== c.dmgHit && (hit > 4 || tnow - c.dmgScr > 200)) { c.dmg += Math.min(15, Math.pow(hit - 1.2, 1.4) * 0.075 * k); if (hit <= 4) c.dmgScr = tnow; } c.dmgHit = hit;   // roces: como mucho 5 veces por segundo
     if ((c.landEv || 0) > 14) c.dmg += Math.min(10, (c.landEv - 14) * 0.5 * k); c.landEv = 0;
     const R = c.R;
     for (const lv of [80, 90, 95]) if (c.dmg >= lv && Math.random() < dt * (lv === 80 ? 6 : lv === 90 ? 10 : 16)) { const q = c.def.dmgFx && c.def.dmgFx[lv] || [0, 0.4, 0];
