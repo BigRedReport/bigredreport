@@ -213,12 +213,12 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
     // posproceso de toda la imagen: antialiasing FXAA, exposición y desenfoque por profundidad (modo foto)
     // frameBegin: si hace falta, se dibuja en una textura; frameEnd: se pasa a la pantalla con el filtro
     frameBegin(W, H) {
-      const gl = this.gl, need = this.fxaa || this.exposure || this.dof; this.target = null; if (!need) return;
+      const gl = this.gl, need = this.fxaa || this.exposure || this.dof || this.ssao; this.target = null; if (!need) return;
       if (!this.post) {
         const VS = `#version 300 es
 out vec2 uv; void main(){ vec2 p=vec2((gl_VertexID<<1)&2, gl_VertexID&2); uv=p; gl_Position=vec4(p*2.-1.,0.,1.); }`;
         const FS = `#version 300 es
-precision highp float; in vec2 uv; uniform sampler2D C; uniform highp sampler2D D; uniform vec2 px; uniform int aa; uniform float expo; uniform float dof; uniform float focus; out vec4 o;
+precision highp float; in vec2 uv; uniform sampler2D C; uniform highp sampler2D D; uniform vec2 px; uniform int aa; uniform float expo; uniform float dof; uniform float focus; uniform float ssao; out vec4 o;
 float lum(vec3 c){ return dot(c, vec3(.299,.587,.114)); }
 vec3 fxaa(vec2 p){ vec3 cM=texture(C,p).rgb; float lM=lum(cM), lN=lum(texture(C,p+vec2(0.,-px.y)).rgb), lS=lum(texture(C,p+vec2(0.,px.y)).rgb), lW=lum(texture(C,p+vec2(-px.x,0.)).rgb), lE=lum(texture(C,p+vec2(px.x,0.)).rgb);
   float mn=min(lM,min(min(lN,lS),min(lW,lE))), mx=max(lM,max(max(lN,lS),max(lW,lE))); if(mx-mn<max(.0312,mx*.125)) return cM;
@@ -228,11 +228,16 @@ vec3 fxaa(vec2 p){ vec3 cM=texture(C,p).rgb; float lM=lum(cM), lN=lum(texture(C,
   vec3 a=.5*(texture(C,p+dir*(1./3.-.5)).rgb+texture(C,p+dir*(2./3.-.5)).rgb), b=a*.5+.25*(texture(C,p-dir*.5).rgb+texture(C,p+dir*.5).rgb);
   float lb=lum(b); return (lb<mn||lb>mx)?a:b; }
 float lin(float z){ return 0.6/(1.0001-z); }
+float aoAt(vec2 p){ float z=texture(D,p).r; if(z>.9999) return 1.; float d=lin(z), r=clamp(28./d,1.5,26.), occ=0.;   /* oclusión ambiental (SSAO) sencilla: esquinas y bajos más oscuros */
+  for(int i=0;i<12;i++){ float a=float(i)*2.39996+fract(sin(dot(p,vec2(12.9898,78.233)))*43758.5)*6.283, rr=r*(.35+.65*fract(float(i)*.618)); vec2 q=p+vec2(cos(a),sin(a))*rr*px;
+    float ds=lin(texture(D,q).r), dz=d-ds; occ+=smoothstep(.04*d,.12*d,dz)*(1.-smoothstep(.25*d+1.,.6*d+2.,dz)); }
+  return 1.-occ/12.*.55; }
 void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
+  if(ssao>0.) c*=mix(1.,aoAt(uv),ssao);
   if(dof>0.){ float d=lin(texture(D,uv).r), f=lin(focus), k=clamp((abs(d-f)/max(f,1.)-.15)*dof*.7,0.,1.); if(k>.02){ vec3 acc=vec3(0.); float n=0.;
       for(int i=-3;i<=3;i++) for(int j=-3;j<=3;j++){ vec2 q=uv+vec2(float(i),float(j))*px*k*3.; acc+=texture(C,q).rgb; n+=1.; } c=mix(c,acc/n,k); } }
   c*=exp2(expo); o=vec4(c,1.); }`;
-        this.post = prog(gl, VS, FS, []); this.PU = {}; for (const n of ['C', 'D', 'px', 'aa', 'expo', 'dof', 'focus']) this.PU[n] = gl.getUniformLocation(this.post, n);
+        this.post = prog(gl, VS, FS, []); this.PU = {}; for (const n of ['C', 'D', 'px', 'aa', 'expo', 'dof', 'focus', 'ssao']) this.PU[n] = gl.getUniformLocation(this.post, n);
         this.postVao = gl.createVertexArray();
       }
       if (!this.ppFbo || this.ppW !== W || this.ppH !== H) {
@@ -253,7 +258,7 @@ void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
       gl.viewport(0, 0, this.ppW, this.ppH); gl.useProgram(this.post); const U = this.PU;
       gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.ppC); gl.uniform1i(U.C, 0);
       gl.activeTexture(gl.TEXTURE1); gl.bindTexture(gl.TEXTURE_2D, this.ppD); gl.uniform1i(U.D, 1); gl.activeTexture(gl.TEXTURE0);
-      gl.uniform2f(U.px, 1 / this.ppW, 1 / this.ppH); gl.uniform1i(U.aa, this.fxaa ? 1 : 0); gl.uniform1f(U.expo, this.exposure || 0); gl.uniform1f(U.dof, this.dof || 0); gl.uniform1f(U.focus, this.focusZ || 0.99);
+      gl.uniform2f(U.px, 1 / this.ppW, 1 / this.ppH); gl.uniform1i(U.aa, this.fxaa ? 1 : 0); gl.uniform1f(U.expo, this.exposure || 0); gl.uniform1f(U.dof, this.dof || 0); gl.uniform1f(U.focus, this.focusZ || 0.99); gl.uniform1f(U.ssao, this.mode ? (this.ssao || 0) : 0);
       gl.bindVertexArray(this.postVao); gl.drawArrays(gl.TRIANGLES, 0, 3); gl.bindVertexArray(null);
     }
     begin(camPos, view, proj, far, fog) {

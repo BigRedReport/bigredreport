@@ -34,7 +34,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 ## Bloque 3 · Ambiente (medio)
 - [x] Clima y horas del día: lluvia, niebla, nieve, nublado, amanecer, mediodía, atardecer y noche con faros
 - [x] Reflejos en las carrocerías
-- [ ] Oclusión ambiental (SSAO)
+- [x] Oclusión ambiental (SSAO)
 - [x] Motores con mejor sonido (capas, filtro y transiciones suaves)
 
 ## Bloque 4 · Competir (medio)
