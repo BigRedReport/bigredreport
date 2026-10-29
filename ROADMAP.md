@@ -172,7 +172,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 
 **Más grandes (después)**
 - [ ] 74 Recuperar los efectos originales de derrape, polvo y turbo (de los .ENV del juego)
-- [ ] 75 Cámara cenital lejana estilo Micro Machines
+- [x] 75 Cámara cenital lejana estilo Micro Machines
 - [ ] 76 Interiores originales de los coches (volante, salpicadero)
 - [ ] 77 Sprites con más resolución
 - [ ] 78 Editor de circuitos al estilo LittleBigPlanet Karting: brochas de terreno, carretera dibujada con waypoints y checkpoints automáticos, biblioteca de objetos, cielo y luz, guardar, probar y volver a editar

@@ -1078,7 +1078,7 @@
     }
   });
   addEventListener('keyup', e => keys[e.code] = false);
-  const CAMS = ['cerca', 'lejos', 'alta', 'capo', 'parachoques', 'tv'], CAM_N = { cerca: 'persecución cerca', lejos: 'persecución lejos', alta: 'persecución alta', capo: 'cabina', parachoques: 'parachoques', tv: 'televisión' };
+  const CAMS = ['cerca', 'lejos', 'alta', 'capo', 'parachoques', 'tv', 'cenital'], CAM_N = { cerca: 'persecución cerca', lejos: 'persecución lejos', alta: 'persecución alta', capo: 'cabina', parachoques: 'parachoques', tv: 'televisión', cenital: 'cenital (miniaturas)' };
   function cycleCam(h = humans[0]) { const cur = h.camMode || opt.cam, nx = CAMS[(CAMS.indexOf(cur) + 1) % CAMS.length]; h.camMode = nx; h.cam.init = h.cam.posInit = false; if (h.i === 0) { opt.cam = nx; $('o_cam').value = nx; save(); } flash(h, 'Cámara: ' + CAM_N[nx], 1.2); }
   // comparador: iluminación original de 1995 / moderna, en plena carrera
   function toggleLight() { opt.light = opt.light === 'original' ? 'moderna' : 'original'; $('o_light').value = opt.light; R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0); save();
@@ -1730,6 +1730,10 @@
       const cy = Math.cos(cam.lookYaw), sy = Math.sin(cam.lookYaw), cp = Math.cos(cam.lookPitch), sp = Math.sin(cam.lookPitch);
       cam.look = V.add(e, BRR.mv(Rm, [sy * cp, (mode === 'capo' ? -0.05 : 0.02) + sp, -cy * cp])); cam.up = BRR.mv(Rm, [0, 1, 0]); return;
     }
+    if (mode === 'cenital') {   // vista desde muy arriba, casi vertical, como los juegos de coches en miniatura (Micro Machines): mira un poco por delante del coche
+      const v = car.v, ahead = V.add(car.p, [v[0] * 0.45, 0, v[2] * 0.45]), tgt = [ahead[0], car.p[1], ahead[2]];
+      cam.mm = cam.mm && cam.posInit ? V.add(cam.mm, V.mul(V.sub(tgt, cam.mm), 1 - Math.exp(-dt * 3.5))) : tgt; cam.posInit = true;
+      cam.pos = [cam.mm[0], cam.mm[1] + 46, cam.mm[2] + 11]; cam.look = cam.mm; cam.up = [0, 1, 0]; return; }
     if (mode === 'tv' && lvl.fixcams && lvl.fixcams.length) {   // cámaras de televisión del original: la más cercana que ve el coche
       const dd = q => Math.hypot(q[0] - car.p[0], q[2] - car.p[2]), cur = cam.tv;
       const best = lvl.fixcams.slice().sort((a, b) => dd(a) - dd(b))[0];

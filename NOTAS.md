@@ -5,6 +5,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.63**
+- Cámara cenital lejana estilo Micro Machines (C o el botón de cámara).
+
 **Novedades de la 0.62**
 - Hora del día (amanecer, mediodía, atardecer, noche) y clima (despejado, nublado, niebla, lluvia, nieve) al elegir circuito.
 - De noche: estrellas y faros que iluminan la pista (también con niebla y lluvia).
