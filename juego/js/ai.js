@@ -365,18 +365,6 @@
       if (this.offT > (hidden ? 2 : 5)) { this.recover(s); this.offT = 0; }
       return inp;
     }
-    // salto hacia delante por su trazada (pelotón: alcanzar al grupo sin que se vea), contando los controles que se salta
-    warp(dist, okAt) {
-      const line = this.line; if (!line || dist <= 0) return false;
-      const pj = BRR.aiProject(line, this.car.p, this.li), c = BRR.aiAt(line, pj.i * line.step + dist), race = this.race;
-      if (okAt && !okAt(c.p)) return false;   // el sitio de llegada tampoco puede estar a la vista
-      const rs0 = race.project(this.car.p).s, rs1 = race.project(c.p).s, span = ((rs1 - rs0) % race.total + race.total) % race.total;
-      if (span > race.total * 0.6) return false;
-      for (const g of race.gates.slice().sort((a, b) => (((a.s - rs0) % race.total + race.total) % race.total) - (((b.s - rs0) % race.total + race.total) % race.total)))
-        { const d = ((g.s - rs0) % race.total + race.total) % race.total; if (d <= span + 3 && g.num === race.expected) race.cross(g); }
-      this.car.reset(c.p[0], c.p[2], Math.atan2(-c.t[0], -c.t[2]), this.car.p[1]); this.car.v = V.mul(c.t, Math.max(8, (this.vprof ? this.vprof[(Math.floor((pj.i * line.step + dist) / line.step) % line.N + line.N) % line.N] : 15) * 0.8));
-      race.prev = this.car.p.slice(); this.li = null; this.steerOut = 0; this.stuckT = 0; return true;
-    }
     // ¿lo ve el jugador? (lejos de la cámara o detrás de ella)
     hidden() {   // ningún jugador lo ve (lejos de todas las cámaras o detrás de ellas)
       const cams = BRR.aiCams || (BRR.aiCam ? [BRR.aiCam] : []); if (!cams.length) return false;

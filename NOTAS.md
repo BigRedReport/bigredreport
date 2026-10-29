@@ -7,6 +7,12 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.91**
+- **Marcador original de 1995** (Opciones → Marcador → Estilo del marcador): los gráficos del juego (posición grande 1st/2nd…, vueltas, latas de nitro con la «r» que gira con el turbo, piloto y barra del turbo, DAMAGE:% y los avisos WRONG WAY, FINAL LAP y MISSED CHECK). También entra en el modo clásico 1995.
+- **Repeticiones guardadas:** al terminar una carrera (o desde la repetición) pulsa «💾 Guardar repetición»; en el menú principal, **🎬 Repeticiones** las lista (circuito, modo, puesto, vehículo, duración) para verlas otra vez con todas las cámaras, exportarlas a un archivo `.brrrep` o importar las de un amigo. Se guardan las 40 últimas.
+- **Amigos** (Multijugador → 👫 Amigos): cada uno tiene un código de amigo; añade el de tus amigos y verás quién está conectado, si está corriendo o en qué sala, con botón para **unirte**; si estás en una sala puedes **invitarles** y les sale un aviso en pantalla. Al añadir a alguien le llega aviso para que te añada también. En la clasificación de contrarreloj tus amigos salen marcados (y aunque no estén entre los 10 primeros). Se puede ocultar tu estado.
+- Limpieza de código viejo (restos de la eliminación por tiempo, saltos de la IA desactivados y funciones sin usar).
+
 **Novedades de la 0.90**
 - **Steam Deck** (`BigRedReport-SteamDeck.tar.gz`, de prueba): instalador que lo copia a ~/Games, lo añade al menú y a Steam; en modo juego se abre a pantalla completa y al salir del juego se cierra. El lanzador se maneja con el mando (cruceta/stick, A, B, LB/RB, START) y busca tu copia sola. La primera vez el juego usa ajustes para la Deck (resolución automática, sombras medias, sin SSAO, menús y marcador más grandes). Los controles táctiles se esconden mientras juegas con el mando.
 - **Buscar automáticamente** la carpeta del juego en el lanzador (Windows y Linux también).

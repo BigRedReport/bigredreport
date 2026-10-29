@@ -29,7 +29,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 
 ## Bloque 2 · Nostalgia (rápido-medio)
 - [x] Modo clásico 1995 (resolución, píxeles, luz, distancia, sonido)
-- [ ] Marcador original de 1995 en carrera
+- [x] Marcador original de 1995 en carrera (0.91, con los gráficos de INGAME.WAP; colocación por confirmar con una captura del original)
 
 ## Bloque 3 · Ambiente (medio)
 - [x] Clima y horas del día: lluvia, niebla, nieve, nublado, amanecer, mediodía, atardecer y noche con faros
@@ -42,7 +42,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [x] Fantasma del récord online (se sube tu mejor vuelta y se descarga la del primero)
 - [x] Retos semanales
 - [x] Repeticiones: verla con las cámaras de televisión, a cámara lenta y rápida, y exportarla a vídeo
-- [ ] Repeticiones guardadas para verlas más tarde
+- [x] Repeticiones guardadas para verlas más tarde (0.91: lista, exportar e importar archivo)
 - [x] Modo espectador en online
 
 ## Bloque 5 · Mi coche (medio)
@@ -52,13 +52,13 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 
 ## Bloque 6 · Social (medio-largo)
 - [x] Invitaciones con enlace y revancha inmediata
-- [ ] Lista de amigos
-- [ ] Ligas y eventos en servidores dedicados
+- [x] Lista de amigos (0.91: código de amigo, quién está conectado y en qué sala, unirse e invitar; amigos en la clasificación)
+- [ ] Ligas y eventos en servidores dedicados — *descartado de momento (apuntado)*
 
 ## Bloque 7 · Plataformas (medio-largo)
 - [x] Windows y Linux: programa con lanzador (carpeta del juego, opciones, servidor online, donaciones y Jugar)
 - [x] Steam Deck: paquete con instalador, lanzador con mando y ajustes (0.90, falta probar en una Deck de verdad)
-- [ ] Volantes, pedales y cambio de marchas; force feedback si es posible
+- [ ] Volantes, pedales y cambio de marchas; force feedback si es posible — *poca prioridad*
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
 - [x] Android (1): cargar el juego desde un .zip y controles táctiles, en el navegador del móvil
 - [x] Android (2): app instalable (.apk) con actualizador propio
@@ -75,10 +75,10 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [x] Infección zombi: un coche empieza de zombi (verde) y contagia al que toca; gana el último sin infectar; sin vueltas, con salto
 - [x] Modo eliminación: el último en pasar por un checkpoint queda eliminado y gana el último que queda. Según el tamaño del mapa: en los grandes cada X checkpoints; en los pequeños a mitad de vuelta o por vuelta
 
-## Bloque 9 · Creadores (largo)
-- [ ] Coches y circuitos nuevos en formatos normales (glTF, OBJ, imagen de alturas), gestor de mods y catálogo
-- [ ] Editor de circuitos y generador automático de rutas de IA
-- [ ] Documentación de formatos y ejemplos (SDK)
+## Bloque 9 · Creadores (largo) — **lo siguiente**
+- [ ] Editor de circuitos al estilo LittleBigPlanet Karting, con generación automática de la ruta de la IA (prioridad)
+- [ ] Coches y circuitos nuevos hechos a petición (sin formatos ni gestor: se piden modelos y se añaden)
+- [ ] Documentación de formatos y ejemplos (SDK) — *poca prioridad*
 - [ ] Clasificaciones verificadas, separadas entre juego original, con mods y experimental
 
 ## Bloque 10 · Física original (lo más difícil)
@@ -196,6 +196,7 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 ## Pendientes
 - [ ] Afinar la IA nueva en el primer circuito de Marte (mejorada, sigue algo lenta)
 
-## Depende de material externo
+## Más adelante
 - [ ] Texturas en alta resolución (hay que redibujarlas)
 - [ ] Banda sonora remasterizada (si se consigue)
+- [ ] Modo drift

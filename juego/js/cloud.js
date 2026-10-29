@@ -19,7 +19,7 @@
     c.p = mq.connect().then(() => { mq.onclose = () => { c.ok = false; }; return mq; }, e => { c.ok = false; pool.delete(url); throw e; });
     return c.p;
   }
-  setInterval(() => { for (const [u, c] of pool) if (Date.now() - c.used > 60000) { try { c.mq.close(); } catch (e) { } pool.delete(u); } }, 20000);
+  setInterval(() => { for (const [u, c] of pool) if (!c.keep && Date.now() - c.used > 60000) { try { c.mq.close(); } catch (e) { } pool.delete(u); } }, 20000);
   // publica en todos los buzones que respondan (para que lo vea quien lea de cualquiera)
   async function pubAll(topic, payload, retain) {
     const R = await Promise.allSettled(BROKERS.map(u => conn(u).then(mq => { mq.pub(topic, payload, retain); return 1; })));
@@ -88,6 +88,20 @@
         for (let k = 0; k < N; k++) { const o = 12 + k * 10; f.set([Math.min(best.lap, k / 10), x0 + b.getInt16(o, true) / 20, y0 + b.getInt16(o + 2, true) / 20, z0 + b.getInt16(o + 4, true) / 20,
           b.getInt8(o + 6) / 127, b.getInt8(o + 7) / 127, b.getInt8(o + 8) / 127, b.getInt8(o + 9) / 127], k * 8); }
         return { t: best.lap, veh: best.veh, name: best.name, f }; } catch (e) { return null; }
+    },
+    // amigos: «presencia» retenida en pr/ID (nombre, si estás conectado y en qué sala) y un buzón fi/ID para invitaciones y avisos
+    async presence(st) { return pubAll(T + 'pr/' + ID, JSON.stringify({ ...st, t: Date.now() }), true); },
+    async presenceGet(ids) {
+      const out = {}; ids = ids.filter(x => /^[a-z0-9]{4,12}$/.test(x)); if (!ids.length) return out;
+      const R = await Promise.all(ids.map(id => readAll(T + 'pr/' + id, 2000).then(r => [id, r])));
+      for (const [id, r] of R) for (const it of r.items) { const j = parse(it.p); if (j && typeof j.t === 'number' && (!out[id] || j.t > out[id].t)) out[id] = j; }
+      return out;
+    },
+    async send(id, msg) { if (!/^[a-z0-9]{4,12}$/.test(id)) return 0; return pubAll(T + 'fi/' + id, JSON.stringify({ ...msg, from: ID, mid: Math.random().toString(36).slice(2, 9), t: Date.now() }), false); },
+    inbox(cb) {   // escucha tu buzón en todos los servidores (y se reconecta solo)
+      const seen = new Set(), on = (t, p) => { const j = parse(p); if (!j || !j.mid || seen.has(j.mid) || Date.now() - (j.t || 0) > 120000) return; seen.add(j.mid); cb(j); };
+      const hook = u => conn(u).then(mq => { const c = pool.get(u); if (c) c.keep = true; mq.sub(T + 'fi/' + ID, on); const was = mq.onclose; mq.onclose = () => { was && was(); setTimeout(() => hook(u), 15000); }; }, () => setTimeout(() => hook(u), 60000));
+      BROKERS.forEach(hook);
     },
     // aviso de fallo automático (sin datos personales: mensaje, pila, versión, navegador y dónde ocurrió)
     async report(info) {

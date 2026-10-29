@@ -28,6 +28,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .hide-mini .phud .mini,.hide-pos .phud .race .lap,.hide-times .phud .race .row,.hide-nitro .phud .nitrobox,.hide-msg .phud .msg:not(.big),.hide-help #help,.hide-speed .phud .speedbox{display:none!important}
 .hide-pos.hide-times .phud .race{display:none}
 .phud .gauge{display:none;width:120px;height:120px}.speed-ana .phud .gauge{display:block}.speed-ana .phud .speedbox .speed,.speed-ana .phud .speedbox small{display:none}.speed-ana .phud .speedbox{padding:4px;border-radius:50%}
+.phud .ohud{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;display:none;z-index:2}.phud.orig .ohud{display:block}.phud.orig .race,.phud.orig .nitrobox,.phud.orig .wrong{display:none!important}
 .hud169 .phud.solo .hudin{position:absolute;top:0;bottom:0;left:50%;width:min(100%,calc(100vh*16/9));transform:translateX(-50%)}
 .phud .hudin{position:absolute;inset:0}
 .ntag{position:absolute;transform:translate(-50%,-100%);font:700 12px/1 system-ui,sans-serif;color:#fff;text-shadow:0 1px 3px #000,0 0 2px #000;white-space:nowrap;pointer-events:none}
@@ -108,8 +109,11 @@ input[type=range]{width:100%;accent-color:var(--red)}
 #title .tpress{position:absolute;left:50%;bottom:3.2%;transform:translateX(-50%);font:900 clamp(20px,3.4vw,40px)/1 system-ui;letter-spacing:.16em;color:#ff2a2a;background:rgba(0,0,0,.88);padding:.45em .9em;border-radius:12px;border:2px solid #ff2a2a;box-shadow:0 6px 24px #0007;animation:tblink 1.2s ease-in-out infinite;white-space:nowrap}
 #title .tfoot{position:absolute;left:50%;transform:translateX(-50%);bottom:8px;font-size:12px;color:#222;background:#fffd;padding:2px 10px;border-radius:6px}
 @keyframes tblink{50%{opacity:.55}}
-#donate,#reto,#garage{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center}#donate[hidden],#reto[hidden],#garage[hidden]{display:none}
-#garage .card{max-height:92vh;overflow:auto} #donate .card,#reto .card,#garage .card{max-width:560px;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}#donate h2,#reto h2,#garage h2{margin:0 0 8px} .grhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0} .grhead b{color:#ffd23f} .grrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)} .grrow button{width:auto;margin:0} .grdots{display:flex;gap:4px;margin-top:4px} .grdots i{width:22px;height:6px;border-radius:3px;background:rgba(255,255,255,.15)} .grdots i.on{background:#ff4a3a} #gr_turbo{width:44px;height:30px;padding:0;border:none;background:none;vertical-align:middle} #reto .rtimg{width:100%;border-radius:10px;aspect-ratio:16/9;object-fit:cover;background:#0b0e14} #reto .rtgrid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0} #reto .rtgrid span{color:var(--mut)}
+#donate,#reto,#garage,#rplist,#friends{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center}#donate[hidden],#reto[hidden],#garage[hidden],#rplist[hidden],#friends[hidden]{display:none}
+#friends .card{max-height:92vh;overflow:auto;width:min(620px,94vw)} .frow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)} .fmain{flex:1;min-width:0} .fdot{width:10px;height:10px;border-radius:50%;background:#555;flex-shrink:0} .fdot.on{background:#3ddc6a;box-shadow:0 0 8px #3ddc6a}
+#ftoast{position:fixed;right:16px;bottom:16px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(380px,92vw)} #ftoast .ft{background:#141824;border:1px solid #3a4256;border-radius:12px;padding:12px 14px;box-shadow:0 10px 30px #0009;font-size:14px} #ftoast .ftb{display:flex;gap:8px;margin-top:8px} #ftoast button{padding:6px 12px}
+#rplist .card{max-height:92vh;overflow:auto;width:min(640px,94vw)} .rpl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)} .rplb{display:flex;gap:6px;flex-shrink:0} .rplb button{padding:6px 10px}
+#garage .card{max-height:92vh;overflow:auto} #donate .card,#reto .card,#garage .card,#rplist .card,#friends .card{max-width:560px;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}#donate h2,#reto h2,#garage h2,#rplist h2,#friends h2{margin:0 0 8px} .grhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0} .grhead b{color:#ffd23f} .grrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)} .grrow button{width:auto;margin:0} .grdots{display:flex;gap:4px;margin-top:4px} .grdots i{width:22px;height:6px;border-radius:3px;background:rgba(255,255,255,.15)} .grdots i.on{background:#ff4a3a} #gr_turbo{width:44px;height:30px;padding:0;border:none;background:none;vertical-align:middle} #reto .rtimg{width:100%;border-radius:10px;aspect-ratio:16/9;object-fit:cover;background:#0b0e14} #reto .rtgrid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0} #reto .rtgrid span{color:var(--mut)}
 .dnrow{display:flex;gap:16px;align-items:center;justify-content:space-between;margin:14px 0}.dnrow>div{display:flex;flex-direction:column;gap:10px;flex:1}.dnrow img{border-radius:10px;background:#fff;padding:6px}
 .dnb{display:block;text-align:center;padding:12px 14px;border-radius:10px;font-weight:800;text-decoration:none;color:#fff}.dnb.kofi{background:#29abe0}.dnb.pp{background:#003087}
 .hbtn.dnt{color:#ff6b81}
@@ -121,7 +125,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .pcolors{grid-template-columns:repeat(auto-fill,minmax(84px,1fr))}
 .pitem{background:#111;border:2px solid transparent;border-radius:10px;padding:6px;text-align:center;cursor:pointer;font-size:12px}
 .pitem img{width:100%;aspect-ratio:1;object-fit:contain;image-rendering:pixelated}.pitem.on{border-color:var(--red);box-shadow:0 0 0 3px rgba(226,59,59,.35)}
-.lbt{width:100%;font-size:13px;border-collapse:collapse}.lbt td{padding:2px 4px;border-bottom:1px solid var(--line)}.lbt td:last-child{text-align:right;font-variant-numeric:tabular-nums}
+.lbt{width:100%;font-size:13px;border-collapse:collapse}.lbt td{padding:2px 4px;border-bottom:1px solid var(--line)}.lbt td:last-child{text-align:right;font-variant-numeric:tabular-nums} .lbt tr.me td{color:#ffd23f;font-weight:700} .lbt tr.fr td{color:#8fe3a8}
 #m_title{font-size:20px;font-weight:700;font-style:italic;align-self:center;margin-left:8px}
 .padfocus{outline:3px solid #ffd23f !important;outline-offset:2px}
 #picker{position:fixed;inset:0;background:rgba(0,0,0,.75);display:flex;align-items:center;justify-content:center;z-index:30}#picker[hidden]{display:none}
@@ -217,6 +221,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="multi"><span class="ico">👥</span>Multijugador</button>
         <button class="hbtn" data-go="profile"><span class="ico">🪖</span>Piloto y escudería</button>
         <button class="hbtn" data-go="garage"><span class="ico">🔧</span>Garaje</button>
+        <button class="hbtn" data-go="replays"><span class="ico">🎬</span>Repeticiones</button>
         <button class="hbtn" data-go="options"><span class="ico">⚙️</span>Opciones</button>
         <button class="hbtn" data-go="mods"><span class="ico">🧩</span>Mods</button>
         <div class="hrow"><button class="hbtn small2" data-go="orig">Menú original (1995)</button>
@@ -236,6 +241,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="split"><span class="ico">🖥️</span>Pantalla partida (2-8)</button>
         <button class="hbtn" data-go="online"><span class="ico">🌐</span>Online</button>
         <button class="hbtn" data-go="lan"><span class="ico">🔌</span>Red local (LAN)</button>
+        <button class="hbtn" data-go="friends"><span class="ico">👫</span>Amigos</button>
         <button class="hbtn small2" data-go="back">◀ Volver</button>
       </div>
     </div>
@@ -395,7 +401,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <div class="opt"><span>Suelo</span><select id="o_ground"><option value="suave">Suavizado (redondeado)</option><option value="original">Bloques originales</option></select><span></span></div>
     <div class="opt"><span>Texturas</span><select id="o_filter"><option value="nearest">Pixeladas (original)</option><option value="smooth">Suavizadas</option></select><span></span></div>
     <div class="opt"><span>Antialiasing</span><select id="o_aa"><option value="0">No</option><option value="1">FXAA (suaviza bordes)</option></select><span></span></div>
-    <div class="opt"><span>Modo clásico 1995</span><button id="o_classic" style="width:auto;margin:0">Verlo como en 1995</button><span id="o_classic_i" class="small">resolución baja, píxeles, luz plana, niebla cercana</span></div>
+    <div class="opt"><span>Modo clásico 1995</span><button id="o_classic" style="width:auto;margin:0">Verlo como en 1995</button><span id="o_classic_i" class="small">resolución baja, píxeles, luz plana, niebla cercana y marcador original</span></div>
     <div class="opt"><span>Oclusión ambiental</span><select id="o_ssao"><option value="si">Sí (sombras en esquinas y bajos)</option><option value="no">No</option></select><span></span></div>
     <div class="opt"><span>Reflejos en los coches</span><select id="o_gloss"><option value="si">Sí</option><option value="no">No</option></select><span></span></div>
     <div class="opt"><span>Humo y polvo</span><select id="o_fxs"><option value="original">Originales (sprites de 1995)</option><option value="moderno">Modernos (suaves)</option></select><span></span></div>
@@ -411,6 +417,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <div class="opt"><span>Cámara</span><select id="o_cam"><option value="cerca">Persecución cerca</option><option value="lejos">Persecución lejos</option><option value="alta">Persecución alta</option><option value="capo">Cabina</option><option value="parachoques">Parachoques</option><option value="tv">Televisión (cámaras del original)</option><option value="cenital">Cenital lejana (estilo Micro Machines)</option></select><span></span></div>
     <div class="opt"><span>Marcador en pantallas anchas</span><select id="o_hudw"><option value="full">A todo lo ancho</option><option value="169">Centrado en 16:9 (ultrapanorámicas)</option></select><span></span></div>
     <div class="opt"><span>Tamaño del marcador</span><input id="o_hudsc" type="range" min="70" max="150" step="5"><span id="o_hudsc_v"></span></div>
+    <div class="opt"><span>Estilo del marcador</span><select id="o_hudstyle"><option value="moderno">Moderno</option><option value="original">Original (1995)</option></select><span></span></div>
     <div class="opt"><span>Velocímetro</span><select id="o_speedo"><option value="dig">Digital</option><option value="ana">De aguja</option><option value="off">Oculto</option></select><span></span></div>
     <div class="opt"><span>Minimapa</span><input id="o_hmini" type="checkbox"><span></span></div>
     <div class="opt"><span>Posición y vueltas</span><input id="o_hpos" type="checkbox"><span></span></div>
@@ -487,13 +494,13 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <div class="race"><div class="lap"><small class="pname"></small><small>POS</small><span class="h_pos">–</span> <small style="margin-left:10px">VUELTA</small><span class="h_lap">1/3</span></div>
     <div class="row">Tiempo <b class="h_time">0:00.00</b></div><div class="row">Esta vuelta <b class="h_cur">0:00.00</b></div><div class="row">Mejor vuelta <b class="h_best">–</b></div></div>
   <div class="msg" hidden></div><div class="wrong" hidden>SENTIDO CONTRARIO</div>
-  <canvas class="mini" width="380" height="380"></canvas>
+  <canvas class="mini" width="380" height="380"></canvas><canvas class="ohud"></canvas>
   <div class="bottom"><div class="nitrobox"><small>NITRO</small><span class="h_nitro">–</span><small class="h_dmgl">DAÑOS</small><span class="h_dmg">0%</span></div><div class="speedbox"><canvas class="gauge" width="240" height="240"></canvas><span class="speed">0</span><small>km/h</small></div></div>
   <div class="done" hidden></div>
 </div></div></template>
 <div id="results" hidden><div class="card">
   <h1 id="r_title">Carrera terminada</h1><table id="r_list"></table><p id="r_rec"></p>
-  <button class="main" id="r_again">Repetir</button><button id="r_replay" style="width:100%;margin-top:8px">🎬 Ver repetición</button><button id="r_menu" style="width:100%;margin-top:8px">Menú</button>
+  <button class="main" id="r_again">Repetir</button><div class="grid2" style="margin-top:8px"><button id="r_replay">🎬 Ver repetición</button><button id="r_rpsave">💾 Guardar repetición</button></div><button id="r_menu" style="width:100%;margin-top:8px">Menú</button>
 </div></div>
 <div id="photo" hidden><b>Modo foto</b><span class="small">WASD/stick: mover · ratón/stick der.: mirar · Q/E: subir/bajar · Mayús: rápido</span>
   <label>Exposición <input id="ph_exp" type="range" min="-100" max="100" value="0"></label><label>Enfoque <input id="ph_dof" type="range" min="0" max="100" value="0"></label>
@@ -514,6 +521,22 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <div class="grrow"><div><b>Luces</b> <span class="small">color de los faros (de noche, niebla y lluvia)</span></div><select id="gr_lights"><option value="normal">Originales</option><option value="blanca">Blancas (xenón)</option><option value="intermedia">Blanco cálido</option><option value="amarilla">Amarillas</option></select></div>
   <div class="grrow"><div><b>Ventanas</b></div><div><select id="gr_glass"><option value="normal">Normales</option><option value="oscuro">Tintadas</option><option value="negro">Muy oscuras</option><option value="color">De color</option></select> <input type="color" id="gr_glasscol"></div></div>
   <button id="gr_close" style="margin-top:12px">Cerrar</button>
+</div></div>
+<div id="friends" hidden><div class="card">
+  <h2>👫 Amigos</h2>
+  <div class="grrow"><div><b>Tu código de amigo</b><br><span class="small">Pásaselo a quien quieras para que te añada.</span></div><div style="text-align:right"><b id="fr_code" class="mono" style="font-size:20px;letter-spacing:.08em"></b><br><button id="fr_copy">Copiar</button></div></div>
+  <div class="grrow"><input id="fr_add" placeholder="Código de tu amigo (XXXX-XXXX)" maxlength="12" style="flex:1"><button id="fr_addb" class="main">Añadir</button></div>
+  <p class="small" id="fr_msg"></p>
+  <div id="fr_list"></div>
+  <label class="small" style="display:block;margin-top:10px"><input type="checkbox" id="fr_show"> Que mis amigos vean si estoy conectado y en qué sala</label>
+  <p class="small">Con «Unirse» entras en su partida online; si estás en una sala, «Invitar» le avisa en su pantalla.</p>
+  <button id="fr_close" style="width:100%;margin-top:8px">Cerrar</button>
+</div></div>
+<div id="rplist" hidden><div class="card">
+  <h2>🎬 Repeticiones guardadas</h2>
+  <p class="small">Se guardan en este navegador (las 40 últimas). Puedes exportarlas a un archivo para pasarlas a otro ordenador o a un amigo.</p>
+  <div id="rpl_body"></div>
+  <div class="grid2" style="margin-top:12px"><button id="rpl_imp">📂 Importar archivo…</button><button id="rpl_close">Cerrar</button></div><input type="file" id="rpl_file" accept=".brrrep,application/json" hidden>
 </div></div>
 <div id="reto" hidden><div class="card">
   <h2>⭐ Reto semanal</h2>

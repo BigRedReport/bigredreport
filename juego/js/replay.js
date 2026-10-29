@@ -20,10 +20,6 @@
     else { const s = Math.sqrt(1 + m[2][2] - m[0][0] - m[1][1]) * 2; w = (m[1][0] - m[0][1]) / s; x = (m[0][2] + m[2][0]) / s; y = (m[1][2] + m[2][1]) / s; z = s / 4; }
     return [x, y, z, w];
   }
-  // orientación del original (Ry·Rx·Rz en coordenadas originales) -> GL (x, -y, -z)
-  function origQ(rx, ry, rz) { const M = BRR.rot(rx * A16, ry * A16, rz * A16), F = [1, -1, -1];
-    return m2q(M.map((r, i) => r.map((v, j) => v * F[i] * F[j]))); }
-
   // lee las grabaciones del circuito; devuelve [] si no hay
   BRR.loadReplays = function (lvl) {
     const out = [];
