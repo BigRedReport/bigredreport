@@ -5,6 +5,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.72**
+- **Fantasma del récord online** en contrarreloj: además de tu mejor vuelta (azul), el fantasma dorado del primero de la clasificación online de ese circuito, con su vehículo. Tu mejor vuelta se sube sola para que los demás corran contra ella. Se elige en «Fantasma» (los dos, solo el tuyo, solo el récord o ninguno).
+- **Invitar a amigos:** en la sala online, «Copiar invitación» copia un enlace; quien lo abra entra directo en tu sala (en el móvil se comparte).
+- **Revancha:** al acabar una carrera online, el anfitrión puede pulsar «Revancha» para volver a correr con los mismos jugadores.
+
 **Novedades de la 0.71**
 - Daño desde unos 10 km/h (poco), roces incluidos.
 - Las pancartas de los controles ya no salen dobles (la lisa arriba y la de START debajo): solo la franja lisa.

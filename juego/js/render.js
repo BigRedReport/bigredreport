@@ -44,7 +44,7 @@ void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
   vec3 n; if(dot(vn,vn)>0.25) n=normalize(vn); else { n=normalize(cross(dFdx(wp),dFdy(wp))); if(dot(n,cam-wp)<0.) n=-n; }
   float d=length(wp-cam); vec3 rgb;
   if(glow>0.){ float f=clamp((d-far*.55)/(far*.45),0.,1.); o=vec4(mix(c.rgb*glow,fogc,f*.7),1.); return; }   // luces: sin sombreado
-  if(glow<0.){ float l=.62+.38*abs(dot(n,normalize(vec3(.4,.85,.3)))); o=vec4(mix(c.rgb*l,vec3(.62,.86,1.),.45),-glow); return; }   /* fantasma: translúcido azulado */
+  if(glow<0.){ float l=.62+.38*abs(dot(n,normalize(vec3(.4,.85,.3)))); bool gold=glow<-1.; o=vec4(mix(c.rgb*l,gold?vec3(1.,.82,.3):vec3(.62,.86,1.),.45),gold?-glow-1.:-glow); return; }   /* fantasma: translúcido azulado */
   if(mode==0){ float l=.66+.34*abs(dot(n,normalize(vec3(.4,.85,.3)))); rgb=c.rgb*l;
     float f=clamp((d-far*.55)/(far*.45),0.,1.); o=vec4(mix(rgb,fogc,f),1.); return; }
   // agua: olas que se mueven, brillo del sol y reflejo del cielo

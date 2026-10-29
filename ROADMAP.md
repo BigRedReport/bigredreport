@@ -37,7 +37,8 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 
 ## Bloque 4 · Competir (medio)
 - [x] Fantasma de tu mejor vuelta en contrarreloj
-- [ ] Fantasma del mejor tiempo de la clasificación online; compartir y descargar fantasmas; retos semanales
+- [x] Fantasma del récord online (se sube tu mejor vuelta y se descarga la del primero)
+- [ ] Retos semanales
 - [ ] Repeticiones: guardar la carrera, verla con las cámaras de televisión y exportarla a vídeo
 - [ ] Modo espectador en online
 
@@ -46,7 +47,8 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Garaje con mejoras (motor, ruedas, nitro) pagadas con lo ganado en el campeonato
 
 ## Bloque 6 · Social (medio-largo)
-- [ ] Amigos, invitaciones y revancha inmediata
+- [x] Invitaciones con enlace y revancha inmediata
+- [ ] Lista de amigos
 - [ ] Ligas y eventos en servidores dedicados
 
 ## Bloque 7 · Plataformas (medio-largo)
