@@ -177,8 +177,8 @@
     }
     ls.value = files.has(opt.level + '.LEV') ? opt.level : ls.options[0].value;
     ls.onchange = fillVehicles; fillVehicles();
-    { const H = { normal: 'Gana el primero en terminar las vueltas.', elim_cp: 'Cada pocos controles (según lo grande que sea el circuito) el último en pasar queda eliminado. Gana el que queda.', elim_t: 'Cada minuto se elimina al que va último. Gana el que queda.', bomba: 'Sin vueltas: la bomba pasa al coche que chocas. A los 5 minutos explota y pierde quien la lleve. Puedes saltar (V).', zombie: 'Sin vueltas: un coche empieza de zombi (verde) y contagia al que toca. Gana el último sin infectar. Puedes saltar (V).' };
-      const cz = $('m_crazy'); cz.value = H[opt.crazy] ? opt.crazy : 'normal'; const up = () => { $('m_crazyhelp').textContent = H[cz.value]; $('m_laps').disabled = cz.value !== 'normal'; }; cz.onchange = () => { opt.crazy = cz.value; save(); up(); }; up(); }
+    { const H = { normal: 'Gana el primero en terminar las vueltas.', elim_cp: 'Cada pocos controles (según lo grande que sea el circuito) el último en pasar queda eliminado. Gana el que queda.', bomba: 'Sin vueltas: la bomba pasa al coche que chocas. Cada coche tiene 2 minutos de vida con la bomba encima (su reloj solo corre mientras la lleva); si llega a cero, explota. Gana el último que queda. Puedes saltar (V).', polis: 'Sin vueltas: la mitad son polis (con sirena, salen de la salida) y la otra mitad cacos (salen a medio circuito). Los polis eliminan a los cacos chocándolos; si algún caco aguanta 5 minutos, ganan los cacos. Puedes saltar (V).', zombie: 'Sin vueltas: un coche empieza de zombi (verde) y contagia al que toca. Gana el último sin infectar. Puedes saltar (V).' };
+      const cz = $('m_crazy'); cz.value = H[opt.crazy] && opt.crazy !== 'elim_t' ? opt.crazy : 'normal'; const up = () => { $('m_crazyhelp').textContent = H[cz.value]; $('m_laps').disabled = cz.value !== 'normal'; }; cz.onchange = () => { opt.crazy = cz.value; save(); up(); }; up(); }
     $('m_hora').value = opt.hora || 'original'; $('m_clima').value = opt.clima || 'despejado'; $('m_hora').onchange = () => { opt.hora = $('m_hora').value; save(); }; $('m_clima').onchange = () => { opt.clima = $('m_clima').value; save(); };
     $('m_team').value = opt.team; $('m_rivals').value = opt.rivals; $('m_diff').value = opt.diff; $('m_players').value = opt.players || 1;
     $('t_team').value = opt.team; $('t_diff').value = opt.diff;
@@ -786,7 +786,7 @@
       // rivales originales: reproducen las carreras grabadas del juego (como en 1995); si se piden más, el resto con la IA nueva
       replayBand = null;
       const looks = !net && opt.rivLook !== 'clasico' ? rivalLooks(12, [hueOf(opt.paint || TEAM[humans[0].team].c), ...humans.slice(1).map(h => hueOf(TEAM[h.team].c))]) : [];
-      const recs = !net && opt.origAI !== false ? BRR.loadReplays(lvl) : [];
+      const recs = !net && opt.origAI !== false && !['bomba', 'zombie', 'polis'].includes(crazyPick) ? BRR.loadReplays(lvl) : [];   // modos libres: rivales con físicas (los grabados no pueden salirse de su vuelta)
       if (recs.length) {
         const free = Math.max(0, Math.max(6, lvl.gridSlots.length) - nPlayers);
         while (recs.length > Math.min(nR, free)) recs.splice(Math.random() * recs.length | 0, 1);   // el original deja fuera una al azar (orden "spos")
@@ -996,7 +996,7 @@
     updatePositions(0);
     const multi = humans.length > 1, h0 = humans[0], rec = getRec(h0), bestLap = h0.race.lapTimes.length ? Math.min(...h0.race.lapTimes) : null;
     const who = o => o.h ? (multi ? 'Jugador ' + (o.h.i + 1) : 'Tú') : o.name && !o.isAI ? o.name + ' <small style="color:var(--mut)">(online)</small>' : teamLabel(o.car) + (o.ai ? ' <small style="color:var(--mut)">(' + o.ai.P.name.toLowerCase() + ')</small>' : '');
-    const posRows = (rivals.length || multi) ? `<tr class="hdr"><td colspan="2">Clasificación</td></tr>` + order.map((o, i) => `<tr${o.h ? ' class="me"' : ''}><td>${headImg(o.car.team, 26)}${i + 1}. ${who(o)}</td><td>${crazy ? (crazy.loser && crazy.loser.car === o.car ? '💣 ¡bum!' : o.car.zombie ? '🧟 zombi' : o.car.out ? 'eliminado' : 'superviviente') : o.race.finishT != null ? fmt(o.race.finishT) : 'en carrera'}</td></tr>`).join('') : '';
+    const posRows = (rivals.length || multi) ? `<tr class="hdr"><td colspan="2">Clasificación</td></tr>` + order.map((o, i) => `<tr${o.h ? ' class="me"' : ''}><td>${headImg(o.car.team, 26)}${i + 1}. ${who(o)}</td><td>${crazy ? (o.car.cop ? '🚨 poli' : o.car.robber && o.car.out ? '💰 pillado' : o.car.robber ? '💰 caco libre' : o.car.zombie ? '🧟 zombi' : o.car.out ? 'eliminado' : 'superviviente') : o.race.finishT != null ? fmt(o.race.finishT) : 'en carrera'}</td></tr>`).join('') : '';
     const laps = multi || crazy ? '' : `<tr class="hdr"><td colspan="2">Tus vueltas</td></tr>` + h0.race.lapTimes.map((t, i) => `<tr${t === bestLap ? ' class="best"' : ''}><td>Vuelta ${i + 1}</td><td>${fmt(t)}</td></tr>`).join('') + `<tr class="tot"><td>Total</td><td>${fmt(h0.total)}</td></tr>`;
     $('r_list').innerHTML = posRows + laps;
     const myPos = h0.pos || order.findIndex(o => o.h === h0) + 1;
@@ -1004,7 +1004,7 @@
     const winner = order[0];
     $('r_title').textContent = multi ? (winner.h ? '¡Gana el Jugador ' + (winner.h.i + 1) + '!' : (winner.car.teamName ? '¡Gana ' + winner.car.teamName + '!' : 'Gana el equipo ' + TEAM[winner.car.team].n)) + ' · ' + lvl.name
       : rivals.length ? (myPos === 1 ? '¡Has ganado!' : `Has quedado ${myPos}º`) + ' · ' + lvl.name : 'Carrera terminada · ' + lvl.name;
-    if (crazy && !multi) { const me = h0.car; $('r_title').textContent = (crazy.mode === 'bomba' ? (crazy.loser && crazy.loser.h === h0 ? '¡Bum! Has perdido' : '¡Te has librado de la bomba!') : crazy.mode === 'zombie' ? (me.zombie ? 'Te han infectado' : '¡Has sobrevivido!') : myPos === 1 ? '¡Último superviviente!' : 'Eliminado · ' + myPos + 'º') + ' · ' + lvl.name; }
+    if (crazy && !multi) { const me = h0.car; $('r_title').textContent = (crazy.mode === 'bomba' ? (me.out ? '¡Bum! Has perdido' : '¡Último superviviente!') : crazy.mode === 'zombie' ? (me.zombie ? 'Te han infectado' : '¡Has sobrevivido!') : crazy.mode === 'polis' ? (crazy.team === 'cops' ? '¡Ganan los polis!' : '¡Ganan los cacos!') + ((crazy.team === 'cops') === me.cop ? ' · ¡HAS GANADO!' : ' · has perdido') : myPos === 1 ? '¡Último superviviente!' : 'Eliminado · ' + myPos + 'º') + ' · ' + lvl.name; }
     if (ttMode && !multi && bestLap) { lbSubmit(lvl.name, car.def.name, bestLap, h0.total); $('r_title').textContent = 'Contrareloj · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap); }
     if (tourMode && rivals.length) { $('r_rec').textContent += ' ' + tournResult(myPos); $('r_again').hidden = true; $('r_menu').textContent = 'Volver al torneo'; }
     else { $('r_again').hidden = false; $('r_menu').textContent = 'Menú'; }
@@ -1058,7 +1058,7 @@
       else { line(nx ? 7 : 5, 'rgba(0,0,0,.6)'); line(nx ? 4.5 : 2.5, nx ? '#ffd23f' : 'rgba(255,210,63,.55)'); }
     }
     g.setLineDash([]);
-    const dot = c2 => { g.fillStyle = c2.zombie ? '#46cd3c' : carCol(c2); g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(X(c2.p), Y(c2.p), 6, 0, 7); g.fill(); g.stroke(); };
+    const dot = c2 => { g.fillStyle = c2.zombie ? '#46cd3c' : c2.cop ? '#2f5cff' : carCol(c2); g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(X(c2.p), Y(c2.p), 6, 0, 7); g.fill(); g.stroke(); };
     for (const r of rivals) if (!r.car.out) dot(r.car); for (const o of humans) if (o !== h && !o.car.out) dot(o.car);
     const cc = h.car, f = cc.forward(), a = Math.atan2(f[0], -f[2]);
     g.save(); g.translate(X(cc.p), Y(cc.p)); g.rotate(a); g.fillStyle = carCol(cc); g.strokeStyle = '#fff'; g.lineWidth = 2;
@@ -1837,7 +1837,7 @@
   }
   function updatePositions(dt) {
     const all = [...humans.map(h => ({ car: h.car, race: h.race, h })), ...rivals];
-    order = all.map(o => ({ o, s: o.car.out ? -1e7 + o.car.outN : o.car.zombie ? -1e6 + o.car.zN : o.race.finishT != null ? 1e6 - o.race.finishT : o.race.score() })).sort((a, b) => b.s - a.s).map(x => x.o);
+    order = all.map(o => ({ o, s: o.car.out ? -1e7 + o.car.outN : o.car.zombie ? -1e6 + o.car.zN : o.car.cop && crazy ? -5e5 : o.race.finishT != null ? 1e6 - o.race.finishT : o.race.score() })).sort((a, b) => b.s - a.s).map(x => x.o);
     for (const h of humans) { const pos = order.findIndex(o => o.h === h) + 1; h.q('h_pos').textContent = order.length > 1 ? `${pos}/${order.length}` : '–';
       if (!h.done) { if (race.phase === 'race' && race.t > 5 && h.pos && order.length > 1 && humans.length === 1) { if (pos < h.pos) say(['OVERTAK', 'OVERTK', 'PASS', 'OVER'], 0.55); else if (pos > h.pos) say(['PASSED', 'BEHIND', 'LOSE'], 0.25, false); } h.pos = pos; } }
     const lt = order[0].car.team; leaderT += dt;
@@ -1850,17 +1850,18 @@
   // ---------- modos locos: eliminación por tiempo · eliminación por controles · bomba ----------
   // el que se elimina desaparece (sin física, sin choques, sin dibujo); gana el último que queda
   let crazy = null, crazyId = 0, crazyPick = 'normal';   // crazyPick: solo lo pone «Correr» del menú moderno
-  const CRAZY_T = 60, BOMB_T = 300, ZOMBIE_T = 300;
-  const CRAZY_NAME = { elim_t: 'Eliminación por tiempo', elim_cp: 'Eliminación por controles', bomba: 'Bomba caliente', zombie: 'Infección zombi' };
-  const crazyJump = () => crazy && (crazy.mode === 'bomba' || crazy.mode === 'zombie');   // modos sin vueltas: se puede saltar
+  const CRAZY_T = 60, BOMB_T = 120, ZOMBIE_T = 300, COPS_T = 300;
+  const CRAZY_NAME = { elim_t: 'Eliminación por tiempo', elim_cp: 'Eliminación', bomba: 'Bomba caliente', zombie: 'Infección zombi', polis: 'Polis y cacos' };
+  const crazyJump = () => crazy && (crazy.mode === 'bomba' || crazy.mode === 'zombie' || crazy.mode === 'polis');   // modos sin vueltas: se puede saltar
   function crazyInit() {
     const mode = !netRace && !freeMode && !ttMode && !tourMode ? crazyPick : 'normal';
-    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = false; c.outN = 0; }
+    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = false; c.outN = 0; c.bombLeft = BOMB_T; c.cop = false; c.robber = false; }
     crazyId++; crazy = null; if (!CRAZY_NAME[mode] || humans.length + rivals.length < 2) return;
     // eliminación por controles según el tamaño del circuito: pequeño → cada vuelta; mediano → cada media vuelta; grande → cada ~1 km de controles
     const rc = humans[0].race, G = rc.maxNum + 1, L = rc.total;
     const step = L < 900 ? G : L < 2000 ? Math.max(1, Math.ceil(G / 2)) : Math.max(1, Math.round(G * 1000 / L));
-    crazy = { mode, id: crazyId, n: 0, next: CRAZY_T, cpStep: step, cpNext: step, bomb: null, bombT0: 3, over: false, zT0: 3, zLeft: ZOMBIE_T, zN: 0 };
+    crazy = { mode, id: crazyId, n: 0, next: CRAZY_T, cpStep: step, cpNext: step, bomb: null, bombT0: 3, over: false, zT0: 3, zLeft: ZOMBIE_T, zN: 0, copsLeft: COPS_T };
+    if (mode === 'polis') copsSetup();
     for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.zombie = false; if (c.drawN) { const o = humans.find(h => h.car === c) || rivals.find(r => r.car === c); if (o) o.draw = c.drawN; c.drawN = null; } }
   }
   const crazyWho = o => o.h ? (humans.length > 1 ? NAMES[o.h.i] : 'Tú') : (o.name && !o.isAI ? o.name : o.car.teamName || (o.ai ? o.ai.P.name : 'Equipo ' + TEAM[o.car.team].n));
@@ -1870,18 +1871,18 @@
     for (let i = 0; i < 10; i++) fx.puff(p, [(Math.random() - .5) * 3, 2.5, (Math.random() - .5) * 3], [0.12, 0.12, 0.12, 0.6], 0.8, 2.5, 4, 1, 0.5);
     if (audio && audio.ctx) audio.play('GEN/EXPLODE.WAV', { vol: c.isPlayer ? 1 : Math.max(0.25, 1 - camDist(c.p) / 160), pos: c.isPlayer ? null : c.p });
   }
-  function eliminate(o, quiet) {
+  function eliminate(o, quiet, msg) {
     const c = o.car; if (c.out) return; crazy.n++; c.out = true; c.outN = crazy.n; crazyBoom(c); c.v = [0, 0, 0]; c.w = [0, 0, 0]; c.nitroT = 0; if (quiet) return;
     const who = crazyWho(o);
-    for (const x of humans) if (!x.car.out || x === o.h) flash(x, x === o.h ? '¡ELIMINADO!' : who + (o.h && humans.length === 1 ? '' : ' · ¡eliminado!'), 2.5, x === o.h ? 'big warn' : 'warn');
+    for (const x of humans) if (!x.car.out || x === o.h) flash(x, x === o.h ? (msg || '¡ELIMINADO!') : who + (msg ? ' · ¡pillado!' : ' · ¡eliminado!'), 2.5, x === o.h ? 'big warn' : 'warn');
     if (o.h) { o.h.done = true; if (humans.length > 1) { o.h.q('done').textContent = 'Eliminado'; o.h.q('done').hidden = false; } }
     if (humans.every(x => x.car.out) && !crazy.over) { crazy.over = true; const id = crazy.id; setTimeout(() => { if (crazy && crazy.id === id) showResults(); }, 3000); }
   }
-  function crazyEnd(win, loser) {
-    if (crazy.over && !loser) return; crazy.over = true; crazy.bomb = null; const id = crazy.id;
-    for (const x of humans) { x.done = true; flash(x, loser ? (loser.h === x ? '¡BUM! Te ha explotado la bomba: pierdes' : '¡BUM! ' + crazyWho(loser) + ' pierde · ¡te has librado!') : win && win.h === x ? '¡ÚLTIMO SUPERVIVIENTE!' : win ? '¡Gana ' + crazyWho(win) + '!' : crazy.mode === 'zombie' ? '¡Tiempo! Ganan los que no son zombis' : 'Fin', 3, 'big'); }
+  function crazyEnd(win, loser, team) {
+    if (crazy.over && !loser) return; crazy.over = true; crazy.bomb = null; crazy.team = team; const id = crazy.id;
+    for (const x of humans) { x.done = true; flash(x, team ? ((team === 'cops') === x.car.cop ? (team === 'cops' ? '¡Ganan los polis!' : '¡Ganan los cacos!') + ' · ¡HAS GANADO!' : (team === 'cops' ? '¡Ganan los polis!' : '¡Ganan los cacos!') + ' · has perdido') : loser ? (loser.h === x ? '¡BUM! Te ha explotado la bomba: pierdes' : '¡BUM! ' + crazyWho(loser) + ' pierde · ¡te has librado!') : win && win.h === x ? '¡ÚLTIMO SUPERVIVIENTE!' : win ? '¡Gana ' + crazyWho(win) + '!' : crazy.mode === 'zombie' ? '¡Tiempo! Ganan los que no son zombis' : 'Fin', 3, 'big'); }
     if (audio) { const v = pickV('FINISH') || pickV('GAMEOVER'); if (v) audio.voice(v, true); }
-    if (win && win.h === humans[0] && humans.length === 1) achUnlock('victoria');
+    if (humans.length === 1 && ((win && win.h === humans[0]) || (team && (team === 'cops') === humans[0].car.cop))) achUnlock('victoria');
     setTimeout(() => { if (crazy && crazy.id === id) showResults(); }, 2500);
   }
   function bombGive(car, prev) {
@@ -1890,15 +1891,52 @@
     if (prev) { const hp = humans.find(x => x.car === prev); if (hp) flash(hp, '¡Bomba pasada!', 1.5); }
     if (audio && audio.ctx) audio.play('SAMPLES/BEEP4.WAV', { vol: 0.8 });
   }
-  // bomba caliente: 5 minutos; pasa de coche en coche al chocar; cuando se acaba el tiempo, el que la lleva explota y pierde
+  // bomba caliente (sin vueltas): cada coche tiene 2 minutos de vida con la bomba encima; su reloj solo corre mientras la lleva.
+  // Se pasa al chocar. Si a uno se le acaba, explota (eliminado) y la bomba pasa al más cercano. Gana el último que queda.
   function bombFrame(dt, alive) {
     let B = crazy.bomb;
-    if (!B) { crazy.bombT0 -= dt; if (crazy.bombT0 <= 0) { crazy.bomb = { car: null, t: BOMB_T, cool: 0 }; bombGive(alive[Math.random() * alive.length | 0].car); } return; }
-    B.t -= dt; B.cool -= dt; const c = B.car, now = performance.now() / 1000;
-    if (B.cool <= 0 && c.bumpBy && !c.bumpBy.out && now - (c.bumpT || 0) < 0.3) { const to = c.bumpBy; c.bumpBy = null; bombGive(to, c); }
-    if (Math.random() < dt * 40) fx.sparks(V.add(B.car.p, [0, 2.4, 0]), 2);   // la mecha
-    if (B.t < 10 && Math.ceil(B.t) !== Math.ceil(B.t + dt) && audio && audio.ctx) audio.play('SAMPLES/BEEP3.WAV', { vol: 0.6 });
-    if (B.t <= 0) { const o = alive.find(x => x.car === B.car); crazy.loser = o; if (o) eliminate(o, true); crazyEnd(null, o); }
+    if (!B) { crazy.bombT0 -= dt; if (crazy.bombT0 <= 0) { crazy.bomb = { car: null, cool: 0 }; bombGive(alive[Math.random() * alive.length | 0].car); } return; }
+    B.cool -= dt; const c = B.car, now = performance.now() / 1000; c.bombLeft = Math.max(0, c.bombLeft - dt); B.t = c.bombLeft;
+    if (B.cool <= 0 && c.hitBy && !c.hitBy.out) { const to = c.hitBy; c.hitBy = null; bombGive(to, c); return; }
+    if (Math.random() < dt * 40) fx.sparks(V.add(c.p, [0, 2.4, 0]), 2);   // la mecha
+    if (c.bombLeft < 10 && Math.ceil(c.bombLeft) !== Math.ceil(c.bombLeft + dt) && audio && audio.ctx) audio.play('SAMPLES/BEEP3.WAV', { vol: 0.6 });
+    if (c.bombLeft <= 0) {
+      const o = alive.find(x => x.car === c), rest = alive.filter(x => x.car !== c); if (o) eliminate(o);
+      if (rest.length > 1) { let best = rest[0], bd = 1e18; for (const x of rest) { const d = (x.car.p[0] - c.p[0]) ** 2 + (x.car.p[2] - c.p[2]) ** 2; if (d < bd) { bd = d; best = x; } } bombGive(best.car); }
+      else { crazy.bomb = null; crazyEnd(rest[0]); }
+    }
+  }
+  // polis y cacos (sin vueltas): la mitad son polis (salen de la salida, con sirena) y la otra mitad cacos (salen a medio circuito).
+  // Un poli que choca a un caco lo elimina. Ganan los polis si pillan a todos; los cacos, si alguno aguanta 5 minutos.
+  function copsSetup() {
+    const all = [...humans.map(h => ({ car: h.car, race: h.race, h })), ...rivals], n = all.length, nCops = Math.max(1, Math.floor(n / 2));
+    // los humanos: el J1 al azar y los demás alternando; luego se completan con la IA (los grabados, de polis: no se pueden mover de su trazada)
+    const r0 = Math.random() < 0.5; humans.forEach((h, i) => { h.car.cop = (i % 2 === 0) === r0; });
+    let cops = humans.filter(h => h.car.cop).length;
+    const ais = rivals.slice().sort((a, b) => (b.replay ? 1 : 0) - (a.replay ? 1 : 0) || Math.random() - 0.5);
+    for (const r of ais) { r.car.cop = cops < nCops || (!!r.replay && cops < n - 1); if (r.car.cop) cops++; }
+    if (!all.some(o => !o.car.cop)) { const o = all.find(o => !o.replay && !o.h) || all[0]; o.car.cop = false; }
+    for (const o of all) o.car.robber = !o.car.cop;
+    // los cacos, a medio circuito, uno detrás de otro
+    const rc = humans[0].race, P = rc.P, sp = lvl.startPos; let fi = 0, fd = -1; P.forEach((q, i) => { const d = (q[0] - sp[0]) ** 2 + (q[2] - sp[2]) ** 2; if (d > fd) { fd = d; fi = i; } }); const half = rc.cum[fi]; let k = 0;   // lo más lejos posible de la salida
+    for (const o of all) { if (!o.car.robber) continue; const sAt = half + k * 9, j = Math.max(0, rc.cum.findIndex(x => x >= sAt % rc.total) - 1), a = P[j], b = P[(j + 1) % P.length];
+      const t = V.norm([b[0] - a[0], 0, b[2] - a[2]]), side = (k % 2 ? 1 : -1) * 3, u = (sAt % rc.total - rc.cum[j]) / Math.max(1, rc.cum[j + 1] - rc.cum[j]);
+      const x = a[0] + (b[0] - a[0]) * u - t[2] * side, z = a[2] + (b[2] - a[2]) * u + t[0] * side;
+      o.car.reset(x, z, Math.atan2(-t[0], -t[2]), groundY(x, z) + 1); o.race.prev = o.car.p.slice(); if (o.ai) { o.ai.li = null; o.ai.steerOut = 0; } if (o.h) { o.h.cam.init = o.h.cam.posInit = false; } k++; }
+  }
+  function crazySirens() {   // sirena de los polis: rojo y azul alternando sobre el techo (también en la cuenta atrás)
+    if (!crazy || crazy.mode !== 'polis') return; const blink = (performance.now() / 250 | 0) % 2;
+    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { if (!c.cop || c.out) continue;
+      const top = (c.def.box ? c.def.box.c[1] + c.def.box.h[1] : 1.2) + 0.05;
+      fx.glow(V.add(c.p, BRR.mv(c.R, [-0.5, top, 0])), blink ? [1, 0.12, 0.1, 1] : [1, 0.12, 0.1, 0.2], 0.55);
+      fx.glow(V.add(c.p, BRR.mv(c.R, [0.5, top, 0])), blink ? [0.15, 0.35, 1, 0.2] : [0.15, 0.35, 1, 1], 0.55); }
+  }
+  function copsFrame(dt, alive) {
+    crazy.copsLeft -= dt;
+    for (const o of alive) { const c = o.car; if (!c.cop) continue;
+      const t = c.hitBy; if (t && t.robber && !t.out) { c.hitBy = null; const ot = alive.find(x => x.car === t); if (ot) { eliminate(ot, false, '¡Pillado!'); } } }
+    const left = order.filter(o => !o.car.out && o.car.robber);
+    if (!left.length) crazyEnd(null, null, 'cops'); else if (crazy.copsLeft <= 0) crazyEnd(null, null, 'robbers');
   }
   // infección zombi: sin vueltas (libre); un coche empieza de zombi (verde) y contagia al que toca; gana el último sin contagiar
   const zMesh = new Map();
@@ -1915,15 +1953,15 @@
     if (!crazy.zN) { crazy.zT0 -= dt; if (crazy.zT0 <= 0) zombify(alive[Math.random() * alive.length | 0]); return; }
     crazy.zLeft -= dt; const now = performance.now() / 1000;
     for (const o of alive) { const c = o.car; if (!c.zombie) continue; if (Math.random() < dt * 6) fx.puff(V.add(c.p, [0, 1.2, 0]), [0, 1.2, 0], [0.3, 0.9, 0.25, 0.4], 0.4, 1.5, 2.2, 1, 0.4);
-      const t = c.bumpBy; if (t && !t.zombie && !t.out && now - (c.bumpT || 0) < 0.3) { c.bumpBy = null; const ot = alive.find(x => x.car === t); if (ot) zombify(ot); } }
+      const t = c.hitBy; if (t && !t.zombie && !t.out) { c.hitBy = null; const ot = alive.find(x => x.car === t); if (ot) zombify(ot); } }
     const free = alive.filter(o => !o.car.zombie);
     if (free.length <= 1 || crazy.zLeft <= 0) crazyEnd(free.length === 1 ? free[0] : null);
   }
   // la IA que lleva la bomba o es zombi persigue al coche más cercano (si lo tiene a tiro)
   function crazyChase(r) {
     if (!crazy || crazy.over || !r.inp || r.car.out) return; const c = r.car;
-    const hunt = crazy.mode === 'bomba' ? crazy.bomb && crazy.bomb.car === c && crazy.bomb.cool <= 0 : crazy.mode === 'zombie' && c.zombie; if (!hunt) return;
-    let best = null, bd = 70 * 70; for (const o of order) { const x = o.car; if (x === c || x.out || x.zombie) continue; const d = (x.p[0] - c.p[0]) ** 2 + (x.p[2] - c.p[2]) ** 2; if (d < bd) { bd = d; best = x; } }
+    const hunt = crazy.mode === 'bomba' ? crazy.bomb && crazy.bomb.car === c && crazy.bomb.cool <= 0 : crazy.mode === 'zombie' ? c.zombie : crazy.mode === 'polis' && c.cop; if (!hunt) return;
+    let best = null, bd = (c.cop ? 110 : 70) ** 2; for (const o of order) { const x = o.car; if (x === c || x.out || x.zombie || (c.cop && !x.robber)) continue; const d = (x.p[0] - c.p[0]) ** 2 + (x.p[2] - c.p[2]) ** 2; if (d < bd) { bd = d; best = x; } }
     if (!best) return; const fw = c.forward(), d = V.sub(V.madd(best.p, best.v, 0.4), c.p), err = Math.atan2(fw[0] * d[2] - fw[2] * d[0], fw[0] * d[0] + fw[2] * d[2]);
     r.inp.steer = Math.max(-1, Math.min(1, err * 2.5)); r.inp.throttle = 1; r.inp.brake = 0; r.inp.handbrake = Math.abs(err) > 1.4;
   }
@@ -1937,13 +1975,15 @@
       if (behind.length <= 1) { if (behind.length) eliminate(behind[0]); crazy.cpNext += crazy.cpStep; }
     } else if (crazy.mode === 'bomba') bombFrame(dt, alive);
     else if (crazy.mode === 'zombie') return zombieFrame(dt, alive);
+    else if (crazy.mode === 'polis') return copsFrame(dt, alive);
     const left = order.filter(o => !o.car.out); if (left.length <= 1 && !crazy.over && crazy.mode !== 'bomba') crazyEnd(left[0]);
   }
   function crazyHud(h) {
     if (crazy.mode === 'elim_t') return '⏱ ' + Math.ceil(Math.max(0, crazy.next)) + ' s';
     if (crazy.mode === 'elim_cp') { const left = crazy.cpNext - h.race.passed; return h.car.out ? '–' : left > 0 ? '🏁 ' + left : '✔'; }
     if (crazy.mode === 'zombie') { const n = order.filter(o => !o.car.out && !o.car.zombie).length; return (h.car.zombie ? '🧟 ' : '🙂 ') + n + ' · ' + fmt(Math.max(0, crazy.zLeft)).slice(0, -3); }
-    const B = crazy.bomb; return B ? '💣 ' + fmt(Math.max(0, B.t)).slice(0, -3) + (B.car === h.car ? ' ¡TÚ!' : '') : '💣 …';
+    if (crazy.mode === 'polis') { const n = order.filter(o => !o.car.out && o.car.robber).length; return (h.car.cop ? '🚨 ' : '💰 ') + n + ' · ' + fmt(Math.max(0, crazy.copsLeft)).slice(0, -3); }
+    const B = crazy.bomb; return h.car.out ? '💥' : '💣 ' + fmt(Math.max(0, h.car.bombLeft)).slice(0, -3) + (B && B.car === h.car ? ' ¡TÚ!' : '');
   }
 
   // ---------- bucle ----------
@@ -1966,7 +2006,7 @@
     const box = h.q('tags'); h.tagsOn = true; const out = [];
     const list = [...rivals.map(r => ({ c: r.car, n: r.name && !r.isAI ? r.name : (r.car.teamName || (r.replay ? 'Equipo ' + TEAM[r.car.team].n : (r.ai ? r.ai.P.name : ''))) })), ...humans.filter(o => o !== h).map(o => ({ c: o.car, n: NAMES[o.i] }))];
     const bc = crazy && crazy.bomb && crazy.bomb.car;
-    for (const { c, n: n0 } of list) { if (!n0 || c.out || (!opt.hnames && c !== bc && !c.zombie)) continue; const n = c === bc ? '💣 ' + Math.ceil(Math.max(0, crazy.bomb.t)) + ' · ' + n0 : c.zombie ? '🧟 ' + n0 : n0; const p = [c.p[0], c.p[1] + 2.2, c.p[2]], m = VP;
+    for (const { c, n: n0 } of list) { if (!n0 || c.out || (!opt.hnames && c !== bc && !c.zombie && !c.cop && !c.robber)) continue; const n = c === bc ? '💣 ' + Math.ceil(Math.max(0, crazy.bomb.t)) + ' · ' + n0 : c.zombie ? '🧟 ' + n0 : c.cop ? '🚨 ' + n0 : c.robber ? '💰 ' + n0 : n0; const p = [c.p[0], c.p[1] + 2.2, c.p[2]], m = VP;
       const x = m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12], y = m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13], w = m[3] * p[0] + m[7] * p[1] + m[11] * p[2] + m[15];
       if (w <= 0.5 || w > 150) continue; const sx = (x / w * 0.5 + 0.5) * 100, sy = (1 - (y / w * 0.5 + 0.5)) * 100; if (sx < -5 || sx > 105 || sy < -5 || sy > 105) continue;
       out.push(`<div class="ntag" style="left:${sx}%;top:${sy}%;color:${carCol(c)};opacity:${Math.max(0.35, 1 - w / 150)}">${esc(n)}</div>`); }
@@ -2000,6 +2040,7 @@
   function packFrame(dt) {
     if (!rivals.length || !humans.length) return; if (window.BRR_NOPACK) { for (const r of rivals) { if (r.replay) r.replay.rate = (r.replay.band && r.replay.band.nom) || 1; if (r.ai) r.ai.rubber = 1; } return; }   // pruebas: sin pelotón
     if (netRace && netRace.role !== 'host') return;
+    if (crazyJump()) { for (const r of rivals) if (r.ai) r.ai.rubber = 1; return; }   // modos libres: sin pelotón ni saltos de la IA
     const H = humans.filter(h => h.race.phase === 'race' || h.race.phase === 'finished'); if (!H.length) return;
     packT += dt;
     const seg = race.total / ((race.maxNum || 1) + 1);
@@ -2054,7 +2095,7 @@
       for (const h of humans) { h.race.update(dt, h.car); handleEvents(h); }
       for (const r of rivals) { if (r.remote || r.car.out) continue; r.race.update(dt, r.car); r.race.ev.length = 0; }
       if (netRace) netFrame(dt);
-      updatePositions(dt); crazyFrame(dt);
+      updatePositions(dt); crazyFrame(dt); crazySirens(); for (const c of allCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
       if (humans[0] && humans[0].race.phase === 'race') { const h0 = humans[0]; if (h0.race.t > 8 && order.length >= 4 && h0.pos === order.length) h0.wasLast = true; if (freeMode && (h0.freeT = (h0.freeT || 0) + dt) > 300) achUnlock('libre'); statAcc.km += Math.abs(humans[0].car.speed()) * dt / 1000; statAcc.t += dt; statAcc.veh = humans[0].car.def.name; }
       for (const hit of props.update(dt, allCars)) propSound(hit);
       for (const c of allCars) if (c.nitroT > 0) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc); }
@@ -2093,8 +2134,8 @@
       // marcador del jugador
       const c = h.car, rc = h.race;
       const kmh = Math.round(Math.abs(c.speed()) * 3.6); h.q('speed').textContent = kmh; if (opt.speedo === 'ana') drawGauge(h, kmh, c);
-      if (opt.hnames || (crazy && (crazy.bomb || crazy.zN))) nameTags(h, BRR.M4.mul(proj, view), vw, vh); else if (h.tagsOn) { h.q('tags').innerHTML = ''; h.tagsOn = false; }
-      { const lk = crazy ? crazy.mode : ''; if (h.lapLbl !== lk) { h.lapLbl = lk; const el = h.q('h_lap').previousElementSibling; if (el) el.textContent = !lk ? 'VUELTA' : lk === 'bomba' ? 'BOMBA' : lk === 'zombie' ? 'SANOS' : lk === 'elim_t' ? 'ELIMINA' : 'META EN'; } }
+      if (opt.hnames || (crazy && (crazy.bomb || crazy.zN || crazy.mode === 'polis'))) nameTags(h, BRR.M4.mul(proj, view), vw, vh); else if (h.tagsOn) { h.q('tags').innerHTML = ''; h.tagsOn = false; }
+      { const lk = crazy ? crazy.mode : ''; if (h.lapLbl !== lk) { h.lapLbl = lk; const el = h.q('h_lap').previousElementSibling; if (el) el.textContent = !lk ? 'VUELTA' : lk === 'bomba' ? 'BOMBA' : lk === 'zombie' ? 'SANOS' : lk === 'polis' ? 'CACOS' : lk === 'elim_t' ? 'ELIMINA' : 'META EN'; } }
       h.q('h_lap').textContent = rc.phase === 'finished' ? 'META' : freeMode ? 'LIBRE' : crazy ? crazyHud(h) : `${Math.min(rc.lap + 1, rc.laps)}/${rc.laps}`;
       if (h.freeLbl !== freeMode) { h.freeLbl = freeMode; const rows = h.hud.querySelectorAll('.race .row'), L = freeMode ? ['Puntos ', 'Combo ', 'Récord '] : ['Tiempo ', 'Esta vuelta ', 'Mejor vuelta ']; rows.forEach((r, i) => { r.firstChild.nodeValue = L[i]; }); }
       if (freeMode) { const S = h.stunt || {}, best = +(ST.get('brr_stunt_' + lvl.name) || 0); h.q('h_time').textContent = (S.pts || 0) + ' pts'; h.q('h_cur').textContent = S.combo > 1 ? '×' + S.combo : '–'; h.q('h_best').textContent = best + ' pts'; }
