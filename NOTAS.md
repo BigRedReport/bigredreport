@@ -5,6 +5,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.87**
+- Humo y polvo: los sprites de 1995 más pequeños y mezclados con las nubes nuevas, que se quedan flotando y dejan rastro también de lejos. En la nieve, polvo de nieve (antes parecía agua).
+- **Garaje por vehículo:** cada coche guarda sus llantas, neones, ventanas, faros y turbo. El botón del garaje está ahora en el menú principal, debajo de «Piloto y escudería».
+- Iconos en los botones de los menús.
+- La ficha del circuito de un jugador ya no muestra el selector de pantalla partida (está en Multijugador).
+- LAN: vuelve a verse la miniatura del coche elegido.
+
 **Novedades de la 0.86**
 - **Oclusión ambiental:** esquinas, rincones y los bajos de los coches un poco más oscuros, para dar más volumen (Opciones → Gráficos; se puede quitar si el ordenador va justo).
 

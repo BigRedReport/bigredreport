@@ -393,7 +393,7 @@
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
     if (v === 'reto') { retoOpen(); return; }
-    if (v === 'garage') { $('garage').hidden = false; garRender(); setTimeout(() => navFocusFirst($('garage')), 0); return; }
+    if (v === 'garage') { $('garage').hidden = false; garSel = opt.vehicle; garRender(); setTimeout(() => navFocusFirst($('garage')), 0); return; }
     if (v === 'donate') { $('donate').hidden = false; setTimeout(() => navFocusFirst($('donate')), 0); return; }
     if (v === 'exit') { show('bye'); state = 'bye'; if (audio) audio.stopMusic(); try { window.close(); } catch (e) { } if (NAT) setTimeout(() => window.close(), 300); return; }
     if (v === 'back') v = (VIEWS[view] || {}).back || 'home';
@@ -787,12 +787,12 @@
       const teams = [team, ...[1, 2, 3, 4, 5, 6].filter(t => t !== team)];
       let def0 = null;
       for (let i = 0; i < nPlayers; i++) {
-        const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { glass: garGlass(), logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) } : {}); if (!def0) def0 = d;
+        const d = await BRR.loadVehicle(files, veh, lvl, teams[i % 6], i === 0 ? { glass: garGlass(garMine(veh)), logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) } : {}); if (!def0) def0 = d;
         const c = new BRR.Car(d, lvl); c.team = teams[i % 6]; c.isPlayer = true; c.human = i; if (i === 0 && opt.paint) c.paintHex = opt.paint; if (i === 0 && myTeamName()) c.teamName = myTeamName(); c.headDraw = await driverHead(i === 0 ? mySpec() : (i % 6), teams[i % 6], i === 0 ? hexRGB(opt.paint) : null);
         const h = newHuman(i, c, new BRR.Race(lvl, laps || lvl.laps), teams[i % 6]); h.draw = R.upload(d.mesh); humans.push(h);
       }
       car = humans[0].car; race = humans[0].race;
-      carDraw = { body: humans[0].draw, ...vehDraw(def0) }; { const rw = rimWheels(def0); if (rw) carDraw = { ...carDraw, wheels: carDraw.wheels.map((w, i) => rw[i] || w) }; }   // llantas del garaje
+      carDraw = { body: humans[0].draw, ...vehDraw(def0) }; { const rw = rimWheels(def0, garMine(def0.name)); if (rw) carDraw = { ...carDraw, wheels: carDraw.wheels.map((w, i) => rw[i] || w) }; }   // llantas del garaje
       // rivales de la máquina: los demás equipos, con el mismo vehículo
       rivals = []; const nR = ttMode || freeMode ? 0 : Math.min(12 - nPlayers, opt.rivals | 0), skill = [0, 0.86, 0.95, 1.0, 1.06][opt.diff] || 0.95, lanes = [-0.45, 0.45, -0.15, 0.15, 0, -0.3, 0.3, -0.6, 0.6, -0.05, 0.05];
       const profiles = ['experto', 'agresivo', 'torpe', 'prudente', 'imprevisible'].sort(() => Math.random() - .5); while (profiles.length < 11) profiles.push(profiles[profiles.length % 5]);
@@ -917,7 +917,7 @@
     for (const r of rivals) { r.race.reset(); if (r.ai) r.ai.reset(); r.hornStart = r.hornFin = false; r.rankWas = null; }
     for (const h of humans) { h.race.reset(); h.cam.init = false; h.cam.posInit = false; h.done = false; h.q('done').hidden = true; h.q('msg').hidden = true; }
     for (const c of all) { dentReset(c); c.hitV = 0; c.dmg = 0; c.broken = 0; c.nitros = lvl.nitros; c.nitroInf = freeMode && c.isPlayer; }
-    if (humans[0]) garApply(humans[0].car);   // modo libre: turbo sin límite
+    if (humans[0]) garApply(humans[0].car, garMine(humans[0].car.def.name));   // modo libre: turbo sin límite
     if (props) props.reset(); if (fx) fx.reset(); crazyInit(); rpStart();
   }
   function restart() {
@@ -1196,10 +1196,11 @@
   // modo libre: cambiar de vehículo sin salir (aparece en el mismo sitio, mirando hacia donde ibas)
   async function swapVehicle(veh) {
     const h = humans[0]; if (!h || !lvl || !veh || veh === h.car.def.name || !files.has(veh + '.VHC')) return;   // (aviso de la 0.53: vehículo vacío)
-    const old = h.car, d = await BRR.loadVehicle(files, veh, lvl, old.team, { glass: garGlass(), logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) });
+    const old = h.car, d = await BRR.loadVehicle(files, veh, lvl, old.team, { glass: garGlass(garMine(veh)), logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) });
     const c = new BRR.Car(d, lvl); Object.assign(c, { team: old.team, isPlayer: true, human: 0, paintHex: old.paintHex, teamName: old.teamName, headDraw: old.headDraw, nitros: old.nitros, nitroInf: old.nitroInf });
     const f = old.forward(); c.reset(old.p[0], old.p[2], Math.atan2(-f[0], -f[2]), old.p[1]);
-    h.car = car = c; h.draw = R.upload(d.mesh); carDraw = { body: h.draw, ...vehDraw(d) }; { const rw = rimWheels(d); if (rw) carDraw = { ...carDraw, wheels: carDraw.wheels.map((w, i) => rw[i] || w) }; } h.cam.init = h.cam.posInit = false; if (fx) fx.reset();
+    garApply(c, garMine(veh));
+    h.car = car = c; h.draw = R.upload(d.mesh); carDraw = { body: h.draw, ...vehDraw(d) }; { const rw = rimWheels(d, garMine(d.name)); if (rw) carDraw = { ...carDraw, wheels: carDraw.wheels.map((w, i) => rw[i] || w) }; } h.cam.init = h.cam.posInit = false; if (fx) fx.reset();
     try { await startSounds(lvl.name, d); } catch (e) { }
     opt.vehicle = veh; save();
   }
@@ -1582,7 +1583,7 @@
   function netTracks() { return front ? front.tracks : []; }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const myLogo = () => myLogoData() || (typeof opt.logo === 'number' ? opt.logo : null);
-  const myData = () => ({ gar: garMine(), team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, head: myHead(), body: myBody(), paint: opt.paint || null, teamName: myTeamName() || null });
+  const myData = () => ({ gar: garMine($('n_veh').value || opt.vehicle), team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, head: myHead(), body: myBody(), paint: opt.paint || null, teamName: myTeamName() || null });
   const tById = id => netTracks().find(x => x.id === id);
   const tLabel = id => { const t = tById(id); return t ? (t.place || t.id) + ' · ' + t.id : id || '?'; };
   $('n_url').value = opt.netUrl && /^wss?:/.test(opt.netUrl) ? opt.netUrl : '';
@@ -1753,7 +1754,7 @@
     const v = $('n_veh').value, lv = (BRR_net.room && BRR_net.room.info && BRR_net.room.info.level) || opt.level, key = v + '_' + $('n_team').value + '_' + lv + (opt.paint || '');
     $('n_vname').textContent = VEH_NAMES[v] || v || ''; if (!v || key === vpKey || !orig) return; vpKey = key;
     try { vpThumb = await orig.h.carThumb(v, +$('n_team').value, lv, opt.paint); } catch (e) { vpThumb = null; }
-    if (!vpRun) { vpRun = true; const step = () => { if (view !== 'online' || state !== 'menu' || $('n_room').hidden) { vpRun = false; return; }
+    if (!vpRun) { vpRun = true; const step = () => { if ((view !== 'online' && view !== 'lan') || state !== 'menu' || $('n_room').hidden) { vpRun = false; return; }
         if (vpThumb) { const cv = $('n_vcv'), g = cv.getContext('2d'), im = vpThumb.frame(vpA += 0.025); g.clearRect(0, 0, cv.width, cv.height); const sz = Math.min(cv.width, cv.height * 1.25); g.drawImage(im, (cv.width - sz) / 2, (cv.height - sz) / 2 - 5, sz, sz); }
         setTimeout(() => requestAnimationFrame(step), 40); }; step(); }
   }
@@ -2438,7 +2439,11 @@
   // ---------- garaje: solo estética (los coches son los que son): ruedas, color del turbo, neones debajo del coche y tintado de ventanas ----------
   const GLASS = { normal: null, oscuro: 0.45, negro: 0.18, color: 'c' };
   // lo del garaje de un coche: el tuyo sale de las opciones; el de los demás (online) y el de la IA llega en sus datos
-  const garMine = () => ({ rim: opt.rim || 'orig', rimSize: opt.rimSize || 17, rimCol: opt.rimCol || 'plata', neon: opt.neon || 'no', neonCol: opt.neonCol || '#00e5ff', glass: opt.glass || 'normal', glassCol: opt.glassCol || '#46607a', turboCol: opt.turboCol || null, lightCol: opt.lightCol || 'normal', paint: opt.paint || null });
+  // cada vehículo guarda su propio aspecto (opt.garVeh[VEHÍCULO]); lo que había antes (para todos) sirve de punto de partida
+  let garSel = null;
+  function garCfg(veh) { const A = opt.garVeh || (opt.garVeh = {}); if (!A[veh]) A[veh] = { rim: opt.rim || 'orig', rimSize: opt.rimSize || 17, rimCol: opt.rimCol || 'plata', neon: opt.neon || 'no', neonCol: opt.neonCol || '#00e5ff', glass: opt.glass || 'normal', glassCol: opt.glassCol || '#46607a', turboCol: opt.turboCol || null, lightCol: opt.lightCol || 'normal' }; return A[veh]; }
+  const GC = () => garCfg(garSel), garSave = () => save();
+  const garMine = (veh = opt.vehicle) => ({ ...garCfg(veh), paint: opt.paint || null });
   function garRandom() {   // un aspecto al azar para la IA (a veces tuneado, a veces de serie)
     const pick = a => a[Math.random() * a.length | 0], hue = Math.random() * 360, tuned = Math.random() < 0.55;
     return { rim: tuned ? pick(['malla', 'radios5', 'multi', 'estrella', 'disco', 'acero']) : 'orig', rimSize: pick([15, 16, 17, 17, 18, 19]), rimCol: pick(['plata', 'plata', 'negro', 'gris', 'oro', 'bronce', 'blanco', 'carro']),
@@ -2462,16 +2467,18 @@
       for (const [x, z] of [[-b.h[0] * 0.8, b.c[2]], [b.h[0] * 0.8, b.c[2]]]) fx.glow(V.add(c.p, BRR.mv(R, [x, y, z])), [c.neon[0], c.neon[1], c.neon[2], 0.5 * pul], 0.5); }
   }
   function garRender() {
-    $('gr_rim').value = RIM_STYLES[opt.rim] ? opt.rim : 'orig'; $('gr_rimsize').value = String(opt.rimSize || 17); $('gr_rimcol').value = opt.rimCol || 'plata'; $('gr_rimsize').hidden = $('gr_rimcol').hidden = $('gr_rim').value === 'orig'; rimPreview();
-    $('gr_lights').value = opt.lightCol || 'normal';
-    $('gr_turbo').value = opt.turboCol || '#ff8c1e'; $('gr_neon').value = opt.neon === 'si' ? 'si' : 'no'; $('gr_neoncol').value = opt.neonCol || '#00e5ff';
-    $('gr_glass').value = opt.glass || 'normal'; $('gr_glasscol').value = opt.glassCol || '#46607a'; $('gr_glasscol').hidden = (opt.glass || 'normal') !== 'color'; $('gr_neoncol').hidden = opt.neon !== 'si';
+    const all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')); if (!all.includes(garSel)) garSel = all.includes(opt.vehicle) ? opt.vehicle : all[0];
+    if ($('gr_vsel').options.length !== all.length) $('gr_vsel').innerHTML = all.map(n => `<option value="${n}">${esc(VEH_NAMES[n] || n)}</option>`).join(''); $('gr_vsel').value = garSel;
+    $('gr_rim').value = RIM_STYLES[GC().rim] ? GC().rim : 'orig'; $('gr_rimsize').value = String(GC().rimSize || 17); $('gr_rimcol').value = GC().rimCol || 'plata'; $('gr_rimsize').hidden = $('gr_rimcol').hidden = $('gr_rim').value === 'orig'; rimPreview();
+    $('gr_lights').value = GC().lightCol || 'normal';
+    $('gr_turbo').value = GC().turboCol || '#ff8c1e'; $('gr_neon').value = GC().neon === 'si' ? 'si' : 'no'; $('gr_neoncol').value = GC().neonCol || '#00e5ff';
+    $('gr_glass').value = GC().glass || 'normal'; $('gr_glasscol').value = GC().glassCol || '#46607a'; $('gr_glasscol').hidden = (GC().glass || 'normal') !== 'color'; $('gr_neoncol').hidden = GC().neon !== 'si';
   }
-  for (const id of ['gr_rim', 'gr_rimsize', 'gr_rimcol']) $(id).onchange = () => { opt.rim = $('gr_rim').value; opt.rimSize = +$('gr_rimsize').value; opt.rimCol = $('gr_rimcol').value; save(); garRender(); };
+  for (const id of ['gr_rim', 'gr_rimsize', 'gr_rimcol']) $(id).onchange = () => { GC().rim = $('gr_rim').value; GC().rimSize = +$('gr_rimsize').value; GC().rimCol = $('gr_rimcol').value; garSave(); garRender(); };
   // vista previa de la llanta (dibujo 2D de frente)
   function rimPreview() {
-    const cv = $('gr_rimcv'), g = cv.getContext('2d'), W = cv.width, c = W / 2, R0 = W * 0.46, st = opt.rim || 'orig'; g.clearRect(0, 0, W, W); if (st === 'orig') { cv.hidden = true; return; } cv.hidden = false;
-    const col = opt.rimCol === 'carro' ? (hexRGB(opt.paint) || [200, 40, 30]) : (RIM_COLS[opt.rimCol] || RIM_COLS.plata).map(x => x * 255), css = a => `rgb(${col.map(x => Math.round(x * a)).join(',')})`, rr = R0 * (RIM_SIZES[opt.rimSize] || 0.7);
+    const cv = $('gr_rimcv'), g = cv.getContext('2d'), W = cv.width, c = W / 2, R0 = W * 0.46, st = GC().rim || 'orig'; g.clearRect(0, 0, W, W); if (st === 'orig') { cv.hidden = true; return; } cv.hidden = false;
+    const col = GC().rimCol === 'carro' ? (hexRGB(opt.paint) || [200, 40, 30]) : (RIM_COLS[GC().rimCol] || RIM_COLS.plata).map(x => x * 255), css = a => `rgb(${col.map(x => Math.round(x * a)).join(',')})`, rr = R0 * (RIM_SIZES[GC().rimSize] || 0.7);
     g.fillStyle = '#121214'; g.beginPath(); g.arc(c, c, R0, 0, 7); g.fill(); g.fillStyle = '#0a0a0b'; g.beginPath(); g.arc(c, c, rr, 0, 7); g.fill();
     g.strokeStyle = css(1); g.lineWidth = rr * 0.08; g.beginPath(); g.arc(c, c, rr * 0.95, 0, 7); g.stroke();
     const sp = (a, w0, w1, r0, r1, f = css(1)) => { const ca = Math.cos(a), sa = Math.sin(a), px = -sa, py = ca; g.fillStyle = f; g.beginPath(); g.moveTo(c + ca * r0 - px * w0, c + sa * r0 - py * w0); g.lineTo(c + ca * r1 - px * w1, c + sa * r1 - py * w1); g.lineTo(c + ca * r1 + px * w1, c + sa * r1 + py * w1); g.lineTo(c + ca * r0 + px * w0, c + sa * r0 + py * w0); g.fill(); };
@@ -2484,14 +2491,15 @@
     g.fillStyle = css(1.1); g.beginPath(); g.arc(c, c, hub, 0, 7); g.fill();
   }
   $('gr_close').onclick = () => { $('garage').hidden = true; };
+  $('gr_vsel').onchange = () => { garSel = $('gr_vsel').value; garRender(); };
   $('garage').onclick = e => { if (e.target.id === 'garage') $('garage').hidden = true; };
-  $('gr_turbo').oninput = () => { opt.turboCol = $('gr_turbo').value; save(); };
-  $('gr_turbo0').onclick = () => { opt.turboCol = null; save(); garRender(); };
-  $('gr_lights').onchange = () => { opt.lightCol = $('gr_lights').value; save(); };
-  $('gr_neon').onchange = () => { opt.neon = $('gr_neon').value; save(); garRender(); };
-  $('gr_neoncol').oninput = () => { opt.neonCol = $('gr_neoncol').value; save(); };
-  $('gr_glass').onchange = () => { opt.glass = $('gr_glass').value; save(); garRender(); };
-  $('gr_glasscol').oninput = () => { opt.glassCol = $('gr_glasscol').value; save(); };
+  $('gr_turbo').oninput = () => { GC().turboCol = $('gr_turbo').value; garSave(); };
+  $('gr_turbo0').onclick = () => { GC().turboCol = null; garSave(); garRender(); };
+  $('gr_lights').onchange = () => { GC().lightCol = $('gr_lights').value; garSave(); };
+  $('gr_neon').onchange = () => { GC().neon = $('gr_neon').value; garSave(); garRender(); };
+  $('gr_neoncol').oninput = () => { GC().neonCol = $('gr_neoncol').value; garSave(); };
+  $('gr_glass').onchange = () => { GC().glass = $('gr_glass').value; garSave(); garRender(); };
+  $('gr_glasscol').oninput = () => { GC().glassCol = $('gr_glasscol').value; garSave(); };
 
   // ---------- llantas del garaje: ruedas hechas aquí (neumático + llanta) con estilos genéricos y tamaños de 15" a 19" ----------
   // el tamaño total de la rueda no cambia (la física es la misma): una llanta más grande deja menos goma (perfil más bajo)

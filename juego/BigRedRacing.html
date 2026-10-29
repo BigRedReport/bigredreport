@@ -181,7 +181,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 #touch .tr [data-k=brake]{grid-column:1/2;grid-row:2}#touch .tr .big{grid-column:2/4;grid-row:2;width:104px;height:104px;font-size:36px}
 #touch .tt{position:absolute;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:10px}
 #touch .tt button{width:46px;height:46px;font-size:19px}
-.touchui .phud .bottom{left:50%!important;right:auto!important;bottom:max(10px,env(safe-area-inset-bottom))!important;transform:translateX(-50%) scale(.72)!important;transform-origin:bottom center!important}.touchui .phud .race{transform:scale(.8);transform-origin:top left}.touchui .kitem{top:62px}.touchui #help{display:none!important} #touch .rot{display:none;position:absolute;left:50%;top:30%;transform:translateX(-50%);padding:10px 16px;border-radius:12px;background:rgba(10,14,22,.8);color:#fff;font:600 15px system-ui;text-align:center} @media (orientation:portrait){#touch .rot{display:block}}.touchui .phud .mini{opacity:.8} .kitem[hidden]{display:none!important} #specbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:45;display:flex;gap:8px;align-items:center;padding:8px 12px;border-radius:14px;background:rgba(10,14,22,.82);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 14px system-ui} #specbar[hidden]{display:none} #specbar button{width:auto;margin:0;padding:6px 10px} #specbar b{color:#ffd23f} #specbar #sp_name{min-width:120px;text-align:center} #replaybar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:45;width:min(980px,calc(100% - 24px));padding:10px 12px;border-radius:14px;background:rgba(10,14,22,.82);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 14px system-ui}
+.touchui .phud .bottom{left:50%!important;right:auto!important;bottom:max(10px,env(safe-area-inset-bottom))!important;transform:translateX(-50%) scale(.72)!important;transform-origin:bottom center!important}.touchui .phud .race{transform:scale(.8);transform-origin:top left}.touchui .kitem{top:62px}.touchui #help{display:none!important} #touch .rot{display:none;position:absolute;left:50%;top:30%;transform:translateX(-50%);padding:10px 16px;border-radius:12px;background:rgba(10,14,22,.8);color:#fff;font:600 15px system-ui;text-align:center} @media (orientation:portrait){#touch .rot{display:block}}.touchui .phud .mini{opacity:.8} .kitem[hidden]{display:none!important} #pane_quick [hidden],#n_room [hidden]{display:none!important} .hbtn .ico{display:inline-block;width:1.5em;margin-right:.35em;text-align:center;font-style:normal} #specbar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:45;display:flex;gap:8px;align-items:center;padding:8px 12px;border-radius:14px;background:rgba(10,14,22,.82);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 14px system-ui} #specbar[hidden]{display:none} #specbar button{width:auto;margin:0;padding:6px 10px} #specbar b{color:#ffd23f} #specbar #sp_name{min-width:120px;text-align:center} #replaybar{position:fixed;left:50%;bottom:14px;transform:translateX(-50%);z-index:45;width:min(980px,calc(100% - 24px));padding:10px 12px;border-radius:14px;background:rgba(10,14,22,.82);border:1px solid rgba(255,255,255,.14);color:#fff;font:600 14px system-ui}
 #replaybar[hidden]{display:none} #replaybar .rpt{display:flex;justify-content:space-between;margin-bottom:6px} #replaybar .rpt b{color:#ff4a3a;letter-spacing:1px} #replaybar input{width:100%}
 #replaybar .rpb{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-top:6px} #replaybar button{padding:6px 10px;font-size:14px;width:auto;margin:0} #replaybar #rp_car{min-width:110px;text-align:center} #replaybar #rp_rec.on{background:#c62828} @media (max-height:520px){#menu,#optpanel .card,#results .card,#pause .card{zoom:calc(var(--uiz,1)*.66)} .mfoot{display:none} .pane{overflow:auto}} .kitem{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;min-width:86px;padding:6px 12px;border-radius:12px;background:rgba(10,14,22,.72);border:2px solid rgba(255,210,63,.75);color:#fff;font:600 12px system-ui;pointer-events:none} .kitem b{font-size:34px;line-height:1} .kitem small{opacity:.6;font-size:10px} .sig{font-variant-numeric:tabular-nums;letter-spacing:-1px} .sig.s4,.sig.s3{color:#5fd16a} .sig.s2{color:#f0c040} .sig.s1{color:#ff6a5a}
 #n_members .mrow{display:flex;align-items:center;gap:8px;padding:4px 0}
@@ -213,29 +213,29 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <section id="pane_home" class="pane home">
     <div class="hmenu">
       <div class="hcol" id="h_main">
-        <button class="hbtn" data-go="single">Un jugador</button>
-        <button class="hbtn" data-go="multi">Multijugador</button>
-        <button class="hbtn" data-go="profile">Piloto y escudería</button>
-        <button class="hbtn" data-go="options">Opciones</button>
-        <button class="hbtn" data-go="mods">Mods</button>
+        <button class="hbtn" data-go="single"><span class="ico">👤</span>Un jugador</button>
+        <button class="hbtn" data-go="multi"><span class="ico">👥</span>Multijugador</button>
+        <button class="hbtn" data-go="profile"><span class="ico">🪖</span>Piloto y escudería</button>
+        <button class="hbtn" data-go="garage"><span class="ico">🔧</span>Garaje</button>
+        <button class="hbtn" data-go="options"><span class="ico">⚙️</span>Opciones</button>
+        <button class="hbtn" data-go="mods"><span class="ico">🧩</span>Mods</button>
         <div class="hrow"><button class="hbtn small2" data-go="orig">Menú original (1995)</button>
         <button class="hbtn small2 dnt" data-go="donate">❤ Apoyar el proyecto</button>
         <button class="hbtn small2" data-go="exit">Salir</button></div>
         <div id="updbar" class="updbar" hidden></div>
       </div>
       <div class="hcol" id="h_single" hidden>
-        <button class="hbtn" data-go="quick">Carrera rápida</button>
-        <button class="hbtn" data-go="tourn">Campeonato</button>
-        <button class="hbtn" data-go="tt">Contrareloj</button>
-        <button class="hbtn" data-go="free">Modo libre</button>
-        <button class="hbtn" data-go="reto">⭐ Reto semanal</button>
-        <button class="hbtn" data-go="garage">🔧 Garaje</button>
+        <button class="hbtn" data-go="quick"><span class="ico">⏱️</span>Carrera rápida</button>
+        <button class="hbtn" data-go="tourn"><span class="ico">🏆</span>Campeonato</button>
+        <button class="hbtn" data-go="tt"><span class="ico">🏁</span>Contrareloj</button>
+        <button class="hbtn" data-go="free"><span class="ico">🌄</span>Modo libre</button>
+        <button class="hbtn" data-go="reto"><span class="ico">⭐</span>Reto semanal</button>
         <button class="hbtn small2" data-go="back">◀ Volver</button>
       </div>
       <div class="hcol" id="h_multi" hidden>
-        <button class="hbtn" data-go="split">Pantalla partida (2-8)</button>
-        <button class="hbtn" data-go="online">Online</button>
-        <button class="hbtn" data-go="lan">Red local (LAN)</button>
+        <button class="hbtn" data-go="split"><span class="ico">🖥️</span>Pantalla partida (2-8)</button>
+        <button class="hbtn" data-go="online"><span class="ico">🌐</span>Online</button>
+        <button class="hbtn" data-go="lan"><span class="ico">🔌</span>Red local (LAN)</button>
         <button class="hbtn small2" data-go="back">◀ Volver</button>
       </div>
     </div>
@@ -502,7 +502,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 
 <div id="garage" hidden><div class="card">
   <h2>🔧 Garaje</h2>
-  <p class="small">Solo estética: los coches corren igual, cambia cómo se ven (tu coche, en todas las carreras).</p>
+  <p class="small">Solo estética: los coches corren igual, cambia cómo se ven. Cada vehículo guarda su propio aspecto, y online los demás lo ven.</p>
+  <div class="grrow"><div><b>Vehículo</b></div><select id="gr_vsel"></select></div>
   <div class="grrow"><div><b>Llantas</b> <span class="small">neumático y llanta nuevos (mismo tamaño de rueda)</span><br><canvas id="gr_rimcv" width="96" height="96" style="margin-top:6px"></canvas></div>
     <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><select id="gr_rim"><option value="orig">Originales</option><option value="malla">Malla (cruzada)</option><option value="radios5">5 radios</option><option value="multi">Radios finos</option><option value="estrella">Estrella partida</option><option value="disco">Disco</option><option value="acero">De acero</option></select>
     <select id="gr_rimsize"><option value="15">15"</option><option value="16">16"</option><option value="17">17"</option><option value="18">18"</option><option value="19">19"</option></select>
