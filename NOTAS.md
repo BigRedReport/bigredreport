@@ -5,6 +5,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.61**
+- Windows: el actualizador ya no abre ventanas negras ni se queda en bucle (espera a que el programa se cierre del todo, instala oculto y, si falla, lo avisa). Si te pasó, descarga esta versión una vez a mano.
+
 **Novedades de la 0.60**
 - Puentes y pasarelas que flotaban: pilares hasta el suelo o el agua (las lanchas siguen pasando por debajo).
 

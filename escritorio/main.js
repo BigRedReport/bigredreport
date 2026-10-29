@@ -100,7 +100,9 @@ function unzip(buf, dest) {
 }
 ipcMain.handle('upd:check', async () => {
   const cur = process.env.BRR_FAKE_VER || verOf(gameDir()), appVer = process.env.BRR_FAKE_VER || app.getVersion();   // BRR_FAKE_VER: solo para probar el actualizador
-  try { const L = await latest(); return { ok: true, ver: L.ver, cur, appVer, game: newer(L.ver, cur) && !!L.game, app: newer(L.ver, appVer), appUrl: L.app ? L.app.browser_download_url : L.url, url: L.url }; }
+  let failed = null; try { failed = fs.readFileSync(path.join(app.getPath('userData'), 'actualizacion-fallida.txt'), 'utf8').trim(); } catch (x) { }
+  try { const L = await latest(), retried = !!(cfg.updTry && cfg.updTry.ver === L.ver && Date.now() - cfg.updTry.t < 30 * 60000);
+    return { ok: true, ver: L.ver, cur, appVer, game: newer(L.ver, cur) && !!L.game, app: newer(L.ver, appVer), appUrl: L.app ? L.app.browser_download_url : L.url, url: L.url, retried: retried && newer(L.ver, appVer), failed }; }
   catch (e) { return { ok: false, cur, appVer, err: String(e.message || e) }; }
 });
 // descarga con progreso (para la barra del lanzador)
@@ -139,15 +141,25 @@ ipcMain.handle('upd:app', async (e) => {
   if (!fs.existsSync(path.join(src, exe))) throw new Error('El paquete descargado no trae el programa');
   fs.rmSync(UPD, { recursive: true, force: true });   // el juego nuevo ya viene dentro del programa
   const { spawn } = require('child_process');
+  const fail = path.join(app.getPath('userData'), 'actualizacion-fallida.txt'); try { fs.rmSync(fail, { force: true }); } catch (x) { }
+  cfg.updTry = { ver: L.ver, t: Date.now() }; saveCfg();   // para no repetir en bucle si algo sale mal
   if (process.platform === 'win32') {
-    const bat = path.join(app.getPath('temp'), 'brr-actualizar.cmd');
-    fs.writeFileSync(bat, ['@echo off', ':espera', `tasklist /FI "PID eq ${process.pid}" | find "${process.pid}" >nul && (timeout /t 1 /nobreak >nul & goto espera)`,
-      `robocopy "${src}" "${dst}" /E /R:5 /W:1 /NFL /NDL /NJH /NJS /NP >nul`, `for /r "${path.join(dst, 'resources')}" %%f in (*.asar_) do move /y "%%f" "%%~dpnf.asar" >nul`, `start "" "${path.join(dst, exe)}"`, `rmdir /s /q "${tmp}"`, '(goto) 2>nul & del "%~f0"'].join('\r\n'));
-    spawn('cmd.exe', ['/c', bat], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+    // guion de instalación: espera a que se cierren TODOS los procesos del programa (los auxiliares de Chromium tardan un poco),
+    // copia con reintentos y, si no puede, lo apunta para no intentarlo en bucle. Se lanza oculto con wscript (sin ventanas negras)
+    const bat = path.join(app.getPath('temp'), 'brr-actualizar.cmd'), vbs = path.join(app.getPath('temp'), 'brr-actualizar.vbs'), q = x => '"' + x + '"';
+    fs.writeFileSync(bat, ['@echo off', 'set N=0', ':espera',
+      `tasklist /FI "IMAGENAME eq ${exe}" 2>nul | find /I "${exe}" >nul || goto libre`,
+      'set /a N+=1', `if %N% GEQ 25 taskkill /F /IM ${q(exe)} >nul 2>&1`, 'if %N% GEQ 40 goto libre', 'ping -n 2 127.0.0.1 >nul', 'goto espera', ':libre',
+      `robocopy ${q(src)} ${q(dst)} /E /R:30 /W:1 /NFL /NDL /NJH /NJS /NP >nul`,
+      `if %ERRORLEVEL% GEQ 8 (echo No se pudieron copiar los archivos > ${q(fail)}) else (for /r ${q(path.join(dst, 'resources'))} %%f in (*.asar_) do move /y "%%f" "%%~dpnf.asar" >nul)`,
+      `start "" ${q(path.join(dst, exe))}`, `rmdir /s /q ${q(tmp)}`, `del ${q(vbs)}`, '(goto) 2>nul & del "%~f0"'].join('\r\n'));
+    fs.writeFileSync(vbs, `CreateObject("WScript.Shell").Run "cmd /c """ & "${bat.replace(/"/g, '""')}" & """", 0, False\r\n`);
+    spawn('wscript.exe', [vbs], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
   } else {
-    const sh = path.join(app.getPath('temp'), 'brr-actualizar.sh');
-    fs.writeFileSync(sh, ['#!/bin/sh', `while kill -0 ${process.pid} 2>/dev/null; do sleep 0.5; done`, `cp -rf "${src}/." "${dst}/"`, `for f in "${dst}"/resources/*.asar_; do [ -e "$f" ] && mv -f "$f" "\${f%_}"; done`, `chmod +x "${path.join(dst, exe)}" "${path.join(dst, 'BigRedReport.sh')}" 2>/dev/null`,
-      `rm -rf "${tmp}"`, `nohup "${path.join(dst, exe)}" >/dev/null 2>&1 &`, 'rm -f "$0"'].join('\n'), { mode: 0o755 });
+    const sh = path.join(app.getPath('temp'), 'brr-actualizar.sh'), ex = path.join(dst, exe);
+    fs.writeFileSync(sh, ['#!/bin/sh', 'n=0', `while pgrep -f "${ex}" >/dev/null 2>&1 || kill -0 ${process.pid} 2>/dev/null; do n=$((n+1)); [ $n -ge 40 ] && pkill -9 -f "${ex}"; [ $n -ge 60 ] && break; sleep 0.5; done`,
+      `if cp -rf "${src}/." "${dst}/"; then for f in "${dst}"/resources/*.asar_; do [ -e "$f" ] && mv -f "$f" "\${f%_}"; done; else echo "No se pudieron copiar los archivos" > "${fail}"; fi`,
+      `chmod +x "${ex}" "${path.join(dst, 'BigRedReport.sh')}" 2>/dev/null`, `rm -rf "${tmp}"`, `nohup "${ex}" >/dev/null 2>&1 &`, 'rm -f "$0"'].join('\n'), { mode: 0o755 });
     spawn('/bin/sh', [sh], { detached: true, stdio: 'ignore' }).unref();
   }
   setTimeout(() => { stopServer(); app.exit(0); }, 400);

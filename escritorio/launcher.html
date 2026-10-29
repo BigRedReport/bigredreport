@@ -110,6 +110,8 @@ async function checkUpd(manual) {
       if (u.app) { $('upd_game').textContent = 'Descargando…'; await N.updateApp(); $('upd_t').textContent = 'Instalando… el programa se cerrará y se abrirá solo con la versión ' + u.ver + '.'; }
       else { $('upd_game').textContent = 'Descargando…'; const r = await N.updateGame(); $('upd_t').innerHTML = '✓ Actualizado a la ' + r.ver + '.'; $('upd_game').hidden = true; $('play').disabled = false; }
     } catch (e) { $('upd_t').textContent = 'No se ha podido actualizar: ' + (e.message || e); $('upd_game').disabled = false; $('upd_game').textContent = 'Reintentar'; $('play').disabled = false; } };
+  // automática al abrir, salvo si la última vez no terminó (así nunca se queda en bucle): entonces se explica y se deja el botón
+  if (u.app && (u.retried || u.failed)) { $('upd_t').innerHTML = 'La actualización a la <b>' + u.ver + '</b> no terminó' + (u.failed ? ' (' + u.failed + ')' : '') + '. Cierra el juego si está abierto y pulsa «Actualizar ahora», o descárgala desde la web.'; return; }
   if (!manual && cfgNow && !cfgNow.noUpd) $('upd_game').onclick();   // automática al abrir (se puede quitar en Opciones)
 }
 let cfgNow = null; N.onUpdProgress && N.onUpdProgress(d => { $('upd_game').textContent = 'Descargando… ' + d.p + '%' + (d.total ? ' (' + Math.round(d.total / 1048576) + ' MB)' : ''); });
