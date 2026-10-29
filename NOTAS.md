@@ -5,6 +5,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.82**
+- Humo, polvo, salpicaduras y chispas del original con **más calidad**: los sprites se amplían ×4 redondeando los bordes (Scale2x) y se dibujan suavizados, sin dientes de sierra ni píxeles gordos.
+
 **Novedades de la 0.81**
 - **El garaje se ve online:** los demás jugadores ven tus llantas, neones, ventanas tintadas, color del turbo y de los faros (y tú los suyos).
 - **La IA también se tunea:** cada rival sale con su aspecto (a veces de serie, a veces con llantas, neones, cristales oscuros o faros de otro color).

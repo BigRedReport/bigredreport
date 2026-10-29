@@ -15,7 +15,7 @@ void main(){ vuv=uv; vcol=col; wp=p; gl_Position=VP*vec4(p,1.); }`;
 precision highp float; in vec2 vuv; in vec4 vcol; in vec3 wp; uniform vec3 cam; uniform float far; uniform vec3 fogc; uniform sampler2D S; out vec4 o;
 void main(){ float a=vcol.a;
   vec3 rgb=vcol.rgb;
-  if(vuv.x>=10.){ vec4 t=texture(S,vec2(vuv.x-10.,vuv.y)); if(t.a<.5) discard; rgb=t.rgb*mix(vec3(1.),vcol.rgb*1.3,.3); }   /* humo y polvo del original (hojas SPOTFX2 del .ENV) */
+  if(vuv.x>=10.){ vec4 t=texture(S,vec2(vuv.x-10.,vuv.y)); if(t.a<.06) discard; rgb=t.rgb*mix(vec3(1.),vcol.rgb*1.3,.3); a*=smoothstep(.15,.75,t.a); }   /* humo y polvo del original (hojas SPOTFX2 del .ENV) */
   else if(vuv.x>=0.){ vec2 q=vuv*2.-1.;
     // borde irregular (ruido según la posición) para que el humo y el polvo no sean círculos perfectos
     float ang=atan(q.y,q.x), sd=dot(floor(wp*1.7),vec3(1.7,9.2,3.1));
@@ -35,7 +35,17 @@ void main(){ float a=vcol.a;
     }
     // hoja de humo/polvo animados del juego original (256×192, fotogramas de 40×40: humo en las filas 0-1, polvo en las 2-3)
     setSprites(img) { const gl = this.gl; if (!img) { this.sprTex = null; return; } const t = this.sprTex || gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
-      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, img.w, img.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, img.data); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      // más calidad: ×4 con Scale2x dos veces (redondea los dientes de sierra), un suavizado ligero del color y filtrado lineal con mipmaps
+      let W = img.w, H = img.h, D = img.data;
+      if (BRR.scale2xRGBA) { for (let k = 0; k < 2; k++) { D = BRR.scale2xRGBA(D, W, H); W *= 2; H *= 2; }
+        const o = new Uint8Array(D); for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = (y * W + x) * 4; if (!D[i + 3]) continue; let r = 0, g = 0, b = 0, n = 0;
+          for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) { const j = i + (dy * W + dx) * 4; if (D[j + 3]) { r += D[j]; g += D[j + 1]; b += D[j + 2]; n++; } }
+          o[i] = (D[i] + r / n) / 2; o[i + 1] = (D[i + 1] + g / n) / 2; o[i + 2] = (D[i + 2] + b / n) / 2; }
+        for (let pass = 0; pass < 2; pass++) for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = (y * W + x) * 4; if (D[i + 3] || o[i + 3]) continue; let r = 0, g = 0, b = 0, n = 0;   // color sangrado hacia lo transparente (sin halo negro al filtrar)
+          for (const j of [i - 4, i + 4, i - W * 4, i + W * 4]) if (o[j + 3] || o[j] + o[j + 1] + o[j + 2]) { r += o[j]; g += o[j + 1]; b += o[j + 2]; n++; } if (n) { o[i] = r / n; o[i + 1] = g / n; o[i + 2] = b / n; } }
+        D = o; }
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, D); gl.generateMipmap(gl.TEXTURE_2D);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); this.sprTex = t; this.sprH = img.h; }
     reset() { this.parts.length = 0; this.marks.length = 0; this.last.clear(); this.air = new Map(); }
     puff(p, v, col, size, life, grow = 1.6, n = 1, spread = 0.6, spr = null) {
