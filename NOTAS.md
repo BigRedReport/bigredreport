@@ -5,6 +5,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.73**
+- **Repeticiones:** al acabar una carrera, «🎬 Ver repetición». Cámaras de televisión del original o la que quieras, siguiendo a cualquier coche, a cámara lenta o rápida (¼× a 4×), rebobinar y saltar con la barra. Teclado: espacio, ←/→, ↑/↓, C, Esc.
+- **Grabar vídeo** desde la repetición: se descarga un .webm con imagen y sonido, listo para compartir.
+
 **Novedades de la 0.72**
 - **Fantasma del récord online** en contrarreloj: además de tu mejor vuelta (azul), el fantasma dorado del primero de la clasificación online de ese circuito, con su vehículo. Tu mejor vuelta se sube sola para que los demás corran contra ella. Se elige en «Fantasma» (los dos, solo el tuyo, solo el récord o ninguno).
 - **Invitar a amigos:** en la sala online, «Copiar invitación» copia un enlace; quien lo abra entra directo en tu sala (en el móvil se comparte).

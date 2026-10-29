@@ -39,7 +39,8 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [x] Fantasma de tu mejor vuelta en contrarreloj
 - [x] Fantasma del récord online (se sube tu mejor vuelta y se descarga la del primero)
 - [ ] Retos semanales
-- [ ] Repeticiones: guardar la carrera, verla con las cámaras de televisión y exportarla a vídeo
+- [x] Repeticiones: verla con las cámaras de televisión, a cámara lenta y rápida, y exportarla a vídeo
+- [ ] Repeticiones guardadas para verlas más tarde
 - [ ] Modo espectador en online
 
 ## Bloque 5 · Mi coche (medio)

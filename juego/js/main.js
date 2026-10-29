@@ -902,7 +902,7 @@
     for (const r of rivals) { r.race.reset(); if (r.ai) r.ai.reset(); r.hornStart = r.hornFin = false; r.rankWas = null; }
     for (const h of humans) { h.race.reset(); h.cam.init = false; h.cam.posInit = false; h.done = false; h.q('done').hidden = true; h.q('msg').hidden = true; }
     for (const c of all) { c.dmg = 0; c.broken = 0; c.nitros = lvl.nitros; c.nitroInf = freeMode && c.isPlayer; }   // modo libre: turbo sin límite
-    if (props) props.reset(); if (fx) fx.reset(); crazyInit();
+    if (props) props.reset(); if (fx) fx.reset(); crazyInit(); rpStart();
   }
   function restart() {
     if (!lvl) return; placeGrid(); leader = null; for (const h of humans) h.gRec = []; for (const g of ghosts) g.i = 0;
@@ -1039,7 +1039,7 @@
       orig.results(rows, $('r_title').textContent.replace(' · ', ' - ').toUpperCase().slice(0, 26), $('r_rec').textContent.toUpperCase().slice(0, 48), () => { orig.close(); toMenu(); });
       return;
     }
-    $('results').hidden = false;
+    $('r_replay').hidden = !rpRec || rpRec.frames.length < 10; $('results').hidden = false;
   }
   $('r_again').onclick = restart;
   function toMenu() {
@@ -1051,6 +1051,7 @@
     else menuMusic();
   }
   $('r_menu').onclick = toMenu;
+  $('r_replay').onclick = () => rpOpen();
   // ---------- minimapa (recorrido + controles + coches) ----------
   let mm = null, mmPath = null;
   function prepMinimap() {
@@ -2266,6 +2267,84 @@
       try { drawCar(c, g.draw, false, g.dd); } finally { R.draw = raw; } }
   }
 
+  // ---------- repeticiones: se graba la carrera (20 veces por segundo, todos los coches) y al acabar se puede ver con cualquier cámara,
+  // a cámara lenta o rápida, rebobinar y grabarla en vídeo (.webm) ----------
+  let rpRec = null, rp = null;
+  const RP_N = 11;   // por coche: posición (3), giro (4), dirección, nitro|freno|fuera, velocidad, ruedas
+  function rpStart() { rpRec = { cars: [...humans.map(h => h.car), ...rivals.map(r => r.car)], frames: [], t: 0, next: 0 }; }
+  function rpRecord(dt) {
+    if (!rpRec || netWait || photo) return; if (!humans[0] || humans[0].race.phase === 'countdown') return;
+    rpRec.t += dt; if (rpRec.t < rpRec.next || rpRec.frames.length > 20 * 60 * 15) return; rpRec.next = rpRec.t + 0.05;
+    const C = rpRec.cars, F = new Float32Array(1 + C.length * RP_N); F[0] = rpRec.t;
+    C.forEach((c, k) => { const o = 1 + k * RP_N; F.set([c.p[0], c.p[1], c.p[2], c.q[0], c.q[1], c.q[2], c.q[3], c.steerAng || 0, (c.nitroT > 0 ? 1 : 0) | (c.brakeLight ? 2 : 0) | (c.out ? 4 : 0), c.speed ? c.speed() : 0, c.W && c.W[0] ? c.W[0].len : 0.3], o); });
+    rpRec.frames.push(F);
+  }
+  function rpOpen() {
+    if (!rpRec || rpRec.frames.length < 10) return; $('results').hidden = true; for (const h of humans) if (h.horn) { h.horn.stop(); h.horn = null; }
+    rp = { t: rpRec.frames[0][0], t0: rpRec.frames[0][0], t1: rpRec.frames[rpRec.frames.length - 1][0], i: 0, speed: 1, play: true, target: 0, cam: 'tv', rec: null,
+      save: rpRec.cars.map(c => ({ p: c.p.slice(), q: c.q.slice(), v: c.v.slice(), w: c.w.slice(), out: c.out })) };
+    state = 'replay'; $('phuds').style.visibility = 'hidden'; $('replaybar').hidden = false; rpUI(); last = performance.now();
+  }
+  function rpClose() {
+    if (!rp) return; if (rp.rec) rpVideoStop();
+    rpRec.cars.forEach((c, k) => { const s0 = rp.save[k]; c.p = s0.p; c.q = s0.q; c.v = s0.v; c.w = s0.w; c.out = s0.out; });
+    rp = null; $('replaybar').hidden = true; $('phuds').style.visibility = ''; state = 'results'; $('results').hidden = false; humans[0].cam.init = false;
+  }
+  function rpFrame(dt) {
+    const F = rpRec.frames, n = F.length; if (rp.play) { rp.t += dt * rp.speed; if (rp.t >= rp.t1) { rp.t = rp.t1; rp.play = false; if (rp.rec) rpVideoStop(); rpUI(); } }
+    let i = Math.min(rp.i, n - 2); if (F[i][0] > rp.t) i = 0; while (i < n - 2 && F[i + 1][0] < rp.t) i++; rp.i = i;
+    const A = F[i], B = F[i + 1], u = Math.max(0, Math.min(1, (rp.t - A[0]) / Math.max(1e-3, B[0] - A[0])));
+    rpRec.cars.forEach((c, k) => { const o = 1 + k * RP_N, L = j => A[o + j] + (B[o + j] - A[o + j]) * u;
+      const p0 = c.p; c.p = [L(0), L(1), L(2)]; let qa = [0, 1, 2, 3].map(j => A[o + 3 + j]), qb = [0, 1, 2, 3].map(j => B[o + 3 + j]); if (qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3] < 0) qb = qb.map(x => -x);
+      const q = qa.map((x, j) => x + (qb[j] - x) * u), l = Math.hypot(...q) || 1; c.q = q.map(x => x / l); c.steerAng = L(7);
+      const fl = A[o + 8] | 0; c.nitroT = fl & 1 ? 0.1 : 0; c.brakeLight = !!(fl & 2); c.out = !!(fl & 4); c.v = V.mul(c.forward(), L(9));
+      const sp = Math.hypot(c.p[0] - p0[0], c.p[2] - p0[2]) * Math.sign(L(9) || 1); for (const w of c.W) { w.spin += sp / (w.radius || 0.3); w.len = L(10) || 0.3; } });
+    for (const c of rpRec.cars) if (c.nitroT > 0 && !c.out) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc); }
+    rpRec.cars.forEach((c, k) => fx.car(c, dt * (rp.play ? rp.speed : 0), 'rp' + k)); fx.update(dt * (rp.play ? rp.speed : 0));
+    $('rp_time').value = String(Math.round((rp.t - rp.t0) / Math.max(0.01, rp.t1 - rp.t0) * 1000)); $('rp_clock').textContent = fmt(rp.t - rp.t0);
+  }
+  function rpCamera(dt) {   // la cámara sigue al coche elegido (con la del modo elegido; por defecto, las de televisión del original)
+    const h = humans[0], c = rpRec.cars[rp.target] || h.car, fh = { i: 1, car: c, cam: h.cam, camMode: rp.cam, inp: {}, race: h.race };
+    updateCamera(fh, dt * Math.max(0.25, rp.play ? rp.speed : 1));
+  }
+  const RP_CAMS = ['tv', 'cerca', 'lejos', 'alta', 'cenital', 'capo'];
+  function rpUI() {
+    if (!rp) return; $('rp_play').textContent = rp.play ? '⏸' : '▶'; $('rp_speed').textContent = (rp.speed < 1 ? '½' : rp.speed) + '×';
+    $('rp_cam').textContent = '🎥 ' + (CAM_N[rp.cam] || rp.cam); const c = rpRec.cars[rp.target], hh = humans.find(x => x.car === c), r = rivals.find(x => x.car === c);
+    $('rp_car').textContent = hh ? (humans.length > 1 ? NAMES[hh.i] : 'Tú') : r ? (r.name && !r.isAI ? r.name : c.teamName || (r.ai ? r.ai.P.name : 'Equipo ' + TEAM[c.team].n)) : '';
+    $('rp_rec').textContent = rp.rec ? '⏹ Parar vídeo' : '⏺ Grabar vídeo'; $('rp_rec').classList.toggle('on', !!rp.rec);
+  }
+  function rpSeek(d) { rp.t = Math.max(rp.t0, Math.min(rp.t1, rp.t + d)); rp.i = 0; if (fx) fx.reset(); humans[0].cam.init = false; }
+  function rpVideoStart() {   // vídeo de lo que se ve (desde donde está la repetición hasta el final o hasta que se pare)
+    try { const st = canvas.captureStream(30); try { if (audio && audio.ctx && audio.gMaster) { const d = audio.ctx.createMediaStreamDestination(); audio.gMaster.connect(d); d.stream.getAudioTracks().forEach(t => st.addTrack(t)); rp.aDest = d; } } catch (e) { }
+      const mt = ['video/webm;codecs=vp9', 'video/webm;codecs=vp8', 'video/webm'].find(m => window.MediaRecorder && MediaRecorder.isTypeSupported(m)); if (!mt) throw new Error('Este navegador no puede grabar vídeo');
+      const mr = new MediaRecorder(st, { mimeType: mt, videoBitsPerSecond: 8e6 }), chunks = []; mr.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+      mr.onstop = () => { const b = new Blob(chunks, { type: 'video/webm' }), a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'BigRedReport_' + lvl.name + '_' + new Date().toISOString().slice(0, 16).replace(/[:T]/g, '-') + '.webm'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 4000); };
+      mr.start(500); rp.rec = mr; rp.play = true; if (rp.t >= rp.t1 - 0.1) rpSeek(-1e9); } catch (e) { $('rp_clock').textContent = e.message; }
+    rpUI();
+  }
+  function rpVideoStop() { const mr = rp && rp.rec; if (!mr) return; rp.rec = null; try { mr.stop(); } catch (e) { } try { if (rp.aDest && audio.gMaster) audio.gMaster.disconnect(rp.aDest); } catch (e) { } rpUI(); }
+  (function rpSetup() {
+    const bar = document.createElement('div'); bar.id = 'replaybar'; bar.hidden = true;
+    bar.innerHTML = `<div class="rpt"><b>REPETICIÓN</b> <span id="rp_clock">0:00.00</span></div><input type="range" id="rp_time" min="0" max="1000" value="0">
+      <div class="rpb"><button id="rp_back" title="Atrás 10 s">⏪</button><button id="rp_play">⏸</button><button id="rp_fwd" title="Adelante 10 s">⏩</button><button id="rp_speed">1×</button>
+      <button id="rp_prev" title="Coche anterior">◀</button><span id="rp_car"></span><button id="rp_next" title="Coche siguiente">▶</button><button id="rp_cam"></button><button id="rp_rec"></button><button id="rp_exit">✕ Salir</button></div>`;
+    document.body.appendChild(bar);
+    const $b = id => bar.querySelector('#' + id);
+    $b('rp_play').onclick = () => { rp.play = !rp.play; if (rp.play && rp.t >= rp.t1) rpSeek(-1e9); rpUI(); };
+    $b('rp_back').onclick = () => rpSeek(-10); $b('rp_fwd').onclick = () => rpSeek(10);
+    $b('rp_speed').onclick = () => { const S = [0.25, 0.5, 1, 2, 4], i = S.indexOf(rp.speed); rp.speed = S[(i + 1) % S.length]; rpUI(); };
+    $b('rp_prev').onclick = () => { rp.target = (rp.target - 1 + rpRec.cars.length) % rpRec.cars.length; humans[0].cam.init = false; rpUI(); };
+    $b('rp_next').onclick = () => { rp.target = (rp.target + 1) % rpRec.cars.length; humans[0].cam.init = false; rpUI(); };
+    $b('rp_cam').onclick = () => { rp.cam = RP_CAMS[(RP_CAMS.indexOf(rp.cam) + 1) % RP_CAMS.length]; humans[0].cam.init = false; rpUI(); };
+    $b('rp_rec').onclick = () => rp.rec ? rpVideoStop() : rpVideoStart();
+    $b('rp_exit').onclick = () => rpClose();
+    $b('rp_time').oninput = e => { rp.t = rp.t0 + (+e.target.value / 1000) * (rp.t1 - rp.t0); rp.i = 0; if (fx) fx.reset(); };
+    addEventListener('keydown', e => { if (state !== 'replay' || !rp) return; const k = e.code;
+      if (k === 'Space') { e.preventDefault(); $b('rp_play').onclick(); } else if (k === 'ArrowLeft') rpSeek(-5); else if (k === 'ArrowRight') rpSeek(5);
+      else if (k === 'ArrowUp') $b('rp_next').onclick(); else if (k === 'ArrowDown') $b('rp_prev').onclick(); else if (k === 'KeyC') $b('rp_cam').onclick(); else if (k === 'Escape') rpClose(); }, true);
+  })();
+
   // ---------- bucle ----------
   let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, shTick = 0;
   const DT = 1 / 240;
@@ -2355,11 +2434,12 @@
     requestAnimationFrame(frame);
     const lim = +opt.fpslim || 0; if (lim && t - lastDraw < 1000 / lim - 1.5) return; lastDraw = t;   // límite de FPS
     const dt = Math.min(0.1, (t - last) / 1000); last = t;
-    if (state !== 'race' && state !== 'pause' && state !== 'results') return;
+    if (state !== 'race' && state !== 'pause' && state !== 'results' && state !== 'replay') return;
     assignControls();
     const allCars = [...humans.map(h => h.car), ...rivals.map(r => r.car)].filter(c => !c.out);
     if (netWait && state === 'race') { netFrame(dt); crazyNetSend(dt); for (const h of humans) { readInput(h, 0); h.race.phase = 'countdown'; h.race.cd = 3.6; } }
     else if (photo) { photoFrame(dt); }
+    else if (state === 'replay' && rp) { rpFrame(dt); }
     else if (state === 'race' || state === 'results') {
       for (const h of humans) { const inp = readInput(h, dt); if (freeMode && inp.ramp && !h.rampPrev && h.race.phase === 'race') placeRamp(h); h.rampPrev = !!inp.ramp; if (freeMode && inp.pipe && !h.pipePrev && h.race.phase === 'race') placePipe(h); h.pipePrev = !!inp.pipe; if ((freeMode || crazyJump()) && h.race.phase === 'race') jumpCharge(h, !!inp.jump); h.jumpPrev = !!inp.jump; if (kart && h.race.phase === 'race' && ((inp.jump && !h.kjPrev) || (inp.ramp && !h.krPrev))) kUse(h.car); h.kjPrev = !!inp.jump; h.krPrev = !!inp.ramp; if (freeMode) stuntFrame(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
       for (const r of rivals) if (r.inp && r.inp.nitro && r.car.fireNitro()) nitroFx(r.car);
@@ -2375,7 +2455,7 @@
       for (const h of humans) { h.race.update(dt, h.car); handleEvents(h); ghostRecord(h); } ghostFrame();
       for (const r of rivals) { if (r.remote || r.car.out) continue; r.race.update(dt, r.car); r.race.ev.length = 0; }
       if (netRace) netFrame(dt);
-      updatePositions(dt); crazyFrame(dt); kartFrame(dt); crazySirens(); if (netRace) { crazyNetHits(); crazyNetSend(dt); } for (const c of allCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
+      updatePositions(dt); crazyFrame(dt); kartFrame(dt); crazySirens(); rpRecord(dt); if (netRace) { crazyNetHits(); crazyNetSend(dt); } for (const c of allCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
       if (humans[0] && humans[0].race.phase === 'race') { const h0 = humans[0]; if (h0.race.t > 8 && order.length >= 4 && h0.pos === order.length) h0.wasLast = true; if (freeMode && (h0.freeT = (h0.freeT || 0) + dt) > 300) achUnlock('libre'); statAcc.km += Math.abs(humans[0].car.speed()) * dt / 1000; statAcc.t += dt; statAcc.veh = humans[0].car.def.name; }
       for (const hit of props.update(dt, allCars)) propSound(hit);
       for (const c of allCars) if (c.nitroT > 0) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc); }
@@ -2388,7 +2468,7 @@
     } else for (const h of humans) readInput(h, 0);
     if (netRace) puppets(dt);
     soundFrame(dt); for (const h of humans) h.car.lastHit = 0; hornFrame(dt); if (state === 'race') for (const h of humans) rumble(h, dt);
-    for (const h of humans) if (!(photo && h.i === 0)) updateCamera(h, dt);
+    if (state === 'replay' && rp) rpCamera(dt); else for (const h of humans) if (!(photo && h.i === 0)) updateCamera(h, dt);
     camShare(); listenerFrame(); if (humans[0]) { headlightsFrame(humans[0].cam.pos); if (state === 'race') weatherFrame(humans[0].cam.pos, dt); }
     // una vista por jugador (con su propio mapa de sombras centrado en su coche)
     const W = canvas.width, H = canvas.height, far = opt.far;
@@ -2466,5 +2546,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();
