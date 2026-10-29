@@ -5,6 +5,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.80**
+- Garaje: **color de los faros** (originales, blancos de xenón, blanco cálido o amarillos), que se nota de noche, con niebla y con lluvia.
+
 **Novedades de la 0.79**
 - **Llantas nuevas en el garaje:** malla cruzada, 5 radios, radios finos, estrella partida, disco y de acero; de 15" a 19" (más pulgadas = menos goma, la rueda mide lo mismo y el coche corre igual) y en plata, negro, grafito, oro, bronce, blanco o del color del coche. Con vista previa.
 

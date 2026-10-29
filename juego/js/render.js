@@ -29,7 +29,7 @@ uniform float fogK; uniform float wet; uniform vec4 hlP[16]; uniform vec4 hlD[16
 out vec4 o;
 /* faros: focos que alumbran hacia delante (de noche, con niebla o lluvia) */
 vec3 headl(vec3 n){ vec3 s=vec3(0.); for(int i=0;i<16;i++){ if(i>=hlN) break; vec3 v=wp-hlP[i].xyz; float dd=length(v); if(dd>48.) continue; vec3 l=v/max(dd,.01);
-  float cone=smoothstep(.78,.94,dot(l,hlD[i].xyz)); float att=hlD[i].w*cone/(1.+dd*dd*.010); s+=vec3(1.,.94,.8)*att*(max(dot(n,-l),0.)*.75+.25); } return s; }
+  float cone=smoothstep(.78,.94,dot(l,hlD[i].xyz)); float att=hlD[i].w*cone/(1.+dd*dd*.010); float ty=hlP[i].w; vec3 hc=ty<.5?vec3(1.,.94,.8):ty<1.5?vec3(.86,.93,1.08):ty<2.5?vec3(1.,.96,.88):vec3(1.,.8,.38); s+=hc*att*(max(dot(n,-l),0.)*.75+.25); } return s; }
 float shadow(vec3 n){
   if(shadows==0) return 1.;
   vec3 q=lp.xyz/lp.w*.5+.5; if(q.x<0.||q.x>1.||q.y<0.||q.y>1.||q.z>1.) return 1.;
@@ -274,7 +274,7 @@ void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
       gl.uniformMatrix4fv(U.VP, false, VP); gl.uniformMatrix4fv(U.LVP, false, this.LVP || BRR.M4.I);
       gl.uniform3fv(U.cam, camPos); gl.uniform1f(U.far, far); gl.uniform3fv(U.fogc, fogc); gl.uniform1i(U.T, 0); gl.uniform1f(U.layK, this.layers === false ? 0 : 1);
       gl.uniform1i(U.mode, modern ? 1 : 0); gl.uniform1i(U.shadows, modern && this.shadowQ && this.LVP ? 1 : 0); gl.uniform1f(U.smTexel, 1 / this.shadowSize);
-      { const A = this.atmos || {}; gl.uniform1f(U.fogK, A.fogK || 1); gl.uniform1f(U.wet, A.wet || 0); const H = this.headl || []; gl.uniform1i(U.hlN, Math.min(16, H.length)); if (H.length) { const P = new Float32Array(64), D = new Float32Array(64); H.slice(0, 16).forEach((q, i) => { P.set([q.p[0], q.p[1], q.p[2], 0], i * 4); D.set([q.d[0], q.d[1], q.d[2], q.k], i * 4); }); gl.uniform4fv(U.hlP, P); gl.uniform4fv(U.hlD, D); } }
+      { const A = this.atmos || {}; gl.uniform1f(U.fogK, A.fogK || 1); gl.uniform1f(U.wet, A.wet || 0); const H = this.headl || []; gl.uniform1i(U.hlN, Math.min(16, H.length)); if (H.length) { const P = new Float32Array(64), D = new Float32Array(64); H.slice(0, 16).forEach((q, i) => { P.set([q.p[0], q.p[1], q.p[2], q.t || 0], i * 4); D.set([q.d[0], q.d[1], q.d[2], q.k], i * 4); }); gl.uniform4fv(U.hlP, P); gl.uniform4fv(U.hlD, D); } }
       gl.uniform3fv(U.L, this.L); gl.uniform3fv(U.sunC, this.sunC || [1, 1, 1]); gl.uniform3fv(U.skyC, this.skyC || [.8, .8, .8]); gl.uniform3fv(U.gndC, this.gndC || [.4, .4, .4]);
       gl.uniform1f(U.glow, 0); const tnow = performance.now() / 1000; gl.uniform1f(U.time, tnow % 3600);
       const PA = this.palAnim; gl.uniform1i(U.animN, PA ? PA.n : 0); if (PA) { gl.uniform3fv(U.animPal, PA.cols); gl.uniform1f(U.animStep, Math.floor(tnow * PA.rate) % PA.n); }

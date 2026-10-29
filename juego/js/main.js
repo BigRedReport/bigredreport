@@ -1402,8 +1402,9 @@
     const A = R.atmos; if (!A || !A.lights || !R.mode) { R.headl = null; return; }
     const cars = [...humans.map(h => h.car), ...rivals.map(r => r.car)].filter(c => V.len(V.sub(c.p, cam)) < 90).sort((a, b) => V.len(V.sub(a.p, cam)) - V.len(V.sub(b.p, cam))).slice(0, 8), H = [];
     for (const c of cars) { const Rm = c.R, b = c.def.box, d = V.norm(BRR.mv(Rm, [0, -0.1, -1]));
-      for (const sx of [-1, 1]) { const p = V.add(c.p, BRR.mv(Rm, [b.c[0] + sx * b.h[0] * 0.62, b.c[1], b.c[2] - b.h[2] * 0.98])); H.push({ p, d, k: 2.4 });
-        if (fx) { fx.glow(p, [1, 0.95, 0.8, 0.5], 0.42); fx.glow(p, [1, 1, 0.95, 0.8], 0.14); } } }
+      const lt = c.isPlayer && humans[0] && c === humans[0].car ? ({ blanca: 1, intermedia: 2, amarilla: 3 }[opt.lightCol] || 0) : 0, gc = [[1, 0.95, 0.8], [0.82, 0.9, 1], [1, 0.96, 0.88], [1, 0.78, 0.32]][lt];   // color de las luces del garaje
+      for (const sx of [-1, 1]) { const p = V.add(c.p, BRR.mv(Rm, [b.c[0] + sx * b.h[0] * 0.62, b.c[1], b.c[2] - b.h[2] * 0.98])); H.push({ p, d, k: 2.4, t: lt });
+        if (fx) { fx.glow(p, [gc[0], gc[1], gc[2], 0.5], 0.42); fx.glow(p, [Math.min(1, gc[0] + 0.05), Math.min(1, gc[1] + 0.05), Math.min(1, gc[2] + 0.1), 0.8], 0.14); } } }
     R.headl = H;
   }
   // lluvia y nieve alrededor de la cámara
@@ -2421,6 +2422,7 @@
   }
   function garRender() {
     $('gr_rim').value = RIM_STYLES[opt.rim] ? opt.rim : 'orig'; $('gr_rimsize').value = String(opt.rimSize || 17); $('gr_rimcol').value = opt.rimCol || 'plata'; $('gr_rimsize').hidden = $('gr_rimcol').hidden = $('gr_rim').value === 'orig'; rimPreview();
+    $('gr_lights').value = opt.lightCol || 'normal';
     $('gr_turbo').value = opt.turboCol || '#ff8c1e'; $('gr_neon').value = opt.neon === 'si' ? 'si' : 'no'; $('gr_neoncol').value = opt.neonCol || '#00e5ff';
     $('gr_glass').value = opt.glass || 'normal'; $('gr_glasscol').value = opt.glassCol || '#46607a'; $('gr_glasscol').hidden = (opt.glass || 'normal') !== 'color'; $('gr_neoncol').hidden = opt.neon !== 'si';
   }
@@ -2444,6 +2446,7 @@
   $('garage').onclick = e => { if (e.target.id === 'garage') $('garage').hidden = true; };
   $('gr_turbo').oninput = () => { opt.turboCol = $('gr_turbo').value; save(); };
   $('gr_turbo0').onclick = () => { opt.turboCol = null; save(); garRender(); };
+  $('gr_lights').onchange = () => { opt.lightCol = $('gr_lights').value; save(); };
   $('gr_neon').onchange = () => { opt.neon = $('gr_neon').value; save(); garRender(); };
   $('gr_neoncol').oninput = () => { opt.neonCol = $('gr_neoncol').value; save(); };
   $('gr_glass').onchange = () => { opt.glass = $('gr_glass').value; save(); garRender(); };
