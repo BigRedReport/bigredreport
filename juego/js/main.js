@@ -1167,7 +1167,7 @@
   $('p_photo').onclick = () => { if (state === 'pause') togglePause(); if (state === 'race' && !photo) togglePhoto(); };
   // modo libre: cambiar de vehículo sin salir (aparece en el mismo sitio, mirando hacia donde ibas)
   async function swapVehicle(veh) {
-    const h = humans[0]; if (!h || !lvl || veh === h.car.def.name) return;
+    const h = humans[0]; if (!h || !lvl || !veh || veh === h.car.def.name || !files.has(veh + '.VHC')) return;   // (aviso de la 0.53: vehículo vacío)
     const old = h.car, d = await BRR.loadVehicle(files, veh, lvl, old.team, { logo: await myLogoRGBA(), logoHi: opt.logo === 'custom' ? await logoHiOf(opt.customLogoHi || opt.customLogo) : myLogoData() ? await logoHiOf(myLogoData()) : null, paint: hexRGB(opt.paint) });
     const c = new BRR.Car(d, lvl); Object.assign(c, { team: old.team, isPlayer: true, human: 0, paintHex: old.paintHex, teamName: old.teamName, headDraw: old.headDraw, nitros: old.nitros, nitroInf: old.nitroInf });
     const f = old.forward(); c.reset(old.p[0], old.p[2], Math.atan2(-f[0], -f[2]), old.p[1]);
