@@ -841,18 +841,20 @@
       const firstAI = rivals.find(r => r.ai); if (firstAI) { const md = BRR.aiMode(firstAI.car);
         if (!(lvl.aiLines || {})[md] && !(await BRR.loadAILine(lvl, md))) { $('load_msg').textContent = 'Preparando a los pilotos (solo la primera vez)…'; await new Promise(r => setTimeout(r, 30)); BRR.buildAILine(lvl, firstAI.race, md); BRR.saveAILine(lvl, md); } }
       props = new BRR.Props(lvl, R); fx = new BRR.Effects(R.gl, lvl);
+      if (net && net.role === 'spec') humans[0].car.spec = true;
       placeGrid(); layoutViews();
       R.setFilterAll(opt.filter);
       // sin parpadeo negro: los primeros fotogramas (que suben texturas y compilan sombreadores) se dibujan aún tapados por la pantalla de carga
       $('results').hidden = true; state = 'race';
       for (let k = 0; k < 4; k++) await new Promise(r => requestAnimationFrame(r));
       await ghostLoad(); show('hud'); window.BRR_READY = true;
+      if (net && net.role === 'spec') { netWait = false; $('netbar').hidden = true; $('phuds').style.visibility = 'hidden'; $('help').hidden = true; $('specbar').hidden = false; specT = 0; specUI(); }
       // logros: visitar el circuito y conducir todos los vehículos
       if (!net || true) { addVisitAch(); achUnlock('v_' + lvl.name); let nv = 0; statsAdd(S2 => { S2.vehs = S2.vehs || {}; S2.vehs[humans[0].car.def.name] = 1; nv = Object.keys(S2.vehs).length; });
         if (nv >= BRR.VEHICLES.filter(n => files.has(n + '.VHC')).length) achUnlock('garaje'); }
       $('help').hidden = false; clearTimeout(helpT); helpT = setTimeout(() => $('help').hidden = true, 9000);
       prepMinimap(); await startSounds(level, def0);
-      if (net) { BRR_net.game({ k: 'loaded' }); netLoaded.add(net.myId); $('netbar').hidden = false; $('netbar').textContent = 'Esperando a los demás jugadores…'; }
+      if (net && net.role !== 'spec') { BRR_net.game({ k: 'loaded' }); netLoaded.add(net.myId); $('netbar').hidden = false; $('netbar').textContent = 'Esperando a los demás jugadores…'; }
     } catch (e) { console.error(e); $('load_msg').textContent = 'Error: ' + e.message; }
   }
   let helpT = 0, replayBand = null;
@@ -1482,11 +1484,26 @@
   // ======================= online =======================
   // Cada jugador simula su coche y manda su estado 20 veces por segundo; el anfitrión además simula y manda los rivales de la IA.
   // Los coches de los demás son "marionetas": se colocan suavemente donde dice la red (con extrapolación por su velocidad).
-  let netWaitT = 0;
+  let netWaitT = 0, netLastStart = null, specT = 0;
+  const specList = () => rivals.filter(r => !r.gone && !r.car.out);
+  function specCamera(dt) { const L = specList(); if (!L.length) return; const r = L[((specT % L.length) + L.length) % L.length], h = humans[0];
+    updateCamera({ i: 1, car: r.car, cam: h.cam, camMode: h.specCam || 'tv', inp: {}, race: h.race }, dt); }
+  function specUI() { const L = specList(), r = L[((specT % Math.max(1, L.length)) + L.length) % Math.max(1, L.length)]; $('sp_name').textContent = r ? (r.name && !r.isAI ? r.name : r.car.teamName || 'IA') : '–'; $('sp_cam').textContent = '🎥 ' + (CAM_N[humans[0] && humans[0].specCam || 'tv'] || ''); }
+  (function specSetup() {
+    const bar = document.createElement('div'); bar.id = 'specbar'; bar.hidden = true;
+    bar.innerHTML = `<b>👀 ESPECTADOR</b><button id="sp_prev">◀</button><span id="sp_name"></span><button id="sp_next">▶</button><button id="sp_cam"></button><button id="sp_exit">✕ Salir</button>`;
+    document.body.appendChild(bar); const q = id => bar.querySelector('#' + id), CY = ['tv', 'cerca', 'lejos', 'alta', 'cenital'];
+    q('sp_prev').onclick = () => { specT--; humans[0].cam.init = false; specUI(); }; q('sp_next').onclick = () => { specT++; humans[0].cam.init = false; specUI(); };
+    q('sp_cam').onclick = () => { const h = humans[0]; h.specCam = CY[(CY.indexOf(h.specCam || 'tv') + 1) % CY.length]; h.cam.init = false; specUI(); };
+    q('sp_exit').onclick = () => { $('specbar').hidden = true; $('phuds').style.visibility = ''; toMenu(); };
+    addEventListener('keydown', e => { if (!netRace || netRace.role !== 'spec' || state !== 'race') return; if (e.code === 'ArrowRight' || e.code === 'ArrowUp') q('sp_next').onclick(); else if (e.code === 'ArrowLeft' || e.code === 'ArrowDown') q('sp_prev').onclick(); else if (e.code === 'KeyC') q('sp_cam').onclick(); }, true);
+  })();
+  function specLeave() { netRace = null; netWait = false; $('specbar').hidden = true; $('phuds').style.visibility = ''; state = 'menu'; }
   const R3 = a => a.map(x => Math.round(x * 1000) / 1000);
   function netFrame(dt) {
     netT += dt; if (netT < 0.05) return; netT = 0;
     const h = humans[0], c = h.car;
+    if (netRace.role === 'spec') return;   // espectador: no tiene coche en la carrera
     BRR_net.game({ k: 's', p: R3(c.p), q: R3(c.q), v: R3(c.v), st: +c.steerAng.toFixed(3), n: c.nitroT > 0 ? 1 : 0, sc: +h.race.score().toFixed(3), f: h.race.finishT, lap: h.race.lap });
     if (netRace.role === 'host') {
       const ai = rivals.filter(r => r.ai);
@@ -1524,7 +1541,8 @@
     if (d.k === 'ramp' && Array.isArray(d.p) && Array.isArray(d.R) && d.p.length === 3 && d.R.length === 3) { placeNetRamp(m.from, d.t === 'pipe' ? 'pipe' : 'ramp', d.p.map(Number), d.R.map(r => r.map(Number))); return; }
     if (d.k === 'hn') { const e = rivals.find(r => r.id === m.from); if (!e || !audio || !audio.ctx || typeof d.t !== 'string' || d.t === 'propia' || !BRR.HORNS.some(x => x.id === d.t)) return; const info = BRR.hornInfo(d.t);
       if (d.on) { if (e.hornH) e.hornH.stop(); e.hornH = audio.horn(1, 0.7, null, d.t, e.car.p); } else if (e.hornH && info.hold) { e.hornH.stop(); e.hornH = null; } return; }
-    if (d.k === 'start') { if (!netRace && state !== 'race') netStart(d); return; }
+    if (d.k === 'start') { if (netRace && netRace.role === 'spec' && !d.spec) specLeave(); if (!netRace && state !== 'race') netStart(d); return; }
+    if (d.k === 'spec') { if (BRR_net.isHost && netRace && netLastStart && state === 'race') BRR_net.game({ ...netLastStart, spec: 1 }, m.from); return; }
     if (!netRace) return;
     const now = performance.now() / 1000;
     if (d.k === 'loaded') netLoaded.add(m.from);
@@ -1537,11 +1555,12 @@
   BRR_net.on('closed', m => { if (netRace && state === 'race') { netRace.lost = true; $('netbar').hidden = false; $('netbar').textContent = m.why || 'Partida cerrada'; } netRenderRoom(); });
   BRR_net.on('disconnect', () => { $('n_status').textContent = 'Desconectado (se reintentará al volver a Online).'; $('n_room').hidden = true; if (netRace && state === 'race') { $('netbar').hidden = false; $('netbar').textContent = 'Conexión perdida con el servidor'; } });
   function netStart(d) {
-    const me = BRR_net.id, e = d.order.find(x => x.id === me); if (!e) return;
+    const me = BRR_net.id; let e = d.order.find(x => x.id === me); if (!e && !d.spec) return;
+    if (!e) e = { veh: (d.order.find(x => !x.ai) || d.order[0] || {}).veh || 'JEEP', team: 1 };   // espectador: un coche invisible para la cámara
     clearTimeout(netResT); $('results').hidden = true; netRace = null;
     tourMode = false; fromOrig = false; opt.diff = d.diff || 2; freeMode = !!d.free; ttMode = false;
     if (orig && orig.on) orig.close();
-    startRace(d.level, e.veh, e.team, d.laps || 0, 1, { role: BRR_net.isHost ? 'host' : 'client', myId: me, order: d.order, crazy: typeof d.crazy === 'string' && CRAZY_NAME[d.crazy] ? d.crazy : null });
+    startRace(d.level, e.veh, e.team, d.laps || 0, 1, { role: d.spec ? 'spec' : BRR_net.isHost ? 'host' : 'client', myId: me, order: d.order, crazy: typeof d.crazy === 'string' && CRAZY_NAME[d.crazy] ? d.crazy : null });
   }
   // ---------- lobby online ----------
   function netTracks() { return front ? front.tracks : []; }
@@ -1670,6 +1689,7 @@
   function netRenderRoom() {
     const r = BRR_net.room; $('n_room').hidden = !r; $('pane_online').classList.toggle('inroom', !!r); if (!r) return;
     if (r.state === 'racing' && !netRace && !BRR_net.isHost) $('n_modeinfo').textContent = 'Hay una carrera en curso: entrarás en la siguiente.';
+    $('n_spec').hidden = !(r.state === 'racing' && !netRace && !BRR_net.isHost);
     const host = BRR_net.isHost, info = r.info || {}, T = netTracks();
     if (!T.length) { setTimeout(netRenderRoom, 500); return; }
     $('n_rtitle').textContent = r.name; $('n_rcode').textContent = r.players + '/' + r.max + ' jugadores · ' + (host ? 'eres el anfitrión 👑' : 'anfitrión: ' + r.host) + ' · ' + (MODE_N[info.mode] || 'Una carrera');
@@ -1754,9 +1774,11 @@
     const ais = Array.from({ length: freeR ? 0 : Math.min(info.ai || 0, 12 - players.length) }, (_, k) => ({ id: 'ai' + k, ai: true, name: 'IA ' + (k + 1), team: free[k % Math.max(1, free.length)] || (k % 6) + 1, veh: cars[k % cars.length], profile: prof[k % 5], ...(aiLooks[k] || {}) }));
     const cz = !freeR && info.crazy && info.crazy !== 'normal' ? info.crazy : null;
     const d = { k: 'start', level: info.level, laps: freeR || (cz && cz !== 'kart') ? 99 : info.laps || 0, diff: info.diff || 2, free: freeR ? 1 : 0, crazy: cz, order: [...ais, ...players.reverse()] };
-    BRR_net.info(info, 'racing'); BRR_net.game(d); netStart(d);
+    netLastStart = d; BRR_net.info(info, 'racing'); BRR_net.game(d); netStart(d);
   }
   $('n_start').onclick = netLaunch;
+  BRR_net.on('room', () => { if (netRace && netRace.role === 'spec' && BRR_net.room && BRR_net.room.state === 'lobby' && state === 'race') { $('specbar').hidden = true; $('phuds').style.visibility = ''; toMenu(); } });
+  $('n_spec').onclick = () => { $('n_spec').textContent = 'Conectando…'; BRR_net.game({ k: 'spec' }); setTimeout(() => { $('n_spec').textContent = '👀 Ver la carrera en curso'; }, 5000); };
   BRR_net.on('g', m => { const d = m.d || {}; if (d.k === 'vote' && BRR_net.isHost) netVote(m.from, d.map); });
 
   // ---------- chat de voz (WebRTC entre los jugadores de la sala; el servidor solo pasa los mensajes de conexión) ----------
@@ -1933,13 +1955,13 @@
   const crazyJump = () => crazy && (crazy.mode === 'bomba' || crazy.mode === 'zombie' || crazy.mode === 'polis');   // modos sin vueltas: se puede saltar
   function crazyInit() {
     const mode = ttMode || tourMode ? 'normal' : netRace ? (netRace.crazy || 'normal') : !freeMode ? crazyPick : 'normal';
-    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = false; c.outN = 0; c.bombLeft = BOMB_T; c.cop = false; c.robber = false; }
+    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = !!c.spec; c.outN = 0; c.bombLeft = BOMB_T; c.cop = false; c.robber = false; }
     crazyId++; crazy = null; kart = null; if (!CRAZY_NAME[mode] || humans.length + rivals.length < 2) return;
     // eliminación por controles según el tamaño del circuito: pequeño → cada vuelta; mediano → cada media vuelta; grande → cada ~1 km de controles
     const rc = humans[0].race, G = rc.maxNum + 1, L = rc.total;
     const step = L < 900 ? G : L < 2000 ? Math.max(1, Math.ceil(G / 2)) : Math.max(1, Math.round(G * 1000 / L));
     crazy = { mode, id: crazyId, n: 0, next: CRAZY_T, cpStep: step, cpNext: step, bomb: null, bombT0: 3, over: false, zT0: 3, zLeft: ZOMBIE_T, zN: 0, copsLeft: COPS_T };
-    crazy.net = netRace ? netRace.role : null; crazy.sendT = 0; crazy.hitT = new Map();
+    crazy.net = netRace ? (netRace.role === 'host' ? 'host' : 'client') : null; crazy.sendT = 0; crazy.hitT = new Map();
     if (mode === 'polis' && crazy.net !== 'client') copsSetup();
     if (mode === 'kart') kartInit();
     for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.zombie = false; if (c.drawN) { const o = humans.find(h => h.car === c) || rivals.find(r => r.car === c); if (o) o.draw = c.drawN; c.drawN = null; } }
@@ -2497,7 +2519,7 @@
     } else for (const h of humans) readInput(h, 0);
     if (netRace) puppets(dt);
     soundFrame(dt); for (const h of humans) h.car.lastHit = 0; hornFrame(dt); if (state === 'race') for (const h of humans) rumble(h, dt);
-    if (state === 'replay' && rp) rpCamera(dt); else for (const h of humans) if (!(photo && h.i === 0)) updateCamera(h, dt);
+    if (state === 'replay' && rp) rpCamera(dt); else if (netRace && netRace.role === 'spec' && humans[0]) specCamera(dt); else for (const h of humans) if (!(photo && h.i === 0)) updateCamera(h, dt);
     camShare(); listenerFrame(); if (humans[0]) { headlightsFrame(humans[0].cam.pos); if (state === 'race') weatherFrame(humans[0].cam.pos, dt); }
     // una vista por jugador (con su propio mapa de sombras centrado en su coche)
     const W = canvas.width, H = canvas.height, far = opt.far;

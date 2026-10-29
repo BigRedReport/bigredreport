@@ -41,7 +41,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [x] Retos semanales
 - [x] Repeticiones: verla con las cámaras de televisión, a cámara lenta y rápida, y exportarla a vídeo
 - [ ] Repeticiones guardadas para verlas más tarde
-- [ ] Modo espectador en online
+- [x] Modo espectador en online
 
 ## Bloque 5 · Mi coche (medio)
 - [ ] Editor de decoración: metalizados, vinilos y capas de pegatinas, que se vean en online
