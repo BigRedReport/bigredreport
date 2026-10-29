@@ -300,7 +300,16 @@
       // fallo heredado del original: todas las pancartas de control ponen START; solo la de salida lo lleva, las demás usan la franja lisa de la textura
       if (name === 'START' && startCP && Math.hypot(ox - startCP[0], oz - startCP[1]) > 3000) mm = { ...m, faces: m.faces.map(f => { if (f.tex !== 'START' || !f.uv || f.uv.length < 3) return f; const v0 = Math.min(...f.uv.map(q => q[1])), v1 = Math.max(...f.uv.map(q => q[1]));
         /* la textura tiene franjas de 32 px: START, START, BRS y la lisa (96-127) */ const sh = v1 <= 32.5 ? 96 : v0 >= 31.5 && v1 <= 64.5 ? 64 : 0; return sh ? { ...f, uv: f.uv.map(q => [q[0], q[1] + sh]) } : f; }) };
-      if (/ROOF|CANOP|AWN|SHELTER|TENT/.test(name)) mm = { ...m, faces: m.faces.map(f => ({ ...f, two: true })) };   // tejados: de una sola cara en el original (desde arriba se veían transparentes)
+      if (/ROOF|CANOP|AWN|SHELTER|TENT/.test(name)) { mm = { ...m, faces: m.faces.map(f => ({ ...f, two: true })) };
+        // tejados a los que les falta la plancha (solo traen los cantos, como BAY_ROOF de Inglaterra): se cierra entre los dos cantos laterales
+        const Vv = m.verts, side = m.faces.filter(f => !f.tex && f.idx.length === 4 && f.idx.every(k => Vv[k]) && f.idx.every(k => Vv[k][0] === Vv[f.idx[0]][0]));
+        for (const a of side) { const xa = Vv[a.idx[0]][0]; if (xa <= 0) continue; const b = side.find(f => f.color === a.color && Vv[f.idx[0]][0] === -xa); if (!b) continue;
+          const pa = a.idx.map(k => Vv[k]), find = q => b.idx.find(k => Vv[k][1] === q[1] && Vv[k][2] === q[2]); if (pa.some(q => find(q) == null)) continue;
+          const el = k => Math.hypot(pa[k][1] - pa[(k + 1) % 4][1], pa[k][2] - pa[(k + 1) % 4][2]), e0 = el(0) + el(2) >= el(1) + el(3) ? 0 : 1, top = [e0, e0 + 1], bot = [e0 + 2, (e0 + 3) % 4];   // los dos cantos largos: arriba y abajo de la plancha
+          const zs = pa.map(q => q[2]), zspan = Math.max(...zs) - Math.min(...zs), span = (f, ax) => { const v = f.idx.map(k => Vv[k][ax]); return Math.max(...v) - Math.min(...v); };
+          const big = mm.faces.some(f => f.idx.length >= 3 && f.idx.every(k => Vv[k]) && span(f, 0) > xa && span(f, 2) > zspan * 0.5);
+          if (big) continue;
+          for (const pr of [top, bot]) { const i0 = a.idx[pr[0]], i1 = a.idx[pr[1]]; mm.faces.push({ color: a.color, idx: [i0, i1, find(Vv[i1]), find(Vv[i0])], two: true }); } } }   // tejados: de una sola cara en el original (desde arriba se veían transparentes)
       if (/TUNN/.test(name)) {   // túneles: el original los pintaba negros y tapados por la colina (sin z-buffer); aquí gris oscuro,
         // visibles desde dentro (doble cara) y sin asomar por encima de la colina
         mm = { ...m, faces: m.faces.map(f => f.tex ? f : { ...f, two: true, color: tunnelGrey() }) };

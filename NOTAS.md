@@ -5,6 +5,17 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.88**
+- **IA libre en bomba, zombi y polis y cacos:** ya no corre por el circuito; los cazadores persiguen y los demás huyen por todo el mapa (montañas, agua…), esquivan obstáculos, dan marcha atrás si se atascan y, si vuelcan, se enderezan donde están (nunca vuelven al circuito). Saltan para esquivar cuando el cazador está encima.
+- **Salidas repartidas por el mapa** en zombi y bomba; los cacos, repartidos por la zona más lejana de la salida.
+- **Bomba caliente:** basta con tocar a otro coche para pasarla; 1 minuto por coche; al explotar uno, la bomba pasa al que más tiempo tenga (si empatan, al azar). Gana el último vivo. Zombis y polis también contagian o pillan con solo tocar.
+- **Eliminación:** cada 2 controles si están juntos, cada control si están lejos, y con muchos coches más a menudo para que no dure demasiado.
+- **Kart:** el primero ya no recibe misil buscador ni turbo; cajas de 6 en 6 y centradas en la carretera; objeto nuevo **⚡ Rayo**: durante 6 s, a quien se te acerque le das una descarga que lo frena. La IA salta para esquivar misiles, aceite y bombas.
+- **Logros** de los modos extra (7 nuevos).
+- **La IA ya no acelera de más** para alcanzar al grupo ni salta hacia delante: gana conduciendo.
+- El **ovni**, también vehículo de serie en Marte, Venus y la Luna.
+- **Tejados** que se veían transparentes (los de la salida de Inglaterra y parecidos): ahora tienen su plancha.
+
 **Novedades de la 0.87**
 - Humo y polvo: los sprites de 1995 más pequeños y mezclados con las nubes nuevas, que se quedan flotando y dejan rastro también de lejos. En la nieve, polvo de nieve (antes parecía agua).
 - **Garaje por vehículo:** cada coche guarda sus llantas, neones, ventanas, faros y turbo. El botón del garaje está ahora en el menú principal, debajo de «Piloto y escudería».

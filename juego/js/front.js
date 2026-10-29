@@ -68,7 +68,7 @@
     // imágenes de los circuitos y fondos de pantalla
     for (const t of F.tracks) {
       try { const A = await files.archive(t.id + '.LEV'); t.view = BRR.rawToURL(A.get('VIEW.RAW'));
-        const tx = A.get(t.id + '.TXT'); if (tx) { const s = BRR.text(tx).replace(/;[^\n]*/g, ''); t.cars = [...s.matchAll(/^\s*car\s+(\w+)/gm)].map(x => x[1].toUpperCase()).slice(0, 2).filter(n => n !== 'FEHELI' && files.has(n + '.VHC'));   // el original deja elegir los 2 primeros (el 3º es el helicóptero de cámara u oculto)
+        const tx = A.get(t.id + '.TXT'); if (tx) { const s = BRR.text(tx).replace(/;[^\n]*/g, ''); t.cars = [...s.matchAll(/^\s*car\s+(\w+)/gm)].map(x => x[1].toUpperCase()).slice(0, 2).filter(n => n !== 'FEHELI' && files.has(n + '.VHC'));   // el original deja elegir los 2 primeros (el 3º es el helicóptero de cámara u oculto) if (/^MOON/.test(t.id) && files.has('UFO.VHC') && !t.cars.includes('UFO')) t.cars.push('UFO');   // y el ovni en los planetas
           t.laps = +((s.match(/^\s*laps\s+(\d+)/m) || [0, 3])[1]); }
       } catch (e) { }
       t.place = F.str[t.glb] || ''; t.desc = F.str[t.vie] || '';

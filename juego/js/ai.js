@@ -257,7 +257,7 @@
       // rubber banding suave: según la distancia (en controles) al jugador
       if (playerScore != null) {
         const gap = race.score() - playerScore;                 // >0: va por delante del jugador
-        const want = gap > 0 ? 1 - Math.min(0.08, gap * 0.04) : 1 + Math.min(0.14, -gap * 0.05);
+        const want = gap > 0 ? 1 - Math.min(0.08, gap * 0.04) : 1;   // por detrás ya no acelera de más (era injusto)
         this.rubber += (want - this.rubber) * Math.min(1, dt * 0.5);
       }
       // curva por delante: sentido y fuerza
