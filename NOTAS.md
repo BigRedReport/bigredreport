@@ -5,6 +5,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.68**
+- **Jugar en el móvil (prueba) desde el navegador:** comprime la carpeta BIGRED en un .zip, pásalo al móvil, abre la web del juego y pulsa «Elegir un .zip con la carpeta BIGRED». Se guarda en el navegador para la próxima vez.
+- **Controles táctiles** en carrera: girar (◀ ▶), acelerar, frenar, nitro, freno de mano, ★ (objeto en kart / salto), y arriba pausa, cámara, volver a la pista y bocina. Aparecen solos en pantallas táctiles. Mejor en horizontal.
+- Menús más compactos en pantallas bajas (móvil en horizontal).
+
 **Novedades de la 0.67**
 - **Modo kart** (en Modos extra, también online): cajas de objetos repartidas por el circuito. Al pasar por una te toca un objeto, según cómo vayas: 🛢️ mancha de aceite que dejas detrás y hace trompear, 🟢 misil recto, 🔴 misil que busca al de delante, 💣 bomba que dejas detrás y ⚡ turbo extra. Se usan con V (o G / cruceta ↑). La IA también los coge y los usa.
 - Más textos traducidos en la sala online.

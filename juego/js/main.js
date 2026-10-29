@@ -105,6 +105,17 @@
     $('dirinput').click();
   };
   $('dirinput').onchange = e => useFiles([...e.target.files]);
+  // en el móvil: un .zip con la carpeta BIGRED (se guarda en el navegador para no tener que elegirlo cada vez)
+  async function useZip(z, keep) {
+    $('folder_msg').textContent = 'Leyendo el zip…';
+    try { const L = await BRR.zipFiles(z); if (!L.some(f => /\.LEV$/i.test(f.name))) { $('folder_msg').textContent = 'En ese zip no hay circuitos (.LEV). Comprime la carpeta BIGRED del juego.'; return; }
+      if (keep) { $('folder_msg').textContent = 'Guardando el juego en este navegador…'; try { await idbSet('zip', z); } catch (e) { } }
+      $('folder_msg').textContent = ''; useFiles(L); }
+    catch (e) { $('folder_msg').textContent = 'No se ha podido leer el zip: ' + e.message; }
+  }
+  $('pickzip').onclick = () => $('zipinput').click();
+  $('zipinput').onchange = e => { const z = e.target.files[0]; if (z) useZip(z, true); };
+  (async () => { try { const z = await idbGet('zip'); if (z && z.size) { const b = $('again'); if (!b.hidden) return; b.hidden = false; b.textContent = 'Usar el zip de la última vez (' + Math.round(z.size / 1048576) + ' MB)'; b.onclick = () => useZip(z, false); } } catch (e) { } })();
   let lastDir = null;
   (async () => {
     try {
@@ -1121,6 +1132,29 @@
     const d = Math.max(0.5, V.len(V.sub(humans[0].car.p, P.p))), F = opt.far, n = 0.3; R.focusZ = (F / (F - n)) * (1 - n / d);
   }
   let pauseAt = 0;
+  // ---------- controles táctiles (móvil / tablet): aparecen al tocar la pantalla durante la carrera ----------
+  const TOUCH = { on: false, k: {}, was: false };
+  (function touchSetup() {
+    const root = document.createElement('div'); root.id = 'touch'; root.hidden = true;
+    root.innerHTML = `<div class="tl"><button data-k="left" aria-label="Izquierda">◀</button><button data-k="right" aria-label="Derecha">▶</button></div>
+      <div class="tr"><button data-k="act" class="sm" aria-label="Objeto / salto">★</button><button data-k="nitro" class="sm" aria-label="Nitro">N₂O</button><button data-k="hb" class="sm" aria-label="Freno de mano">⊓</button>
+        <button data-k="brake" aria-label="Freno">▼</button><button data-k="gas" class="big" aria-label="Acelerar">▲</button></div>
+      <div class="rot">⟳ Gira el móvil para jugar en horizontal</div><div class="tt"><button data-t="pause" aria-label="Pausa">⏸</button><button data-t="cam" aria-label="Cámara">🎥</button><button data-t="reset" aria-label="Volver a la pista">↺</button><button data-k="horn" aria-label="Bocina">📯</button></div>`;
+    document.body.appendChild(root);
+    const set = (b, on) => { const k = b.dataset.k; if (k) { TOUCH.k[k] = on; b.classList.toggle('on', on); } };
+    for (const b of root.querySelectorAll('button')) {
+      b.addEventListener('pointerdown', e => { e.preventDefault(); try { b.setPointerCapture(e.pointerId); } catch (x) { } set(b, true);
+        const t = b.dataset.t; if (t === 'pause') togglePause(); else if (t === 'cam' && humans[0]) cycleCam(humans[0]); else if (t === 'reset' && humans[0]) recoverHuman(humans[0]);
+        if (navigator.vibrate) try { navigator.vibrate(8); } catch (x) { } });
+      for (const ev of ['pointerup', 'pointercancel', 'lostpointercapture']) b.addEventListener(ev, () => set(b, false));
+      b.addEventListener('contextmenu', e => e.preventDefault());
+    }
+    // se activan con el primer toque (o en pantallas táctiles) y solo se ven en carrera
+    const coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
+    TOUCH.on = coarse || opt.touch === 'si'; if (opt.touch === 'no') TOUCH.on = false;
+    window.addEventListener('touchstart', () => { if (opt.touch !== 'no' && !TOUCH.on) TOUCH.on = true; }, { passive: true });
+    setInterval(() => { const vis = TOUCH.on && state === 'race' && !photo && humans.length === 1; if (root.hidden === vis) root.hidden = !vis; document.body.classList.toggle('touchui', vis); if (!vis) for (const k in TOUCH.k) TOUCH.k[k] = false; }, 200);
+  })();
   function togglePause() { pauseAt = performance.now();
     if (netRace && state === 'race') { $('pause').hidden = !$('pause').hidden; return; }
     if (state === 'race') { state = 'pause'; show('pause'); if (audio && audio.ctx) audio.ctx.suspend();
@@ -1238,6 +1272,12 @@
       if (!pressed(8) && prev[8]) { if (!h.selCombo && state === 'race' && !photo && PAD.cam.includes(8)) cycleCam(h); h.selCombo = false; }
       if (state === 'race' && !photo && PAD.cam.some(i => i !== 8 && edge(i))) cycleCam(h);
       const nx = {}; gp.buttons.forEach((x, i) => nx[i] = x.pressed); h.padPrevs[gp.index] = nx; h.padPrev = nx;
+    }
+    if (h.i === 0 && TOUCH.on) {   // controles táctiles (jugador 1)
+      const T = TOUCH.k, ts = (T.right ? 1 : 0) - (T.left ? 1 : 0);
+      if (ts || TOUCH.was) { h.steerT = (h.steerT || 0) + (ts - (h.steerT || 0)) * Math.min(1, dt * (ts ? 6 : 10)); if (ts || Math.abs(h.steerT) > 0.01) inp.steer = h.steerT; } TOUCH.was = !!ts;
+      if (T.gas) inp.throttle = 1; if (T.brake) inp.brake = 1; if (T.gas || T.brake) inp.pitchAir = inp.throttle - inp.brake; if (T.hb) inp.handbrake = true; if (T.nitro) inp.nitro = true;
+      if (T.act) { inp.jump = true; if (freeMode) inp.ramp = true; } if (T.horn) inp.horn = true;
     }
     if (h.i === 0 && window.BRR_TEST_INPUT) Object.assign(inp, window.BRR_TEST_INPUT);
     if (+opt.assist && h.race.phase === 'race' && !netRace) assist(h, inp, dt, +opt.assist);

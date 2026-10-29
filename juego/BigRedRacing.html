@@ -170,7 +170,18 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 .omhint{position:fixed;left:8px;bottom:6px;font-size:11px;color:#888;pointer-events:none}
 .inp{font:inherit;color:var(--fg);background:#1c2230;border:1px solid var(--line);border-radius:9px;padding:9px 12px;width:100%}
 #n_list .rrow{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid var(--line)}
-#n_list .rrow small{color:var(--mut)} .kitem{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;min-width:86px;padding:6px 12px;border-radius:12px;background:rgba(10,14,22,.72);border:2px solid rgba(255,210,63,.75);color:#fff;font:600 12px system-ui;pointer-events:none} .kitem b{font-size:34px;line-height:1} .kitem small{opacity:.6;font-size:10px} .sig{font-variant-numeric:tabular-nums;letter-spacing:-1px} .sig.s4,.sig.s3{color:#5fd16a} .sig.s2{color:#f0c040} .sig.s1{color:#ff6a5a}
+#n_list .rrow small{color:var(--mut)} #touch{position:fixed;inset:0;z-index:40;pointer-events:none;touch-action:none;user-select:none;-webkit-user-select:none}
+#touch button{pointer-events:auto;touch-action:none;width:78px;height:78px;border-radius:50%;border:2px solid rgba(255,255,255,.35);background:rgba(10,14,22,.38);color:#fff;font:700 26px system-ui;padding:0;-webkit-tap-highlight-color:transparent}
+#touch button.on{background:rgba(255,74,58,.55);border-color:#fff}
+#touch .tl{position:absolute;left:max(14px,env(safe-area-inset-left));bottom:max(18px,env(safe-area-inset-bottom));display:flex;gap:14px}
+#touch .tl button{width:92px;height:92px;font-size:32px}
+#touch .tr{position:absolute;right:max(14px,env(safe-area-inset-right));bottom:max(18px,env(safe-area-inset-bottom));display:grid;grid-template-columns:auto auto auto;grid-template-rows:auto auto;gap:10px;align-items:end;justify-items:center}
+#touch .tr .sm{width:58px;height:58px;font-size:17px}
+#touch .tr [data-k=act]{grid-column:1;grid-row:1}#touch .tr [data-k=nitro]{grid-column:2;grid-row:1}#touch .tr [data-k=hb]{grid-column:3;grid-row:1}
+#touch .tr [data-k=brake]{grid-column:1/2;grid-row:2}#touch .tr .big{grid-column:2/4;grid-row:2;width:104px;height:104px;font-size:36px}
+#touch .tt{position:absolute;top:max(8px,env(safe-area-inset-top));left:50%;transform:translateX(-50%);display:flex;gap:10px}
+#touch .tt button{width:46px;height:46px;font-size:19px}
+.touchui .phud .bottom{left:50%!important;right:auto!important;bottom:max(10px,env(safe-area-inset-bottom))!important;transform:translateX(-50%) scale(.72)!important;transform-origin:bottom center!important}.touchui .phud .race{transform:scale(.8);transform-origin:top left}.touchui .kitem{top:62px}.touchui #help{display:none!important} #touch .rot{display:none;position:absolute;left:50%;top:30%;transform:translateX(-50%);padding:10px 16px;border-radius:12px;background:rgba(10,14,22,.8);color:#fff;font:600 15px system-ui;text-align:center} @media (orientation:portrait){#touch .rot{display:block}}.touchui .phud .mini{opacity:.8} .kitem[hidden]{display:none!important} @media (max-height:520px){#menu,#optpanel .card,#results .card,#pause .card{zoom:calc(var(--uiz,1)*.66)} .mfoot{display:none} .pane{overflow:auto}} .kitem{position:absolute;top:10px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:2px;min-width:86px;padding:6px 12px;border-radius:12px;background:rgba(10,14,22,.72);border:2px solid rgba(255,210,63,.75);color:#fff;font:600 12px system-ui;pointer-events:none} .kitem b{font-size:34px;line-height:1} .kitem small{opacity:.6;font-size:10px} .sig{font-variant-numeric:tabular-nums;letter-spacing:-1px} .sig.s4,.sig.s3{color:#5fd16a} .sig.s2{color:#f0c040} .sig.s1{color:#ff6a5a}
 #n_members .mrow{display:flex;align-items:center;gap:8px;padding:4px 0}
 #n_chat{height:180px;overflow:auto;background:#0d1016;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;margin:8px 0 6px}
 #netbar{position:fixed;left:50%;transform:translateX(-50%);top:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 14px;font-size:13px;z-index:5;pointer-events:none}
@@ -186,6 +197,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <button class="main" id="pick">Elegir carpeta BIGRED</button>
   <button class="main" id="again" hidden style="background:#1c2230;border-color:var(--line)"></button>
   <input type="file" id="dirinput" webkitdirectory directory multiple hidden>
+  <button class="main" id="pickzip" style="background:#1c2230;border-color:var(--line)">Elegir un .zip con la carpeta BIGRED (móvil)</button>
+  <input type="file" id="zipinput" accept=".zip,application/zip,application/x-zip-compressed" hidden>
   <p id="folder_msg" class="small"></p>
 </div></div>
 
@@ -488,6 +501,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/lang.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/brrdata.js"></script>
+<script src="js/zip.js"></script>
 <script src="js/model3dw.js"></script>
 <script src="js/level.js"></script>
 <script src="js/vehicle.js"></script>

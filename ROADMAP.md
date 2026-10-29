@@ -53,7 +53,8 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [ ] Steam Deck (probar y ajustar controles)
 - [ ] Volantes, pedales y cambio de marchas; force feedback si es posible
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
-- [ ] Android: cargar el juego desde un .zip, controles táctiles y app instalable
+- [x] Android (1): cargar el juego desde un .zip y controles táctiles, en el navegador del móvil
+- [ ] Android (2): app instalable (.apk)
 
 ## Bloque 8 · Modos extra (largo)
 - [ ] Modo «Mario Kart»: objetos, misiles, aceite y turbos, también online
