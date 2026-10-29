@@ -56,7 +56,7 @@ jobs:
         run: |
           ICON=""; if [ "${{ matrix.platform }}" = "win32" ]; then ICON="--icon=icon.ico"; fi
           npx electron-packager . BigRedReport --platform=${{ matrix.platform }} --arch=x64 --out=dist --overwrite --asar $ICON \
-            --ignore="^/dist" --ignore="^/icon.ico" --ignore="^/LEEME.txt" --ignore="^/BigRedReport.sh" \
+            --ignore="^/dist" --ignore="^/icon.ico" --ignore="^/LEEME.txt" --ignore="^/BigRedReport.sh" --ignore="^/instalar-steamdeck.sh" --ignore="^/LEEME-SteamDeck.txt" \
             --app-copyright="Port de fans · Big Red Racing es de sus respectivos dueños"
           D="dist/BigRedReport-${{ matrix.platform }}-x64"
           cp LEEME.txt "$D/"
@@ -70,11 +70,20 @@ jobs:
       - name: Empaquetar (Linux)
         if: matrix.platform == 'linux'
         working-directory: escritorio/dist
-        run: tar -czf ${{ matrix.asset }} BigRedReport
+        run: |
+          tar -czf ${{ matrix.asset }} BigRedReport
+          # Steam Deck: el mismo programa de Linux + instalador (menú y Steam) + icono + instrucciones
+          cp ../instalar-steamdeck.sh ../LEEME-SteamDeck.txt ../game/icon-512.png BigRedReport/ && chmod +x BigRedReport/instalar-steamdeck.sh
+          tar -czf BigRedReport-SteamDeck.tar.gz BigRedReport
       - name: Subir a la versión
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "v$(tr -d ' \r\n' < VERSION)" "escritorio/dist/${{ matrix.asset }}" --clobber
+      - name: Subir la de Steam Deck
+        if: matrix.platform == 'linux'
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release upload "v$(tr -d ' \r\n' < VERSION)" escritorio/dist/BigRedReport-SteamDeck.tar.gz --clobber
 
   android:
     needs: publicar

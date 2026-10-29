@@ -81,6 +81,20 @@
       const g = c.createGain(); g.gain.value = 0; s.connect(f); f.connect(g); g.connect(this.gAmb); s.start();
       return this.amb = { set: (v, fr) => { const t = c.currentTime; g.gain.setTargetAtTime(v, t, 0.2); f.frequency.setTargetAtTime(fr, t, 0.2); } };
     }
+    // turbo: soplido sintetizado (ruido que barre de grave a agudo + golpe grave), sale también en los rivales con su posición
+    boost(vol = 0.8, pos = null) {
+      if (!this.ctx) return; const c = this.ctx, t = c.currentTime, dur = 1.3;
+      if (!this._nz) { const n = c.sampleRate * 1.5 | 0, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; this._nz = b; }
+      const s = c.createBufferSource(); s.buffer = this._nz; const f = c.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = 1.3;
+      f.frequency.setValueAtTime(350, t); f.frequency.exponentialRampToValueAtTime(2600, t + 0.35); f.frequency.exponentialRampToValueAtTime(900, t + dur);
+      const g = c.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.05); g.gain.exponentialRampToValueAtTime(vol * 0.35, t + 0.5); g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+      const o = c.createOscillator(); o.type = 'sawtooth'; o.frequency.setValueAtTime(70, t); o.frequency.exponentialRampToValueAtTime(140, t + 0.4);
+      const og = c.createGain(); og.gain.setValueAtTime(0.0001, t); og.gain.exponentialRampToValueAtTime(vol * 0.5, t + 0.03); og.gain.exponentialRampToValueAtTime(0.0001, t + 0.6);
+      const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 400;
+      s.connect(f); f.connect(g); o.connect(lp); lp.connect(og); const out = c.createGain(); g.connect(out); og.connect(out);
+      if (pos && this.spatial) { const p = this.panner(pos); out.connect(p); p.connect(this.bus('sfx')); } else out.connect(this.bus('sfx'));
+      s.start(t); s.stop(t + dur + 0.05); o.start(t); o.stop(t + 0.7);
+    }
     // bocina sintetizada sencilla (rivales): ver horns.js para todas las demás
     horn(pitch = 1, vol = 0.5, dur = null, type = 'normal', pos = null) {
       const h = BRR.playHorn ? BRR.playHorn(this, type, pitch, vol, { dur, pos }) : null; return h || { stop() { } };

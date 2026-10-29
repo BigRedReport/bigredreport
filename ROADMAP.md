@@ -57,7 +57,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 
 ## Bloque 7 · Plataformas (medio-largo)
 - [x] Windows y Linux: programa con lanzador (carpeta del juego, opciones, servidor online, donaciones y Jugar)
-- [ ] Steam Deck (probar y ajustar controles)
+- [x] Steam Deck: paquete con instalador, lanzador con mando y ajustes (0.90, falta probar en una Deck de verdad)
 - [ ] Volantes, pedales y cambio de marchas; force feedback si es posible
 - [ ] Realidad virtual (Quest, PC VR), junto con la versión de Windows
 - [x] Android (1): cargar el juego desde un .zip y controles táctiles, en el navegador del móvil

@@ -59,11 +59,16 @@ void main(){ float a=vcol.a;
         if (useSpr) this.parts.push({ p: [p[0] + (Math.random() - .5) * spread * 0.5, p[1], p[2] + (Math.random() - .5) * spread * 0.5], v: [v[0] * 0.6, v[1] * 0.5 + 0.2, v[2] * 0.6], col, size: size * 0.6, life: 0.6 + Math.random() * 0.25, age: 0, grow: 0, spr: useSpr });
       }
     }
-    flame(p, back, v, tint) {   // llamarada del nitro (tint: color del equipo, 0..1)
-      // llama fina: núcleo azul pequeño y una cola naranja corta
-      for (let k = 0; k < 2; k++) this.parts.push({ p: [p[0] + (Math.random() - .5) * .06, p[1] + (Math.random() - .5) * .06, p[2] + (Math.random() - .5) * .06],
-        v: [v[0] * 0.85 + back[0] * 0.8 + (Math.random() - .5) * 0.3, v[1] * 0.85 + Math.random() * 0.2, v[2] * 0.85 + back[2] * 0.8 + (Math.random() - .5) * 0.3],
-        col: tint ? (k ? [tint[0], tint[1], tint[2], 0.85] : [0.5 + tint[0] * 0.5, 0.5 + tint[1] * 0.5, 0.5 + tint[2] * 0.5, 0.8]) : k ? [1, 0.55, 0.12, 0.85] : [0.55, 0.75, 1, 0.8], size: k ? 0.11 : 0.08, life: (k ? 0.13 : 0.08) + Math.random() * 0.05, age: 0, grow: 0.5, solid: true });
+    flame(p, back, v, tint, big = 1) {   // llamarada del nitro (tint: color del equipo, 0..1): núcleo blanco-azulado, cuerpo del color del equipo, cola larga y halo de luz
+      const T = tint || [1, 0.55, 0.12], n = 3 + (big > 1 ? 1 : 0);
+      for (let k = 0; k < n; k++) { const core = k === 0, r = Math.random(), sp = 1.1 + r * 0.9;
+        this.parts.push({ p: [p[0] + (Math.random() - .5) * .08, p[1] + (Math.random() - .5) * .08, p[2] + (Math.random() - .5) * .08],
+          v: [v[0] * 0.8 + back[0] * sp + (Math.random() - .5) * 0.5, v[1] * 0.8 + back[1] * sp + Math.random() * 0.3, v[2] * 0.8 + back[2] * sp + (Math.random() - .5) * 0.5],
+          col: core ? [0.75 + T[0] * 0.25, 0.8 + T[1] * 0.2, 1, 0.95] : k === 1 ? [Math.min(1, T[0] * 1.2 + 0.2), Math.min(1, T[1] * 1.2 + 0.1), Math.min(1, T[2] * 1.2 + 0.1), 0.9] : [1, 0.5 + Math.random() * 0.25, 0.12, 0.8],
+          size: (core ? 0.16 : 0.24 + r * 0.12) * big, life: (core ? 0.1 : 0.2 + r * 0.12) * big, age: 0, grow: core ? 0.6 : 1.4, solid: true }); }
+      if (Math.random() < 0.35) this.parts.push({ p: p.slice(), v: [v[0] * 0.7 + back[0] * 1.6 + (Math.random() - .5) * 2, v[1] + Math.random() * 1.5, v[2] * 0.7 + back[2] * 1.6 + (Math.random() - .5) * 2], col: [1, 0.8, 0.35, 1], size: 0.05, life: 0.35, age: 0, grow: 0, grav: 1, solid: true });   // chispitas
+      if (Math.random() < 0.25) this.parts.push({ p: [p[0] + back[0] * 0.3, p[1] + 0.05, p[2] + back[2] * 0.3], v: [v[0] * 0.3 + back[0] * 0.4, 0.5, v[2] * 0.3 + back[2] * 0.4], col: [0.55, 0.55, 0.6, 0.18], size: 0.35, life: 0.9, age: 0, grow: 2 });   // estela de humo fino
+      this.glow(p, [Math.min(1, T[0] * 0.6 + 0.4), Math.min(1, T[1] * 0.6 + 0.35), Math.min(1, T[2] * 0.6 + 0.3)], 1.1 * big + Math.random() * 0.3);
     }
     // lluvia (gotas alargadas que caen en diagonal) y nieve (copos lentos) en una caja alrededor de la cámara
     weather(cam, kind, dt, k = 1) {

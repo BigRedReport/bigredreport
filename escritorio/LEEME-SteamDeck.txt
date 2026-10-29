@@ -1,0 +1,20 @@
+Big Red Report para Steam Deck
+==============================
+
+1. En el modo escritorio, descomprime BigRedReport-SteamDeck.tar.gz (por ejemplo en Descargas).
+2. Copia tu copia de Big Red Racing (la carpeta que contiene BIGRED y, si la tienes, IMAGE.img
+   para la música del CD) a la Deck: tarjeta SD, Descargas o ~/Games valen.
+3. Entra en la carpeta BigRedReport, clic derecho en instalar-steamdeck.sh → "Ejecutar en Konsole".
+   Se instala en ~/Games/BigRedReport y se añade a Steam (Biblioteca → No de Steam).
+4. Vuelve al modo juego y ábrelo. El lanzador busca tu copia solo; si no la encuentra,
+   "Elegir carpeta…" con el trackpad.
+
+Controles: el mando de la Deck funciona en menús y en carrera (la cruceta mueve, A elige,
+B vuelve). En el lanzador LB/RB cambian de pestaña y START juega. En Steam usa la plantilla
+"Mando" (Gamepad). La pantalla táctil también vale.
+
+La primera vez el juego se ajusta a la Deck: resolución automática, sombras medias,
+menús y marcador algo más grandes. Puedes cambiarlo en Opciones.
+
+Se actualiza solo desde el lanzador como la versión de Linux.
+El programa lee los archivos de tu copia y no incluye ni distribuye datos del juego.

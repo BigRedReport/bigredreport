@@ -26,6 +26,8 @@ select,input[type=number]{background:#2a2531;color:var(--ink);border:1px solid v
 .dnb{display:block;text-align:center;padding:12px;border-radius:10px;font-weight:800;color:#fff;text-decoration:none;margin-bottom:8px;cursor:pointer;border:0;width:100%;font-size:15px}
 .kofi{background:#29abe0}.pp{background:#003087}
 a{color:var(--redink)}
+:focus-visible,body.pad :focus,html.deck :focus{outline:3px solid #ffd24a!important;outline-offset:2px}
+html.deck body{font-size:17px}html.deck button.sec{padding:11px 16px;font-size:15px}html.deck nav button{padding:10px 16px;font-size:15px}
 @media (max-width:820px){.app{grid-template-columns:1fr}.art{height:200px}.art::after{background:linear-gradient(transparent 60%,var(--bg))}}
 </style></head>
 <body><div class="app">
@@ -36,10 +38,12 @@ a{color:var(--redink)}
 
   <section class="page on" id="p_play">
     <div class="card"><div class="lab">Carpeta del juego</div><div class="path" id="dir">—</div><div class="small" id="dirst"></div>
-      <div style="margin-top:10px"><button class="sec" id="pick">Elegir carpeta…</button></div></div>
+      <div style="margin-top:10px"><button class="sec" id="pick">Elegir carpeta…</button> <button class="sec" id="find">Buscar automáticamente</button></div></div>
     <div class="card" id="upd" hidden><div class="lab">Actualización</div><div id="upd_t"></div>
       <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap"><button class="sec" id="upd_game" hidden>Actualizar ahora</button></div></div>
     <button class="big" id="play" disabled>JUGAR</button>
+    <div class="small" id="padhint" hidden>🎮 Mando: cruceta o stick para moverte · A elegir · LB/RB pestañas · B volver</div>
+    <button class="sec" id="quit" hidden>Salir</button>
     <p class="small">Necesitas tu copia original de Big Red Racing: elige la carpeta que contiene <b>BIGRED</b> (y la imagen del CD, <b>IMAGE.img</b>, para la música) o directamente la carpeta BIGRED.</p>
   </section>
 
@@ -79,16 +83,43 @@ a{color:var(--redink)}
 const N = window.BRR_NATIVE, $ = id => document.getElementById(id);
 for (const b of document.querySelectorAll('nav button')) b.onclick = () => { for (const x of document.querySelectorAll('nav button')) x.classList.toggle('on', x === b); for (const p of document.querySelectorAll('.page')) p.classList.toggle('on', p.id === 'p_' + b.dataset.p); };
 for (const a of document.querySelectorAll('[data-url]')) a.onclick = e => { e.preventDefault(); N.openUrl(a.dataset.url); };
+let first = true;
 async function refresh() {
-  const c = await N.getCfg(); $('ver').textContent = 'Versión ' + c.version + ' · ' + ({ win32: 'Windows', linux: 'Linux', darwin: 'macOS' }[c.platform] || c.platform);
+  const c = await N.getCfg(); $('ver').textContent = 'Versión ' + c.version + ' · ' + (c.deck ? 'Steam Deck' : { win32: 'Windows', linux: 'Linux', darwin: 'macOS' }[c.platform] || c.platform);
+  if (c.deck) { document.documentElement.classList.add('deck'); $('quit').hidden = false; $('padhint').hidden = false; }
+  if (first && !c.dir) { first = false; $('dir').textContent = 'Sin elegir'; setTimeout(() => $('find').click(), 50); return; }   // primera vez: se busca la copia sola
   $('dir').textContent = c.dir || 'Sin elegir';
   const st = c.dir ? await N.checkDir() : { ok: false };
   $('dirst').className = 'small ' + (st.ok ? 'ok' : 'bad');
   $('dirst').textContent = !c.dir ? 'Elige la carpeta de tu copia del juego.' : st.ok ? '✓ Juego encontrado' + (st.cd ? ' · con la música del CD' : ' · sin la imagen del CD (no habrá música original)') : '✗ En esa carpeta no está Big Red Racing (no hay circuitos .LEV)';
-  $('play').disabled = !st.ok;
+  $('play').disabled = !st.ok; if (first) { first = false; if (st.ok) $('play').focus(); }
   $('o_full').checked = !!c.fullscreen; $('o_size').value = c.width + 'x' + c.height; $('o_lang').value = c.lang || ''; $('o_srv').checked = !!c.server; $('o_port').value = c.port || 7777;
 }
 $('pick').onclick = async () => { await N.pickDir(); refresh(); };
+$('find').onclick = async () => { $('find').disabled = true; $('dirst').className = 'small'; $('dirst').textContent = 'Buscando tu copia del juego…'; const d = await N.findDir().catch(() => null); $('find').disabled = false; if (!d) { $('dirst').className = 'small bad'; $('dirst').textContent = 'No la encuentro. Pulsa «Elegir carpeta…» y busca la carpeta BIGRED.'; } else refresh(); };
+$('quit').onclick = () => N.quit();
+// mando (Steam Deck y cualquier mando): mover el foco entre botones con la cruceta/stick, A pulsa, LB/RB cambian de pestaña, B vuelve a Jugar
+(() => { let prev = [], rep = 0, used = false;
+  const vis = el => el.offsetParent !== null && !el.disabled;
+  const items = () => [...document.querySelectorAll('nav button, .page.on button, .page.on select, .page.on input, .page.on a[data-url]')].filter(vis);
+  const move = (dx, dy) => { const L = items(); if (!L.length) return; const cur = document.activeElement; if (!L.includes(cur)) { ($('play').disabled ? L[0] : $('play')).focus(); return; }
+    const r = cur.getBoundingClientRect(), cx = r.left + r.width / 2, cy = r.top + r.height / 2; let best = null, bd = 1e9;
+    for (const el of L) { if (el === cur) continue; const q = el.getBoundingClientRect(), x = q.left + q.width / 2 - cx, y = q.top + q.height / 2 - cy;
+      if (dx && Math.sign(x) !== dx || dy && Math.sign(y) !== dy) continue; const d = dx ? Math.abs(x) + Math.abs(y) * 3 : Math.abs(y) + Math.abs(x) * 0.4; if (d < bd) { bd = d; best = el; } }
+    if (best) { best.focus(); best.scrollIntoView({ block: 'nearest' }); } };
+  const tab = k => { const T = [...document.querySelectorAll('nav button')], i = T.findIndex(b => b.classList.contains('on')); const b = T[(i + k + T.length) % T.length]; b.click(); b.focus(); };
+  const press = () => { const el = document.activeElement; if (!el || el === document.body) return; if (el.tagName === 'INPUT' && el.type === 'checkbox') { el.checked = !el.checked; el.dispatchEvent(new Event('change')); }
+    else if (el.tagName === 'SELECT') { el.selectedIndex = (el.selectedIndex + 1) % el.options.length; el.dispatchEvent(new Event('change')); } else el.click(); };
+  const tick = () => { requestAnimationFrame(tick); const gp = (navigator.getGamepads ? [...navigator.getGamepads()] : []).find(g => g && g.connected); if (!gp) return;
+    const B = gp.buttons.map(b => b.pressed), ax = gp.axes[0] || 0, ay = gp.axes[1] || 0, now = performance.now();
+    const dir = (B[14] || ax < -0.6) ? [-1, 0] : (B[15] || ax > 0.6) ? [1, 0] : (B[12] || ay < -0.6) ? [0, -1] : (B[13] || ay > 0.6) ? [0, 1] : null;
+    const edge = i => B[i] && !prev[i];
+    if (B.some(x => x) && !used) { used = true; $('padhint').hidden = false; document.body.classList.add('pad'); }
+    if (dir) { if (!rep || now > rep) { move(dir[0], dir[1]); rep = now + (rep ? 140 : 380); } } else rep = 0;
+    if (edge(0)) press(); if (edge(1)) { const T = document.querySelector('nav button'); if (!T.classList.contains('on')) { T.click(); T.focus(); } }
+    if (edge(4)) tab(-1); if (edge(5)) tab(1); if (edge(9) && !$('play').disabled) N.play();
+    prev = B; };
+  requestAnimationFrame(tick); })();
 $('play').onclick = () => N.play();
 $('o_full').onchange = () => N.setCfg({ fullscreen: $('o_full').checked });
 $('o_size').onchange = () => { const [w, h] = $('o_size').value.split('x').map(Number); N.setCfg({ width: w, height: h }); };

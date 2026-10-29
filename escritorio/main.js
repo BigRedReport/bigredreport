@@ -5,9 +5,13 @@ const path = require('path'), fs = require('fs'), zlib = require('zlib');
 // Linux: al descomprimir el .tar.gz el ayudante del sandbox de Chromium no tiene permisos de root; sin esto no arranca
 if (process.platform === 'linux' && !process.env.BRR_SANDBOX) app.commandLine.appendSwitch('no-sandbox');
 
+// Steam Deck: Steam pone SteamDeck=1 en modo juego; en modo escritorio se mira el fabricante de la placa (Valve, Jupiter/Galileo). --deck lo fuerza
+const DECK = (() => { if (process.platform !== 'linux') return false; if (process.argv.includes('--deck') || process.env.SteamDeck === '1') return true;
+  try { const v = fs.readFileSync('/sys/devices/virtual/dmi/id/board_vendor', 'utf8').trim(), n = fs.readFileSync('/sys/devices/virtual/dmi/id/product_name', 'utf8').trim(); return /valve/i.test(v) && /jupiter|galileo/i.test(n); } catch (e) { return false; } })();
+const GAMEMODE = DECK && (process.env.SteamGamepadUI === '1' || process.env.SteamDeck === '1' || /gamescope/i.test(process.env.XDG_CURRENT_DESKTOP || ''));
 const CFG = path.join(app.getPath('userData'), 'lanzador.json');
 const DEF = { dir: '', fullscreen: true, width: 1600, height: 900, lang: '', server: false, port: 7777 };
-let cfg = { ...DEF }; try { Object.assign(cfg, JSON.parse(fs.readFileSync(CFG, 'utf8'))); } catch (e) { }
+let cfg = { ...DEF, ...(DECK ? { width: 1280, height: 800 } : {}) }; try { Object.assign(cfg, JSON.parse(fs.readFileSync(CFG, 'utf8'))); } catch (e) { }
 const saveCfg = () => { try { fs.mkdirSync(path.dirname(CFG), { recursive: true }); fs.writeFileSync(CFG, JSON.stringify(cfg, null, 1)); } catch (e) { } };
 
 let launcher = null, game = null, server = null;
@@ -19,7 +23,7 @@ const gameDir = () => fs.existsSync(path.join(UPD, 'BigRedRacing.html')) && newe
 const GAME_HTML = () => path.join(gameDir(), 'BigRedRacing.html');
 
 function openLauncher() {
-  launcher = new BrowserWindow({ width: 980, height: 620, minWidth: 760, minHeight: 520, title: 'Big Red Report', backgroundColor: '#14121a', autoHideMenuBar: true,
+  launcher = new BrowserWindow({ width: DECK ? 1280 : 980, height: DECK ? 800 : 620, fullscreen: GAMEMODE, minWidth: 760, minHeight: 520, title: 'Big Red Report', backgroundColor: '#14121a', autoHideMenuBar: true,
     icon: path.join(__dirname, 'game', 'icon-512.png'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true } });
   launcher.loadFile(path.join(__dirname, 'launcher.html'));
   launcher.on('closed', () => { launcher = null; if (!game) app.quit(); });
@@ -28,8 +32,8 @@ function openGame() {
   if (game) { game.focus(); return; }
   game = new BrowserWindow({ width: cfg.width, height: cfg.height, fullscreen: !!cfg.fullscreen, title: 'Big Red Report', backgroundColor: '#000', autoHideMenuBar: true,
     icon: path.join(__dirname, 'game', 'icon-512.png'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, backgroundThrottling: false } });
-  game.loadFile(GAME_HTML(), { query: { native: '1', ...(cfg.lang ? { lang: cfg.lang } : {}) } });
-  game.on('closed', () => { game = null; if (launcher) launcher.show(); else app.quit(); });
+  game.loadFile(GAME_HTML(), { query: { native: '1', ...(DECK ? { deck: '1' } : {}), ...(cfg.lang ? { lang: cfg.lang } : {}) } });
+  game.on('closed', () => { game = null; if (launcher && !GAMEMODE) launcher.show(); else app.quit(); });   // en el modo juego del Deck, salir del juego cierra el programa
   if (launcher) launcher.hide();
 }
 function startServer(force) {
@@ -52,7 +56,22 @@ function walk(dir, base, out, depth = 0) {
 }
 const safe = rel => { const p = path.resolve(cfg.dir, '..', rel); if (!p.startsWith(path.resolve(cfg.dir, '..'))) throw new Error('ruta'); return p; };
 
-ipcMain.handle('cfg:get', () => ({ ...cfg, version: app.getVersion(), platform: process.platform }));
+ipcMain.handle('cfg:get', () => ({ ...cfg, version: app.getVersion(), platform: process.platform, deck: DECK, gamemode: GAMEMODE }));
+// buscar la copia del juego sola (carpeta con BIGRED y circuitos .LEV): carpeta personal, Juegos, Descargas, tarjeta SD y USB (/run/media, /media, /mnt) y unidades de Windows
+function findGame() {
+  const os = require('os'), H = os.homedir(), roots = [];
+  if (process.platform === 'win32') { for (const d of 'CDEFGHIJ') roots.push(d + ':\\'); roots.push(H); }
+  else { roots.push(H, path.join(H, 'Games'), path.join(H, 'Juegos'), path.join(H, 'Downloads'), path.join(H, 'Descargas'), path.join(H, 'Desktop'), path.join(H, 'Escritorio'));
+    for (const m of ['/run/media', '/media', '/mnt']) { try { for (const u of fs.readdirSync(m)) { const p = path.join(m, u); roots.push(p); try { for (const v of fs.readdirSync(p)) roots.push(path.join(p, v)); } catch (e) { } } } catch (e) { } } }
+  const skip = /^(\.|node_modules$|proc$|sys$|Windows$|Program Files|ProgramData$|AppData$|steamapps$|compatdata$|shadercache$)/i, seen = new Set(), t0 = Date.now();
+  const q = roots.filter(r => { try { return fs.statSync(r).isDirectory(); } catch (e) { return false; } }).map(r => [r, 0]);
+  while (q.length && Date.now() - t0 < 6000) { const [d, k] = q.shift(); if (seen.has(d)) continue; seen.add(d);
+    let L; try { L = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { continue; }
+    for (const e of L) if (e.isDirectory() && /^BIGRED$/i.test(e.name)) { const b = path.join(d, e.name); if (walk(b, e.name + '/', []).some(f => /\.LEV$/i.test(f.rel))) return L.length < 40 && L.some(f => /\.(cue|img|bin|iso)$/i.test(f.name)) ? d : b; }   // con la imagen del CD al lado: la carpeta de arriba (para la música)
+    if (k < 4) for (const e of L) if (e.isDirectory() && !skip.test(e.name)) q.push([path.join(d, e.name), k + 1]); }
+  return null;
+}
+ipcMain.handle('dir:find', () => { const d = findGame(); if (d) { cfg.dir = d; saveCfg(); } return d; });
 ipcMain.handle('cfg:set', (e, c) => { const was = cfg.server, port = cfg.port; Object.assign(cfg, c || {}); saveCfg(); if (cfg.server !== was || cfg.port !== port) { stopServer(); startServer(); } return cfg; });
 ipcMain.handle('dir:pick', async () => {
   const r = await dialog.showOpenDialog(launcher || game, { title: 'Elige la carpeta del juego (la que contiene BIGRED, o la propia BIGRED)', properties: ['openDirectory'] });

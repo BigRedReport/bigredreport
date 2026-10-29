@@ -5,6 +5,7 @@ contextBridge.exposeInMainWorld('BRR_NATIVE', {
   getCfg: () => ipcRenderer.invoke('cfg:get'),
   setCfg: c => ipcRenderer.invoke('cfg:set', c),
   pickDir: () => ipcRenderer.invoke('dir:pick'),
+  findDir: () => ipcRenderer.invoke('dir:find'),
   checkDir: () => ipcRenderer.invoke('dir:check'),
   list: () => ipcRenderer.invoke('files:list'),
   read: (rel, start, end) => ipcRenderer.invoke('files:read', rel, start, end),

@@ -3,8 +3,14 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 **Descargas**
 - **Windows:** `BigRedReport-Windows.zip` → descomprime y abre `BigRedReport.exe` (si ya lo tienes, el lanzador actualiza el juego solo).
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
+- **Steam Deck:** `BigRedReport-SteamDeck.tar.gz` → en modo escritorio descomprime y ejecuta `instalar-steamdeck.sh` (clic derecho → Ejecutar en Konsole); queda en Steam, en «No de Steam».
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
+
+**Novedades de la 0.90**
+- **Steam Deck** (`BigRedReport-SteamDeck.tar.gz`, de prueba): instalador que lo copia a ~/Games, lo añade al menú y a Steam; en modo juego se abre a pantalla completa y al salir del juego se cierra. El lanzador se maneja con el mando (cruceta/stick, A, B, LB/RB, START) y busca tu copia sola. La primera vez el juego usa ajustes para la Deck (resolución automática, sombras medias, sin SSAO, menús y marcador más grandes). Los controles táctiles se esconden mientras juegas con el mando.
+- **Buscar automáticamente** la carpeta del juego en el lanzador (Windows y Linux también).
+- **Turbo que se ve y se oye:** llamarada más grande con el color del equipo, halo de luz, chispas y estela de humo; soplido al encenderlo además del sonido original. Los rivales también: se oyen con su posición (hasta 140 m), online y en las repeticiones. La cámara se abre un poco mientras dura.
 
 **Novedades de la 0.89**
 - **App de Android** (`BigRedReport-Android.apk`, primera versión de prueba): el juego entero dentro de la app, a pantalla completa y en horizontal, con controles táctiles y mandos. La primera vez elige el .zip con tu carpeta BIGRED. **Se actualiza sola:** al abrirla mira si hay versión nueva y la descarga e instala (pide permiso para instalar la primera vez).

@@ -16,6 +16,9 @@
   try { Object.assign(opt, JSON.parse(ST.get('brr_opt') || (PROF ? localStorage.getItem('brr_opt') : null) || '{}')); } catch (e) { }
   // 0.14: las funciones nuevas pasan a estar activadas por defecto (menú nuevo, texturas suavizadas, antialiasing); las ayudas siguen desactivadas
   if (!(opt.cfgv >= 2)) { Object.assign(opt, { menu: 'moderno', filter: 'smooth', aa: '1', light: 'moderna' }); opt.cfgv = 2; try { setTimeout(() => save(), 0); } catch (e) { } }
+  // Steam Deck (lo indica el programa de escritorio): la primera vez, ajustes pensados para su pantalla de 7" (1280×800) y su gráfica
+  const DECK = (() => { try { return new URLSearchParams(location.search).get('deck') === '1'; } catch (e) { return false; } })(); BRR.deck = DECK; if (DECK) document.documentElement.classList.add('deck');
+  if (DECK && !opt.deckInit) { Object.assign(opt, { deckInit: 1, autoRes: true, shadows: 1, ssao: 'no', uiz: '115', hudsc: 115, aa: '1' }); try { setTimeout(() => save(), 0); } catch (e) { } }
   if (BRR.HORN_RENAMED && BRR.HORN_RENAMED[opt.horn]) opt.horn = BRR.HORN_RENAMED[opt.horn];
   if (!BRR.HORNS.some(h => h.id === opt.horn)) opt.horn = 'normal';
   if (typeof opt.logo === 'string' && opt.logo.startsWith('x:') && !(BRR.LOGOS_EXTRA || []).some(l => 'x:' + l.id === opt.logo)) opt.logo = 0;
@@ -1197,8 +1200,8 @@
     // se activan con el primer toque (o en pantallas táctiles) y solo se ven en carrera
     const coarse = window.matchMedia && matchMedia('(pointer: coarse)').matches;
     TOUCH.on = coarse || opt.touch === 'si'; if (opt.touch === 'no') TOUCH.on = false;
-    window.addEventListener('touchstart', () => { if (opt.touch !== 'no' && !TOUCH.on) TOUCH.on = true; }, { passive: true });
-    setInterval(() => { const vis = TOUCH.on && state === 'race' && !photo && humans.length === 1; if (root.hidden === vis) root.hidden = !vis; document.body.classList.toggle('touchui', vis); if (!vis) for (const k in TOUCH.k) TOUCH.k[k] = false; }, 200);
+    window.addEventListener('touchstart', () => { TOUCH.lastT = Date.now(); if (opt.touch !== 'no' && !TOUCH.on) TOUCH.on = true; }, { passive: true });
+    setInterval(() => { const vis = TOUCH.on && state === 'race' && !photo && humans.length === 1 && !(BRR.deck && pads().length && Date.now() - (TOUCH.lastT || 0) > 4000); if (root.hidden === vis) root.hidden = !vis; document.body.classList.toggle('touchui', vis); if (!vis) for (const k in TOUCH.k) TOUCH.k[k] = false; }, 200);
   })();
   function togglePause() { pauseAt = performance.now();
     if (netRace && state === 'race') { $('pause').hidden = !$('pause').hidden; return; }
@@ -1562,7 +1565,7 @@
       if (V.len(V.sub(tp, c.p)) > 15) c.p = tp; else c.p = V.add(c.p, V.mul(V.sub(tp, c.p), k));
       if (c.q[0] * q[0] + c.q[1] * q[1] + c.q[2] * q[2] + c.q[3] * q[3] < 0) q = q.map(x => -x);
       const nq = c.q.map((x, i) => x + (q[i] - x) * k), l = Math.hypot(...nq) || 1; c.q = nq.map(x => x / l);
-      c.v = v; c.steerAng = st; c.nitroT = n ? 0.1 : 0;
+      c.v = v; c.steerAng = st; if (n && !(c.nitroT > 0)) nitroFx(c); c.nitroT = n ? 0.1 : 0;
       const sp = V.dot(c.v, c.forward()); for (const w of c.W) { w.spin += sp / (w.radius || 0.3) * dt; w.len = 0.3; }
     }
   }
@@ -1971,8 +1974,9 @@
   }
   function nitroFx(c) {
     if (!audio || !audio.ctx) return;
-    const d = c.isPlayer ? 0 : camDist(c.p); if (d > 80) return;
-    audio.play('GEN/TUR.WAV', { vol: c.isPlayer ? 0.9 : 0.6 * (1 - d / 80), pos: c.isPlayer ? null : c.p });
+    c.boostT = 0.6;   // llamarada grande y halo al encenderlo
+    const d = c.isPlayer ? 0 : camDist(c.p); if (d > 140) return; const k = c.isPlayer ? 1 : Math.max(0.25, 1 - d / 140);
+    audio.play('GEN/TUR.WAV', { vol: c.isPlayer ? 0.9 : 0.85 * k, pos: c.isPlayer ? null : c.p }); audio.boost(c.isPlayer ? 0.7 : 0.75 * k, c.isPlayer ? null : c.p.slice());
   }
   function propSound(hit) {
     if (hit.car && hit.car.isPlayer && hit.car.human === 0 && state === 'race') { achCount('props', 100, 'destrozos'); if (BRR.isCritter(hit.o)) achCount('sheep', 10, 'ovejas'); }
@@ -2403,9 +2407,10 @@
     rpRec.cars.forEach((c, k) => { const o = 1 + k * RP_N, L = j => A[o + j] + (B[o + j] - A[o + j]) * u;
       const p0 = c.p; c.p = [L(0), L(1), L(2)]; let qa = [0, 1, 2, 3].map(j => A[o + 3 + j]), qb = [0, 1, 2, 3].map(j => B[o + 3 + j]); if (qa[0] * qb[0] + qa[1] * qb[1] + qa[2] * qb[2] + qa[3] * qb[3] < 0) qb = qb.map(x => -x);
       const q = qa.map((x, j) => x + (qb[j] - x) * u), l = Math.hypot(...q) || 1; c.q = q.map(x => x / l); c.steerAng = L(7);
-      const fl = A[o + 8] | 0; c.nitroT = fl & 1 ? 0.1 : 0; c.brakeLight = !!(fl & 2); c.out = !!(fl & 4); c.v = V.mul(c.forward(), L(9));
+      const fl = A[o + 8] | 0; if (fl & 1 && !(c.nitroT > 0) && rp.play && rp.speed > 0 && rp.speed <= 2) nitroFx(c); c.nitroT = fl & 1 ? 0.1 : 0; c.brakeLight = !!(fl & 2); c.out = !!(fl & 4); c.v = V.mul(c.forward(), L(9));
       const sp = Math.hypot(c.p[0] - p0[0], c.p[2] - p0[2]) * Math.sign(L(9) || 1); for (const w of c.W) { w.spin += sp / (w.radius || 0.3); w.len = L(10) || 0.3; } });
-    for (const c of rpRec.cars) if (c.nitroT > 0 && !c.out) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc); }
+    for (const c of rpRec.cars) if (c.boostT > 0) c.boostT -= dt;
+    for (const c of rpRec.cars) if (c.nitroT > 0 && !c.out) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc, (c.boostT || 0) > 0 ? 1.7 : 1.2); }
     rpRec.cars.forEach((c, k) => fx.car(c, dt * (rp.play ? rp.speed : 0), 'rp' + k)); fx.update(dt * (rp.play ? rp.speed : 0));
     $('rp_time').value = String(Math.round((rp.t - rp.t0) / Math.max(0.01, rp.t1 - rp.t0) * 1000)); $('rp_clock').textContent = fmt(rp.t - rp.t0);
   }
@@ -2783,7 +2788,8 @@
       updatePositions(dt); crazyFrame(dt); kartFrame(dt); crazySirens(); neonFrame(); rpRecord(dt); if (netRace) { crazyNetHits(); crazyNetSend(dt); } for (const c of allCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
       if (humans[0] && humans[0].race.phase === 'race') { const h0 = humans[0]; if (h0.race.t > 8 && order.length >= 4 && h0.pos === order.length) h0.wasLast = true; if (freeMode && (h0.freeT = (h0.freeT || 0) + dt) > 300) achUnlock('libre'); statAcc.km += Math.abs(humans[0].car.speed()) * dt / 1000; statAcc.t += dt; statAcc.veh = humans[0].car.def.name; }
       for (const hit of props.update(dt, allCars)) propSound(hit);
-      for (const c of allCars) if (c.nitroT > 0) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc); }
+      for (const c of allCars) if (c.boostT > 0) c.boostT -= dt;
+      for (const c of allCars) if (c.nitroT > 0) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc, (c.boostT || 0) > 0 ? 1.7 : 1.2); }
       humans.forEach(h => fx.car(h.car, dt, 'p' + h.i)); rivals.forEach((r, k) => { if (camDist(r.car.p) < 160) fx.car(r.car, dt, 'r' + k); });
       if (opt.damage !== '0' && !netRace) for (const c of allCars) damageFrame(c, dt);
       for (const c of allCars) dentFrame(c);
@@ -2802,7 +2808,7 @@
     R.gl.clearColor(0, 0, 0, 1); R.viewRect = null; R.gl.disable(R.gl.SCISSOR_TEST); R.gl.viewport(0, 0, W, H); R.gl.clear(R.gl.COLOR_BUFFER_BIT);
     for (const h of humans) {
       const [rx, ry, rw, rh] = h.rect, vx = Math.round(rx * W), vw = Math.round(rw * W), vh = Math.round(rh * H), vy = H - Math.round(ry * H) - vh;
-      const cam = h.cam, aspect = vw / Math.max(1, vh), fov = opt.fov * Math.PI / 180 * (humans.length === 2 ? 0.8 : 1);
+      const cam = h.cam, aspect = vw / Math.max(1, vh), fov = opt.fov * Math.PI / 180 * (humans.length === 2 ? 0.8 : 1) * (1 + (h.fovK = (h.fovK || 0) + ((h.car && h.car.nitroT > 0 ? 0.09 : 0) - (h.fovK || 0)) * Math.min(1, dt * 4)));
       const proj = BRR.M4.persp(fov, aspect, 0.3, far), view = BRR.M4.lookAt(cam.pos, cam.look, cam.up);
       if (R.mode === 1 && R.shadowQ && (humans.length > 1 || (shTick++ & 1) === 0)) {   // con 1 jugador, sombras a 30 Hz
         const c = h.car, fwd = c.forward(); R.shadowBegin(V.madd(c.p, [fwd[0], 0, fwd[2]], R.shadowRange * 0.45));
