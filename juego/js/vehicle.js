@@ -454,7 +454,7 @@
           this.applyImpulse(V.mul(c.n, j), r, floor ? 0.18 : 0.35);   // contra el suelo, poco giro (rebota sin dar vueltas de campana)
           const vt = V.madd(vrel, c.n, -vn), vtl = V.len(vt);
           if (vtl > 1e-3) { const jt = Math.min((floor ? 0.12 : 0.5) * j, vtl / den); this.applyImpulse(V.mul(vt, -jt / vtl), r); }
-          if (c.n[1] < 0.6) this.lastHit = Math.max(this.lastHit || 0, -vn);   // solo golpes contra paredes, no contra el suelo
+          if (c.n[1] < 0.6) { this.lastHit = Math.max(this.lastHit || 0, -vn); if (-vn > (this.hitV || 0)) { this.hitV = -vn; this.hitR = r; } }   // solo golpes contra paredes, no contra el suelo
         }
       }
     }

@@ -63,7 +63,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 
 ## Bloque 8 · Modos extra (largo)
 - [x] Modo kart: objetos, misiles, aceite y turbos, también online
-- [ ] Daños visuales en los vehículos
+- [x] Daños visuales en los vehículos (abolladuras y piezas que saltan)
 - [x] 79 Modo kart: cajas de objetos en el circuito; mancha de aceite (trompo), misil recto, misil que busca al de delante, bomba que se deja detrás y turbo extra; la IA también los usa; también online
 - [x] 80 ~~Eliminación por tiempo~~ (quitado: solo hay un modo de eliminación, por controles)
 - [x] 81 Bomba caliente: sin vueltas; cada coche tiene 2 minutos de vida con la bomba (su reloj solo corre mientras la lleva); se pasa al chocar; al primero que le explota pierde y se acaba (se puede saltar)

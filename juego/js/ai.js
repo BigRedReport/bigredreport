@@ -428,6 +428,7 @@
         // rozamiento lateral entre carrocerías (se frotan, no se pegan)
         const vt = V.sub(V.sub(A.v, B.v), V.mul(n, vrel)), vtl = V.len(vt); if (vtl > 0.1) { const jt = Math.min(0.15 * jj, vtl / (iA + iB) * 0.5); if (!A.kinematic) A.applyImpulse(V.mul(vt, -jt / vtl), [0, 0, 0], 0); if (!B.kinematic) B.applyImpulse(V.mul(vt, jt / vtl), [0, 0, 0], 0); }
         A.lastHit = Math.max(A.lastHit || 0, -vrel); B.lastHit = Math.max(B.lastHit || 0, -vrel);
+        if (-vrel > (A.hitV || 0)) { A.hitV = -vrel; A.hitR = V.sub(mid, A.p); } if (-vrel > (B.hitV || 0)) { B.hitV = -vrel; B.hitR = V.sub(mid, B.p); }
         if (-vrel > 2.5) { const t = performance.now() / 1000; A.bumpT = B.bumpT = t; A.bumpBy = B; B.bumpBy = A; A.hitBy = B; B.hitBy = A; }
       }
     }

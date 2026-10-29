@@ -5,6 +5,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Linux:** `BigRedReport-Linux.tar.gz` → descomprime y abre `BigRedReport`.
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.84**
+- **Daños visuales:** la carrocería se abolla donde golpeas (más cuanto más fuerte; los coches duros, menos), y al reventar saltan trozos de chapa y cristales. Se arregla al reiniciar la carrera. Se quita junto con el daño (Opciones → Juego → Daños).
+
 **Novedades de la 0.83**
 - **Interiores originales en la cámara de cabina:** el salpicadero con sus relojes, el marco del parabrisas y el volante que gira con la dirección, sacados de los modelos del juego de 1995 (IN_*). Se puede quitar en Opciones → Cámara y marcador.
 

@@ -171,13 +171,13 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
           tex = texs.get(name);
         }
         const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
-        const put = (loc, arr, n) => { const b = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, n, gl.FLOAT, false, 0, 0); };
+        let pbuf = null; const put = (loc, arr, n) => { const b = gl.createBuffer(); if (loc === 0) pbuf = b; gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, n, gl.FLOAT, false, 0, 0); };
         put(0, g.pos, 3);
         if (g.uv) put(1, g.uv, 2); else gl.vertexAttrib2f(1, 0, 0);
         if (g.col) put(2, g.col, 3); else gl.vertexAttrib3f(2, 1, 1, 1);
         if (g.lay && g.lay.length) put(3, g.lay, 1); else gl.vertexAttrib1f(3, 0);
         if (g.nrm && g.nrm.length === g.pos.length) put(4, g.nrm, 3);
-        out.push({ vao, n: g.pos.length / 3, tex });
+        out.push({ vao, n: g.pos.length / 3, tex, pbuf, base: g.pos });   // base/pbuf: para abollar la carrocería
       }
       gl.bindVertexArray(null);
       (this.allTex = this.allTex || []).push(...texs.values());

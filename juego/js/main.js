@@ -910,7 +910,7 @@
     if (replayBand) replayBand.reset();
     for (const r of rivals) { r.race.reset(); if (r.ai) r.ai.reset(); r.hornStart = r.hornFin = false; r.rankWas = null; }
     for (const h of humans) { h.race.reset(); h.cam.init = false; h.cam.posInit = false; h.done = false; h.q('done').hidden = true; h.q('msg').hidden = true; }
-    for (const c of all) { c.dmg = 0; c.broken = 0; c.nitros = lvl.nitros; c.nitroInf = freeMode && c.isPlayer; }
+    for (const c of all) { dentReset(c); c.hitV = 0; c.dmg = 0; c.broken = 0; c.nitros = lvl.nitros; c.nitroInf = freeMode && c.isPlayer; }
     if (humans[0]) garApply(humans[0].car);   // modo libre: turbo sin límite
     if (props) props.reset(); if (fx) fx.reset(); crazyInit(); rpStart();
   }
@@ -1444,7 +1444,7 @@
     if (c.dmg >= 100) {   // ¡bum!
       const q = c.def.dmgFx && c.def.dmgFx[100] || [0, 0.4, 0], p = V.add(c.p, BRR.mv(R, q)); fx.sparks(p, 40);
       for (let i = 0; i < 14; i++) { const a = Math.random() * 6.283; fx.puff(p, [Math.cos(a) * 4, 2 + Math.random() * 3, Math.sin(a) * 4], [1, 0.45 + Math.random() * 0.3, 0.1, 0.8], 0.6, 0.9, 3, 1, 0.5); }
-      c.v = V.add(V.mul(c.v, 0.3), [0, 6, 0]); c.w = V.add(c.w, [(Math.random() - .5) * 4, 0, (Math.random() - .5) * 4]); c.broken = 2.6; c.dmg = 100;
+      c.v = V.add(V.mul(c.v, 0.3), [0, 6, 0]); c.w = V.add(c.w, [(Math.random() - .5) * 4, 0, (Math.random() - .5) * 4]); c.broken = 2.6; c.dmg = 100; debris(c);
       if (audio && audio.ctx && camDist(c.p) < 120) audio.play('GEN/EXPLODE.WAV', { vol: c.isPlayer ? 1 : 0.7, pos: c.isPlayer ? null : c.p });
       if (c.isPlayer) { const h = humans.find(q => q.car === c); if (h) flash(h, '¡Vehículo destrozado!', 2.2, 'warn'); }
     }
@@ -2516,6 +2516,31 @@
     const out = W.map(x => x && x.m); if (out.every(x => !x)) return null; rimCache.set(key, { lvl, w: out }); return out;
   }
 
+  // ---------- daños visuales: abolladuras donde golpea el coche (la carrocería se hunde un poco) y piezas que saltan al reventar ----------
+  const drawOf = c => { const h = humans.find(x => x.car === c); if (h) return h.draw; const r = rivals.find(x => x.car === c); return r && r.draw; };
+  function dentReset(c) { const D = drawOf(c); if (!D || !c.dented) return; const gl = R.gl; for (const b of D) { if (!b.pbuf || !b.cur) continue; b.cur = null; gl.bindBuffer(gl.ARRAY_BUFFER, b.pbuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(b.base), gl.STATIC_DRAW); } c.dented = false; }
+  function dentFrame(c) {
+    const v = c.hitV || 0, hr = c.hitR; c.hitV = 0; if (v < 3 || !hr || opt.damage === '0' || opt.dents === 'no') return;
+    const D = drawOf(c); if (!D || camDist(c.p) > 140) return;
+    const L = BRR.mtv(c.R, hr), b = c.def.box, cx = b.c[0], cy = b.c[1], cz = b.c[2];   // punto del golpe en coordenadas del coche
+    const dir = V.norm([cx - L[0], (cy - L[1]) * 0.3, cz - L[2]]), depth = Math.min(0.3, (v - 3) * 0.022) * (100 / Math.max(40, c.def.tough || 100)), rad = 0.8 + Math.min(0.6, v * 0.03);
+    // el punto de contacto sale en la superficie de la esfera de choque: se lleva al borde de la caja del coche
+    const P = [Math.max(cx - b.h[0], Math.min(cx + b.h[0], L[0])), Math.max(cy - b.h[1], Math.min(cy + b.h[1], L[1])), Math.max(cz - b.h[2], Math.min(cz + b.h[2], L[2]))];
+    const gl = R.gl, MAX = 0.45;
+    for (const bt of D) { if (!bt.pbuf || !bt.base) continue; const cur = bt.cur || (bt.cur = new Float32Array(bt.base)), base = bt.base; let any = false;
+      for (let i = 0; i < cur.length; i += 3) { const dx = base[i] - P[0], dy = base[i + 1] - P[1], dz = base[i + 2] - P[2], d2 = dx * dx + dy * dy + dz * dz; if (d2 > rad * rad) continue;
+        const f = 1 - Math.sqrt(d2) / rad, k = depth * f * f * (0.8 + 0.4 * Math.sin(base[i] * 37 + base[i + 2] * 23));   // un poco irregular
+        let nx = cur[i] + dir[0] * k, ny = cur[i + 1] + dir[1] * k, nz = cur[i + 2] + dir[2] * k; const ox = nx - base[i], oy = ny - base[i + 1], oz = nz - base[i + 2], ol = Math.hypot(ox, oy, oz);
+        if (ol > MAX) { nx = base[i] + ox / ol * MAX; ny = base[i + 1] + oy / ol * MAX; nz = base[i + 2] + oz / ol * MAX; } cur[i] = nx; cur[i + 1] = ny; cur[i + 2] = nz; any = true; }
+      if (any) { gl.bindBuffer(gl.ARRAY_BUFFER, bt.pbuf); gl.bufferData(gl.ARRAY_BUFFER, cur, gl.DYNAMIC_DRAW); c.dented = true; } }
+  }
+  function debris(c) {   // al reventar: trozos de carrocería y cristales que salen volando
+    const col = (hexRGB(carCol(c)) || [200, 40, 30]).map(x => x / 255);
+    for (let i = 0; i < 14; i++) { const glass = i % 4 === 0, a = Math.random() * 6.283;
+      fx.parts.push({ p: V.add(c.p, [(Math.random() - .5) * 1.2, 0.6 + Math.random() * 0.5, (Math.random() - .5) * 1.2]), v: [Math.cos(a) * (3 + Math.random() * 4) + c.v[0] * 0.4, 4 + Math.random() * 5, Math.sin(a) * (3 + Math.random() * 4) + c.v[2] * 0.4],
+        col: glass ? [0.7, 0.85, 1, 0.8] : [col[0] * 0.8, col[1] * 0.8, col[2] * 0.8, 1], size: glass ? 0.06 : 0.1 + Math.random() * 0.1, life: 1.4 + Math.random(), age: 0, grow: 0, grav: 1, solid: true }); }
+  }
+
   // ---------- bucle ----------
   let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, shTick = 0;
   const DT = 1 / 240;
@@ -2632,6 +2657,7 @@
       for (const c of allCars) if (c.nitroT > 0) { const tc = c._tint || (c._tint = (hexRGB(carCol(c)) || [255, 140, 30]).map(x => x / 255)); fx.flame(V.add(c.p, BRR.mv(c.R, c.def.nitro || [0, 0.4, c.def.box.c[2] + c.def.box.h[2]])), V.mul(c.forward(), -4), c.v, tc); }
       humans.forEach(h => fx.car(h.car, dt, 'p' + h.i)); rivals.forEach((r, k) => { if (camDist(r.car.p) < 160) fx.car(r.car, dt, 'r' + k); });
       if (opt.damage !== '0' && !netRace) for (const c of allCars) damageFrame(c, dt);
+      for (const c of allCars) dentFrame(c);
       for (const c of allCars) { if ((c.lastHit || 0) > 4) { fx.sparks(V.add(c.p, V.mul(c.forward(), 1.5)), Math.min(25, c.lastHit * 2 * (+opt.parts || 1) | 0));
           if (!c.isPlayer && audio && audio.ctx && snd.bangs && camDist(c.p) < 90) { const b = snd.bangs[Math.random() * snd.bangs.length | 0]; if (b) audio.play(b, { vol: Math.min(0.8, c.lastHit / 14) * (1 - camDist(c.p) / 90), pos: c.p }); } }
         if (!c.isPlayer) c.lastHit = 0; }
