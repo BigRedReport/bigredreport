@@ -9,10 +9,11 @@
 in vec3 p; in vec2 uv; in vec4 col; uniform mat4 VP; out vec2 vuv; out vec4 vcol; out vec3 wp;
 void main(){ vuv=uv; vcol=col; wp=p; gl_Position=VP*vec4(p,1.); }`;
       const FS = `#version 300 es
-precision highp float; in vec2 vuv; in vec4 vcol; in vec3 wp; uniform vec3 cam; uniform float far; uniform vec3 fogc; out vec4 o;
+precision highp float; in vec2 vuv; in vec4 vcol; in vec3 wp; uniform vec3 cam; uniform float far; uniform vec3 fogc; uniform sampler2D S; out vec4 o;
 void main(){ float a=vcol.a;
   vec3 rgb=vcol.rgb;
-  if(vuv.x>=0.){ vec2 q=vuv*2.-1.;
+  if(vuv.x>=10.){ vec4 t=texture(S,vec2(vuv.x-10.,vuv.y)); if(t.a<.5) discard; rgb=t.rgb*mix(vec3(1.),vcol.rgb*1.3,.3); }   /* humo y polvo del original (hojas SPOTFX2 del .ENV) */
+  else if(vuv.x>=0.){ vec2 q=vuv*2.-1.;
     // borde irregular (ruido según la posición) para que el humo y el polvo no sean círculos perfectos
     float ang=atan(q.y,q.x), sd=dot(floor(wp*1.7),vec3(1.7,9.2,3.1));
     float wob=.82+.12*sin(ang*3.+sd)+.08*sin(ang*7.-sd*1.3);
@@ -23,19 +24,24 @@ void main(){ float a=vcol.a;
       const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
       const pr = this.pr = gl.createProgram(); gl.attachShader(pr, sh(gl.VERTEX_SHADER, VS)); gl.attachShader(pr, sh(gl.FRAGMENT_SHADER, FS));
       gl.bindAttribLocation(pr, 0, 'p'); gl.bindAttribLocation(pr, 1, 'uv'); gl.bindAttribLocation(pr, 2, 'col'); gl.linkProgram(pr);
-      this.U = {}; for (const n of ['VP', 'cam', 'far', 'fogc']) this.U[n] = gl.getUniformLocation(pr, n);
+      this.U = {}; for (const n of ['VP', 'cam', 'far', 'fogc', 'S']) this.U[n] = gl.getUniformLocation(pr, n);
       this.vao = gl.createVertexArray(); this.buf = gl.createBuffer(); gl.bindVertexArray(this.vao); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf);
       const st = 9 * 4; gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 3, gl.FLOAT, false, st, 0);
       gl.enableVertexAttribArray(1); gl.vertexAttribPointer(1, 2, gl.FLOAT, false, st, 12); gl.enableVertexAttribArray(2); gl.vertexAttribPointer(2, 4, gl.FLOAT, false, st, 20);
       gl.bindVertexArray(null); this.data = new Float32Array(9 * 6 * 6000);
     }
+    // hoja de humo/polvo animados del juego original (256×192, fotogramas de 40×40: humo en las filas 0-1, polvo en las 2-3)
+    setSprites(img) { const gl = this.gl; if (!img) { this.sprTex = null; return; } const t = this.sprTex || gl.createTexture(); gl.bindTexture(gl.TEXTURE_2D, t);
+      gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, img.w, img.h, 0, gl.RGBA, gl.UNSIGNED_BYTE, img.data); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); this.sprTex = t; this.sprH = img.h; }
     reset() { this.parts.length = 0; this.marks.length = 0; this.last.clear(); this.air = new Map(); }
-    puff(p, v, col, size, life, grow = 1.6, n = 1, spread = 0.6) {
+    puff(p, v, col, size, life, grow = 1.6, n = 1, spread = 0.6, spr = null) {
       const dn = this.density ?? 1; n = dn >= 1 ? Math.round(n * dn) : (Math.random() < dn ? n : 0);   // cantidad de partículas (opciones)
+      if (spr && this.sprTex && this.orig && Math.random() < 0.55) return;   // los sprites del original tapan más: menos cantidad
       for (let k = 0; k < n; k++) {
         if (this.parts.length > 1800 * Math.max(1, dn)) this.parts.shift();
         this.parts.push({ p: [p[0] + (Math.random() - .5) * spread, p[1] + Math.random() * 0.2, p[2] + (Math.random() - .5) * spread],
-          v: [v[0] + (Math.random() - .5) * 1.5, v[1] + Math.random() * 1.2, v[2] + (Math.random() - .5) * 1.5], col, size, life, age: 0, grow });
+          v: [v[0] + (Math.random() - .5) * 1.5, v[1] + Math.random() * 1.2, v[2] + (Math.random() - .5) * 1.5], col, size, life: spr && this.sprTex && this.orig ? Math.min(life, 1.1) : life, age: 0, grow, spr: spr && this.sprTex && this.orig ? spr : null });
       }
     }
     flame(p, back, v, tint) {   // llamarada del nitro (tint: color del equipo, 0..1)
@@ -64,7 +70,7 @@ void main(){ float a=vcol.a;
       if (!onG) this.air.set(id, at + dt);
       else { if (at > 0.45 && Math.abs(c.v[1]) + sp * 0.1 > 3) { const s = this.lvl.surface(c.p[0], c.p[2]);
           if (s.type !== 'agua') { const col = [...(s.type === 'asfalto' ? [0.7, 0.7, 0.72] : s.col.map(x => x * 0.6 + 0.22)), s.type === 'asfalto' ? 0.25 : 0.45];
-            for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; this.puff([c.p[0] + Math.cos(a) * 0.8, c.p[1] - 0.3, c.p[2] + Math.sin(a) * 0.8], [Math.cos(a) * 3.5 + c.v[0] * 0.3, 0.6, Math.sin(a) * 3.5 + c.v[2] * 0.3], col, 0.55, 1.6 + Math.random(), 3, 1, 0.4); } } }
+            for (let k = 0; k < 8; k++) { const a = k / 8 * 6.283; this.puff([c.p[0] + Math.cos(a) * 0.8, c.p[1] - 0.3, c.p[2] + Math.sin(a) * 0.8], [Math.cos(a) * 3.5 + c.v[0] * 0.3, 0.6, Math.sin(a) * 3.5 + c.v[2] * 0.3], col, 0.55, 1.6 + Math.random(), 3, 1, 0.4, s.type === 'asfalto' ? 'smoke' : 'dust'); } } }
         this.air.set(id, 0); }
       if (c.def.kind === 'hover') {   // flota: sin marcas de ruedas; levanta polvo (o agua) por debajo del centro
         const low = c.W.some(w => w.contact); if (!low || sp < 2) return;
@@ -92,13 +98,13 @@ void main(){ float a=vcol.a;
             }
             else {   // polvo: una nube que se queda flotando, crece y se deja llevar
               const big = Math.min(1, sp / 25), col = [...(s.type === 'nieve' ? s.col : s.col.map(x => x * 0.6 + 0.22)), s.type === 'nieve' ? 0.6 : 0.3 + 0.1 * big];
-              this.puff(wc, [back[0], 0.5 + big * 0.6, back[2]], col, 0.4 + big * 0.25, 1.8 + Math.random() * 1.6 + big, s.type === 'nieve' ? 2.4 : 3.2, 1, 0.7);
+              this.puff(wc, [back[0], 0.5 + big * 0.6, back[2]], col, 0.4 + big * 0.25, 1.8 + Math.random() * 1.6 + big, s.type === 'nieve' ? 2.4 : 3.2, 1, 0.7, s.type === 'nieve' ? 'smoke' : 'dust');
             }
           }
         } else {
           // asfalto: humo de neumático al derrapar o al patinar las ruedas al arrancar (quemar rueda)
           const burn = (c.thr || 0) > 0.8 && sp > 0.3 && sp < 9 && !c.K.fly ? (9 - sp) / 9 * 0.7 : 0, sm = Math.max(slip > 0.4 && sp > 7 ? (slip - 0.4) * 2 : 0, burn);
-          if (sm > 0 && Math.random() < sm * dt * 22) this.puff([wc[0], wc[1] + 0.15, wc[2]], [-fw[0] * sp * 0.25, 0.35, -fw[2] * sp * 0.25], [0.86, 0.86, 0.88, 0.22 + sm * 0.2], 0.45, 2.2 + Math.random() * 1.5, 4.2, 1, 0.5);
+          if (sm > 0 && Math.random() < sm * dt * 22) this.puff([wc[0], wc[1] + 0.15, wc[2]], [-fw[0] * sp * 0.25, 0.35, -fw[2] * sp * 0.25], [0.86, 0.86, 0.88, 0.22 + sm * 0.2], 0.45, 2.2 + Math.random() * 1.5, 4.2, 1, 0.5, 'smoke');
         }
         // marcas: derrape en cualquier superficie; en tierra/nieve siempre (rastro)
         const leave = slip > 0.3 ? 1 : (s.type === 'tierra' || s.type === 'nieve' || s.type === 'arena') && sp > 2 ? 0.55 : 0;
@@ -137,6 +143,11 @@ void main(){ float a=vcol.a;
         const t = q.age / q.life, sz = q.size * (1 + q.grow * t), a = q.col[3] * (q.solid ? 1 - t : (1 - t) * Math.min(1, t * 6));
         let r = V.mul(right, sz), u = V.mul(up, sz); const p = q.p;
         if (q.streak) { const L0 = V.len(q.v) || 1; u = V.mul(q.v, q.streak / L0); }   // gota: rayita en la dirección en que cae
+        if (q.spr) {   // fotograma de la animación original según la edad (12 fotogramas de 40×40)
+          const f = Math.min(11, Math.floor(t * 12)), fx = f % 6, fy = (f / 6) | 0, base = q.spr === 'dust' ? 80 : 0, H = this.sprH || 192;
+          const u0 = 10 + fx * 40 / 256, u1 = 10 + (fx * 40 + 40) / 256, v0 = (base + fy * 40) / H, v1 = (base + fy * 40 + 40) / H, s2 = 0.3 + q.size * 0.55, aa = Math.min(1, (1 - t) * 3) * 0.9;
+          r = V.mul(right, s2); u = V.mul(up, s2); const c2 = [p[0], p[1] + s2 * 0.6, p[2]], Q0 = V.sub(V.sub(c2, r), u), Q1 = V.sub(V.add(c2, r), u), Q2 = V.add(V.add(c2, r), u), Q3 = V.add(V.sub(c2, r), u);
+          put(Q0, u0, v1, q.col, aa); put(Q1, u1, v1, q.col, aa); put(Q2, u1, v0, q.col, aa); put(Q0, u0, v1, q.col, aa); put(Q2, u1, v0, q.col, aa); put(Q3, u0, v0, q.col, aa); continue; }
         const P0 = V.sub(V.sub(p, r), u), P1 = V.sub(V.add(p, r), u), P2 = V.add(V.add(p, r), u), P3 = V.add(V.sub(p, r), u);
         put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a);
       }
@@ -146,7 +157,7 @@ void main(){ float a=vcol.a;
         put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a); }
       if (this.glows) this.glows.length = 0;
       const verts = n / 9; if (!verts) return;
-      gl.useProgram(this.pr); gl.uniformMatrix4fv(this.U.VP, false, VP); gl.uniform3fv(this.U.cam, cam); gl.uniform1f(this.U.far, far); gl.uniform3fv(this.U.fogc, fog);
+      gl.useProgram(this.pr); if (this.sprTex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.sprTex); gl.uniform1i(this.U.S, 0); } gl.uniformMatrix4fv(this.U.VP, false, VP); gl.uniform3fv(this.U.cam, cam); gl.uniform1f(this.U.far, far); gl.uniform3fv(this.U.fogc, fog);
       gl.bindVertexArray(this.vao); gl.bindBuffer(gl.ARRAY_BUFFER, this.buf); gl.bufferData(gl.ARRAY_BUFFER, D.subarray(0, n), gl.DYNAMIC_DRAW);
       gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.disable(gl.CULL_FACE);
       gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(-2, -4); gl.drawArrays(gl.TRIANGLES, 0, nMarks); gl.disable(gl.POLYGON_OFFSET_FILL);

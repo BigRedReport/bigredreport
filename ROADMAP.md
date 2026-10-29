@@ -181,7 +181,8 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] 85 WATER2: voz «This is wet and wild like me» que se repetía (fallo del juego original)
 
 **Más grandes (después)**
-- [ ] 74 Recuperar los efectos originales de derrape, polvo y turbo (de los .ENV del juego)
+- [x] 74 Humo y polvo originales (sprites de los .ENV), como opción
+- [ ] Salpicaduras y chispas originales (SPOTFX)
 - [x] 75 Cámara cenital lejana estilo Micro Machines
 - [ ] 76 Interiores originales de los coches (volante, salpicadero)
 - [ ] 77 Sprites con más resolución
