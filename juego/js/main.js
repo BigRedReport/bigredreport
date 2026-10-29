@@ -386,6 +386,7 @@
   function go(v, silent) {
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
+    if (v === 'reto') { retoOpen(); return; }
     if (v === 'donate') { $('donate').hidden = false; setTimeout(() => navFocusFirst($('donate')), 0); return; }
     if (v === 'exit') { show('bye'); state = 'bye'; if (audio) audio.stopMusic(); try { window.close(); } catch (e) { } if (NAT) setTimeout(() => window.close(), 300); return; }
     if (v === 'back') v = (VIEWS[view] || {}).back || 'home';
@@ -1024,7 +1025,8 @@
     $('r_title').textContent = multi ? (winner.h ? '¡Gana el Jugador ' + (winner.h.i + 1) + '!' : (winner.car.teamName ? '¡Gana ' + winner.car.teamName + '!' : 'Gana el equipo ' + TEAM[winner.car.team].n)) + ' · ' + lvl.name
       : rivals.length ? (myPos === 1 ? '¡Has ganado!' : `Has quedado ${myPos}º`) + ' · ' + lvl.name : 'Carrera terminada · ' + lvl.name;
     if (crazyR() && !multi) { const me = h0.car; $('r_title').textContent = (crazy.mode === 'bomba' ? (me.out ? '¡Bum! Has perdido' : '¡Te has librado de la bomba!') : crazy.mode === 'zombie' ? (me.zombie ? 'Te han infectado' : '¡Has sobrevivido!') : crazy.mode === 'polis' ? (crazy.team === 'cops' ? '¡Ganan los polis!' : '¡Ganan los cacos!') + ((crazy.team === 'cops') === me.cop ? ' · ¡HAS GANADO!' : ' · has perdido') : myPos === 1 ? '¡Último superviviente!' : 'Eliminado · ' + myPos + 'º') + ' · ' + lvl.name; }
-    if (ttMode && !multi && bestLap) { lbSubmit(lvl.name, car.def.name, bestLap, h0.total); $('r_title').textContent = 'Contrareloj · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap); }
+    if (ttMode && !multi && bestLap) { lbSubmit(lvl.name, car.def.name, bestLap, h0.total); $('r_title').textContent = 'Contrareloj · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap);
+      if (reto && reto.level === lvl.name) { lbSubmit(reto.id, car.def.name, bestLap, h0.total); $('r_title').textContent = '⭐ Reto semanal · ' + lvl.name + ' · mejor vuelta ' + fmt(bestLap); } }
     if (tourMode && rivals.length) { $('r_rec').textContent += ' ' + tournResult(myPos); $('r_again').hidden = true; $('r_menu').textContent = 'Volver al torneo'; }
     else { $('r_again').hidden = false; $('r_menu').textContent = 'Menú'; }
     if (netRace) { $('r_again').hidden = !BRR_net.isHost; $('r_again').textContent = 'Revancha'; $('r_again').onclick = BRR_net.isHost ? () => { toMenu(); setTimeout(() => { if (BRR_net.isHost && BRR_net.room) netLaunch(); }, 900); } : null; }
@@ -1046,7 +1048,7 @@
     if (netRace) { const ids = netRace.resultIds; netRace = null; netWait = false; clearTimeout(netResT); $('netbar').hidden = true; if (BRR_net.isHost && BRR_net.room) netAfterRace(ids); fromOrig = false; if (orig) orig.close(); opt.menu = 'moderno';
       setTimeout(() => { go(BRR_net.lanUrl ? 'lan' : 'online'); netRenderRoom(); }, 50); }
     statsFlush(); clearTimeout(finishTimer); finishTimer = null; $('results').hidden = true; if (audio) { audio.stopAll(); audio.stopMusic(); }
-    state = 'menu'; show('menu'); renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
+    retoEnd(); state = 'menu'; show('menu'); renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
     if (orig && fromOrig && opt.menu !== 'moderno') { fromOrig = false; state = 'origmenu'; if (!orig.on) { orig.on = true; orig.root.hidden = false; orig.loop(); } if (audio) audio.playTrack(2); orig.globe(); }
     else menuMusic();
   }
@@ -2344,6 +2346,33 @@
       if (k === 'Space') { e.preventDefault(); $b('rp_play').onclick(); } else if (k === 'ArrowLeft') rpSeek(-5); else if (k === 'ArrowRight') rpSeek(5);
       else if (k === 'ArrowUp') $b('rp_next').onclick(); else if (k === 'ArrowDown') $b('rp_prev').onclick(); else if (k === 'KeyC') $b('rp_cam').onclick(); else if (k === 'Escape') rpClose(); }, true);
   })();
+
+  // ---------- reto semanal: cada semana (de lunes a domingo) el mismo circuito, vehículo, hora y clima para todos, con su clasificación ----------
+  let reto = null;   // reto en curso (contrarreloj con esas condiciones)
+  function retoWeek(now = Date.now()) {
+    const MON = Date.UTC(2024, 0, 1), W = 7 * 864e5, k = Math.floor((now - MON) / W);   // 1-ene-2024 fue lunes
+    let x = (k * 2654435761) >>> 0; const rnd = () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
+    const T = (front && front.tracks || []).filter(t => files.has(t.id + '.LEV')); if (!T.length) return null;
+    const t = T[Math.floor(rnd() * T.length)], all = BRR.VEHICLES.filter(n => files.has(n + '.VHC') && !/HELI|COPTER|UFO/.test(n)), own = (t.cars || []).filter(n => all.includes(n));
+    const veh = rnd() < 0.6 && own.length ? own[Math.floor(rnd() * own.length)] : all[Math.floor(rnd() * all.length)] || 'JEEP';
+    const H = ['dia', 'manana', 'tarde', 'noche', 'original'], C = ['despejado', 'despejado', 'nublado', 'niebla', 'lluvia', 'nieve'];
+    return { k, id: 'RETO' + k, level: t.id, track: t, veh, hora: H[Math.floor(rnd() * H.length)], clima: /SNOW/.test(t.id) ? 'nieve' : C[Math.floor(rnd() * C.length)], laps: 3, ends: MON + (k + 1) * W };
+  }
+  const HORA_N = { original: 'Original', manana: 'Amanecer', dia: 'Mediodía', tarde: 'Atardecer', noche: 'Noche' }, CLIMA_N = { despejado: 'Despejado', nublado: 'Nublado', niebla: 'Niebla', lluvia: 'Lluvia', nieve: 'Nieve' };
+  async function retoOpen() {
+    const w = retoWeek(); if (!w) return; $('reto').hidden = false; const left = w.ends - Date.now(), d = Math.floor(left / 864e5), hh = Math.floor(left % 864e5 / 36e5);
+    $('rt_body').innerHTML = `<img class="rtimg" alt="" src="${(w.track && w.track.view) || ''}"><div class="rtgrid"><span>Circuito</span><b>${esc(tname(w.track))} · ${esc(w.level)}</b><span>Vehículo</span><b>${esc(VEH_NAMES[w.veh] || w.veh)}</b>
+      <span>Condiciones</span><b><span>${HORA_N[w.hora]}</span> · <span>${CLIMA_N[w.clima]}</span></b><span>Termina en</span><b>${d} d ${hh} h</b></div><label class="row">Clasificación del reto</label><table class="lbt" id="rt_lb"><tr><td>Cargando…</td></tr></table>`;
+    setTimeout(() => navFocusFirst($('reto')), 0);
+    try { const L = await BRR.cloud.lbGet(w.id), rows = (L.rows || []).slice(0, 10), me = BRR.cloud.id;
+      $('rt_lb').innerHTML = rows.length ? rows.map((r, i) => `<tr${r.pid === me ? ' class="me"' : ''}><td>${i + 1}. ${esc(r.name || 'Piloto')}</td><td>${fmt(r.lap)}</td></tr>`).join('') : (L.online ? '<tr><td>Nadie lo ha corrido todavía. ¡Sé el primero!</td></tr>' : '<tr><td>Sin conexión</td></tr>'); } catch (e) { $('rt_lb').innerHTML = '<tr><td>Sin conexión</td></tr>'; }
+  }
+  $('rt_close').onclick = () => { $('reto').hidden = true; };
+  $('reto').onclick = e => { if (e.target.id === 'reto') $('reto').hidden = true; };
+  $('rt_go').onclick = () => { const w = retoWeek(); if (!w) return; $('reto').hidden = true; if (audio) audio.init();
+    reto = { ...w, prev: { hora: opt.hora, clima: opt.clima, ghost: opt.ghost } }; opt.hora = w.hora; opt.clima = w.clima;
+    tourMode = false; ttMode = true; freeMode = false; crazyPick = 'normal'; startRace(w.level, w.veh, opt.team || 1, w.laps, 1); };
+  function retoEnd() { if (!reto) return; Object.assign(opt, { hora: reto.prev.hora, clima: reto.prev.clima }); save(); reto = null; }
 
   // ---------- bucle ----------
   let last = performance.now(), acc = 0, fpsT = 0, fpsN = 0, fps = 0, shTick = 0;

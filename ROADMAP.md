@@ -38,7 +38,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 ## Bloque 4 · Competir (medio)
 - [x] Fantasma de tu mejor vuelta en contrarreloj
 - [x] Fantasma del récord online (se sube tu mejor vuelta y se descarga la del primero)
-- [ ] Retos semanales
+- [x] Retos semanales
 - [x] Repeticiones: verla con las cámaras de televisión, a cámara lenta y rápida, y exportarla a vídeo
 - [ ] Repeticiones guardadas para verlas más tarde
 - [ ] Modo espectador en online
