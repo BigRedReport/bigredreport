@@ -1015,7 +1015,7 @@
   // ---------- eventos de carrera -> marcador y sonido ----------
   const fmt = t => { if (t == null || !isFinite(t)) return '–:––.––'; const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2); };
   // ---------- marcador original de 1995: los dibujos de INGAME.WAP (GAMESVGA.SPR, pensados para 640×480) en un lienzo encima ----------
-  // posición grande (1st…), vueltas, latas de nitro (la «r» de Big Red, gira con el turbo puesto), piloto y barra del turbo, DAMAGE:% y avisos (WRONG WAY, FINAL LAP, MISSED CHECK)
+  // posición grande (1st…), vueltas, nitro en cuadraditos, DAMAGE:% y avisos (WRONG WAY, FINAL LAP, MISSED CHECK)
   let OH = null;
   async function ohudLoad() {
     OH = { ok: false }; try {
@@ -1046,13 +1046,12 @@
       num(rc.laps, x + 14 * k, y, 27, sc); }
     // nitro: una «r» por lata; con el turbo puesto, giran, se enciende el piloto y la barra se va vaciando
     let RX = W - m; { const mi = h.q('mini'); if (opt.hmini && mi && mi.offsetParent) { const a = mi.getBoundingClientRect(); if (a.top - r.top < H / dpr * 0.4 && a.left > r.left + r.width / 2) RX = Math.min(RX, (a.left - r.left) * dpr - m); } }   // a la izquierda del minimapa
-    if (opt.hnitro) { const n = c.nitroInf ? 1 : Math.max(0, Math.min(8, c.nitros | 0)), act = c.nitroT > 0; h.oSpin = act ? (h.oSpin || 0) + dt * 14 : 0;
-      for (let i = 0; i < n; i++) put(22 + ((h.oSpin | 0) + i) % 3 * (act ? 1 : 0), RX - (i + 1) * 42 * k, m);
-      if (c.nitroInf) { g.font = `900 ${22 * k}px system-ui`; g.fillStyle = '#fff'; g.strokeStyle = '#000'; g.lineWidth = 4 * k; g.strokeText('∞', RX - 64 * k, m + 30 * k); g.fillText('∞', RX - 64 * k, m + 30 * k); }
-      const by = m + 46 * k, bw = S[39].width * k * 1.4, bx = RX - bw; put(act ? 37 : 38, bx - 20 * k, by);
-      const f = act ? Math.min(1, c.nitroT / (h.oNitMax = Math.max(h.oNitMax || 0, c.nitroT))) : (h.oNitMax = 0, 0);
-      g.globalAlpha = 0.35; g.drawImage(S[39], bx, by, bw, S[39].height * k); g.globalAlpha = 1;
-      if (f > 0) g.drawImage(S[39], 0, 0, S[39].width * f, S[39].height, bx, by, bw * f, S[39].height * k); }
+    // nitro: cuadraditos (uno por lata), como en el marcador moderno; el que se está gastando parpadea
+    if (opt.hnitro) { const n = c.nitroInf ? 0 : Math.max(0, Math.min(12, c.nitros | 0)), act = c.nitroT > 0, q = 15 * k, gp = 5 * k;
+      const tot = n + (act && !c.nitroInf ? 1 : 0); let x = RX - tot * (q + gp);
+      for (let i = 0; i < tot; i++, x += q + gp) { const burn = act && i === tot - 1 && !c.nitroInf; if (burn && (performance.now() / 120 | 0) % 2) continue;
+        g.fillStyle = '#000'; g.fillRect(x - 2 * k, m - 2 * k, q + 4 * k, q * 1.5 + 4 * k); g.fillStyle = burn ? '#ffd23f' : '#e2231a'; g.fillRect(x, m, q, q * 1.5); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x, m, q, q * 0.35); }
+      if (c.nitroInf) { g.font = `900 ${26 * k}px system-ui`; g.textAlign = 'right'; g.lineWidth = 4 * k; g.strokeStyle = '#000'; g.fillStyle = act ? '#ffd23f' : '#fff'; g.strokeText('N₂O ∞', RX, m + 24 * k); g.fillText('N₂O ∞', RX, m + 24 * k); g.textAlign = 'left'; } }
     // daños
     if (opt.damage !== '0' && !netRace) { const d = Math.min(100, Math.round(c.dmg || 0)), sc = 0.6, y = H - m - 42 * k * sc; let x = m + put(25, m, y, sc); x = num(d, x + 4 * k, y, 27, sc); put(26, x, y, sc);
       if (d >= 80) { g.globalCompositeOperation = 'source-atop'; g.fillStyle = d >= 95 ? 'rgba(255,40,30,.5)' : 'rgba(255,170,40,.35)'; g.fillRect(0, y, x + 40 * k, 42 * k); g.globalCompositeOperation = 'source-over'; } }
@@ -3047,5 +3046,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

@@ -7,6 +7,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.94**
+- Minimapa sin recuadro de fondo: solo el circuito.
+- Avisos (controles, cámara…) sin fondo negro: texto con borde, más limpio.
+- Marcador de 1995: el nitro se ve en cuadraditos (uno por lata; el que se gasta parpadea) en vez de las «r» rojas y la barra.
+
 **Novedades de la 0.93**
 - **Botones táctiles y mando** (aviso de un probador de Android): si juegas con mando, los botones de la pantalla se esconden solos y vuelven al tocar la pantalla. Y hay opción nueva en Opciones → Juego: Botones táctiles en pantalla → Automático / Siempre / Nunca.
 
