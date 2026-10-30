@@ -1801,6 +1801,7 @@
   async function driftStart() {
     const lv = DRIFT_LV(); if (!files || !lv) return; if (audio) { audio.init(); audio.stopMusic(); }
     tourMode = false; ttMode = false; freeMode = false; crazyPick = 'drift'; fromOrig = false;
+    { const id = lv.split('~')[1]; $('load_msg').textContent = 'Buscando la última versión del circuito…'; show('loading'); await BRR.editor.builtinRefresh(id); }
     await startRace(lv, files.has('MINI.VHC') ? 'PANDA' : opt.vehicle, opt.team || 1, 99, 1);   // el coche del modo drift (carrocería propia sobre el Mini)
   }
   const driftKey = () => 'brr_drift_' + (lvl ? lvl.name : '');
