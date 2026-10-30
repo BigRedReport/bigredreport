@@ -402,6 +402,7 @@
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
     if (v === 'reto') { retoOpen(); return; }
     if (v === 'friends') { frOpen(); return; }
+    if (v === 'editor') { if (!BRR.editor) return; BRR.editor.open(); return; }
     if (v === 'replays') { $('rplist').hidden = false; rpRenderList(); setTimeout(() => navFocusFirst($('rplist')), 0); return; }
     if (v === 'garage') { $('garage').hidden = false; garSel = opt.vehicle; garRender(); setTimeout(() => navFocusFirst($('garage')), 0); return; }
     if (v === 'donate') { $('donate').hidden = false; setTimeout(() => navFocusFirst($('donate')), 0); return; }
@@ -792,14 +793,14 @@
       inp: null, nPrev: false, padPrev: {}, steerKb: 0, snd: {}, done: false };
   }
   async function startRace(level, veh, team, laps = opt.laps, nPlayers = 1, net = null) {
-    opt.level = level; opt.vehicle = veh; opt.team = team; opt.laps = laps; save();
+    const custom = level.includes('~'); if (!custom) { opt.level = level; opt.vehicle = veh; opt.team = team; opt.laps = laps; save(); }
     nPlayers = Math.max(1, Math.min(8, nPlayers | 0)); if (tourMode || net) nPlayers = 1;
     netRace = net; netWait = !!net; netLoaded = new Set(); netT = 0;
     show('loading'); state = 'loading';
     try {
       $('load_msg').textContent = 'Cargando ' + level + '…';
       await new Promise(r => setTimeout(r, 30));
-      lvl = await BRR.loadLevel(files, level, s => $('load_msg').textContent = 'Cargando ' + level + ': ' + s + '…');
+      lvl = custom && edTrack ? await BRR.loadCustomLevel(files, edTrack, s => $('load_msg').textContent = 'Cargando ' + (edTrack.name || level) + ': ' + s + '…') : await BRR.loadLevel(files, level, s => $('load_msg').textContent = 'Cargando ' + level + ': ' + s + '…');
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
       R.setEnvironment(lvl.sun, lvl.sky); { const at = makeAtmos(level, lvl.sun, lvl.sky); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
       // jugadores humanos: el equipo elegido para J1 y los siguientes colores para los demás
@@ -1138,7 +1139,7 @@
     if (netRace) { const ids = netRace.resultIds; netRace = null; netWait = false; clearTimeout(netResT); $('netbar').hidden = true; if (BRR_net.isHost && BRR_net.room) netAfterRace(ids); fromOrig = false; if (orig) orig.close(); opt.menu = 'moderno';
       setTimeout(() => { go(BRR_net.lanUrl ? 'lan' : 'online'); netRenderRoom(); }, 50); }
     statsFlush(); clearTimeout(finishTimer); finishTimer = null; $('results').hidden = true; if (audio) { audio.stopAll(); audio.stopMusic(); }
-    retoEnd(); state = 'menu'; show('menu'); renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
+    retoEnd(); state = 'menu'; show('menu'); if (edBack) { edBack = false; setTimeout(() => BRR.editor && BRR.editor.open(edTrack), 30); } renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
     if (orig && fromOrig && opt.menu !== 'moderno') { fromOrig = false; state = 'origmenu'; if (!orig.on) { orig.on = true; orig.root.hidden = false; orig.loop(); } if (audio) audio.playTrack(2); orig.globe(); }
     else menuMusic();
   }
@@ -1459,7 +1460,7 @@
   const HORAS = { original: 'Original', manana: 'Amanecer', dia: 'Mediodía', tarde: 'Atardecer', noche: 'Noche', azar: 'Al azar' };
   const CLIMAS = { despejado: 'Despejado', nublado: 'Nublado', niebla: 'Niebla', lluvia: 'Lluvia', nieve: 'Nieve', azar: 'Al azar' };
   function pickAtmos(level) {
-    const env = String(level || '').replace(/\d+$/, ''); let h = opt.hora || 'original', c = opt.clima || 'despejado';
+    const env = BRR.envOf(level); let h = opt.hora || 'original', c = opt.clima || 'despejado';
     if (h === 'azar') h = ['manana', 'dia', 'tarde', 'noche', 'original'][Math.random() * 5 | 0];
     if (c === 'azar') c = env === 'MOON' ? 'despejado' : env === 'SNOW' ? ['despejado', 'nieve', 'niebla'][Math.random() * 3 | 0] : env === 'RUF' ? ['despejado', 'despejado', 'nublado'][Math.random() * 3 | 0] : ['despejado', 'nublado', 'niebla', 'lluvia'][Math.random() * 4 | 0];
     if (env === 'MOON') c = 'despejado';   // en Marte y Venus no llueve ni hay nubes
@@ -1747,6 +1748,11 @@
     });
   }
   let pickerClose = null;
+  // ---------- editor de circuitos (no en Android): probar el circuito con tu coche y los rivales, y al salir se vuelve al editor ----------
+  let edTrack = null, edBack = false; if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android');   // el editor no está en el móvil
+  if (BRR.editor) BRR.editor.init({ files: () => files, close: () => { },
+    play: async T => { if (!files) return; edTrack = T; edBack = true; BRR.editor.close(); if (audio) { audio.init(); audio.stopMusic(); } ttMode = false; freeMode = false; tourMode = false;
+      const veh = files.has(opt.vehicle + '.VHC') && !/^(FEHELI|HELI|COPTER|INFLATE|HOVCAR)$/.test(opt.vehicle) ? opt.vehicle : 'JEEP'; await startRace(T.base + '~' + T.id, veh, opt.team || 1, T.laps || 3, 1); } });
   // ---------- amigos: código de amigo (tu id), lista guardada, quién está conectado y en qué sala, invitaciones ----------
   const frCode = id => String(id || '').toUpperCase().replace(/^(.{4})(.+)$/, '$1-$2');
   const frId = c => String(c || '').toLowerCase().replace(/[^a-z0-9]/g, '');

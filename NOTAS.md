@@ -7,6 +7,14 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.95**
+- **Editor de circuitos (primera versión)** — menú principal → 🛠️ Editor de circuitos (en Windows, Linux, Steam Deck y navegador; en Android no):
+  - Eliges un tema (Ciudad, Tierra, Nieve, Desierto, Marte, Japón…) y pone sus texturas, colores y objetos.
+  - **Carretera:** la dibujas con puntos (curva suave) y eliges el ancho y el tipo de suelo; la salida, la parrilla, los controles con sus pancartas y la ruta de la IA se ponen solos.
+  - **Terreno:** brochas para subir, bajar, allanar y suavizar, y colinas al azar; bajo la carretera se allana solo.
+  - **Suelo:** pinta con cualquier baldosa del tema. **Objetos:** pon, mueve y gira los objetos del tema.
+  - **▶ Probar:** lo corres al momento con tu coche y los rivales con IA; al salir vuelves al editor. Se guarda solo; deshacer/rehacer, y exportar o importar el circuito en un archivo `.brrtrack`.
+
 **Novedades de la 0.94**
 - Minimapa sin recuadro de fondo: solo el circuito.
 - Avisos (controles, cámara…) sin fondo negro: texto con borde, más limpio.

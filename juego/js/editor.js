@@ -1,0 +1,327 @@
+// Editor de circuitos (ordenador y navegador; en Android no): vista desde arriba con brochas de terreno, pintura de suelo,
+// carretera dibujada con puntos (curva suave), objetos del tema y ajustes. Al probarlo, el circuito se convierte en los
+// mismos datos que usa el juego original (alturas, baldosas, objetos, recorrido, controles y parrilla) sobre un circuito
+// base que pone las texturas, la paleta y los objetos; la carretera se dibuja encima como una cinta suave.
+"use strict";
+(function () {
+  const BRR = window.BRR, N = 256, CELL = 512, CM = 8;   // 256×256 casillas de 8 m (512 unidades originales)
+  const THEMES = ['CITY1', 'CITY2', 'CITY3', 'CITY4', 'DIRT1', 'DIRT2', 'DIRT3', 'SNOW1', 'SNOW2', 'SNOW3', 'RUF1', 'RUF2', 'RUF3', 'RIG1', 'RIG3', 'RIG4', 'MOON1', 'MOON2', 'MOON3'];
+  const NOOBJ = /^(START\d?|ST_POSTS?|ST_POST2|CHECKP|S_GRID|S_LINES|S_LIGHTS|CLOUDS?|CLOUDSLO|SUNRISE|HUGPOSTS)$/;
+  const SOFTN = /PLANT|PALM|CONE|GRASS|BUSH|SHRUB|FLOWER|WEED|REED|CACT|SHEEP|COW|CHICK/;
+
+  // ---------- almacenamiento (IndexedDB propia) ----------
+  const db = () => new Promise((ok, ko) => { const r = indexedDB.open('brr_tracks', 1); r.onupgradeneeded = () => r.result.createObjectStore('t'); r.onsuccess = () => ok(r.result); r.onerror = ko; });
+  const dget = async k => { const d = await db(); return new Promise(ok => { const r = d.transaction('t').objectStore('t').get(k); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); }); };
+  const dset = async (k, v) => { const d = await db(); return new Promise(ok => { const t = d.transaction('t', 'readwrite'); if (v == null) t.objectStore('t').delete(k); else t.objectStore('t').put(v, k); t.oncomplete = ok; t.onerror = ok; }); };
+  async function listTracks() { return (await dget('list')) || []; }
+  async function saveTrack(T) {
+    T.updated = Date.now(); T.rev = (T.rev || 0) + 1; await dset('trk_' + T.id, T);
+    const L = (await listTracks()).filter(x => x.id !== T.id); L.unshift({ id: T.id, name: T.name, base: T.base, updated: T.updated, len: T.lenM || 0 }); await dset('list', L);
+  }
+  async function delTrack(id) { await dset('trk_' + id, null); await dset('list', (await listTracks()).filter(x => x.id !== id)); }
+  const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
+  const unb64 = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
+
+  // ---------- circuito base: texturas del suelo, paleta, objetos y baldosas típicas (carretera y suelo) ----------
+  const baseCache = new Map();
+  async function loadBase(files, base) {
+    if (baseCache.has(base)) return baseCache.get(base);
+    const L = await files.archive(base + '.LEV'), script = BRR.text(L.get(base + '.TXT')), find = n => L.get(n) || null, mapn = (script.match(/^map\s+(\w+)/m) || [0, 'MAP'])[1].toUpperCase();
+    const E = files.has(BRR.envOf(base) + '.ENV') ? await files.archive(BRR.envOf(base) + '.ENV') : new Map(), col = find(mapn + '.COL') || E.get('CARSEL.RAW') || (await files.archive('CITY.ENV')).get('CARSEL.RAW'), pal = BRR.pal6(col.subarray(0, 768));
+    if (BRR.envOf(base) === 'SNOW') for (let i = 0; i < 256; i++) { const r = pal[i * 3], g = pal[i * 3 + 1], b = pal[i * 3 + 2];   // como en el juego: la nieve lila, hacia blanco azulado
+      if (b > r + 25 && b > g + 18 && b > 120) { const l = 0.3 * r + 0.59 * g + 0.11 * b, t = 0.7; pal[i * 3] = r + (l * 1.08 - r) * t; pal[i * 3 + 1] = g + (l * 1.12 - g) * t; pal[i * 3 + 2] = Math.min(255, b + (l * 1.22 - b) * t); } }
+    const mt = script.match(/^\s*texes\s+(\w+?)(\d)\s+(\d+)/m), pages = []; for (let k = 0; k < +mt[3]; k++) pages.push(find(`${mt[1]}${+mt[2] + k}.TM`));
+    const nT = pages.length * 48, thumbs = [];
+    for (let t = 0; t < nT; t++) { const pg = pages[t / 48 | 0], lt = t % 48, sx = (lt % 8) * 32, sy = (lt / 8 | 0) * 32, cv = document.createElement('canvas'); cv.width = cv.height = 32;
+      const g = cv.getContext('2d'), im = g.createImageData(32, 32);
+      for (let y = 0; y < 32; y++) for (let x = 0; x < 32; x++) { const c = pg[(sy + y) * 256 + sx + x], o = ((31 - y) * 32 + x) * 4; im.data[o] = pal[c * 3]; im.data[o + 1] = pal[c * 3 + 1]; im.data[o + 2] = pal[c * 3 + 2]; im.data[o + 3] = 255; }
+      g.putImageData(im, 0, 0); thumbs.push(cv); }
+    // baldosas del original: la que hay bajo los controles y la parrilla (carretera) y la más repetida alrededor (suelo)
+    const C = find(mapn + '.MPC'), T = find(mapn + '.CHT'), shl = find(mapn + '.SHL'), dat = find(mapn + '.DAT'), rc = new Map(), gc = new Map(), names = [];
+    const tileAt = (ix, iz) => T[512 + C[(iz & 255) * 256 + (ix & 255)]];
+    for (let i = 0; i + 13 <= shl.length; i += 13) { let q = ''; for (let k = i; k < i + 13 && shl[k]; k++) q += String.fromCharCode(shl[k]); names.push(q.toUpperCase()); }
+    const dv = new DataView(dat.buffer, dat.byteOffset, dat.byteLength), spots = [];
+    for (let i = 0; i + 22 <= dat.length; i += 22) if (/^(CHECKP|S_GRID|S_LINES)$/.test(names[dat[i]] || '')) spots.push([dv.getInt32(i + 1, true) / CELL, dv.getInt32(i + 9, true) / CELL]);
+    const gm = script.match(/^\s*grid\s+&([0-9A-Fa-f]+),\s*&([0-9A-Fa-f]+)/m); if (gm) spots.push([parseInt(gm[1], 16) / CELL, parseInt(gm[2], 16) / CELL]);
+    for (const [x, z] of spots) { for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const t = tileAt(Math.floor(x) + dx, Math.floor(z) + dz); if (t < nT) rc.set(t, (rc.get(t) || 0) + (dx || dz ? 1 : 3)); }
+      for (let a = 0; a < 16; a++) for (const r of [5, 7, 9]) { const t = tileAt(Math.floor(x + Math.cos(a / 16 * 6.283) * r), Math.floor(z + Math.sin(a / 16 * 6.283) * r)); if (t < nT) gc.set(t, (gc.get(t) || 0) + 1); } }
+    const top = m => [...m].sort((a, b) => b[1] - a[1]).map(x => x[0]);
+    const avg = t => { const d = thumbs[t].getContext('2d').getImageData(0, 0, 32, 32).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; } return [r, g, b]; };
+    const wet = t => { const [r, g, b] = avg(t); return b > r * 1.15 && b > g * 1.02; };   // agua: no vale como suelo por defecto
+    const roadTile = top(rc)[0] ?? 0, groundTile = top(gc).find(t => t !== roadTile && !wet(t)) ?? top(gc).find(t => t !== roadTile) ?? 0;
+    const models = [...L.keys()].filter(k => k.endsWith('.3DW')).map(k => k.slice(0, -4)).filter(n => !NOOBJ.test(n)).sort();
+    const B = { base, script, mapn, col, pal, pages, nT, thumbs, roadTile, groundTile, models, hasBanner: !!(find('START.3DW') && find('ST_POSTS.3DW')), L };
+    baseCache.set(base, B); return B;
+  }
+
+  // ---------- curva de la carretera (Catmull-Rom cerrada) muestreada cada ~2 m ----------
+  function spline(P, step = 0.25) {
+    const n = P.length, out = []; if (n < 3) return out; let s = 0;
+    for (let i = 0; i < n; i++) { const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n], L = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]), k = Math.max(2, Math.ceil(L / step));
+      for (let j = 0; j < k; j++) { const t = j / k, t2 = t * t, t3 = t2 * t, f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
+        const x = f(p0[0], p1[0], p2[0], p3[0]), z = f(p0[1], p1[1], p2[1], p3[1]); if (out.length) s += Math.hypot(x - out[out.length - 1].x, z - out[out.length - 1].z) * CM; out.push({ x, z, s }); } }
+    const tot = out.length ? s + Math.hypot(out[0].x - out[out.length - 1].x, out[0].z - out[out.length - 1].z) * CM : 0;
+    for (let i = 0; i < out.length; i++) { const a = out[(i - 1 + out.length) % out.length], b = out[(i + 1) % out.length], l = Math.hypot(b.x - a.x, b.z - a.z) || 1; out[i].tx = (b.x - a.x) / l; out[i].tz = (b.z - a.z) / l; }
+    out.total = tot; return out;
+  }
+  const hAt = (h, x, z) => { const ix = Math.max(0, Math.min(254, Math.floor(x))), iz = Math.max(0, Math.min(254, Math.floor(z))), u = x - ix, v = z - iz, q = (a, b) => h[b * 256 + a];
+    return (q(ix, iz) * (1 - u) + q(ix + 1, iz) * u) * (1 - v) + (q(ix, iz + 1) * (1 - u) + q(ix + 1, iz + 1) * u) * v; };
+
+  // ---------- del circuito del editor a los datos del juego ----------
+  // devuelve { h, t, S (curva), gates } con el terreno allanado bajo la carretera y la carretera pintada
+  function prepare(T, B) {
+    const h = T.h.slice(), t = T.t.slice(), S = spline(T.road), w = (T.w || 14) / CM, half = w / 2;
+    if (S.length) {
+      // altura de la carretera: el terreno bajo ella suavizado a lo largo (sin baches)
+      let y = S.map(p => hAt(T.h, p.x, p.z)); const n = y.length;
+      for (let pass = 0; pass < 3; pass++) { const win = 24, out = new Array(n); for (let i = 0; i < n; i++) { let a = 0; for (let k = -win; k <= win; k++) a += y[(i + k + n) % n]; out[i] = a / (2 * win + 1); } y = out; }
+      const R = half + 2.2, best = new Float32Array(65536).fill(1e9), tgt = new Float32Array(65536);
+      S.forEach((p, i) => { for (let z = Math.floor(p.z - R); z <= Math.ceil(p.z + R); z++) for (let x = Math.floor(p.x - R); x <= Math.ceil(p.x + R); x++) { if (x < 0 || z < 0 || x > 255 || z > 255) continue;
+        const d = Math.hypot(x - p.x, z - p.z), k = z * 256 + x; if (d < best[k]) { best[k] = d; tgt[k] = y[i]; } } });
+      for (let k = 0; k < 65536; k++) { const d = best[k]; if (d > R) continue; const a = d <= half + 0.6 ? 1 : 1 - (d - half - 0.6) / (R - half - 0.6); h[k] = Math.round(h[k] + (tgt[k] - h[k]) * Math.max(0, Math.min(1, a))); }
+      // suelo de carretera bajo la cinta (para el polvo, el agarre y los sonidos)
+      const RT = T.roadTile ?? B.roadTile; for (let z = 0; z < 255; z++) for (let x = 0; x < 255; x++) { const k = z * 256 + x; if (Math.max(best[k], best[k + 1], best[k + 256], best[k + 257]) < half) t[k] = RT; }   // solo las casillas que quedan del todo bajo la cinta
+    }
+    return { h, t, S, gates: gatesOf(S), half };
+  }
+  function gatesOf(S) { const G = S.length ? Math.max(3, Math.min(12, Math.round(S.total / 260))) : 0, gates = [];
+    for (let g = 0; g < G; g++) { const s = g * S.total / G; let i = 0; while (i < S.length - 1 && S[i + 1].s <= s) i++; gates.push({ num: g, last: g === G - 1, p: S[i] }); }
+    return gates; }
+  const hex = v => (v < 0 ? '-&' : '&') + Math.abs(Math.round(v)).toString(16).toUpperCase();
+  async function build(files, T) {
+    const B = await loadBase(files, T.base), P = prepare(T, B), { h, t, S, gates, half } = P;
+    if (S.length < 8) throw new Error('La carretera necesita al menos 3 puntos');
+    const name = T.base + '~' + T.id, L = new Map();
+    for (const [k, v] of B.L) if (!/\.REC$/i.test(k) && !/^MAP\.(MPH|MPC|CHT|DAT|SHL|CSE|GRP)$/i.test(k) && !/\.TXT$/i.test(k)) L.set(k, v);
+    const mre = new RegExp('^' + B.mapn + '\\.', 'i'); for (const k of [...L.keys()]) if (mre.test(k)) L.delete(k);
+    L.set('MAP.COL', B.col); L.set('MAP.MPH', h); L.set('MAP.MPC', t);
+    const cht = new Uint8Array(768); for (let k = 0; k < 256; k++) { cht[k] = 1; cht[256 + k] = 0; cht[512 + k] = k < B.nT ? k : 255; } L.set('MAP.CHT', cht);
+    // objetos: controles (invisibles), pancarta de salida/control con sus postes y los que has puesto
+    const names = [], recs = []; const nid = n => { let i = names.indexOf(n); if (i < 0) { names.push(n); i = names.length - 1; } return i; };
+    const gyU = (x, z) => -hAt(h, x, z) * 16;   // y original (hacia abajo) del suelo en unidades
+    const add = (n, x, z, y, ry, b19, cls) => recs.push({ n: nid(n), x: Math.round(x * CELL), y: Math.round(y), z: Math.round(z * CELL), ry: ((Math.round(ry / (2 * Math.PI) * 65536) % 65536) + 65536) % 65536, b19, cls });
+    for (const g of gates) { const p = g.p, a = Math.atan2(p.tx, p.tz);   // eje de la puerta perpendicular a la carretera
+      add('CHECKP', p.x, p.z, gyU(p.x, p.z), a, g.num | (g.last ? 0x80 : 0), 50);
+      if (B.hasBanner) { const ax = [Math.cos(a), -Math.sin(a)], off = half + 0.35;
+        add('START', p.x, p.z, gyU(p.x, p.z) - 300, a, 0, 8);
+        for (const sg of [-1, 1]) { const px = p.x + ax[0] * off * sg, pz = p.z + ax[1] * off * sg; add('ST_POSTS', px, pz, gyU(px, pz), a, 1, 0); } } }
+    for (const o of T.objs || []) { if (!B.models.includes(o.n)) continue; add(o.n, o.x, o.z, gyU(o.x, o.z), (o.r || 0) * Math.PI / 180, 0, SOFTN.test(o.n) ? 4 : 0); }
+    const shl = new Uint8Array(names.length * 13); names.forEach((n, i) => { for (let k = 0; k < Math.min(12, n.length); k++) shl[i * 13 + k] = n.charCodeAt(k); }); L.set('MAP.SHL', shl);
+    const dat = new Uint8Array(recs.length * 22), dv = new DataView(dat.buffer);
+    recs.forEach((r, i) => { const o = i * 22; dat[o] = r.n; dv.setInt32(o + 1, r.x, true); dv.setInt32(o + 5, r.y, true); dv.setInt32(o + 9, r.z, true); dv.setInt16(o + 13, 0, true); dv.setUint16(o + 15, r.ry, true); dv.setInt16(o + 17, 0, true); dat[o + 19] = r.b19; dat[o + 20] = r.cls; dat[o + 21] = 0; });
+    L.set('MAP.DAT', dat);
+    // recorrido: un punto cada ~16 m con el ancho de la carretera
+    const cs = []; for (let i = 0; i < S.length; i += 8) cs.push(S[i]);
+    const cse = new Uint8Array(cs.length * 16), cv = new DataView(cse.buffer), hw = half * CELL;
+    cs.forEach((p, i) => { const o = i * 16; cv.setInt32(o, Math.round(p.x * CELL), true); cv.setInt32(o + 4, Math.round(p.z * CELL), true); cv.setInt16(o + 8, Math.round(Math.atan2(p.tx, p.tz) / (2 * Math.PI) * 1024) & 1023, true); cv.setInt16(o + 10, 4360, true); cv.setInt16(o + 12, Math.round(hw), true); cv.setInt16(o + 14, -Math.round(hw), true); });
+    L.set('MAP.CSE', cse);
+    // guion: mapa, texturas, parrilla (detrás de la salida, mirando hacia la carretera), vueltas, nitros, luz y cámaras de tele
+    const keep = re => (B.script.match(re) || [''])[0];
+    const st = S[Math.max(0, S.length - 7)];   // la parrilla empieza 14 m antes de la línea de salida
+    const ga = ((Math.round(Math.atan2(st.tx, st.tz) / (2 * Math.PI) * 65536) % 65536) + 65536) % 65536, lat = Math.round(half * CELL * 0.45);
+    const slots = []; for (let k = 0; k < 12; k++) slots.push(`${k % 2 ? -lat : lat},${-(160 + k * 300)},&0`);
+    const cams = []; for (let s = 40; s < S.total; s += 140) { let i = 0; while (i < S.length - 1 && S[i].s < s) i++; const p = S[i], sg = (i / 7 | 0) % 2 ? 1 : -1, cx = p.x + p.tz * (half + 3) * sg, cz = p.z - p.tx * (half + 3) * sg; cams.push(`fixcam ${hex(cx * CELL)},${hex(-(5 + Math.random() * 4) / BRR.S)},${hex(cz * CELL)}`); }
+    const script = [`; circuito hecho con el editor: ${String(T.name || '').replace(/[\r\n]/g, ' ')}`, 'map MAP', keep(/^\s*texes.*$/m), keep(/^\s*speed.*$/m), keep(/^\s*palanim.*$/m), keep(/^light.*$/m),
+      `grid ${hex(st.x * CELL)},${hex(st.z * CELL)},${hex(ga)},`, '        -956,0,&2000,', '        444,0,-&2000,', ...slots.map((q, i) => '        ' + q + (i < slots.length - 1 ? ',' : '')),
+      `laps ${Math.max(1, Math.min(20, T.laps | 0 || 3))}`, `nitros ${Math.max(0, Math.min(12, T.nitros | 0))},1200`, ...cams].join('\n');
+    L.set(name + '.TXT', new TextEncoder().encode(script));
+    const files2 = Object.create(files); const lev = name + '.LEV';
+    files2.archive = async n => n === lev ? L : files.archive(n); files2.has = n => n === lev || files.has(n);
+    return { name, files2, P, B };
+  }
+  // cinta de la carretera (curva suave encima del terreno) y línea de salida a cuadros
+  function ribbon(lvl, P, B, T) {
+    const tile = B.thumbs[T.roadTile ?? B.roadTile], tg = tile.getContext('2d').getImageData(0, 0, 32, 32).data, W = 64, H = 64, tex = new Uint8Array(W * H * 4);
+    const city = /^(CITY|RIG)/.test(T.base);
+    for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) { const o = (y * W + x) * 4, q = ((y % 32) * 32 + (x % 32)) * 4; let r = tg[q], g = tg[q + 1], b = tg[q + 2]; const ed = Math.min(x, W - 1 - x);
+      if (ed < 3) { r *= 0.72; g *= 0.72; b *= 0.72; } if (city && (ed === 4 || ed === 5)) r = g = b = 225; tex[o] = r; tex[o + 1] = g; tex[o + 2] = b; tex[o + 3] = 255; }
+    const chk = new Uint8Array(16 * 16 * 4); for (let y = 0; y < 16; y++) for (let x = 0; x < 16; x++) { const o = (y * 16 + x) * 4, c = ((x >> 2) + (y >> 2)) % 2 ? 235 : 25; chk[o] = chk[o + 1] = chk[o + 2] = c; chk[o + 3] = 255; }
+    const mb = lvl.mesh; mb.textures.set('ROADRIB', { w: W, h: H, data: tex, smooth: true }); mb.textures.set('STARTLN', { w: 16, h: 16, data: chk, smooth: true });
+    const g = mb.group('tex:ROADRIB'), S = P.S, half = P.half * CM, n = S.length, M = 4, gl = p => [p.x * CELL * BRR.S, 0, -p.z * CELL * BRR.S];
+    const pt = (i, u) => { const p = S[i % n], c = gl(p), nx = p.tz, nz = p.tx, off = (u - 0.5) * 2 * half; const x = c[0] + nx * off, z = c[2] + nz * off; return [x, lvl.terrain(x, z) + 0.05, z]; };
+    for (let i = 0; i < n; i++) { const v0 = (i % 4) / 4, v1 = v0 + 0.25;
+      for (let m = 0; m < M; m++) { const u0 = m / M, u1 = (m + 1) / M, A = pt(i, u0), Bq = pt(i, u1), C = pt(i + 1, u1), D = pt(i + 1, u0), UV = [[u0, v0], [u1, v0], [u1, v1], [u0, v1]];
+        for (const k of [0, 2, 1, 0, 3, 2, 0, 1, 2, 0, 2, 3]) { g.pos.push(...[A, Bq, C, D][k]); g.uv.push(...UV[k]); g.lay.push(3); } } }
+    const gs = mb.group('tex:STARTLN'); for (let i = 0; i < 2; i++) for (let m = 0; m < M; m++) { const u0 = m / M, u1 = (m + 1) / M, A = pt(i, u0), Bq = pt(i, u1), C = pt(i + 1, u1), D = pt(i + 1, u0); A[1] += 0.01; Bq[1] += 0.01; C[1] += 0.01; D[1] += 0.01;
+      const UV = [[u0 * 4, i * .5], [u1 * 4, i * .5], [u1 * 4, i * .5 + .5], [u0 * 4, i * .5 + .5]].map(q => [q[0] % 1 || (q[0] ? 1 : 0), q[1]]);
+      for (const k of [0, 2, 1, 0, 3, 2, 0, 1, 2, 0, 2, 3]) { gs.pos.push(...[A, Bq, C, D][k]); gs.uv.push(...UV[k]); gs.lay.push(5); } }
+  }
+  BRR.loadCustomLevel = async function (files, T, progress) {
+    const { name, files2, P, B } = await build(files, T); const lvl = await BRR.loadLevel(files2, name, progress);
+    ribbon(lvl, P, B, T); lvl.custom = T; lvl.title = T.name || 'Mi circuito'; lvl.aiKey = name + ':' + (T.rev || 0) + ':' + (T.updated || 0); return lvl;
+  };
+
+  // ---------- la pantalla del editor ----------
+  const ED = BRR.editor = { THEMES, listTracks, saveTrack, delTrack, loadBase, spline, prepare, build };
+  let hov = null, hf = null, host = null, T = null, B = null, cv = null, cx2 = null, terr = null, view = { z: 4, x: 0, y: 0 }, tool = 'road', brush = { r: 4, mode: 'up', str: 1 }, drag = null, undo = [], redo = [], sel = null, dirty = true, objPick = null;
+  const $ = id => document.getElementById(id);
+  function newTrack(base, Bb) { const h = new Uint8Array(65536).fill(48), t = new Uint8Array(65536).fill(Bb.groundTile);
+    return { v: 1, id: Date.now().toString(36), name: 'Mi circuito', base, h, t, road: [[112, 112], [148, 106], [160, 132], [140, 156], [108, 150]], w: 14, objs: [], laps: 3, nitros: 3, roadTile: Bb.roadTile, rev: 0 }; }
+  function snap() { undo.push({ h: T.h.slice(), t: T.t.slice(), road: JSON.stringify(T.road), objs: JSON.stringify(T.objs), w: T.w }); if (undo.length > 30) undo.shift(); redo = []; }
+  function restore(st) { T.h = st.h; hf = Float32Array.from(T.h); T.t = st.t; T.road = JSON.parse(st.road); T.objs = JSON.parse(st.objs); T.w = st.w; terrAll(); dirty = true; }
+  const cur = () => ({ h: T.h.slice(), t: T.t.slice(), road: JSON.stringify(T.road), objs: JSON.stringify(T.objs), w: T.w });
+  // terreno desde arriba: baldosa + sombreado del relieve (8 px por casilla)
+  function terrCell(x, z) { const g = terr.getContext('2d'), k = z * 256 + x, px = x * 8, py = (255 - z) * 8; g.drawImage(B.thumbs[T.t[k]] || B.thumbs[0], px, py, 8, 8);
+    const hh = (a, b) => T.h[Math.max(0, Math.min(255, b)) * 256 + Math.max(0, Math.min(255, a))], dx = hh(x + 1, z) - hh(x - 1, z), dz = hh(x, z + 1) - hh(x, z - 1), l = (-dx * 0.7 + dz * 0.7) / 10;
+    g.fillStyle = l > 0 ? `rgba(255,255,255,${Math.min(0.35, l)})` : `rgba(0,0,0,${Math.min(0.5, -l)})`; g.fillRect(px, py, 8, 8);
+    const ht = T.h[k] / 255; g.fillStyle = `rgba(${ht > 0.5 ? '255,250,230' : '0,10,40'},${Math.abs(ht - 0.19) * 0.25})`; g.fillRect(px, py, 8, 8); }
+  function terrAll() { if (!terr) { terr = document.createElement('canvas'); terr.width = terr.height = 2048; } for (let z = 0; z < 256; z++) for (let x = 0; x < 256; x++) terrCell(x, z); }
+  function terrArea(x0, z0, x1, z1) { for (let z = Math.max(0, z0 - 1); z <= Math.min(255, z1 + 1); z++) for (let x = Math.max(0, x0 - 1); x <= Math.min(255, x1 + 1); x++) terrCell(x, z); }
+  const toCell = (mx, my) => [(mx - view.x) / view.z, (view.y - my) / view.z];
+  const toScr = (x, z) => [view.x + x * view.z, view.y - z * view.z];
+  function draw() {
+    if (!cv || host.hidden) return; requestAnimationFrame(draw); if (drag && drag.brush) brushStep(drag.p);
+    if (!dirty || !T || !terr || !B) return; dirty = false; const g = cx2, W = cv.width, H = cv.height; g.fillStyle = '#0b0d12'; g.fillRect(0, 0, W, H);
+    g.imageSmoothingEnabled = view.z < 8; const [sx, sy] = toScr(0, 256); g.drawImage(terr, sx, sy, 256 * view.z, 256 * view.z);
+    // carretera
+    const S = spline(T.road), half = (T.w || 14) / CM / 2;
+    if (S.length) { g.lineJoin = 'round'; g.lineCap = 'round'; g.beginPath(); S.forEach((p, i) => { const [a, b] = toScr(p.x, p.z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.closePath();
+      g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = (half * 2 + 0.4) * view.z; g.stroke(); g.strokeStyle = 'rgba(120,124,132,.92)'; g.lineWidth = half * 2 * view.z; g.stroke();
+      g.setLineDash([view.z * 1.5, view.z * 1.5]); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = Math.max(1, view.z * 0.15); g.stroke(); g.setLineDash([]);
+      const GT = gatesOf(S); for (const gt of GT) { const p = gt.p, [a, b] = toScr(p.x - p.tz * half * 1.3, p.z + p.tx * half * 1.3), [c, d] = toScr(p.x + p.tz * half * 1.3, p.z - p.tx * half * 1.3);
+        g.strokeStyle = gt.num === 0 ? '#fff' : '#ffd23f'; g.lineWidth = gt.num === 0 ? 4 : 3; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); }
+      const p0 = S[0], [ax, ay] = toScr(p0.x, p0.z); g.save(); g.translate(ax, ay); g.rotate(Math.atan2(-p0.tz, p0.tx)); g.fillStyle = '#e2231a'; g.beginPath(); g.moveTo(16, 0); g.lineTo(-6, -9); g.lineTo(-6, 9); g.closePath(); g.fill(); g.restore(); }
+    if (tool === 'road') T.road.forEach((p, i) => { const [a, b] = toScr(p[0], p[1]); g.fillStyle = i === 0 ? '#e2231a' : '#fff'; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(a, b, 7, 0, 7); g.fill(); g.stroke();
+      g.fillStyle = '#000'; g.font = 'bold 10px system-ui'; g.textAlign = 'center'; g.fillText(String(i + 1), a, b + 3.5); });
+    // objetos
+    for (const o of T.objs) { const [a, b] = toScr(o.x, o.z), r = Math.max(4, view.z * 0.6); g.save(); g.translate(a, b); g.rotate(-(o.r || 0) * Math.PI / 180);
+      g.fillStyle = o === sel ? '#ffd23f' : SOFTN.test(o.n) ? '#5ad17a' : '#e8e2d6'; g.strokeStyle = '#000'; g.lineWidth = 1.5; g.fillRect(-r, -r, 2 * r, 2 * r); g.strokeRect(-r, -r, 2 * r, 2 * r); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -r * 1.6); g.stroke(); g.restore();
+      if (view.z >= 6) { g.fillStyle = '#fff'; g.font = '10px system-ui'; g.textAlign = 'center'; g.fillText(o.n, a, b + r + 11); } }
+    // brocha
+    const hv = (drag && drag.hover) || hov; if (hv && (tool === 'terrain' || tool === 'paint')) { const [a, b] = toScr(hv[0], hv[1]); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.arc(a, b, brush.r * view.z, 0, 7); g.stroke(); }
+    $('ed_info').textContent = S.length ? `Vuelta: ${Math.round(S.total)} m · ${gatesOf(S).length} controles · ${T.road.length} puntos` : 'Pon al menos 3 puntos de carretera';
+  }
+  function brushStep(p) {
+    if (!p) return; const [px, pz] = p, r = brush.r, x0 = Math.floor(px - r), x1 = Math.ceil(px + r), z0 = Math.floor(pz - r), z1 = Math.ceil(pz + r), now = performance.now(), dt = Math.min(0.05, (now - (drag.t || now)) / 1000) || 0.016; drag.t = now;
+    for (let z = Math.max(0, z0); z <= Math.min(255, z1); z++) for (let x = Math.max(0, x0); x <= Math.min(255, x1); x++) {
+      const d = Math.hypot(x - px, z - pz); if (d > r) continue; const k = z * 256 + x, f = Math.cos(d / r * Math.PI / 2) ** 2;
+      if (tool === 'paint') { if (brush.tile != null) T.t[k] = brush.tile; continue; }
+      const sp = 60 * brush.str * dt * f; let v = hf[k];
+      if (brush.mode === 'up') v += sp; else if (brush.mode === 'down') v -= sp; else if (brush.mode === 'flat') v += (drag.flat - v) * Math.min(1, f * dt * 6 * brush.str);
+      else if (brush.mode === 'smooth') { let a = 0, n = 0; for (let dz = -1; dz <= 1; dz++) for (let dx = -1; dx <= 1; dx++) { const X = x + dx, Z = z + dz; if (X < 0 || Z < 0 || X > 255 || Z > 255) continue; a += hf[Z * 256 + X]; n++; } v += (a / n - v) * Math.min(1, f * dt * 8 * brush.str); }
+      hf[k] = Math.max(0, Math.min(255, v)); T.h[k] = Math.round(hf[k]); }
+    terrArea(x0, z0, x1, z1); dirty = true;
+  }
+  function hills() { snap(); const R = (n => { let s = n; return () => (s = (s * 16807) % 2147483647) / 2147483647; })(Date.now() % 1e6 + 1), oct = [[24, 22], [12, 10], [6, 4]];
+    const NN = c => Math.ceil(256 / c) + 2, grid = oct.map(([c]) => { const G = []; for (let i = 0; i < NN(c) ** 2; i++) G.push(R()); return G; });
+    for (let z = 0; z < 256; z++) for (let x = 0; x < 256; x++) { let v = 0; oct.forEach(([c, a], o) => { const n = NN(c), gx = x / c, gz = z / c, ix = Math.floor(gx), iz = Math.floor(gz), u = gx - ix, w = gz - iz, s = q => q * q * (3 - 2 * q), G = grid[o], q = (a2, b2) => G[b2 * n + a2];
+      v += a * ((q(ix, iz) * (1 - s(u)) + q(ix + 1, iz) * s(u)) * (1 - s(w)) + (q(ix, iz + 1) * (1 - s(u)) + q(ix + 1, iz + 1) * s(u)) * s(w)); }); T.h[z * 256 + x] = Math.max(0, Math.min(255, Math.round(24 + v * 2.2))); }
+    hf = Float32Array.from(T.h); terrAll(); dirty = true; }
+  function pickAt(mx, my) { let best = null, bd = 12; T.road.forEach((p, i) => { const [a, b] = toScr(p[0], p[1]), d = Math.hypot(a - mx, b - my); if (d < bd) { bd = d; best = i; } }); return best; }
+  function objAt(mx, my) { let best = null, bd = Math.max(10, view.z); for (const o of T.objs) { const [a, b] = toScr(o.x, o.z), d = Math.hypot(a - mx, b - my); if (d < bd) { bd = d; best = o; } } return best; }
+  function insertRoad(c) { const P = T.road; if (P.length < 3) { P.push(c); return P.length - 1; }
+    let bi = 0, bd = 1e9; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((c[0] - a[0]) * vx + (c[1] - a[1]) * vz) / (vx * vx + vz * vz || 1))), d = Math.hypot(a[0] + vx * t - c[0], a[1] + vz * t - c[1]); if (d < bd) { bd = d; bi = i; } }
+    P.splice(bi + 1, 0, c); return bi + 1; }
+  function setTool(t) { tool = t; for (const b of host.querySelectorAll('[data-tool]')) b.classList.toggle('on', b.dataset.tool === t); for (const p of host.querySelectorAll('.edp')) p.hidden = p.dataset.p !== t; dirty = true; }
+  function resize() { const r = cv.parentElement.getBoundingClientRect(); cv.width = Math.max(200, r.width | 0); cv.height = Math.max(200, r.height | 0); dirty = true; }
+  function fit() { const r = cv.getBoundingClientRect(); let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9; for (const p of T.road.length ? T.road : [[96, 96], [160, 160]]) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
+    const m = 12; view.z = Math.max(1, Math.min(r.width / (x1 - x0 + 2 * m), r.height / (z1 - z0 + 2 * m))); view.x = r.width / 2 - (x0 + x1) / 2 * view.z; view.y = r.height / 2 + (z0 + z1) / 2 * view.z; dirty = true; }
+  async function openTrack(t, keepView) {
+    T = t; B = await loadBase(host.files(), T.base); if (T.roadTile == null) T.roadTile = B.roadTile; undo = []; redo = []; sel = null; terr = null; hf = Float32Array.from(T.h); terrAll();
+    $('ed_name').value = T.name; $('ed_laps').value = T.laps; $('ed_nitros').value = T.nitros; $('ed_w').value = T.w; $('ed_wv').textContent = T.w + ' m'; $('ed_base').textContent = T.base;
+    $('ed_tiles').innerHTML = ''; B.thumbs.forEach((c, i) => { const b = document.createElement('canvas'); b.width = b.height = 32; b.getContext('2d').drawImage(c, 0, 0); b.title = 'Baldosa ' + i; b.className = 'edtile'; b.onclick = () => { brush.tile = i; for (const x of $('ed_tiles').children) x.classList.toggle('on', x === b); }; $('ed_tiles').appendChild(b); });
+    brush.tile = B.groundTile; $('ed_tiles').children[brush.tile] && $('ed_tiles').children[brush.tile].classList.add('on');
+    const rt = $('ed_rtile'); rt.innerHTML = ''; B.thumbs.forEach((c, i) => { const b = document.createElement('canvas'); b.width = b.height = 32; b.getContext('2d').drawImage(c, 0, 0); b.className = 'edtile' + (i === T.roadTile ? ' on' : ''); b.onclick = () => { snap(); T.roadTile = i; for (const x of rt.children) x.classList.toggle('on', x === b); }; rt.appendChild(b); });
+    $('ed_obj').innerHTML = B.models.map(n => `<option>${n}</option>`).join(''); objPick = B.models[0];
+    if (!keepView) setTimeout(fit, 0); dirty = true;
+  }
+  function readUI() { T.name = $('ed_name').value.trim().slice(0, 40) || 'Mi circuito'; T.laps = Math.max(1, Math.min(20, +$('ed_laps').value || 3)); T.nitros = Math.max(0, Math.min(12, +$('ed_nitros').value || 0)); }
+  async function saveNow(msg = true) { readUI(); const S = spline(T.road); T.lenM = Math.round(S.total || 0); await saveTrack(T); if (msg) toast('Guardado'); }
+  function toast(t) { const e = $('ed_toast'); e.textContent = t; e.hidden = false; clearTimeout(toast.t); toast.t = setTimeout(() => e.hidden = true, 1800); }
+  async function renderList() {
+    const L = await listTracks(), el = $('ed_list');
+    el.innerHTML = (L.length ? L.map(r => `<div class="rpl" data-id="${r.id}"><div><b>${esc(r.name)}</b> <span class="small">(${esc(r.base)})</span><br><span class="small">${new Date(r.updated).toLocaleString()} · ${r.len ? r.len + ' m' : ''}</span></div><div class="rplb"><button data-a="open" class="main">Abrir</button><button data-a="play">▶</button><button data-a="exp" title="Exportar archivo">⬇</button><button data-a="del" title="Borrar">🗑</button></div></div>`).join('') : '<p class="small">Aún no tienes circuitos. Empieza uno nuevo eligiendo el tema.</p>');
+    for (const b of el.querySelectorAll('button')) b.onclick = async () => { const id = b.closest('.rpl').dataset.id, a = b.dataset.a, t = await dget('trk_' + id); if (!t && a !== 'del') return;
+      if (a === 'open') { $('ed_home').hidden = true; await openTrack(t); }
+      else if (a === 'play') host.play(t);
+      else if (a === 'exp') exportTrack(t);
+      else if (a === 'del') { if (b.dataset.sure) { await delTrack(id); renderList(); } else { b.dataset.sure = 1; b.textContent = '¿Borrar?'; } } };
+  }
+  const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+  function exportTrack(t) { const j = JSON.stringify({ ...t, h: b64(t.h), t: b64(t.t), brr: 'track' }), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([j], { type: 'application/json' })); a.download = (t.name || 'circuito').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '_') + '.brrtrack'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); }
+  async function importTrack(f) { const j = JSON.parse(await f.text()); if (j.brr !== 'track' || !j.h || !j.t || !Array.isArray(j.road)) throw new Error('No es un circuito de Big Red Report');
+    const t = { v: 1, id: Date.now().toString(36), name: String(j.name || 'Circuito').slice(0, 40), base: THEMES.includes(j.base) ? j.base : 'CITY1', h: unb64(j.h), t: unb64(j.t), road: j.road.filter(p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])).slice(0, 200).map(p => [+p[0], +p[1]]),
+      w: Math.max(8, Math.min(30, +j.w || 14)), objs: (j.objs || []).slice(0, 2000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), laps: j.laps | 0 || 3, nitros: j.nitros | 0, roadTile: j.roadTile | 0, rev: 0 };
+    if (t.h.length !== 65536 || t.t.length !== 65536) throw new Error('Circuito incompleto'); await saveTrack(t); return t; }
+
+  ED.init = function (opts) {
+    host = document.createElement('div'); host.id = 'editor'; host.hidden = true; host.files = opts.files; host.play = opts.play; host.close = opts.close;
+    host.innerHTML = `<div class="edtop"><b>🛠 Editor de circuitos</b><input id="ed_name" maxlength="40" placeholder="Nombre del circuito"><span class="small">Tema: <b id="ed_base"></b></span><span class="small" id="ed_info"></span>
+      <span style="flex:1"></span><button id="ed_undo" title="Deshacer (Ctrl+Z)">↶</button><button id="ed_redo" title="Rehacer (Ctrl+Y)">↷</button><button id="ed_fit" title="Ver todo">⤢</button><button id="ed_save">💾 Guardar</button><button id="ed_play" class="main">▶ Probar</button><button id="ed_my">📁 Mis circuitos</button><button id="ed_exit">✕ Salir</button></div>
+      <div class="edmain"><div class="edcv"><canvas id="ed_cv"></canvas><div id="ed_toast" hidden></div></div>
+      <div class="edside"><div class="edtools"><button data-tool="road">🛣️ Carretera</button><button data-tool="terrain">⛰️ Terreno</button><button data-tool="paint">🎨 Suelo</button><button data-tool="objs">🌴 Objetos</button><button data-tool="set">⚙️ Ajustes</button></div>
+        <div class="edp" data-p="road"><p class="small">Clic para añadir un punto (se mete en el tramo más cercano) · arrastra para moverlo · clic derecho para quitarlo. El punto rojo es la salida. Los controles y la parrilla se ponen solos.</p>
+          <div class="edrow"><span>Ancho</span><input type="range" id="ed_w" min="8" max="30" step="1"><span id="ed_wv"></span></div>
+          <div class="edrow"><button id="ed_rev">⇄ Cambiar sentido</button><button id="ed_clear">Borrar carretera</button></div><p class="small">Suelo de la carretera:</p><div id="ed_rtile" class="edtiles"></div></div>
+        <div class="edp" data-p="terrain"><div class="edrow edmodes"><button data-m="up" class="on">⬆ Subir</button><button data-m="down">⬇ Bajar</button><button data-m="flat">▬ Allanar</button><button data-m="smooth">≈ Suavizar</button></div>
+          <div class="edrow"><span>Tamaño</span><input type="range" id="ed_r" min="1" max="24" value="4"></div><div class="edrow"><span>Fuerza</span><input type="range" id="ed_s" min="1" max="10" value="5"></div>
+          <div class="edrow"><button id="ed_hills">🎲 Colinas al azar</button><button id="ed_flatall">Todo llano</button></div><p class="small">Bajo la carretera el terreno se allana solo al probar el circuito.</p></div>
+        <div class="edp" data-p="paint"><div class="edrow"><span>Tamaño</span><input type="range" id="ed_pr" min="1" max="24" value="3"></div><div id="ed_tiles" class="edtiles"></div><div class="edrow"><button id="ed_fill">Pintar todo con esta</button></div></div>
+        <div class="edp" data-p="objs"><select id="ed_obj" size="10" style="width:100%"></select><p class="small">Clic para poner el objeto elegido · arrastra para moverlo · clic derecho para quitarlo · R o rueda con Mayús para girarlo.</p>
+          <div class="edrow"><label class="small"><input type="checkbox" id="ed_rnd" checked> Giro al azar</label><button id="ed_odel">Quitar el elegido</button></div></div>
+        <div class="edp" data-p="set"><div class="edrow"><span>Vueltas</span><input type="number" id="ed_laps" min="1" max="20" style="width:70px"></div><div class="edrow"><span>Nitros</span><input type="number" id="ed_nitros" min="0" max="12" style="width:70px"></div>
+          <p class="small">Rueda del ratón: zoom · arrastrar con botón derecho o central (o Espacio): mover la vista.</p><div class="edrow"><button id="ed_exp">⬇ Exportar archivo</button></div></div></div></div>
+      <div id="ed_home" class="edhome" hidden><div class="card"><h2>🛠 Mis circuitos</h2><div id="ed_list"></div>
+        <h3 style="margin:14px 0 6px">Nuevo circuito</h3><div class="edrow"><span>Tema</span><select id="ed_theme"></select><button id="ed_new" class="main">Crear</button></div>
+        <div class="grid2" style="margin-top:12px"><button id="ed_imp">📂 Importar archivo…</button><button id="ed_hclose">Cerrar</button></div><input type="file" id="ed_file" accept=".brrtrack,application/json" hidden></div></div>`;
+    document.body.appendChild(host); cv = $('ed_cv'); cx2 = cv.getContext('2d');
+    addEventListener('resize', () => { if (!host.hidden) resize(); });
+    for (const b of host.querySelectorAll('[data-tool]')) b.onclick = () => setTool(b.dataset.tool);
+    for (const b of host.querySelectorAll('[data-m]')) b.onclick = () => { brush.mode = b.dataset.m; for (const x of host.querySelectorAll('[data-m]')) x.classList.toggle('on', x === b); };
+    $('ed_r').oninput = () => { brush.r = +$('ed_r').value; }; $('ed_s').oninput = () => { brush.str = +$('ed_s').value / 5; }; $('ed_pr').oninput = () => { brush.r = +$('ed_pr').value; };
+    $('ed_w').oninput = () => { T.w = +$('ed_w').value; $('ed_wv').textContent = T.w + ' m'; dirty = true; }; $('ed_w').onchange = () => snap();
+    $('ed_rev').onclick = () => { snap(); T.road = [T.road[0], ...T.road.slice(1).reverse()]; dirty = true; };
+    $('ed_clear').onclick = () => { snap(); T.road = []; dirty = true; };
+    $('ed_hills').onclick = hills; $('ed_flatall').onclick = () => { snap(); T.h.fill(48); hf = Float32Array.from(T.h); terrAll(); dirty = true; };
+    $('ed_fill').onclick = () => { if (brush.tile == null) return; snap(); T.t.fill(brush.tile); terrAll(); dirty = true; };
+    $('ed_obj').onchange = () => { objPick = $('ed_obj').value; };
+    $('ed_odel').onclick = () => { if (!sel) return; snap(); T.objs = T.objs.filter(o => o !== sel); sel = null; dirty = true; };
+    $('ed_undo').onclick = () => { const s = undo.pop(); if (s) { redo.push(cur()); restore(s); } }; $('ed_redo').onclick = () => { const s = redo.pop(); if (s) { undo.push(cur()); restore(s); } };
+    $('ed_fit').onclick = fit; $('ed_save').onclick = () => saveNow();
+    $('ed_play').onclick = async () => { await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } host.play(T); };
+    $('ed_my').onclick = async () => { await saveNow(false); $('ed_home').hidden = false; renderList(); };
+    $('ed_exit').onclick = async () => { if (T) await saveNow(false); ED.close(); };
+    $('ed_exp').onclick = async () => { await saveNow(false); exportTrack(T); };
+    $('ed_theme').innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
+    $('ed_new').onclick = async () => { const base = $('ed_theme').value; try { const Bb = await loadBase(host.files(), base); $('ed_home').hidden = true; await openTrack(newTrack(base, Bb)); await saveNow(false); } catch (e) { toast('No se puede usar ese tema: ' + (e.message || e)); } };
+    $('ed_hclose').onclick = () => { if (T) $('ed_home').hidden = true; else ED.close(); };
+    $('ed_imp').onclick = () => $('ed_file').click();
+    $('ed_file').onchange = async e => { const f = e.target.files[0]; e.target.value = ''; if (!f) return; try { const t = await importTrack(f); renderList(); toast('Importado: ' + t.name); } catch (x) { toast(x.message || String(x)); } };
+    // ratón
+    let space = false;
+    cv.addEventListener('contextmenu', e => e.preventDefault());
+    cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
+      if (e.shiftKey && tool === 'objs' && sel) { sel.r = ((sel.r || 0) + (e.deltaY > 0 ? 15 : -15) + 360) % 360; dirty = true; return; }
+      const [cx, cz] = toCell(mx, my), k = e.deltaY > 0 ? 1 / 1.15 : 1.15; view.z = Math.max(0.8, Math.min(40, view.z * k)); view.x = mx - cx * view.z; view.y = my + cz * view.z; dirty = true; }, { passive: false });
+    cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, c = toCell(mx, my); cv.setPointerCapture(e.pointerId);
+      if (e.button === 1 || (e.button === 2 && tool !== 'road' && tool !== 'objs') || space) { drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
+      if (tool === 'road') { const i = pickAt(mx, my); if (e.button === 2) { if (i != null) { snap(); T.road.splice(i, 1); dirty = true; } else drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
+        snap(); drag = { road: i != null ? i : insertRoad(c) }; dirty = true; return; }
+      if (tool === 'objs') { const o = objAt(mx, my); if (e.button === 2) { if (o) { snap(); T.objs = T.objs.filter(x => x !== o); if (sel === o) sel = null; dirty = true; } else drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
+        snap(); if (o) { sel = o; drag = { obj: o }; } else if (objPick) { const n = { n: objPick, x: c[0], z: c[1], r: $('ed_rnd').checked ? Math.floor(Math.random() * 24) * 15 : 0 }; T.objs.push(n); sel = n; drag = { obj: n }; } dirty = true; return; }
+      if (tool === 'terrain' || tool === 'paint') { if (tool === 'paint') brush.r = +$('ed_pr').value; else brush.r = +$('ed_r').value; snap(); drag = { brush: true, p: c, hover: c, flat: hAt(T.h, c[0], c[1]) }; }
+    });
+    cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, c = toCell(mx, my);
+      if (!drag) { if (tool === 'terrain' || tool === 'paint') { hov = c; dirty = true; } return; }
+      if (drag.pan) { view.x = drag.vx + mx - drag.mx; view.y = drag.vy + my - drag.my; dirty = true; }
+      else if (drag.road != null) { T.road[drag.road] = [Math.max(4, Math.min(252, c[0])), Math.max(4, Math.min(252, c[1]))]; dirty = true; }
+      else if (drag.obj) { drag.obj.x = c[0]; drag.obj.z = c[1]; dirty = true; }
+      else if (drag.brush) { drag.p = c; drag.hover = c; } });
+    const up = () => { if (drag && drag.brush) dirty = true; drag = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    addEventListener('keydown', e => { if (host.hidden || /INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || '')) return;
+      if (e.code === 'Space') { space = true; e.preventDefault(); }
+      if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); $('ed_undo').onclick(); } if ((e.ctrlKey || e.metaKey) && e.code === 'KeyY') { e.preventDefault(); $('ed_redo').onclick(); }
+      if (e.code === 'KeyR' && sel) { sel.r = ((sel.r || 0) + (e.shiftKey ? -15 : 15) + 360) % 360; dirty = true; }
+      if ((e.code === 'Delete' || e.code === 'Backspace') && sel && tool === 'objs') { snap(); T.objs = T.objs.filter(o => o !== sel); sel = null; dirty = true; }
+      e.stopPropagation(); }, true);
+    addEventListener('keyup', e => { if (e.code === 'Space') space = false; });
+  };
+  ED.open = async function (track) {
+    host.hidden = false; resize(); requestAnimationFrame(draw);
+    if (track) { $('ed_home').hidden = true; await openTrack(track, true); setTool(tool); dirty = true; return; }
+    if (!T) { $('ed_home').hidden = false; renderList(); } setTool(tool);
+  };
+  ED.close = function () { host.hidden = true; if (host.close) host.close(); };
+  ED.isOpen = () => host && !host.hidden; ED.cur = () => T;
+  ED.get = id => dget('trk_' + id);
+})();

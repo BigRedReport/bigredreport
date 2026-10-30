@@ -184,7 +184,7 @@
   const unrle = (r, len) => { const a = new Uint8Array(len); let v = r.first, i = 0; for (const n of r.runs) { if (v) a.fill(1, i, i + n); i += n; v ^= 1; } return a; };
   const attach = L => { const { x0, z0, W, H, cmask } = L.cache; L.corridorAt = (x, z) => { const ix = Math.floor(x - x0), iz = Math.floor(z - z0); return ix >= 0 && iz >= 0 && ix < W && iz < H && cmask[iz * W + ix] === 1; }; return L; };
   BRR.loadAILine = async function (lvl, mode) {
-    try { const db = await aidb(), key = AIV + ':' + lvl.name + ':' + mode;
+    try { const db = await aidb(), key = AIV + ':' + (lvl.aiKey || lvl.name) + ':' + mode;
       const v = await new Promise(ok => { const r = db.transaction('l').objectStore('l').get(key); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); });
       if (!v) return false;
       const L = { ...v, cache: { ...v.cache, cmask: unrle(v.cache.cmask, v.cache.W * v.cache.H) } }; attach(L);
@@ -193,7 +193,7 @@
   };
   BRR.saveAILine = async function (lvl, mode) {
     const L = (lvl.aiLines || {})[mode]; if (!L) return;
-    try { const db = await aidb(), key = AIV + ':' + lvl.name + ':' + mode;
+    try { const db = await aidb(), key = AIV + ':' + (lvl.aiKey || lvl.name) + ':' + mode;
       const v = { mode, pts: L.pts, step: L.step, N: L.N, total: L.total, cache: { ...L.cache, cmask: rle(L.cache.cmask) } };
       db.transaction('l', 'readwrite').objectStore('l').put(v, key);
     } catch (e) { }

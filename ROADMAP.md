@@ -76,7 +76,7 @@ Lo que falta para la versión final del port, **en bloques, del más rápido y f
 - [x] Modo eliminación: el último en pasar por un checkpoint queda eliminado y gana el último que queda. Según el tamaño del mapa: en los grandes cada X checkpoints; en los pequeños a mitad de vuelta o por vuelta
 
 ## Bloque 9 · Creadores (largo) — **lo siguiente**
-- [ ] Editor de circuitos al estilo LittleBigPlanet Karting, con generación automática de la ruta de la IA (prioridad)
+- [ ] Editor de circuitos al estilo LittleBigPlanet Karting, con generación automática de la ruta de la IA (prioridad) — **0.95: primera versión** (vista desde arriba, carretera, terreno, suelo, objetos, probar con IA, exportar). Falta: edición en 3D, puentes y rampas, circuitos propios en carrera rápida/online, compartir
 - [ ] Coches y circuitos nuevos hechos a petición (sin formatos ni gestor: se piden modelos y se añaden)
 - [ ] Documentación de formatos y ejemplos (SDK) — *poca prioridad*
 - [ ] Clasificaciones verificadas, separadas entre juego original, con mods y experimental
