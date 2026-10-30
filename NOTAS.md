@@ -7,6 +7,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.103**
+- **Panda 86 con mucha más potencia:** casi el doble de par y más velocidad punta; de lado, con gas, empuja mucho más hacia delante para aguantar el derrape.
+- **Freno de mano con más ángulo:** mientras lo pisas (y un momento después) el coche se deja cruzar mucho más (hasta unos 70°) y, con el volante, gira la trasera hacia fuera para jugar con el ángulo.
+- Sin gas retiene menos (el coche no se para de golpe al levantar el pie).
+
 **Novedades de la 0.102**
 - **Coche nuevo para el drift: Panda 86** — coupé japonés de los 80, de propulsión trasera, con los faros escamoteables levantados, pasos de rueda, la parte de abajo negra y la de arriba del color que elijas (blanca por defecto). De momento solo en el modo drift (también online).
 - **Drift más real:** se inicia con el gas como un coche de propulsión (a fondo y girando la parte de atrás se suelta); el freno de mano queda para cruzarlo de golpe. Ya no resbala como sobre hielo: con gas sale hacia delante, sin gas retiene y recupera el agarre.

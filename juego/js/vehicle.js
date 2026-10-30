@@ -384,10 +384,12 @@
       // drift: con gas el coche no se para al ir de lado (empuja en el sentido de la marcha) y no pasa de ~70° (se puede sujetar con contravolante)
       if (DR && grounded) { const ab = Math.abs(beta), hv = Math.hypot(this.v[0], this.v[2]);
         const fh = V.norm([fwd[0], 0, fwd[2]]);
-        if (ab > 0.12 && vf > 2 && throttle > 0.1) F = V.madd(F, fh, this.m * 9.81 * 0.42 * throttle * Math.min(1, ab / 0.4));   // las ruedas de atrás empujan hacia donde mira el coche: sale hacia delante, no resbala como en hielo
-        if (throttle < 0.1 && vf > 1) F = V.madd(F, fh, -this.m * 9.81 * 0.22 * Math.min(1, vf / 4));   // sin gas, retiene (freno motor)
+        if (ab > 0.12 && vf > 2 && throttle > 0.1) F = V.madd(F, fh, this.m * 9.81 * 0.95 * throttle * Math.min(1, ab / 0.4));   // las ruedas de atrás empujan hacia donde mira el coche: sale hacia delante, no resbala como en hielo
+        if (throttle < 0.1 && vf > 1) F = V.madd(F, fh, -this.m * 9.81 * 0.14 * Math.min(1, vf / 4));   // sin gas, retiene (freno motor)
         if (throttle < 0.3 && ab > 0.1) { const vl = V.dot(this.v, right); F = V.madd(F, right, -vl * this.m * 1.6); }   // sin gas recupera el agarre de lado
-        if (ab > 0.62 && hv > 4) { const wy = V.dot(this.w, up), sgn = Math.sign(wy * beta) > 0 ? 1 : 0.4; T = V.madd(T, up, -wy * this.I[1] * 4.5 * Math.min(1, (ab - 0.62) * 3) * sgn); }   // pasado de ~40°: frena el giro para que no se cruce del todo
+        const hbOn = inp.handbrake || this.dHold > 0, lim = hbOn ? 1.2 : 0.62;   // con el freno de mano se deja cruzar mucho más (hasta ~70°)
+        if (hbOn && hv > 5) T = V.madd(T, up, -inp.steer * this.I[1] * 2.4 * Math.min(1, hv / 12));   // freno de mano + volante: gira la trasera hacia fuera
+        if (ab > lim && hv > 4) { const wy = V.dot(this.w, up), sgn = Math.sign(wy * beta) > 0 ? 1 : 0.4; T = V.madd(T, up, -wy * this.I[1] * 4.5 * Math.min(1, (ab - lim) * 3) * sgn); }   // pasado de ~40°: frena el giro para que no se cruce del todo
         if (ab > 0.08) { const wy = V.dot(this.w, up); T = V.madd(T, up, -wy * this.I[1] * 0.35); } }
       if (!grounded) { this.air = (this.air || 0) + dt; this.fallV = Math.min(this.fallV || 0, this.v[1]); }
       else { if ((this.air || 0) > 0.35) { this.landed = Math.max(this.landed || 0, -(this.fallV || 0)); this.landEv = -(this.fallV || 0); } this.lastAir = this.air || 0; this.air = 0; this.fallV = 0; }

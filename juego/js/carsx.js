@@ -65,7 +65,9 @@
     quad([-0.66, 1.0, 1.66], [0.66, 1.0, 1.66], [0.66, 1.03, 1.86], [-0.66, 1.03, 1.86], BLACK);
     // ruedas del coche base, en el sitio de un coupé (batalla larga) y caja de choque a su medida
     const W = d.wheels.map(w => ({ ...w, c: [Math.sign(w.c[0]) * 0.72, w.c[1], w.c[2] < 0 ? -1.25 : 1.2] }));
-    return { ...d, name, vname: name, mesh: mb, brake, wheels: W, box: { c: [0, 0.05, 0], h: [0.82, 0.5, 2.06] }, interior: null, logoSlot: false,
+    // motor: bastante más par que el Mini y más velocidad punta (para aguantar el derrape a fondo)
+    const gearF = d.gearF.map(r => [r[0] * 1.45, r[1] * 1.9, ...r.slice(2)]);
+    return { ...d, gearF, name, vname: name, mesh: mb, brake, wheels: W, box: { c: [0, 0.05, 0], h: [0.82, 0.5, 2.06] }, interior: null, logoSlot: false,
       brakeSpots: [[-0.55, 0.67 + G, 2.12], [0.55, 0.67 + G, 2.12]], nitro: [0.35, 0.3 + G, 2.12], decoParts: [] };
   }
 })();
