@@ -7,6 +7,15 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.109**
+- **Grand Prix:** nuevos circuitos **Suzuka** y **Cartagena** (con Jerez, el campeonato es de 3 carreras: Suzuka, Cartagena y Jerez). De momento se corre solo con el **GT Racer** (también online).
+- **Modo drift con menú** como el del Grand Prix: eliges circuito (**Redrock** o **Drift track**) y ves tu récord en cada uno; al salir vuelves a ese menú.
+- Los circuitos del Grand Prix y del drift vienen dentro del juego: aunque se borren de la comunidad, se siguen pudiendo jugar.
+- **IA y nitros:** ya no los gastan todos en la salida; los reparten a lo largo de la carrera, solo en rectas largas, y en la última vuelta usan los que les queden.
+- **Garaje:** el GT Racer y el Panda 86 ya salen en el garaje (llantas, color del turbo, neones, luces y cristales).
+- **Editor:** el circuito ya no se cierra solo mientras lo dibujas. Los puntos nuevos siguen el trazado desde el último y cuando acabas pulsas **«Cerrar circuito»** (con «Abrir circuito» lo vuelves a abrir para alargarlo).
+- Arreglado: en la 0.108 la ventana de «Circuitos y editor» no se abría.
+
 **Novedades de la 0.108**
 - **Modo Grand Prix** (menú de un jugador, botón 🏎️): solo con los circuitos de estilo real que se van creando; el primero es **Jerez** (6,5 km). En este modo todo va más deprisa: punta ×1,45 (de ~80 de media a ~115), más empuje, **frenos más fuertes** y apoyo aerodinámico (más agarre cuanto más rápido). La IA corre con las mismas reglas.
 - **Carrera suelta** o **campeonato**: todos los circuitos del Grand Prix seguidos con puntos 25-18-15-12-10-8-6-4-2-1 y la clasificación general en la ventana del modo. Eliges coche, vueltas, rivales y dificultad.

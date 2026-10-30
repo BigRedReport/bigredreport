@@ -56,13 +56,14 @@
   }
 
   // ---------- curva de la carretera (Catmull-Rom cerrada) muestreada cada ~2 m ----------
-  function spline(P, step = 0.25) {
-    const n = P.length, out = []; if (n < 3) return out; let s = 0;
-    for (let i = 0; i < n; i++) { const p0 = P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = P[(i + 2) % n], L = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]), k = Math.max(2, Math.ceil(L / step));
+  function spline(P, step = 0.25, open = false) {   // open: tramo abierto (mientras se dibuja), sin unir el último punto con el primero
+    const n = P.length, out = []; if (n < (open ? 2 : 3)) return out; let s = 0;
+    for (let i = 0; i < (open ? n - 1 : n); i++) { const p0 = open ? P[Math.max(0, i - 1)] : P[(i - 1 + n) % n], p1 = P[i], p2 = P[(i + 1) % n], p3 = open ? P[Math.min(n - 1, i + 2)] : P[(i + 2) % n], L = Math.hypot(p2[0] - p1[0], p2[1] - p1[1]), k = Math.max(2, Math.ceil(L / step));
       for (let j = 0; j < k; j++) { const t = j / k, t2 = t * t, t3 = t2 * t, f = (a, b, c, d) => 0.5 * (2 * b + (-a + c) * t + (2 * a - 5 * b + 4 * c - d) * t2 + (-a + 3 * b - 3 * c + d) * t3);
         const x = f(p0[0], p1[0], p2[0], p3[0]), z = f(p0[1], p1[1], p2[1], p3[1]); if (out.length) s += Math.hypot(x - out[out.length - 1].x, z - out[out.length - 1].z) * CM; out.push({ x, z, s }); } }
-    const tot = out.length ? s + Math.hypot(out[0].x - out[out.length - 1].x, out[0].z - out[out.length - 1].z) * CM : 0;
-    for (let i = 0; i < out.length; i++) { const a = out[(i - 1 + out.length) % out.length], b = out[(i + 1) % out.length], l = Math.hypot(b.x - a.x, b.z - a.z) || 1; out[i].tx = (b.x - a.x) / l; out[i].tz = (b.z - a.z) / l; }
+    if (open) out.push({ x: P[n - 1][0], z: P[n - 1][1], s: s + Math.hypot(P[n - 1][0] - out[out.length - 1].x, P[n - 1][1] - out[out.length - 1].z) * CM });
+    const tot = out.length ? (open ? out[out.length - 1].s : s + Math.hypot(out[0].x - out[out.length - 1].x, out[0].z - out[out.length - 1].z) * CM) : 0;
+    for (let i = 0; i < out.length; i++) { const a = open ? out[Math.max(0, i - 1)] : out[(i - 1 + out.length) % out.length], b = open ? out[Math.min(out.length - 1, i + 1)] : out[(i + 1) % out.length], l = Math.hypot(b.x - a.x, b.z - a.z) || 1; out[i].tx = (b.x - a.x) / l; out[i].tz = (b.z - a.z) / l; }
     out.total = tot; return out;
   }
   const hAt = (h, x, z) => { const ix = Math.max(0, Math.min(254, Math.floor(x))), iz = Math.max(0, Math.min(254, Math.floor(z))), u = x - ix, v = z - iz, q = (a, b) => h[b * 256 + a];
@@ -185,10 +186,10 @@
   let delMode = false, hov = null, hf = null, host = null, T = null, B = null, cv = null, cx2 = null, terr = null, view = { z: 4, x: 0, y: 0 }, tool = 'road', brush = { r: 4, mode: 'up', str: 1 }, drag = null, undo = [], redo = [], sel = null, dirty = true, objPick = null;
   const $ = id => document.getElementById(id);
   function newTrack(base, Bb) { const h = new Uint8Array(65536).fill(48), t = new Uint8Array(65536).fill(Bb.groundTile);
-    return { v: 1, id: ((BRR.cloud && BRR.cloud.id) || 'x') + '-' + Date.now().toString(36), name: 'Mi circuito', base, h, t, road: [[112, 112], [148, 106], [160, 132], [140, 156], [108, 150]], w: 14, objs: [], laps: 3, nitros: 3, roadTile: Bb.roadTile, rev: 0 }; }
-  function snap() { undo.push({ h: T.h.slice(), t: T.t.slice(), road: JSON.stringify(T.road), objs: JSON.stringify(T.objs), w: T.w }); if (undo.length > 30) undo.shift(); redo = []; }
-  function restore(st) { T.h = st.h; hf = Float32Array.from(T.h); T.t = st.t; T.road = JSON.parse(st.road); T.objs = JSON.parse(st.objs); T.w = st.w; terrAll(); dirty = true; }
-  const cur = () => ({ h: T.h.slice(), t: T.t.slice(), road: JSON.stringify(T.road), objs: JSON.stringify(T.objs), w: T.w });
+    return { v: 1, id: ((BRR.cloud && BRR.cloud.id) || 'x') + '-' + Date.now().toString(36), name: 'Mi circuito', base, h, t, road: [], open: true, w: 14, objs: [], laps: 3, nitros: 3, roadTile: Bb.roadTile, rev: 0 }; }
+  function snap() { undo.push({ h: T.h.slice(), t: T.t.slice(), road: JSON.stringify(T.road), objs: JSON.stringify(T.objs), w: T.w, open: !!T.open }); if (undo.length > 30) undo.shift(); redo = []; }
+  function restore(st) { T.h = st.h; hf = Float32Array.from(T.h); T.t = st.t; T.road = JSON.parse(st.road); T.objs = JSON.parse(st.objs); T.w = st.w; T.open = !!st.open; openUI(); terrAll(); dirty = true; }
+  const cur = () => ({ h: T.h.slice(), t: T.t.slice(), road: JSON.stringify(T.road), objs: JSON.stringify(T.objs), w: T.w, open: !!T.open });
   // terreno desde arriba: baldosa + sombreado del relieve (8 px por casilla)
   function terrCell(x, z) { const g = terr.getContext('2d'), k = z * 256 + x, px = x * 8, py = (255 - z) * 8; g.drawImage(B.thumbs[T.t[k]] || B.thumbs[0], px, py, 8, 8);
     const hh = (a, b) => T.h[Math.max(0, Math.min(255, b)) * 256 + Math.max(0, Math.min(255, a))], dx = hh(x + 1, z) - hh(x - 1, z), dz = hh(x, z + 1) - hh(x, z - 1), l = (-dx * 0.7 + dz * 0.7) / 10;
@@ -203,11 +204,12 @@
     if (!dirty || !T || !terr || !B) return; dirty = false; const g = cx2, W = cv.width, H = cv.height; g.fillStyle = '#0b0d12'; g.fillRect(0, 0, W, H);
     g.imageSmoothingEnabled = view.z < 8; const [sx, sy] = toScr(0, 256); g.drawImage(terr, sx, sy, 256 * view.z, 256 * view.z);
     // carretera
-    const S = spline(T.road), half = (T.w || 14) / CM / 2;
-    if (S.length) { g.lineJoin = 'round'; g.lineCap = 'round'; g.beginPath(); S.forEach((p, i) => { const [a, b] = toScr(p.x, p.z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); g.closePath();
+    const S = spline(T.road, 0.25, !!T.open), half = (T.w || 14) / CM / 2;
+    if (S.length && T.open && T.road.length > 2) { const [a, b] = toScr(S[S.length - 1].x, S[S.length - 1].z), [c, d] = toScr(S[0].x, S[0].z); g.setLineDash([6, 6]); g.strokeStyle = 'rgba(255,210,63,.7)'; g.lineWidth = 2; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); g.setLineDash([]); }   // por dónde se cerraría
+    if (S.length) { g.lineJoin = 'round'; g.lineCap = 'round'; g.beginPath(); S.forEach((p, i) => { const [a, b] = toScr(p.x, p.z); i ? g.lineTo(a, b) : g.moveTo(a, b); }); if (!T.open) g.closePath();
       g.strokeStyle = 'rgba(0,0,0,.55)'; g.lineWidth = (half * 2 + 0.4) * view.z; g.stroke(); g.strokeStyle = 'rgba(120,124,132,.92)'; g.lineWidth = half * 2 * view.z; g.stroke();
       g.setLineDash([view.z * 1.5, view.z * 1.5]); g.strokeStyle = 'rgba(255,255,255,.6)'; g.lineWidth = Math.max(1, view.z * 0.15); g.stroke(); g.setLineDash([]);
-      const GT = gatesOf(S); for (const gt of GT) { const p = gt.p, [a, b] = toScr(p.x - p.tz * half * 1.3, p.z + p.tx * half * 1.3), [c, d] = toScr(p.x + p.tz * half * 1.3, p.z - p.tx * half * 1.3);
+      const GT = T.open ? [] : gatesOf(S); for (const gt of GT) { const p = gt.p, [a, b] = toScr(p.x - p.tz * half * 1.3, p.z + p.tx * half * 1.3), [c, d] = toScr(p.x + p.tz * half * 1.3, p.z - p.tx * half * 1.3);
         g.strokeStyle = gt.num === 0 ? '#fff' : '#ffd23f'; g.lineWidth = gt.num === 0 ? 4 : 3; g.beginPath(); g.moveTo(a, b); g.lineTo(c, d); g.stroke(); }
       const p0 = S[0], [ax, ay] = toScr(p0.x, p0.z); g.save(); g.translate(ax, ay); g.rotate(Math.atan2(-p0.tz, p0.tx)); g.fillStyle = '#e2231a'; g.beginPath(); g.moveTo(16, 0); g.lineTo(-6, -9); g.lineTo(-6, 9); g.closePath(); g.fill(); g.restore(); }
     if (tool === 'road') T.road.forEach((p, i) => { const [a, b] = toScr(p[0], p[1]); g.fillStyle = i === 0 ? '#e2231a' : '#fff'; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(a, b, 7, 0, 7); g.fill(); g.stroke();
@@ -223,7 +225,7 @@
     // brocha
     const hv = (drag && drag.hover) || hov; if (hv && tool === 'paint' && brush.r < 0.5) { const [a, b] = toScr(Math.floor(hv[0]), Math.floor(hv[1]) + 1); g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(a, b, view.z, view.z); }
     else if (hv && (tool === 'terrain' || tool === 'paint')) { const [a, b] = toScr(hv[0], hv[1]); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.arc(a, b, brush.r * view.z, 0, 7); g.stroke(); }
-    $('ed_info').textContent = S.length ? `Vuelta: ${Math.round(S.total)} m · ${gatesOf(S).length} controles · ${T.road.length} puntos` : 'Pon al menos 3 puntos de carretera';
+    $('ed_info').textContent = T.open ? `Circuito abierto: ${T.road.length} puntos · ${Math.round(S.total || 0)} m · ciérralo con «Cerrar circuito»` : S.length ? `Vuelta: ${Math.round(S.total)} m · ${gatesOf(S).length} controles · ${T.road.length} puntos` : 'Pon al menos 3 puntos de carretera';
   }
   function brushStep(p) {
     if (!p) return; if (tool === 'paint' && brush.r < 0.5) { const x = Math.floor(p[0]), z = Math.floor(p[1]); if (x >= 0 && z >= 0 && x < 256 && z < 256 && brush.tile != null && T.t[z * 256 + x] !== brush.tile) { T.t[z * 256 + x] = brush.tile; terrArea(x, z, x, z); dirty = true; } return; }   // tamaño 0: una sola casilla
@@ -250,7 +252,8 @@
   function objAt(mx, my) { const [cx, cz] = toCell(mx, my); for (let i = T.objs.length - 1; i >= 0; i--) { const o = T.objs[i], bd = bounds(o.s || T.base, o.n); if (!bd) continue; const r = (o.r || 0) * Math.PI / 180, dx = cx - o.x, dz = cz - o.z, lx = dx * Math.cos(r) - dz * Math.sin(r), lz = dx * Math.sin(r) + dz * Math.cos(r);   // a sus ejes
       if (lx >= bd.x0 && lx <= bd.x1 && lz >= bd.z0 && lz <= bd.z1) return o; }
     let best = null, bd = 5; for (const o of T.objs) { const [a, b] = toScr(o.x, o.z), d = Math.hypot(a - mx, b - my); if (d < bd) { bd = d; best = o; } } return best; }
-  function insertRoad(c) { const P = T.road; if (P.length < 3) { P.push(c); return P.length - 1; }
+  function openUI() { const b = $('ed_close'); if (b && T) b.textContent = T.open ? '🔁 Cerrar circuito' : '✂ Abrir circuito'; }
+  function insertRoad(c) { const P = T.road; if (P.length < 3 || T.open) { P.push(c); return P.length - 1; }   // abierto: cada punto nuevo sigue el trazado desde el último
     let bi = 0, bd = 1e9; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((c[0] - a[0]) * vx + (c[1] - a[1]) * vz) / (vx * vx + vz * vz || 1))), d = Math.hypot(a[0] + vx * t - c[0], a[1] + vz * t - c[1]); if (d < bd) { bd = d; bi = i; } }
     P.splice(bi + 1, 0, c); return bi + 1; }
   // huella de cada objeto (en casillas, ejes propios del modelo) para dibujarlo a escala y ponerlos en fila
@@ -268,7 +271,7 @@
   function fit() { const r = cv.getBoundingClientRect(); let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9; for (const p of T.road.length ? T.road : [[96, 96], [160, 160]]) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
     const m = 12; view.z = Math.max(1, Math.min(r.width / (x1 - x0 + 2 * m), r.height / (z1 - z0 + 2 * m))); view.x = r.width / 2 - (x0 + x1) / 2 * view.z; view.y = r.height / 2 + (z0 + z1) / 2 * view.z; dirty = true; }
   async function openTrack(t, keepView) {
-    T = t; B = await loadBase(host.files(), T.base); if (T.roadTile == null) T.roadTile = B.roadTile; undo = []; redo = []; sel = null; terr = null; hf = Float32Array.from(T.h); terrAll();
+    T = t; openUI(); B = await loadBase(host.files(), T.base); if (T.roadTile == null) T.roadTile = B.roadTile; undo = []; redo = []; sel = null; terr = null; hf = Float32Array.from(T.h); terrAll();
     $('ed_name').value = T.name; $('ed_cover').src = T.cover || ED.preview(T.road, T.base, 480, 270); $('ed_surf').value = T.surf || ED.defSurf(T.base); $('ed_laps').value = T.laps; $('ed_nitros').value = T.nitros; $('ed_w').value = T.w; $('ed_wv').textContent = T.w + ' m'; $('ed_base').textContent = T.base;
     $('ed_tiles').innerHTML = ''; B.thumbs.forEach((c, i) => { const b = document.createElement('canvas'); b.width = b.height = 32; b.getContext('2d').drawImage(c, 0, 0); b.title = 'Baldosa ' + i; b.className = 'edtile'; b.onclick = () => { brush.tile = i; for (const x of $('ed_tiles').children) x.classList.toggle('on', x === b); }; $('ed_tiles').appendChild(b); });
     brush.tile = B.groundTile; $('ed_tiles').children[brush.tile] && $('ed_tiles').children[brush.tile].classList.add('on');
@@ -303,9 +306,9 @@
       <span style="flex:1"></span><button id="ed_undo" title="Deshacer (Ctrl+Z)">↶</button><button id="ed_redo" title="Rehacer (Ctrl+Y)">↷</button><button id="ed_fit" title="Ver todo">⤢</button><button id="ed_save">💾 Guardar</button><button id="ed_3d" title="Recorrerlo con la cámara libre">🧊 Ver en 3D</button><button id="ed_play" class="main">▶ Probar</button><button id="ed_pub">🌐 Publicar</button><button id="ed_my">📁 Mis circuitos</button><button id="ed_exit">✕ Salir</button></div>
       <div class="edmain"><div class="edcv"><canvas id="ed_cv"></canvas><div id="ed_toast" hidden></div></div>
       <div class="edside"><div class="edtools"><button data-tool="road">🛣️ Carretera</button><button data-tool="terrain">⛰️ Terreno</button><button data-tool="paint">🎨 Suelo</button><button data-tool="objs">🌴 Objetos</button><button data-tool="set">⚙️ Ajustes</button></div>
-        <div class="edp" data-p="road"><p class="small">Clic para añadir un punto (se mete en el tramo más cercano) · arrastra para moverlo · clic derecho para quitarlo. El punto rojo es la salida. Los controles y la parrilla se ponen solos.</p>
+        <div class="edp" data-p="road"><p class="small">Clic para añadir un punto (abierto: sigue desde el último; cerrado: se mete en el tramo más cercano) · arrastra para moverlo · clic derecho para quitarlo. Cuando acabes, pulsa «Cerrar circuito». El punto rojo es la salida. Los controles y la parrilla se ponen solos.</p>
           <div class="edrow"><span>Ancho</span><input type="range" id="ed_w" min="8" max="30" step="1"><span id="ed_wv"></span></div>
-          <div class="edrow"><button id="ed_rev">⇄ Cambiar sentido</button><button id="ed_clear">Borrar carretera</button><button class="eddel">🗑 Modo borrar</button></div><div class="edrow"><span>Tipo</span><select id="ed_surf"><option value="asfalto">Asfalto</option><option value="tierra">Tierra</option><option value="arena">Arena</option><option value="nieve">Nieve</option></select></div><p class="small">Textura de la carretera:</p><div id="ed_rtile" class="edtiles"></div></div>
+          <div class="edrow"><button id="ed_close" class="main">🔁 Cerrar circuito</button><button id="ed_rev">⇄ Cambiar sentido</button><button id="ed_clear">Borrar carretera</button><button class="eddel">🗑 Modo borrar</button></div><div class="edrow"><span>Tipo</span><select id="ed_surf"><option value="asfalto">Asfalto</option><option value="tierra">Tierra</option><option value="arena">Arena</option><option value="nieve">Nieve</option></select></div><p class="small">Textura de la carretera:</p><div id="ed_rtile" class="edtiles"></div></div>
         <div class="edp" data-p="terrain"><div class="edrow edmodes"><button data-m="up" class="on">⬆ Subir</button><button data-m="down">⬇ Bajar</button><button data-m="flat">▬ Allanar</button><button data-m="smooth">≈ Suavizar</button></div>
           <div class="edrow"><span>Tamaño</span><input type="range" id="ed_r" min="1" max="24" value="4"></div><div class="edrow"><span>Fuerza</span><input type="range" id="ed_s" min="1" max="10" value="5"></div>
           <div class="edrow"><button id="ed_hills">🎲 Colinas al azar</button><button id="ed_flatall">Todo llano</button></div><p class="small">Bajo la carretera el terreno se allana solo al probar el circuito.</p></div>
@@ -324,8 +327,9 @@
     $('ed_r').oninput = () => { brush.r = +$('ed_r').value; }; $('ed_s').oninput = () => { brush.str = +$('ed_s').value / 5; }; $('ed_pr').oninput = () => { brush.r = +$('ed_pr').value; dirty = true; };
     $('ed_w').oninput = () => { T.w = +$('ed_w').value; $('ed_wv').textContent = T.w + ' m'; dirty = true; }; $('ed_w').onchange = () => snap();
     $('ed_surf').onchange = () => { snap(); T.surf = $('ed_surf').value; };
+    $('ed_close').onclick = () => { if (!T.open && T.road.length < 3) return; if (T.open && T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } snap(); T.open = !T.open; openUI(); dirty = true; };
     $('ed_rev').onclick = () => { snap(); T.road = [T.road[0], ...T.road.slice(1).reverse()]; dirty = true; };
-    $('ed_clear').onclick = () => { snap(); T.road = []; dirty = true; };
+    $('ed_clear').onclick = () => { snap(); T.road = []; T.open = true; openUI(); dirty = true; };
     $('ed_hills').onclick = hills; $('ed_flatall').onclick = () => { snap(); T.h.fill(48); hf = Float32Array.from(T.h); terrAll(); dirty = true; };
     $('ed_fill').onclick = () => { if (brush.tile == null) return; snap(); T.t.fill(brush.tile); terrAll(); dirty = true; };
     $('ed_obj').onchange = () => { objPick = $('ed_obj').value; othumb(); };
@@ -334,7 +338,7 @@
     $('ed_odel').onclick = () => { if (!sel) return; snap(); T.objs = T.objs.filter(o => o !== sel); sel = null; dirty = true; };
     $('ed_undo').onclick = () => { const s = undo.pop(); if (s) { redo.push(cur()); restore(s); } }; $('ed_redo').onclick = () => { const s = redo.pop(); if (s) { undo.push(cur()); restore(s); } };
     $('ed_fit').onclick = fit; $('ed_save').onclick = () => saveNow();
-    $('ed_play').onclick = async () => { await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } host.play(T); };
+    $('ed_play').onclick = async () => { await saveNow(false); if (T.open) { toast('Primero cierra el circuito (botón «Cerrar circuito»)'); return; } if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } host.play(T); };
     $('ed_my').onclick = async () => { await saveNow(false); $('ed_home').hidden = false; renderList(); };
     $('ed_exit').onclick = async () => { if (T) await saveNow(false); ED.close(); };
     $('ed_coverf').onclick = () => $('ed_coverfile').click();
@@ -342,8 +346,8 @@
       g.drawImage(im, (480 - im.width * k) / 2, (270 - im.height * k) / 2, im.width * k, im.height * k); snap(); T.cover = c.toDataURL('image/jpeg', 0.78); $('ed_cover').src = T.cover; await saveNow(false); toast('Portada puesta'); } catch (x) { toast('No se puede leer esa imagen'); } };
     $('ed_cover3d').onclick = () => { toast('En la vista 3D, pulsa «🖼 Usar como portada»'); $('ed_3d').onclick(); };
     $('ed_coverx').onclick = async () => { delete T.cover; $('ed_cover').src = ED.preview(T.road, T.base, 480, 270); await saveNow(false); };
-    $('ed_3d').onclick = async () => { await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } host.view3d(T); };
-    $('ed_pub').onclick = async () => { const b = $('ed_pub'); await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } b.disabled = true; b.textContent = 'Publicando…';
+    $('ed_3d').onclick = async () => { await saveNow(false); if (T.open) { toast('Primero cierra el circuito (botón «Cerrar circuito»)'); return; } if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } host.view3d(T); };
+    $('ed_pub').onclick = async () => { const b = $('ed_pub'); await saveNow(false); if (T.open) { toast('Primero cierra el circuito (botón «Cerrar circuito»)'); return; } if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } b.disabled = true; b.textContent = 'Publicando…';
       try { await ED.publish(T, host.author()); toast('Publicado en la comunidad'); } catch (e) { toast(e.message || String(e)); } b.disabled = false; b.textContent = '🌐 Publicar'; };
     $('ed_exp').onclick = async () => { await saveNow(false); exportTrack(T); };
     $('ed_theme').innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');

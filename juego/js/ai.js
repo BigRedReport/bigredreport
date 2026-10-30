@@ -345,7 +345,14 @@
       inp.throttle = v < vt ? 1 : (v < vt + 2 ? 0.3 : 0);
       inp.brake = v > vt + (ae > 0.9 ? 1 : 3) ? Math.min(1, (v - vt) / 6 + (ae > 0.9 ? 0.3 : 0)) : 0;
       // nitro en las rectas
-      if (turn < 0.12 && v > 14 && !this.mistake && Math.random() < dt * 0.06 * (1 + P.aggro) * (this.rubber > 1 ? 2 : 1)) inp.nitro = true;
+      // se reparten a lo largo de la carrera (no todos en la salida) y solo en rectas largas; en la última vuelta, los que queden
+      if (this.nitro0 == null && race.phase === 'race') this.nitro0 = car.nitroInf ? 0 : (car.nitros | 0);
+      if (race.phase === 'race') this.runT = (this.runT || 0) + dt;
+      if (this.nitro0 > 0 && car.nitros > 0 && race.phase === 'race' && this.runT > 6 && turn < 0.1 && v > 14 && !this.mistake) {
+        const L = line.total || race.total || 1, pr = Math.min(1, (race.lap + ((s % L) + L) % L / L) / Math.max(1, race.laps || 1)), used = this.nitro0 - car.nitros;
+        const due = (used + 1) / (this.nitro0 + 1) - 0.05 * (1 + P.aggro), last = race.lap >= (race.laps || 1) - 1 && pr > 1 - 0.6 / Math.max(1, race.laps || 1);
+        const ahead = BRR.aiAt(line, s + 50 + v * 2.2), longStraight = Math.acos(Math.max(-1, Math.min(1, V.dot(near.t, ahead.t)))) < 0.18;
+        if ((pr >= due || last) && longStraight && Math.random() < dt * 0.8) inp.nitro = true; }
       if (this.mistake === 'tarde') { inp.brake = 0; inp.throttle = 1; }
       if (this.mistake === 'volantazo') inp.steer = Math.max(-1, Math.min(1, inp.steer + this.mistakeDir * 0.6));
       if (this.mistake === 'duda') { inp.throttle = 0.2; inp.brake = 0; }

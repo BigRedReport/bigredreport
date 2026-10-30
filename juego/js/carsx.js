@@ -12,12 +12,13 @@
     const C = BRR.CUSTOM_CARS[String(name).toUpperCase()]; if (!C) return orig(files, name, lvl, team, extra);
     const d = await orig(files, C.base, lvl, team, { ...extra, paint: null, logo: null, logoHi: null });
     const paint = (extra.paint || [238, 238, 234]).map(v => v / 255);
-    return String(name).toUpperCase() === 'GT' ? gt(d, (extra.paint || [200, 30, 26]).map(v => v / 255), 'GT') : panda(d, paint, String(name).toUpperCase());
+    const gl = extra.glass ? extra.glass.map(v => v / 255 * 0.8) : null;   // cristales del garaje
+    return String(name).toUpperCase() === 'GT' ? gt(d, (extra.paint || [200, 30, 26]).map(v => v / 255), 'GT', gl) : panda(d, paint, String(name).toUpperCase(), gl);
   };
   // ---------- carrocería ----------
-  function panda(d, P, name) {
+  function panda(d, P, name, gl) {
     const G = -0.72;   // suelo (bajo las ruedas del coche base)
-    const BLACK = [0.07, 0.07, 0.08], GLASS = [0.1, 0.13, 0.17], TRIM = [0.18, 0.18, 0.2], RED = [0.75, 0.06, 0.05], AMBER = [0.95, 0.55, 0.1], LENS = [0.95, 0.95, 0.85];
+    const BLACK = [0.07, 0.07, 0.08], GLASS = gl || [0.1, 0.13, 0.17], TRIM = [0.18, 0.18, 0.2], RED = [0.75, 0.06, 0.05], AMBER = [0.95, 0.55, 0.1], LENS = [0.95, 0.95, 0.85];
     const mb = new BRR.MeshBuilder(d.mesh.pal), g = mb.group('COLOR'), brake = new BRR.MeshBuilder(d.mesh.pal), gb = brake.group('COLOR');
     const tri = (q, a, b, c, col) => { for (const v of [a, b, c]) { q.pos.push(v[0], v[1] + G, v[2]); q.col.push(...col); q.lay.push(0); } };
     const quad = (a, b, c, e, col, q = g) => { tri(q, a, b, c, col); tri(q, a, c, e, col); tri(q, a, c, b, col); tri(q, a, e, c, col); };   // por las dos caras: sin agujeros vistos desde cualquier lado
@@ -72,8 +73,8 @@
       brakeSpots: [[-0.55, 0.67 + G, 2.12], [0.55, 0.67 + G, 2.12]], nitro: [0.35, 0.3 + G, 2.12], decoParts: [] };
   }
   // ---------- GT de carreras ----------
-  function gt(d, P, name) {
-    const G = -0.72, BLACK = [0.06, 0.06, 0.07], GLASS = [0.08, 0.1, 0.14], WHITE = [0.93, 0.93, 0.9], RED = [0.8, 0.05, 0.04], LENS = [0.95, 0.95, 0.88], CARB = [0.13, 0.13, 0.15];
+  function gt(d, P, name, gl) {
+    const G = -0.72, BLACK = [0.06, 0.06, 0.07], GLASS = gl || [0.08, 0.1, 0.14], WHITE = [0.93, 0.93, 0.9], RED = [0.8, 0.05, 0.04], LENS = [0.95, 0.95, 0.88], CARB = [0.13, 0.13, 0.15];
     const mb = new BRR.MeshBuilder(d.mesh.pal), g = mb.group('COLOR'), brake = new BRR.MeshBuilder(d.mesh.pal), gb = brake.group('COLOR');
     const tri = (q, a, b, c, col) => { for (const v of [a, b, c]) { q.pos.push(v[0], v[1] + G, v[2]); q.col.push(...col); q.lay.push(0); } };
     const quad = (a, b, c, e, col, q = g) => { tri(q, a, b, c, col); tri(q, a, c, e, col); tri(q, a, c, b, col); tri(q, a, e, c, col); };

@@ -202,6 +202,6 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Modo drift (0.100: Mini en Redrock, puntos y combos, también online)
 - [x] Editor: objetos a escala, vallas en fila, half pipe y votos en la comunidad (0.107)
 - [x] Casco de piloto, tonos de piel y pilotos sentados (0.107)
-- [ ] Modo drift: menú para elegir mapa y coche (cuando haya más mapas)
 - [x] Modo Grand Prix: Jerez, campeonato con puntos, online y el coche GT Racer (0.108)
-- [ ] Grand Prix: 3-4 circuitos reales más
+- [x] Grand Prix: Suzuka y Cartagena (0.109)
+- [x] Menú del modo drift con Redrock y Drift track (0.109)
