@@ -354,7 +354,9 @@
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
         let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer ? 0.45 : 1);
-        if (DR && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, 0.5); else if (Math.abs(beta) > 0.12 && throttle > 0.25 && vf > 3) mu *= 0.8 - 0.1 * throttle; }   // de lado y con gas, el eje trasero sigue deslizando
+        if (DR && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, 0.5);   // freno de mano: tirón para cruzarlo (sin frenar)
+          else { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
+            mu *= 1 - 0.5 * ps; if (Math.abs(beta) > 0.15 && throttle > 0.5 && vf > 3) mu *= 0.9 - 0.1 * throttle; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando
         if (w.surface === 'agua' && !K.floats) Flong0 -= vLong * 120;   // el agua frena (salvo a lo que flota)
         let dmul = 1;
         const rampHit = hit.surf && /RAMP|JUMP|SKI|WEDGE|SLOPE|KICK/.test(hit.tag || ''); if (rampHit) this.onRamp = 0.5;
@@ -381,7 +383,10 @@
       }
       // drift: con gas el coche no se para al ir de lado (empuja en el sentido de la marcha) y no pasa de ~70° (se puede sujetar con contravolante)
       if (DR && grounded) { const ab = Math.abs(beta), hv = Math.hypot(this.v[0], this.v[2]);
-        if (ab > 0.12 && vf > 2 && throttle > 0.1) { const vd = V.norm([this.v[0], 0, this.v[2]]); F = V.madd(F, vd, this.m * 9.81 * 0.7 * throttle * Math.min(1, ab / 0.4)); }
+        const fh = V.norm([fwd[0], 0, fwd[2]]);
+        if (ab > 0.12 && vf > 2 && throttle > 0.1) F = V.madd(F, fh, this.m * 9.81 * 0.42 * throttle * Math.min(1, ab / 0.4));   // las ruedas de atrás empujan hacia donde mira el coche: sale hacia delante, no resbala como en hielo
+        if (throttle < 0.1 && vf > 1) F = V.madd(F, fh, -this.m * 9.81 * 0.22 * Math.min(1, vf / 4));   // sin gas, retiene (freno motor)
+        if (throttle < 0.3 && ab > 0.1) { const vl = V.dot(this.v, right); F = V.madd(F, right, -vl * this.m * 1.6); }   // sin gas recupera el agarre de lado
         if (ab > 0.62 && hv > 4) { const wy = V.dot(this.w, up), sgn = Math.sign(wy * beta) > 0 ? 1 : 0.4; T = V.madd(T, up, -wy * this.I[1] * 4.5 * Math.min(1, (ab - 0.62) * 3) * sgn); }   // pasado de ~40°: frena el giro para que no se cruce del todo
         if (ab > 0.08) { const wy = V.dot(this.w, up); T = V.madd(T, up, -wy * this.I[1] * 0.35); } }
       if (!grounded) { this.air = (this.air || 0) + dt; this.fallV = Math.min(this.fallV || 0, this.v[1]); }
