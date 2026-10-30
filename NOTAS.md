@@ -7,6 +7,12 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.108**
+- **Modo Grand Prix** (menú de un jugador, botón 🏎️): solo con los circuitos de estilo real que se van creando; el primero es **Jerez** (6,5 km). En este modo todo va más deprisa: punta ×1,45 (de ~80 de media a ~115), más empuje, **frenos más fuertes** y apoyo aerodinámico (más agarre cuanto más rápido). La IA corre con las mismas reglas.
+- **Carrera suelta** o **campeonato**: todos los circuitos del Grand Prix seguidos con puntos 25-18-15-12-10-8-6-4-2-1 y la clasificación general en la ventana del modo. Eliges coche, vueltas, rivales y dificultad.
+- **GT Racer**, el coche nuevo del Grand Prix: gran turismo de carreras bajo y ancho, morro largo, trasera fastback, alerón grande, franjas blancas y dorsal; la parte principal es del color de tu escudería. En el Grand Prix también se puede correr con el Panda 86, el Mini y el Escarabajo.
+- **Online:** nuevo modo «Grand Prix» en las partidas; se juega solo en sus circuitos y con sus coches.
+
 **Novedades de la 0.107**
 - **Editor:** cada objeto se dibuja con su tamaño y forma reales (antes eran cuadrados grandes), así que se pueden poner pegados; para elegir uno basta con pinchar encima.
 - **En fila:** con la casilla «En fila (arrastra)» marcas una línea y el objeto (vallas de madera, carteles…) se repite pegado uno a otro y girado a lo largo de ella.

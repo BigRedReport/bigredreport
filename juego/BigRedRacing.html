@@ -121,12 +121,12 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .driftbig{position:absolute;left:50%;top:10px;transform:translateX(-50%);text-align:center;pointer-events:none;text-shadow:0 0 3px #000,0 1px 0 #000;color:#fff;white-space:nowrap;zoom:var(--hudsc,1)} .driftbig b{display:inline-block;font:900 24px system-ui;letter-spacing:.02em} .driftbig i{font:900 italic 18px system-ui;color:#ffd23f;margin-left:5px} .driftbig span{display:block;font:800 11px system-ui;letter-spacing:.12em;opacity:.85} .driftbig b.got{color:#7dffa0} .driftbig b.lost{color:#ff6a5a} .driftbig[hidden]{display:none}
 #ed_toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:#141824;border:1px solid var(--line);border-radius:10px;padding:8px 14px}
 #editor .edhome{position:absolute;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center} #editor .edhome[hidden]{display:none} #editor .edhome .card{width:min(640px,94vw);max-height:90vh;overflow:auto;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}
-#donate,#reto,#garage,#rplist,#friends,#comm{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center}#donate[hidden],#reto[hidden],#garage[hidden],#rplist[hidden],#friends[hidden],#comm[hidden]{display:none}
+#donate,#reto,#garage,#rplist,#friends,#comm,#gpm{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center}#donate[hidden],#reto[hidden],#garage[hidden],#rplist[hidden],#friends[hidden],#comm,#gpm[hidden]{display:none}
 #comm .card{max-height:92vh;overflow:auto;width:min(720px,96vw)} .ctabs{display:flex;gap:6px} .ctabs button{width:auto;margin:0;padding:7px 12px} .ctabs button.on{background:var(--red,#e2231a);color:#fff;border-color:transparent} .cmrow{display:flex;align-items:center;flex-wrap:wrap;gap:8px 10px;padding:8px 0;border-bottom:1px solid var(--line)} #comm .rplb{flex-wrap:wrap;justify-content:flex-end;align-items:center;gap:5px;flex-shrink:1;max-width:100%;margin-left:auto} #comm .rplb button{width:auto;margin:0;padding:5px 9px;font-size:13px;white-space:nowrap} #comm .rplb label{white-space:nowrap;display:flex;align-items:center;gap:4px;margin:0} #comm .cminfo{flex:1 1 180px} #comm .cminfo b,#comm .cminfo span{overflow:hidden;text-overflow:ellipsis} .cvote{display:inline-flex;gap:4px} .cvote button{font-weight:700} .cvote .vup{color:#3ccf5a} .cvote .vdn{color:#ff4d4d} .cvote .vup.on{background:#1f7a32;color:#fff;border-color:#3ccf5a} .cvote .vdn.on{background:#8a1f1f;color:#fff;border-color:#ff4d4d} .cmrow img{width:96px;height:60px;border-radius:6px;flex-shrink:0} .cminfo{flex:1;min-width:0;display:flex;flex-direction:column} .tcard{position:relative} .cbadge{position:absolute;top:4px;right:6px;font-size:16px;filter:drop-shadow(0 0 2px #000)}
 #friends .card{max-height:92vh;overflow:auto;width:min(620px,94vw)} .frow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)} .fmain{flex:1;min-width:0} .fdot{width:10px;height:10px;border-radius:50%;background:#555;flex-shrink:0} .fdot.on{background:#3ddc6a;box-shadow:0 0 8px #3ddc6a}
 #ftoast{position:fixed;right:16px;bottom:16px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(380px,92vw)} #ftoast .ft{background:#141824;border:1px solid #3a4256;border-radius:12px;padding:12px 14px;box-shadow:0 10px 30px #0009;font-size:14px} #ftoast .ftb{display:flex;gap:8px;margin-top:8px} #ftoast button{padding:6px 12px}
 #rplist .card{max-height:92vh;overflow:auto;width:min(640px,94vw)} .rpl{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line)} .rplb{display:flex;gap:6px;flex-shrink:0} .rplb button{padding:6px 10px}
-#garage .card{max-height:92vh;overflow:auto} #donate .card,#reto .card,#garage .card,#rplist .card,#friends .card,#comm .card{max-width:560px;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}#donate h2,#reto h2,#garage h2,#rplist h2,#friends h2,#comm h2{margin:0 0 8px} .grhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0} .grhead b{color:#ffd23f} .grrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)} .grrow button{width:auto;margin:0} .grdots{display:flex;gap:4px;margin-top:4px} .grdots i{width:22px;height:6px;border-radius:3px;background:rgba(255,255,255,.15)} .grdots i.on{background:#ff4a3a} #gr_turbo{width:44px;height:30px;padding:0;border:none;background:none;vertical-align:middle} #reto .rtimg{width:100%;border-radius:10px;aspect-ratio:16/9;object-fit:cover;background:#0b0e14} #reto .rtgrid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0} #reto .rtgrid span{color:var(--mut)}
+#garage .card{max-height:92vh;overflow:auto} #donate .card,#reto .card,#garage .card,#rplist .card,#friends .card,#comm,#gpm .card{max-width:560px;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}#donate h2,#reto h2,#garage h2,#rplist h2,#friends h2,#comm,#gpm h2{margin:0 0 8px} .grhead{display:flex;justify-content:space-between;align-items:center;gap:10px;margin:10px 0} .grhead b{color:#ffd23f} .grrow{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-top:1px solid var(--line)} .grrow button{width:auto;margin:0} .grdots{display:flex;gap:4px;margin-top:4px} .grdots i{width:22px;height:6px;border-radius:3px;background:rgba(255,255,255,.15)} .grdots i.on{background:#ff4a3a} #gr_turbo{width:44px;height:30px;padding:0;border:none;background:none;vertical-align:middle} #reto .rtimg{width:100%;border-radius:10px;aspect-ratio:16/9;object-fit:cover;background:#0b0e14} #reto .rtgrid{display:grid;grid-template-columns:auto 1fr;gap:4px 12px;margin:10px 0} #reto .rtgrid span{color:var(--mut)}
 .dnrow{display:flex;gap:16px;align-items:center;justify-content:space-between;margin:14px 0}.dnrow>div{display:flex;flex-direction:column;gap:10px;flex:1}.dnrow img{border-radius:10px;background:#fff;padding:6px}
 .dnb{display:block;text-align:center;padding:12px 14px;border-radius:10px;font-weight:800;text-decoration:none;color:#fff}.dnb.kofi{background:#29abe0}.dnb.pp{background:#003087}
 .hbtn.dnt{color:#ff6b81}
@@ -205,6 +205,9 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 #n_chat{height:180px;overflow:auto;background:#0d1016;border:1px solid var(--line);border-radius:8px;padding:6px 8px;font-size:13px;margin:8px 0 6px}
 #netbar{position:fixed;left:50%;transform:translateX(-50%);top:8px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:6px 14px;font-size:13px;z-index:5;pointer-events:none}
   .pskin span{display:block;width:34px;height:34px;border-radius:50%;margin:4px auto;border:2px solid rgba(255,255,255,.25)}
+  #gpm .card{max-height:92vh;overflow:auto;width:min(640px,96vw)} .gptracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
+  .gptrack{padding:6px;border-radius:10px;border:2px solid var(--line);background:#0e121b;cursor:pointer;text-align:left;margin:0} .gptrack.on{border-color:var(--red,#e2231a)} .gptrack img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:6px;display:block} .gptrack b{display:block;margin-top:4px}
+  #gp_champ table{width:100%;border-collapse:collapse;margin-top:8px} #gp_champ td{padding:3px 6px;border-top:1px solid var(--line)} #gp_champ td:last-child{text-align:right;font-weight:700} #gp_champ tr.me td{color:#ffd23f}
 </style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#e23b3b"><link rel="icon" href="icon-192.png">
 </head><body>
 <canvas id="c"></canvas><div id="err"></div>
@@ -250,6 +253,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="tt"><span class="ico">🏁</span>Contrareloj</button>
         <button class="hbtn" data-go="free"><span class="ico">🌄</span>Modo libre</button>
         <button class="hbtn" data-go="drift"><span class="ico">💨</span>Modo drift</button>
+        <button class="hbtn" data-go="gp"><span class="ico">🏎️</span>Grand Prix</button>
         <button class="hbtn" data-go="reto"><span class="ico">⭐</span>Reto semanal</button>
         <button class="hbtn small2" data-go="back">◀ Volver</button>
       </div>
@@ -374,7 +378,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <div class="grid3"><div><label class="row">Vueltas</label><select id="n_laps"><option value="0">Original</option><option>1</option><option>2</option><option>3</option><option>5</option></select></div>
           <div><label class="row">Rivales de la máquina</label><select id="n_ai"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option><option>10</option></select></div>
           <div><label class="row">Dificultad</label><select id="n_diff"><option value="1">Fácil</option><option value="2" selected>Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div></div>
-        <div class="grid2"><div><label class="row">Modos extra</label><select id="n_crazy"><option value="normal">Carrera normal</option><option value="elim_cp">Eliminación</option><option value="bomba">Bomba caliente</option><option value="zombie">Infección zombi</option><option value="polis">Polis y cacos</option><option value="kart">Modo kart</option><option value="drift">Modo drift (libre, todos con el Panda 86)</option></select></div><div></div></div>
+        <div class="grid2"><div><label class="row">Modos extra</label><select id="n_crazy"><option value="normal">Carrera normal</option><option value="elim_cp">Eliminación</option><option value="bomba">Bomba caliente</option><option value="zombie">Infección zombi</option><option value="polis">Polis y cacos</option><option value="kart">Modo kart</option><option value="drift">Modo drift (libre, todos con el Panda 86)</option><option value="gp">Grand Prix (sus circuitos y coches)</option></select></div><div></div></div>
         <div class="grid2" style="margin-top:10px"><button class="main" id="n_create">Crear</button><button id="n_cancel">Cancelar</button></div>
       </div>
     </div>
@@ -548,6 +552,16 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <p class="small">Los circuitos «en las listas» salen al elegir circuito en carrera rápida, contrarreloj y online. Online, si alguien no tiene el circuito, se le descarga solo antes de empezar.</p>
   <div class="grid2" style="margin-top:8px"><button id="cm_editor">🛠️ Abrir el editor</button><button id="cm_close">Cerrar</button></div>
 </div></div>
+<div id="gpm" hidden><div class="card">
+  <h2>🏎️ Grand Prix</h2>
+  <p class="small">Circuitos largos inspirados en circuitos reales. En este modo todos los coches van mucho más rápido, frenan más y tienen más agarre.</p>
+  <div id="gp_tracks" class="gptracks"></div>
+  <div class="grid2"><div><label class="row">Coche</label><select id="gp_car"></select></div><div><label class="row">Vueltas</label><select id="gp_laps"><option value="0">Las del circuito</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option></select></div></div>
+  <div class="grid2"><div><label class="row">Rivales</label><select id="gp_riv"><option>3</option><option>5</option><option>7</option><option>9</option><option>11</option></select></div><div><label class="row">Dificultad</label><select id="gp_diff"><option value="1">Fácil</option><option value="2">Normal</option><option value="3">Difícil</option><option value="4">Experto</option></select></div></div>
+  <div id="gp_champ"></div>
+  <div class="grid2" style="margin-top:10px"><button id="gp_race" class="main">▶ Carrera</button><button id="gp_cup">🏆 Campeonato</button></div>
+  <button id="gp_close" style="margin-top:8px">Cerrar</button>
+</div></div>
 <div id="friends" hidden><div class="card">
   <h2>👫 Amigos</h2>
   <div class="grrow"><div><b>Tu código de amigo</b><br><span class="small">Pásaselo a quien quieras para que te añada.</span></div><div style="text-align:right"><b id="fr_code" class="mono" style="font-size:20px;letter-spacing:.08em"></b><br><button id="fr_copy">Copiar</button></div></div>
@@ -604,6 +618,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/horns_data.js"></script>
 <script src="js/horns.js"></script>
 <script src="js/drift_data.js"></script>
+<script src="js/gp_data.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/main.js"></script>
 

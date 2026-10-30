@@ -257,6 +257,8 @@
   // ---------- física ----------
   const SPEED_K = 30 / 35000;   // unidades de velocidad del script -> m/s (35000 ≈ 108 km/h)
   BRR.SPEED_K = SPEED_K;
+  // modo Grand Prix: circuitos largos y rápidos. Todo va más deprisa (punta ×1,45: de ~80 de media a ~115), con más empuje, frenos más fuertes y apoyo aerodinámico
+  const GPV = 1.45, GPF = 1.5, GPB = 1.8; BRR.GPV = GPV;
   const curve = (rows, spd) => { // fuerza (0..~650) según la velocidad del script
     for (let i = 0; i < rows.length - 1; i++) {
       const [s0, f0] = rows[i], [s1, f1] = rows[i + 1];
@@ -303,7 +305,7 @@
       this.steerAng = 0; this.upsideTime = 0; this.nitroT = 0;
     }
     steerLock() { const def = this.def, spd = Math.abs(this.speed()) / SPEED_K, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spd - s1) / (s2 - s1))); return (a1 + (a2 - a1) * tt) / 0x280 * 0.55; }
-    get topSpeed() { if (this._top) return this._top; if (this.K.fly) return this._top = 48; const r = this.def.gearF; let v = r[r.length - 1][0]; for (const x of r) if (x[1] <= 0) { v = x[0]; break; } return this._top = Math.min(60, v * SPEED_K); }
+    get topSpeed() { if (this._top) return this._top; if (this.K.fly) return this._top = 48; const r = this.def.gearF; let v = r[r.length - 1][0]; for (const x of r) if (x[1] <= 0) { v = x[0]; break; } return this._top = Math.min(60, v * SPEED_K) * (this.gpMode ? GPV : 1); }
     get wheelBase() { const z = this.W.map(w => w.c[2]); return Math.max(1.5, Math.max(...z) - Math.min(...z)); }
     fireNitro() { if (this.nitroT > 0 || !(this.nitros > 0 || this.nitroInf)) return false; if (!this.nitroInf) this.nitros--; this.nitroT = 2.6; return true; }
     get R() { return BRR.Q.mat(this.q); }
@@ -317,18 +319,19 @@
     forward() { return mv(this.R, [0, 0, -1]); }
     step(dt, inp) {
       const R = this.R, up = mv(R, [0, 1, 0]), fwd = mv(R, [0, 0, -1]), right = mv(R, [1, 0, 0]);
-      const vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K, def = this.def;
+      const GP = this.gpMode, vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K / (GP ? GPV : 1), def = this.def;   // en GP las tablas del coche se leen a escala (misma respuesta, más velocidad)
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
       const DR = this.driftMode;   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
       const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1);   // más giro para contravolante
       this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * 10);
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
+      if (this.gpMode && this.grounded) { const sp2 = this.v[0] ** 2 + this.v[2] ** 2; F = V.add(F, V.mul(up, -Math.min(0.0028 * sp2, 6) * this.m)); }   // GP: apoyo aerodinámico (más agarre cuanto más rápido)
       const K = this.K, L0 = K.L0, nW = this.W.length; let grounded = 0, wetN = 0;
       const throttle = inp.throttle, brake = inp.brake; this.thr = throttle;
       // marcha: adelante, freno o atrás
       let drive = 0;
-      if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m;
+      if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m * (GP ? GPF : 1);
       // nitro: empuje extra y supera la velocidad máxima
       if (this.nitroT > 0) { this.nitroT -= dt; drive = Math.max(drive, curve(def.gearF, Math.max(0, spdScript) * 0.7) / 600 * 7.5 * this.m) + 0.38 * 9.81 * this.m; }
       let braking = 0; this.brakeLight = brake > 0.05 && Math.abs(this.speed()) > 0.3;
@@ -366,7 +369,7 @@
         const share = this.m / nW;
         let Flat = -vLat * Math.min(14000, 0.5 * share / dt) * K.lat;
         let Flong = (K.thrust ? 0 : DR ? (w.steer ? 0 : drive * 1.55 * dmul / nRear) : drive * dmul / this.ndrive) - vLong * 25 + Flong0;
-        if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * share, Math.abs(vLong) * share / dt * 0.5);
+        if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * (GP ? GPB : 1) * share, Math.abs(vLong) * share / dt * 0.5);
         if (inp.handbrake && !w.steer && !DR) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
         if (!throttle && !brake && Math.abs(vLong) < 1.5) Flong -= vLong * Math.min(0.3 * share / dt, 6000);
         const lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong);
