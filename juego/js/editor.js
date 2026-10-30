@@ -70,23 +70,43 @@
   // ---------- del circuito del editor a los datos del juego ----------
   // devuelve { h, t, S (curva), gates } con el terreno allanado bajo la carretera y la carretera pintada
   function prepare(T, B) {
-    const h = T.h.slice(), t = T.t.slice(), S = spline(T.road), w = (T.w || 14) / CM, half = w / 2;
+    const h = T.h.slice(), t = T.t.slice(), S = spline(T.road), w = (T.w || 14) / CM, half = w / 2; let best = null;
     if (S.length) {
       // altura de la carretera: el terreno bajo ella suavizado a lo largo (sin baches)
       let y = S.map(p => hAt(T.h, p.x, p.z)); const n = y.length;
       for (let pass = 0; pass < 3; pass++) { const win = 24, out = new Array(n); for (let i = 0; i < n; i++) { let a = 0; for (let k = -win; k <= win; k++) a += y[(i + k + n) % n]; out[i] = a / (2 * win + 1); } y = out; }
-      const R = half + 2.2, best = new Float32Array(65536).fill(1e9), tgt = new Float32Array(65536);
+      const R = half + 2.2, tgt = new Float32Array(65536); best = new Float32Array(65536).fill(1e9);
       S.forEach((p, i) => { for (let z = Math.floor(p.z - R); z <= Math.ceil(p.z + R); z++) for (let x = Math.floor(p.x - R); x <= Math.ceil(p.x + R); x++) { if (x < 0 || z < 0 || x > 255 || z > 255) continue;
         const d = Math.hypot(x - p.x, z - p.z), k = z * 256 + x; if (d < best[k]) { best[k] = d; tgt[k] = y[i]; } } });
       for (let k = 0; k < 65536; k++) { const d = best[k]; if (d > R) continue; const a = d <= half + 0.6 ? 1 : 1 - (d - half - 0.6) / (R - half - 0.6); h[k] = Math.round(h[k] + (tgt[k] - h[k]) * Math.max(0, Math.min(1, a))); }
       // suelo de carretera bajo la cinta (para el polvo, el agarre y los sonidos)
       const RT = T.roadTile ?? B.roadTile; for (let z = 0; z < 255; z++) for (let x = 0; x < 255; x++) { const k = z * 256 + x; if (Math.max(best[k], best[k + 1], best[k + 256], best[k + 257]) < half) t[k] = RT; }   // solo las casillas que quedan del todo bajo la cinta
     }
-    return { h, t, S, gates: gatesOf(S), half };
+    return { h, t, S, gates: gatesOf(S), half, best: S.length ? best : null };
   }
   function gatesOf(S) { const G = S.length ? Math.max(3, Math.min(12, Math.round(S.total / 260))) : 0, gates = [];
     for (let g = 0; g < G; g++) { const s = g * S.total / G; let i = 0; while (i < S.length - 1 && S[i + 1].s <= s) i++; gates.push({ num: g, last: g === G - 1, p: S[i] }); }
     return gates; }
+  // todos los objetos de todos los circuitos (para poner en cualquier tema)
+  let allM = null;
+  async function allModels(files) {
+    if (allM) return allM; const out = [];
+    for (const n of files.list('.LEV').map(x => x.replace(/\.LEV$/i, '')).filter(x => !/^TEST/.test(x)).sort()) { try { const A = await files.archive(n + '.LEV'); out.push({ lev: n, names: [...A.keys()].filter(k => k.endsWith('.3DW')).map(k => k.slice(0, -4)).filter(m => !NOOBJ.test(m)).sort() }); } catch (e) { } }
+    return allM = out; }
+  const rawPal = async (files, lev) => { const A = await files.archive(lev + '.LEV'), sc = BRR.text(A.get(lev + '.TXT')), mp = (sc.match(/^map\s+(\w+)/m) || [0, 'MAP'])[1].toUpperCase();
+    const c = A.get(mp + '.COL') || ((files.has(BRR.envOf(lev) + '.ENV') ? await files.archive(BRR.envOf(lev) + '.ENV') : new Map()).get('CARSEL.RAW')); return { A, pal: BRR.pal6(c.subarray(0, 768)) }; };
+  // objetos de otros circuitos: el modelo y sus texturas con los colores pasados a la paleta del tema (el más parecido) y nombres propios para no chocar
+  async function foreign(files, B, objs, L, extra) {
+    const map = new Map(), basePal = BRR.pal6(B.col.subarray(0, 768)), keyB = (() => { for (let c = 0; c < 256; c++) if (BRR.isKey(basePal, c)) return c; return 0; })(), palC = new Map(); let k = 0;
+    for (const o of objs) { if (!o.s || o.s === B.base) continue; const key = o.s + '|' + o.n; if (map.has(key)) continue;
+      try { if (!palC.has(o.s)) { const { A, pal } = await rawPal(files, o.s), rm = new Uint8Array(256);
+          for (let c = 0; c < 256; c++) { if (BRR.isKey(pal, c)) { rm[c] = keyB; continue; } let best = 0, bd = 1e9; for (let d = 0; d < 256; d++) { if (BRR.isKey(basePal, d)) continue; const e = (pal[c * 3] - basePal[d * 3]) ** 2 * 0.3 + (pal[c * 3 + 1] - basePal[d * 3 + 1]) ** 2 * 0.59 + (pal[c * 3 + 2] - basePal[d * 3 + 2]) ** 2 * 0.11; if (e < bd) { bd = e; best = d; } } rm[c] = best; }
+          palC.set(o.s, { A, rm }); }
+        const { A, rm } = palC.get(o.s), raw = A.get(o.n + '.3DW'); if (!raw) continue; const m = BRR.parse3DW(raw), alias = o.n.slice(0, 9) + '_' + (k++).toString(36), tx = new Map();
+        const tname = t => { if (!t) return t; if (!tx.has(t)) { const tm = A.get(t + '.TM'); const nn = 'X' + k.toString(36) + '_' + tx.size; if (tm) { const out = new Uint8Array(tm.length); for (let i = 0; i < tm.length; i++) out[i] = rm[tm[i]]; extra.set(nn + '.TM', out); tx.set(t, nn); } else tx.set(t, t); } return tx.get(t); };
+        const faces = m.faces.map(f => ({ ...f, color: f.color != null ? rm[f.color] : f.color, tex: tname(f.tex), alt: f.alt ? { ...f.alt, tex: tname(f.alt.tex) } : f.alt }));
+        extra.set(alias + '.3DW', { ...m, faces }); map.set(key, alias); } catch (e) { } }
+    return map; }
   const hex = v => (v < 0 ? '-&' : '&') + Math.abs(Math.round(v)).toString(16).toUpperCase();
   async function build(files, T) {
     const B = await loadBase(files, T.base), P = prepare(T, B), { h, t, S, gates, half } = P;
@@ -105,7 +125,8 @@
       if (B.hasBanner) { const ax = [Math.cos(a), -Math.sin(a)], off = half + 0.35;
         add('START', p.x, p.z, gyU(p.x, p.z) - 300, a, 0, 8);
         for (const sg of [-1, 1]) { const px = p.x + ax[0] * off * sg, pz = p.z + ax[1] * off * sg; add('ST_POSTS', px, pz, gyU(px, pz), a, 1, 0); } } }
-    for (const o of T.objs || []) { if (!B.models.includes(o.n)) continue; add(o.n, o.x, o.z, gyU(o.x, o.z), (o.r || 0) * Math.PI / 180, 0, SOFTN.test(o.n) ? 4 : 0); }
+    const extra = new Map(), fmap = await foreign(files, B, T.objs || [], L, extra);
+    for (const o of T.objs || []) { const nm = o.s && o.s !== T.base ? fmap.get(o.s + '|' + o.n) : (B.models.includes(o.n) ? o.n : null); if (!nm) continue; add(nm, o.x, o.z, gyU(o.x, o.z), (o.r || 0) * Math.PI / 180, 0, SOFTN.test(o.n) ? 4 : 0); }
     const shl = new Uint8Array(names.length * 13); names.forEach((n, i) => { for (let k = 0; k < Math.min(12, n.length); k++) shl[i * 13 + k] = n.charCodeAt(k); }); L.set('MAP.SHL', shl);
     const dat = new Uint8Array(recs.length * 22), dv = new DataView(dat.buffer);
     recs.forEach((r, i) => { const o = i * 22; dat[o] = r.n; dv.setInt32(o + 1, r.x, true); dv.setInt32(o + 5, r.y, true); dv.setInt32(o + 9, r.z, true); dv.setInt16(o + 13, 0, true); dv.setUint16(o + 15, r.ry, true); dv.setInt16(o + 17, 0, true); dat[o + 19] = r.b19; dat[o + 20] = r.cls; dat[o + 21] = 0; });
@@ -125,7 +146,7 @@
       `grid ${hex(st.x * CELL)},${hex(st.z * CELL)},${hex(ga)},`, '        -956,0,&2000,', '        444,0,-&2000,', ...slots.map((q, i) => '        ' + q + (i < slots.length - 1 ? ',' : '')),
       `laps ${Math.max(1, Math.min(20, T.laps | 0 || 3))}`, `nitros ${Math.max(0, Math.min(12, T.nitros | 0))},1200`, ...cams].join('\n');
     L.set(name + '.TXT', new TextEncoder().encode(script));
-    const files2 = Object.create(files); const lev = name + '.LEV';
+    const files2 = Object.create(files); files2.extra = extra; const lev = name + '.LEV';
     files2.archive = async n => n === lev ? L : files.archive(n); files2.has = n => n === lev || files.has(n);
     return { name, files2, P, B };
   }
@@ -148,11 +169,18 @@
   }
   BRR.loadCustomLevel = async function (files, T, progress) {
     const { name, files2, P, B } = await build(files, T); const lvl = await BRR.loadLevel(files2, name, progress);
-    ribbon(lvl, P, B, T); lvl.custom = T; lvl.title = T.name || 'Mi circuito'; lvl.aiKey = name + ':' + (T.rev || 0) + ':' + (T.updated || 0); return lvl;
+    ribbon(lvl, P, B, T);
+    // la carretera tiene su propio suelo (asfalto, tierra, arena o nieve), no el de la baldosa que queda debajo: polvo, agarre y sonidos
+    if (P.best) { const st = T.surf || ED.defSurf(T.base), d = B.thumbs[T.roadTile ?? B.roadTile].getContext('2d').getImageData(0, 0, 32, 32).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
+      const rs = { type: st, col: [r, g, b].map(v => Math.min(1, v / 1024 / 255 * 1.15)) }, S0 = lvl.surface, bst = P.best, half = P.half, CS = CELL * BRR.S;
+      lvl.surface = (x, z) => { const fx = x / CS, fz = -z / CS, ix = Math.floor(fx), iz = Math.floor(fz); if (ix < 0 || iz < 0 || ix > 254 || iz > 254) return S0(x, z); const u = fx - ix, v = fz - iz, q = (a, b2) => bst[b2 * 256 + a];
+        const dd = (q(ix, iz) * (1 - u) + q(ix + 1, iz) * u) * (1 - v) + (q(ix, iz + 1) * (1 - u) + q(ix + 1, iz + 1) * u) * v; return dd < half + 0.05 ? rs : S0(x, z); }; }
+    lvl.custom = T; lvl.title = T.name || 'Mi circuito'; lvl.aiKey = name + ':' + (T.rev || 0) + ':' + (T.updated || 0); return lvl;
   };
 
   // ---------- la pantalla del editor ----------
-  const ED = BRR.editor = { THEMES, listTracks, saveTrack, delTrack, loadBase, spline, prepare, build };
+  const DEFS = { CITY: 'asfalto', DIRT: 'tierra', SNOW: 'nieve', RUF: 'tierra', RIG: 'tierra', MOON: 'tierra' };
+  const ED = BRR.editor = { defSurf: base => DEFS[BRR.envOf(base)] || 'asfalto', THEMES, listTracks, saveTrack, delTrack, loadBase, spline, prepare, build };
   let delMode = false, hov = null, hf = null, host = null, T = null, B = null, cv = null, cx2 = null, terr = null, view = { z: 4, x: 0, y: 0 }, tool = 'road', brush = { r: 4, mode: 'up', str: 1 }, drag = null, undo = [], redo = [], sel = null, dirty = true, objPick = null;
   const $ = id => document.getElementById(id);
   function newTrack(base, Bb) { const h = new Uint8Array(65536).fill(48), t = new Uint8Array(65536).fill(Bb.groundTile);
@@ -186,13 +214,15 @@
     // objetos
     for (const o of T.objs) { const [a, b] = toScr(o.x, o.z), r = Math.max(4, view.z * 0.6); g.save(); g.translate(a, b); g.rotate(-(o.r || 0) * Math.PI / 180);
       g.fillStyle = o === sel ? '#ffd23f' : SOFTN.test(o.n) ? '#5ad17a' : '#e8e2d6'; g.strokeStyle = '#000'; g.lineWidth = 1.5; g.fillRect(-r, -r, 2 * r, 2 * r); g.strokeRect(-r, -r, 2 * r, 2 * r); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -r * 1.6); g.stroke(); g.restore();
-      if (view.z >= 6) { g.fillStyle = '#fff'; g.font = '10px system-ui'; g.textAlign = 'center'; g.fillText(o.n, a, b + r + 11); } }
+      if (view.z >= 6) { g.fillStyle = o.s ? '#9fd8ff' : '#fff'; g.font = '10px system-ui'; g.textAlign = 'center'; g.fillText(o.n, a, b + r + 11); } }
     // brocha
-    const hv = (drag && drag.hover) || hov; if (hv && (tool === 'terrain' || tool === 'paint')) { const [a, b] = toScr(hv[0], hv[1]); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.arc(a, b, brush.r * view.z, 0, 7); g.stroke(); }
+    const hv = (drag && drag.hover) || hov; if (hv && tool === 'paint' && brush.r < 0.5) { const [a, b] = toScr(Math.floor(hv[0]), Math.floor(hv[1]) + 1); g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(a, b, view.z, view.z); }
+    else if (hv && (tool === 'terrain' || tool === 'paint')) { const [a, b] = toScr(hv[0], hv[1]); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.arc(a, b, brush.r * view.z, 0, 7); g.stroke(); }
     $('ed_info').textContent = S.length ? `Vuelta: ${Math.round(S.total)} m · ${gatesOf(S).length} controles · ${T.road.length} puntos` : 'Pon al menos 3 puntos de carretera';
   }
   function brushStep(p) {
-    if (!p) return; const [px, pz] = p, r = brush.r, x0 = Math.floor(px - r), x1 = Math.ceil(px + r), z0 = Math.floor(pz - r), z1 = Math.ceil(pz + r), now = performance.now(), dt = Math.min(0.05, (now - (drag.t || now)) / 1000) || 0.016; drag.t = now;
+    if (!p) return; if (tool === 'paint' && brush.r < 0.5) { const x = Math.floor(p[0]), z = Math.floor(p[1]); if (x >= 0 && z >= 0 && x < 256 && z < 256 && brush.tile != null && T.t[z * 256 + x] !== brush.tile) { T.t[z * 256 + x] = brush.tile; terrArea(x, z, x, z); dirty = true; } return; }   // tamaño 0: una sola casilla
+    const [px, pz] = p, r = brush.r, x0 = Math.floor(px - r), x1 = Math.ceil(px + r), z0 = Math.floor(pz - r), z1 = Math.ceil(pz + r), now = performance.now(), dt = Math.min(0.05, (now - (drag.t || now)) / 1000) || 0.016; drag.t = now;
     for (let z = Math.max(0, z0); z <= Math.min(255, z1); z++) for (let x = Math.max(0, x0); x <= Math.min(255, x1); x++) {
       const d = Math.hypot(x - px, z - pz); if (d > r) continue; const k = z * 256 + x, f = Math.cos(d / r * Math.PI / 2) ** 2;
       if (tool === 'paint') { if (brush.tile != null) T.t[k] = brush.tile; continue; }
@@ -212,17 +242,22 @@
   function insertRoad(c) { const P = T.road; if (P.length < 3) { P.push(c); return P.length - 1; }
     let bi = 0, bd = 1e9; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((c[0] - a[0]) * vx + (c[1] - a[1]) * vz) / (vx * vx + vz * vz || 1))), d = Math.hypot(a[0] + vx * t - c[0], a[1] + vz * t - c[1]); if (d < bd) { bd = d; bi = i; } }
     P.splice(bi + 1, 0, c); return bi + 1; }
-  function setTool(t) { tool = t; for (const b of host.querySelectorAll('[data-tool]')) b.classList.toggle('on', b.dataset.tool === t); for (const p of host.querySelectorAll('.edp')) p.hidden = p.dataset.p !== t; dirty = true; }
+  let oTh = null, oTk = 0, oA = 0;
+  async function othumb() { const k = ++oTk, [lev, n] = (objPick || '|').split('|'); oTh = null; $('ed_oinfo').textContent = n || ''; if (!host.objThumb || !n) return;
+    try { const th = await host.objThumb(lev, n); if (k !== oTk) return; oTh = th; if (th && th.size) $('ed_oinfo').textContent = `${n} · ${lev} · ${th.size[0].toFixed(1)} × ${th.size[2].toFixed(1)} × ${th.size[1].toFixed(1)} m`; } catch (e) { } }
+  function othumbLoop() { if (!host || host.hidden) return; requestAnimationFrame(othumbLoop); if (tool !== 'objs' || !oTh) return; oA += 0.02; const src = oTh.frame(oA), cv2 = $('ed_othumb'), g = cv2.getContext('2d'); g.clearRect(0, 0, cv2.width, cv2.height); const sz = Math.min(cv2.width, cv2.height); g.drawImage(src, (cv2.width - sz) / 2, 0, sz, sz); }
+  function setTool(t) { tool = t; if (t === 'objs' && !oTh) othumb(); if (t === 'paint') brush.r = +$('ed_pr').value; if (t === 'terrain') brush.r = +$('ed_r').value; for (const b of host.querySelectorAll('[data-tool]')) b.classList.toggle('on', b.dataset.tool === t); for (const p of host.querySelectorAll('.edp')) p.hidden = p.dataset.p !== t; dirty = true; }
   function resize() { const r = cv.parentElement.getBoundingClientRect(); cv.width = Math.max(200, r.width | 0); cv.height = Math.max(200, r.height | 0); dirty = true; }
   function fit() { const r = cv.getBoundingClientRect(); let x0 = 1e9, z0 = 1e9, x1 = -1e9, z1 = -1e9; for (const p of T.road.length ? T.road : [[96, 96], [160, 160]]) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); z0 = Math.min(z0, p[1]); z1 = Math.max(z1, p[1]); }
     const m = 12; view.z = Math.max(1, Math.min(r.width / (x1 - x0 + 2 * m), r.height / (z1 - z0 + 2 * m))); view.x = r.width / 2 - (x0 + x1) / 2 * view.z; view.y = r.height / 2 + (z0 + z1) / 2 * view.z; dirty = true; }
   async function openTrack(t, keepView) {
     T = t; B = await loadBase(host.files(), T.base); if (T.roadTile == null) T.roadTile = B.roadTile; undo = []; redo = []; sel = null; terr = null; hf = Float32Array.from(T.h); terrAll();
-    $('ed_name').value = T.name; $('ed_laps').value = T.laps; $('ed_nitros').value = T.nitros; $('ed_w').value = T.w; $('ed_wv').textContent = T.w + ' m'; $('ed_base').textContent = T.base;
+    $('ed_name').value = T.name; $('ed_surf').value = T.surf || ED.defSurf(T.base); $('ed_laps').value = T.laps; $('ed_nitros').value = T.nitros; $('ed_w').value = T.w; $('ed_wv').textContent = T.w + ' m'; $('ed_base').textContent = T.base;
     $('ed_tiles').innerHTML = ''; B.thumbs.forEach((c, i) => { const b = document.createElement('canvas'); b.width = b.height = 32; b.getContext('2d').drawImage(c, 0, 0); b.title = 'Baldosa ' + i; b.className = 'edtile'; b.onclick = () => { brush.tile = i; for (const x of $('ed_tiles').children) x.classList.toggle('on', x === b); }; $('ed_tiles').appendChild(b); });
     brush.tile = B.groundTile; $('ed_tiles').children[brush.tile] && $('ed_tiles').children[brush.tile].classList.add('on');
     const rt = $('ed_rtile'); rt.innerHTML = ''; B.thumbs.forEach((c, i) => { const b = document.createElement('canvas'); b.width = b.height = 32; b.getContext('2d').drawImage(c, 0, 0); b.className = 'edtile' + (i === T.roadTile ? ' on' : ''); b.onclick = () => { snap(); T.roadTile = i; for (const x of rt.children) x.classList.toggle('on', x === b); }; rt.appendChild(b); });
-    $('ed_obj').innerHTML = B.models.map(n => `<option>${n}</option>`).join(''); objPick = B.models[0];
+    { const AM = await allModels(host.files()), grp = (lev, names) => `<optgroup label="${lev === T.base ? lev + ' (tema)' : lev}">${names.map(n => `<option value="${lev}|${n}">${n}</option>`).join('')}</optgroup>`;
+      $('ed_obj').innerHTML = grp(T.base, B.models) + AM.filter(g => g.lev !== T.base).map(g => grp(g.lev, g.names)).join(''); objPick = T.base + '|' + B.models[0]; $('ed_obj').value = objPick; }
     if (!keepView) setTimeout(fit, 0); dirty = true;
   }
   function readUI() { T.name = $('ed_name').value.trim().slice(0, 40) || 'Mi circuito'; T.laps = Math.max(1, Math.min(20, +$('ed_laps').value || 3)); T.nitros = Math.max(0, Math.min(12, +$('ed_nitros').value || 0)); }
@@ -245,19 +280,19 @@
     if (t.h.length !== 65536 || t.t.length !== 65536) throw new Error('Circuito incompleto'); await saveTrack(t); return t; }
 
   ED.init = function (opts) {
-    host = document.createElement('div'); host.id = 'editor'; host.hidden = true; host.files = opts.files; host.play = opts.play; host.close = opts.close; host.author = opts.author || (() => 'Piloto');
+    host = document.createElement('div'); host.id = 'editor'; host.hidden = true; host.files = opts.files; host.play = opts.play; host.close = opts.close; host.author = opts.author || (() => 'Piloto'); host.view3d = opts.view3d; host.objThumb = opts.objThumb;
     host.innerHTML = `<div class="edtop"><b>🛠 Editor de circuitos</b><input id="ed_name" maxlength="40" placeholder="Nombre del circuito"><span class="small">Tema: <b id="ed_base"></b></span><span class="small" id="ed_info"></span>
-      <span style="flex:1"></span><button id="ed_undo" title="Deshacer (Ctrl+Z)">↶</button><button id="ed_redo" title="Rehacer (Ctrl+Y)">↷</button><button id="ed_fit" title="Ver todo">⤢</button><button id="ed_save">💾 Guardar</button><button id="ed_play" class="main">▶ Probar</button><button id="ed_pub">🌐 Publicar</button><button id="ed_my">📁 Mis circuitos</button><button id="ed_exit">✕ Salir</button></div>
+      <span style="flex:1"></span><button id="ed_undo" title="Deshacer (Ctrl+Z)">↶</button><button id="ed_redo" title="Rehacer (Ctrl+Y)">↷</button><button id="ed_fit" title="Ver todo">⤢</button><button id="ed_save">💾 Guardar</button><button id="ed_3d" title="Recorrerlo con la cámara libre">🧊 Ver en 3D</button><button id="ed_play" class="main">▶ Probar</button><button id="ed_pub">🌐 Publicar</button><button id="ed_my">📁 Mis circuitos</button><button id="ed_exit">✕ Salir</button></div>
       <div class="edmain"><div class="edcv"><canvas id="ed_cv"></canvas><div id="ed_toast" hidden></div></div>
       <div class="edside"><div class="edtools"><button data-tool="road">🛣️ Carretera</button><button data-tool="terrain">⛰️ Terreno</button><button data-tool="paint">🎨 Suelo</button><button data-tool="objs">🌴 Objetos</button><button data-tool="set">⚙️ Ajustes</button></div>
         <div class="edp" data-p="road"><p class="small">Clic para añadir un punto (se mete en el tramo más cercano) · arrastra para moverlo · clic derecho para quitarlo. El punto rojo es la salida. Los controles y la parrilla se ponen solos.</p>
           <div class="edrow"><span>Ancho</span><input type="range" id="ed_w" min="8" max="30" step="1"><span id="ed_wv"></span></div>
-          <div class="edrow"><button id="ed_rev">⇄ Cambiar sentido</button><button id="ed_clear">Borrar carretera</button><button class="eddel">🗑 Modo borrar</button></div><p class="small">Suelo de la carretera:</p><div id="ed_rtile" class="edtiles"></div></div>
+          <div class="edrow"><button id="ed_rev">⇄ Cambiar sentido</button><button id="ed_clear">Borrar carretera</button><button class="eddel">🗑 Modo borrar</button></div><div class="edrow"><span>Tipo</span><select id="ed_surf"><option value="asfalto">Asfalto</option><option value="tierra">Tierra</option><option value="arena">Arena</option><option value="nieve">Nieve</option></select></div><p class="small">Textura de la carretera:</p><div id="ed_rtile" class="edtiles"></div></div>
         <div class="edp" data-p="terrain"><div class="edrow edmodes"><button data-m="up" class="on">⬆ Subir</button><button data-m="down">⬇ Bajar</button><button data-m="flat">▬ Allanar</button><button data-m="smooth">≈ Suavizar</button></div>
           <div class="edrow"><span>Tamaño</span><input type="range" id="ed_r" min="1" max="24" value="4"></div><div class="edrow"><span>Fuerza</span><input type="range" id="ed_s" min="1" max="10" value="5"></div>
           <div class="edrow"><button id="ed_hills">🎲 Colinas al azar</button><button id="ed_flatall">Todo llano</button></div><p class="small">Bajo la carretera el terreno se allana solo al probar el circuito.</p></div>
-        <div class="edp" data-p="paint"><div class="edrow"><span>Tamaño</span><input type="range" id="ed_pr" min="1" max="24" value="3"></div><div id="ed_tiles" class="edtiles"></div><div class="edrow"><button id="ed_fill">Pintar todo con esta</button></div></div>
-        <div class="edp" data-p="objs"><select id="ed_obj" size="10" style="width:100%"></select><p class="small">Clic para poner el objeto elegido · arrastra para moverlo · clic derecho para quitarlo · R o rueda con Mayús para girarlo.</p>
+        <div class="edp" data-p="paint"><div class="edrow"><span>Tamaño</span><input type="range" id="ed_pr" min="0" max="24" value="0"></div><div id="ed_tiles" class="edtiles"></div><div class="edrow"><button id="ed_fill">Pintar todo con esta</button></div></div>
+        <div class="edp" data-p="objs"><canvas id="ed_othumb" width="192" height="150" style="display:block;width:100%;max-width:240px;margin:0 auto;border-radius:10px;background:radial-gradient(#2a3040,#10131b)"></canvas><div class="small" id="ed_oinfo" style="text-align:center"></div><select id="ed_obj" size="9" style="width:100%"></select><p class="small">Clic para poner el objeto elegido · arrastra para moverlo · clic derecho para quitarlo · R o rueda con Mayús para girarlo.</p>
           <div class="edrow"><label class="small"><input type="checkbox" id="ed_rnd" checked> Giro al azar</label><button id="ed_odel">Quitar el elegido</button><button id="ed_orot">⟳ Girar</button><button class="eddel">🗑 Modo borrar</button></div></div>
         <div class="edp" data-p="set"><div class="edrow"><span>Vueltas</span><input type="number" id="ed_laps" min="1" max="20" style="width:70px"></div><div class="edrow"><span>Nitros</span><input type="number" id="ed_nitros" min="0" max="12" style="width:70px"></div>
           <p class="small">Rueda del ratón: zoom · arrastrar con botón derecho o central (o Espacio): mover la vista. En pantalla táctil: dos dedos para mover y pellizcar para el zoom.</p><div class="edrow"><button id="ed_exp">⬇ Exportar archivo</button></div></div></div></div>
@@ -268,13 +303,14 @@
     addEventListener('resize', () => { if (!host.hidden) resize(); });
     for (const b of host.querySelectorAll('[data-tool]')) b.onclick = () => setTool(b.dataset.tool);
     for (const b of host.querySelectorAll('[data-m]')) b.onclick = () => { brush.mode = b.dataset.m; for (const x of host.querySelectorAll('[data-m]')) x.classList.toggle('on', x === b); };
-    $('ed_r').oninput = () => { brush.r = +$('ed_r').value; }; $('ed_s').oninput = () => { brush.str = +$('ed_s').value / 5; }; $('ed_pr').oninput = () => { brush.r = +$('ed_pr').value; };
+    $('ed_r').oninput = () => { brush.r = +$('ed_r').value; }; $('ed_s').oninput = () => { brush.str = +$('ed_s').value / 5; }; $('ed_pr').oninput = () => { brush.r = +$('ed_pr').value; dirty = true; };
     $('ed_w').oninput = () => { T.w = +$('ed_w').value; $('ed_wv').textContent = T.w + ' m'; dirty = true; }; $('ed_w').onchange = () => snap();
+    $('ed_surf').onchange = () => { snap(); T.surf = $('ed_surf').value; };
     $('ed_rev').onclick = () => { snap(); T.road = [T.road[0], ...T.road.slice(1).reverse()]; dirty = true; };
     $('ed_clear').onclick = () => { snap(); T.road = []; dirty = true; };
     $('ed_hills').onclick = hills; $('ed_flatall').onclick = () => { snap(); T.h.fill(48); hf = Float32Array.from(T.h); terrAll(); dirty = true; };
     $('ed_fill').onclick = () => { if (brush.tile == null) return; snap(); T.t.fill(brush.tile); terrAll(); dirty = true; };
-    $('ed_obj').onchange = () => { objPick = $('ed_obj').value; };
+    $('ed_obj').onchange = () => { objPick = $('ed_obj').value; othumb(); };
     for (const b of host.querySelectorAll('.eddel')) b.onclick = () => { delMode = !delMode; for (const x of host.querySelectorAll('.eddel')) x.classList.toggle('on', delMode); };
     $('ed_orot').onclick = () => { if (sel) { sel.r = ((sel.r || 0) + 15) % 360; dirty = true; } };
     $('ed_odel').onclick = () => { if (!sel) return; snap(); T.objs = T.objs.filter(o => o !== sel); sel = null; dirty = true; };
@@ -283,6 +319,7 @@
     $('ed_play').onclick = async () => { await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } host.play(T); };
     $('ed_my').onclick = async () => { await saveNow(false); $('ed_home').hidden = false; renderList(); };
     $('ed_exit').onclick = async () => { if (T) await saveNow(false); ED.close(); };
+    $('ed_3d').onclick = async () => { await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } host.view3d(T); };
     $('ed_pub').onclick = async () => { const b = $('ed_pub'); await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } b.disabled = true; b.textContent = 'Publicando…';
       try { await ED.publish(T, host.author()); toast('Publicado en la comunidad'); } catch (e) { toast(e.message || String(e)); } b.disabled = false; b.textContent = '🌐 Publicar'; };
     $('ed_exp').onclick = async () => { await saveNow(false); exportTrack(T); };
@@ -308,7 +345,7 @@
       if (tool === 'road') { const i = pickAt(mx, my); if (e.button === 2) { if (i != null) { snap(); T.road.splice(i, 1); dirty = true; } else drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
         snap(); drag = { road: i != null ? i : insertRoad(c) }; dirty = true; return; }
       if (tool === 'objs') { const o = objAt(mx, my); if (e.button === 2) { if (o) { snap(); T.objs = T.objs.filter(x => x !== o); if (sel === o) sel = null; dirty = true; } else drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
-        snap(); if (o) { sel = o; drag = { obj: o }; } else if (objPick) { const n = { n: objPick, x: c[0], z: c[1], r: $('ed_rnd').checked ? Math.floor(Math.random() * 24) * 15 : 0 }; T.objs.push(n); sel = n; drag = { obj: n }; } dirty = true; return; }
+        snap(); if (o) { sel = o; drag = { obj: o }; } else if (objPick) { const [os, on] = objPick.split('|'), n = { n: on, s: os === T.base ? undefined : os, x: c[0], z: c[1], r: $('ed_rnd').checked ? Math.floor(Math.random() * 24) * 15 : 0 }; T.objs.push(n); sel = n; drag = { obj: n }; } dirty = true; return; }
       if (tool === 'terrain' || tool === 'paint') { if (tool === 'paint') brush.r = +$('ed_pr').value; else brush.r = +$('ed_r').value; snap(); drag = { brush: true, p: c, hover: c, flat: hAt(T.h, c[0], c[1]) }; }
     });
     cv.addEventListener('pointermove', e => { if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -330,20 +367,20 @@
     addEventListener('keyup', e => { if (e.code === 'Space') space = false; });
   };
   ED.open = async function (track) {
-    host.hidden = false; resize(); requestAnimationFrame(draw);
+    host.hidden = false; resize(); requestAnimationFrame(draw); requestAnimationFrame(othumbLoop);
     if (track) { $('ed_home').hidden = true; await openTrack(track, true); setTool(tool); dirty = true; return; }
     if (!T) { $('ed_home').hidden = false; renderList(); } setTool(tool);
   };
   ED.close = function () { host.hidden = true; if (host.close) host.close(); };
-  ED.isOpen = () => host && !host.hidden; ED.cur = () => T;
+  ED.isOpen = () => host && !host.hidden; ED.cur = () => T; ED.objThumb = (l, n) => host.objThumb(l, n);
   ED.get = id => dget('trk_' + id);
   // ---------- circuitos de la comunidad: empaquetar (comprimido), publicar, descargar, activar ----------
   const z = async (u8, mode) => { const S = mode === 'c' ? new CompressionStream('deflate-raw') : new DecompressionStream('deflate-raw'); const w = S.writable.getWriter(); w.write(u8); w.close(); return new Uint8Array(await new Response(S.readable).arrayBuffer()); };
-  ED.pack = async t => JSON.stringify({ v: 1, brr: 'track', id: t.gid || t.id, name: t.name, author: t.author || '', pid: t.pid || '', base: t.base, w: t.w, road: t.road.map(p => [+p[0].toFixed(2), +p[1].toFixed(2)]), objs: (t.objs || []).map(o => ({ n: o.n, x: +o.x.toFixed(2), z: +o.z.toFixed(2), r: o.r | 0 })), laps: t.laps, nitros: t.nitros, roadTile: t.roadTile, rev: t.rev || 0, hz: b64(await z(t.h, 'c')), tz: b64(await z(t.t, 'c')) });
+  ED.pack = async t => JSON.stringify({ v: 1, brr: 'track', id: t.gid || t.id, name: t.name, author: t.author || '', pid: t.pid || '', base: t.base, w: t.w, road: t.road.map(p => [+p[0].toFixed(2), +p[1].toFixed(2)]), objs: (t.objs || []).map(o => ({ n: o.n, ...(o.s ? { s: o.s } : {}), x: +o.x.toFixed(2), z: +o.z.toFixed(2), r: o.r | 0 })), laps: t.laps, nitros: t.nitros, roadTile: t.roadTile, surf: t.surf, rev: t.rev || 0, hz: b64(await z(t.h, 'c')), tz: b64(await z(t.t, 'c')) });
   ED.unpack = async (s, extra = {}) => { const j = typeof s === 'string' ? JSON.parse(s) : s; if (!j || j.brr !== 'track' || !j.hz || !j.tz || !Array.isArray(j.road)) throw new Error('No es un circuito de Big Red Report');
     const t = { v: 1, id: String(j.id || '').replace(/[^a-z0-9\-_]/gi, '').slice(0, 40), name: String(j.name || 'Circuito').slice(0, 40), author: String(j.author || '').slice(0, 24), pid: String(j.pid || '').slice(0, 12), base: THEMES.includes(j.base) ? j.base : 'CITY1',
       h: await z(unb64(j.hz), 'd'), t: await z(unb64(j.tz), 'd'), road: j.road.filter(p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])).slice(0, 200).map(p => [Math.max(2, Math.min(253, +p[0])), Math.max(2, Math.min(253, +p[1]))]), w: Math.max(8, Math.min(30, +j.w || 14)),
-      objs: (j.objs || []).slice(0, 2000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), laps: Math.max(1, Math.min(20, j.laps | 0 || 3)), nitros: Math.max(0, Math.min(12, j.nitros | 0)), roadTile: j.roadTile | 0, rev: j.rev | 0, ...extra };
+      objs: (j.objs || []).slice(0, 2000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), ...(/^[A-Z]{3,8}\d$/.test(o.s || '') ? { s: o.s } : {}), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), surf: ['asfalto', 'tierra', 'arena', 'nieve'].includes(j.surf) ? j.surf : undefined, laps: Math.max(1, Math.min(20, j.laps | 0 || 3)), nitros: Math.max(0, Math.min(12, j.nitros | 0)), roadTile: j.roadTile | 0, rev: j.rev | 0, ...extra };
     if (!t.id || t.h.length !== 65536 || t.t.length !== 65536) throw new Error('Circuito incompleto'); return t; };
   ED.levelOf = t => t.base + '~' + t.id;
   ED.byLevel = async level => { const id = String(level || '').split('~')[1]; if (!id) return null; if (T && T.id === id) return T; return dget('trk_' + id); };

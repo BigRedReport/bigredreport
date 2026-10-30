@@ -819,7 +819,7 @@
       car = humans[0].car; race = humans[0].race;
       carDraw = { body: humans[0].draw, ...vehDraw(def0) }; { const rw = rimWheels(def0, garMine(def0.name)); if (rw) carDraw = { ...carDraw, wheels: carDraw.wheels.map((w, i) => rw[i] || w) }; }   // llantas del garaje
       // rivales de la máquina: los demás equipos, con el mismo vehículo
-      rivals = []; const nR = ttMode || freeMode ? 0 : Math.min(12 - nPlayers, opt.rivals | 0), skill = [0, 0.86, 0.95, 1.0, 1.06][opt.diff] || 0.95, lanes = [-0.45, 0.45, -0.15, 0.15, 0, -0.3, 0.3, -0.6, 0.6, -0.05, 0.05];
+      rivals = []; const nR = ttMode || freeMode || ed3d ? 0 : Math.min(12 - nPlayers, opt.rivals | 0), skill = [0, 0.86, 0.95, 1.0, 1.06][opt.diff] || 0.95, lanes = [-0.45, 0.45, -0.15, 0.15, 0, -0.3, 0.3, -0.6, 0.6, -0.05, 0.05];
       const profiles = ['experto', 'agresivo', 'torpe', 'prudente', 'imprevisible'].sort(() => Math.random() - .5); while (profiles.length < 11) profiles.push(profiles[profiles.length % 5]);
       if (rpLoad) {   // repetición guardada: todos los coches son marionetas que mueve la grabación (el tuyo no corre)
         for (const e of rpLoad.cars) { $('load_msg').textContent = 'Cargando ' + (e.name || 'coche') + '…';
@@ -1214,6 +1214,7 @@
   // ---------- modo foto: la carrera se congela y la cámara vuela libre ----------
   let photo = null;
   function togglePhoto() {
+    if (photo && ed3d) { photo = null; ed3d = false; $('photo').hidden = true; document.body.classList.remove('photo'); R.exposure = 0; R.dof = 0; if (document.pointerLockElement) document.exitPointerLock(); toMenu(); return; }   // vista 3D del editor: al salir, de vuelta al editor
     if (photo) { photo = null; $('photo').hidden = true; R.exposure = 0; R.dof = 0; document.body.classList.remove('photo'); $('hud').hidden = false; if (document.pointerLockElement) document.exitPointerLock(); last = performance.now(); return; }
     if (state !== 'race' || netRace || !humans.length) return;
     const cam = humans[0].cam, f = V.norm(V.sub(cam.look, cam.pos));
@@ -1769,9 +1770,23 @@
   }
   let pickerClose = null;
   // ---------- editor de circuitos (no en Android): probar el circuito con tu coche y los rivales, y al salir se vuelve al editor ----------
-  let edTrack = null, edBack = false; if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android');   // el editor no está en el móvil
+  let edTrack = null, edBack = false, ed3d = false; const objCache = new Map(); if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android');   // el editor no está en el móvil
   if (BRR.editor) BRR.editor.init({ files: () => files,
-    play: async T => { if (!files) return; edTrack = T; edBack = true; BRR.editor.close(); if (audio) { audio.init(); audio.stopMusic(); } ttMode = false; freeMode = false; tourMode = false;
+    objThumb: async (lev, name) => {   // miniatura girando del objeto elegido (como la de los coches)
+      const key = lev + '|' + name; let up = objCache.get(key);
+      if (!up) { const A = await files.archive(lev + '.LEV'), sc = BRR.text(A.get(lev + '.TXT')), mp = (sc.match(/^map\s+(\w+)/m) || [0, 'MAP'])[1].toUpperCase(), env = BRR.envOf(lev), E = files.has(env + '.ENV') ? await files.archive(env + '.ENV') : new Map();
+        const col = A.get(mp + '.COL') || E.get('CARSEL.RAW'), pal = BRR.pal6(col.subarray(0, 768)), raw = A.get(name + '.3DW'); if (!raw) return null;
+        const m = BRR.parse3DW(raw), mb = new BRR.MeshBuilder(pal); mb.addModel(m, v => BRR.toGL(v[0], v[1], v[2]), n => A.get(n + '.TM') || E.get(n + '.TM') || null);
+        let lo = [1e9, 1e9, 1e9], hi = [-1e9, -1e9, -1e9]; for (const g of mb.groups.values()) for (let i = 0; i < g.pos.length; i += 3) for (let k = 0; k < 3; k++) { lo[k] = Math.min(lo[k], g.pos[i + k]); hi[k] = Math.max(hi[k], g.pos[i + k]); }
+        if (!(hi[0] > lo[0])) return null; if (!R.L) R.setEnvironment([-0.35, 0.75, 0.55], [0.62, 0.7, 0.82]);
+        up = { body: R.upload(mb), c: lo.map((v, k) => (v + hi[k]) / 2), r: Math.max(0.5, Math.hypot(hi[0] - lo[0], hi[1] - lo[1], hi[2] - lo[2]) / 2), size: hi.map((v, k) => v - lo[k]) }; objCache.set(key, up); }
+      const cv = document.createElement('canvas');
+      return { size: up.size, frame: a => { R.thumb(up.body, { size: 192, yaw: a, pitch: -0.35, dist: up.r * 2.5, target: up.c, canvas: cv }); return cv; } };
+    },
+    view3d: async T => { if (!files) return; edTrack = T; edBack = true; ed3d = true; BRR.editor.close(); if (audio) { audio.init(); audio.stopMusic(); } ttMode = false; freeMode = false; tourMode = false;
+      await startRace(BRR.editor.levelOf(T), 'JEEP', opt.team || 1, 1, 1); if (state !== 'race') { ed3d = false; return; }
+      humans[0].car.out = true; $('help').hidden = true; togglePhoto(); if (photo) { const c = humans[0].car, f = c.forward(); photo.p = [c.p[0] - f[0] * 30, c.p[1] + 28, c.p[2] - f[2] * 30]; photo.yaw = Math.atan2(-f[0], -f[2]); photo.pitch = -0.55; } },
+    play: async T => { if (!files) return; edTrack = T; edBack = true; ed3d = false; BRR.editor.close(); if (audio) { audio.init(); audio.stopMusic(); } ttMode = false; freeMode = false; tourMode = false;
       const veh = files.has(opt.vehicle + '.VHC') && !/^(FEHELI|HELI|COPTER|INFLATE|HOVCAR)$/.test(opt.vehicle) ? opt.vehicle : 'JEEP'; await startRace(BRR.editor.levelOf(T), veh, opt.team || 1, T.laps || 3, 1); }, author: () => opt.netName || 'Piloto', close: () => customRefresh() });
   // ---------- circuitos propios y de la comunidad: en las listas de carrera (rápida, contrarreloj, online) y la ventana para descargarlos ----------
   async function customRefresh() {
@@ -3126,5 +3141,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

@@ -125,9 +125,10 @@
     if (env === 'SNOW') for (let i = 0; i < 256; i++) { const r = pal[i * 3], g = pal[i * 3 + 1], b = pal[i * 3 + 2];
       if (b > r + 25 && b > g + 18 && b > 120) { const l = 0.3 * r + 0.59 * g + 0.11 * b, t = 0.7; pal[i * 3] = r + (l * 1.08 - r) * t; pal[i * 3 + 1] = g + (l * 1.12 - g) * t; pal[i * 3 + 2] = Math.min(255, b + (l * 1.22 - b) * t); } }
     const srcs = [L, E, ...extra];
-    const find = n => { n = n.toUpperCase(); for (const s of srcs) if (s.has(n)) return s.get(n); return null; };
+    const XT = files.extra || null;   // circuitos del editor: objetos de otros circuitos (ya leídos y con los colores pasados a esta paleta)
+    const find = n => { n = n.toUpperCase(); if (XT && XT.has(n)) return XT.get(n); for (const s of srcs) if (s.has(n)) return s.get(n); return null; };
     const modelCache = new Map();
-    const getModel = n => { if (!modelCache.has(n)) { const b = find(n + '.3DW'); modelCache.set(n, b ? BRR.parse3DW(b) : null); } return modelCache.get(n); };
+    const getModel = n => { if (!modelCache.has(n)) { const b = find(n + '.3DW'); modelCache.set(n, b ? (b.faces ? b : BRR.parse3DW(b)) : null); } return modelCache.get(n); };
 
     progress('terreno');
     const H = find(mapn + '.MPH'), C = find(mapn + '.MPC'), T = find(mapn + '.CHT');
