@@ -110,7 +110,7 @@
       const [R, bk] = await Promise.all([readAll(T + 'trki/#', 3500), fetch(SITE + 'datos/circuitos.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))]), by = new Map();
       for (const j of Object.values(bk || {})) if (j && typeof j.id === 'string' && typeof j.name === 'string' && j.t > 0) by.set(j.id, j);   // copia de seguridad de la web (por si los buzones han perdido alguno)
       for (const it of R.items) { const j = parse(it.p); if (!j || typeof j.id !== 'string' || typeof j.name !== 'string' || !(j.t > 0)) continue; const o = by.get(j.id); if (!o || j.t > o.t) by.set(j.id, j); }
-      return { online: R.any > 0 || by.size > 0, rows: [...by.values()].filter(j => !j.del).sort((a, b) => b.t - a.t) };
+      return { online: R.any > 0 || by.size > 0, rows: [...by.values()].filter(j => !j.del).sort((a, b) => b.t - a.t), dels: [...by.values()].filter(j => j.del).map(j => j.id) };
     },
     async trackGet(id) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return null; const R = await readAll(T + 'trk/' + id, 5000); let best = null;
       for (const it of R.items) { const j = parse(it.p); if (j && j.brr === 'track' && (!best || (j.rev | 0) > (best.rev | 0))) best = j; }

@@ -1805,6 +1805,9 @@
     if (front.tracks.some(t => t.id === cur)) selectTrack(cur, false); else if (front.tracks.some(t => t.id === opt.level)) selectTrack(opt.level, false);
   }
   let cmTab = 'com', cmCache = null;
+  // circuitos que su autor ha borrado o retirado: fuera también de los descargados de todos
+  async function cmPurge(dels) { if (!dels || !dels.length || !BRR.editor) return; const D = await BRR.editor.downloads(), gone = D.filter(r => dels.includes(r.id)); for (const r of gone) await BRR.editor.delDownload(r.id); if (gone.length) await customRefresh(); }
+  setTimeout(async () => { try { if (BRR.editor && BRR.cloud && BRR.cloud.trackList && (await BRR.editor.downloads()).length) { const R = await BRR.cloud.trackList(); await cmPurge(R.dels); } } catch (e) { } }, 15000);
   function cmOpen(tab) { cmCache = null; $('comm').hidden = false; cmTab = tab || cmTab; cmRender(); setTimeout(() => navFocusFirst($('comm')), 0); }
   async function cmPlay(level) { await customRefresh(); $('comm').hidden = true; go('quick'); setTimeout(() => selectTrack(level, false), 60); }
   async function cmRender() {
@@ -1813,17 +1816,17 @@
     $('cm_search').hidden = cmTab !== 'com';
     if (cmTab === 'com') {
       el.innerHTML = '<p class="small">Buscando circuitos…</p>'; let R = cmCache; if (!R || Date.now() - R.at > 60000) { try { R = await BRR.cloud.trackList(); R.at = Date.now(); cmCache = R; } catch (e) { R = { rows: [], online: false }; } }
-      if (cmTab !== 'com') return; const dl = new Set((await ED.downloads()).map(x => x.id)), mine = new Set((await ED.listTracks()).map(x => x.id)), q = $('cm_search').value.trim().toLowerCase();
+      if (cmTab !== 'com') return; await cmPurge(R.dels); const dl = new Set((await ED.downloads()).map(x => x.id)), mine = new Set((await ED.listTracks()).map(x => x.id)), q = $('cm_search').value.trim().toLowerCase();
       const rows = R.rows.filter(r => !q || (r.name + ' ' + r.author).toLowerCase().includes(q));
       el.innerHTML = !R.online && !rows.length ? '<p class="small">No se puede conectar con la nube de circuitos (¿sin Internet?).</p>' : !rows.length ? '<p class="small">Todavía no hay circuitos publicados. ¡Publica el primero desde el editor!</p>' :
         rows.map(r => row(typeof r.c === 'string' && /^data:image\/jpeg;base64,/.test(r.c) ? r.c : ED.preview((r.path || []).map(p => [p[0], p[1]]), r.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m · ${new Date(r.t).toLocaleDateString()}`,
-          mine.has(r.id) ? '<span class="small">Tuyo</span>' : dl.has(r.id) ? '<button data-a="play" class="main">▶ Correr</button><button data-a="get" title="Volver a descargar">⟳</button>' : '<button data-a="get" class="main">⬇ Descargar</button>', r.id)).join('');
+          mine.has(r.id) || (r.pid && BRR.cloud && r.pid === BRR.cloud.id) ? '<span class="small">Tuyo</span><button data-a="unpubc" title="Retirar de la comunidad">Retirar</button>' : dl.has(r.id) ? '<button data-a="play" class="main">▶ Correr</button><button data-a="get" title="Volver a descargar">⟳</button>' : '<button data-a="get" class="main">⬇ Descargar</button>', r.id)).join('');
     } else if (cmTab === 'dl') {
       const L = await ED.downloads(); el.innerHTML = !L.length ? '<p class="small">No has descargado ninguno. Mira en «Comunidad».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(t.cover || ED.preview(t.road, t.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m`,
         `<label class="small"><input type="checkbox" data-a="on" ${r.on ? 'checked' : ''}> En las listas</label><button data-a="play" class="main">▶</button><button data-a="del" title="Borrar">🗑</button>`, r.id) : ''; }))).join('');
     } else {
       const L = await ED.listTracks(); el.innerHTML = !L.length ? '<p class="small">Aún no has hecho ninguno. Ábrelo con «Abrir el editor».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(t.cover || ED.preview(t.road, t.base), r.name, `${esc(theme(r.base))} · ${r.len || '?'} m${t.pub ? ' · 🌐 publicado' + (t.pub.rev < t.rev - 1 ? ' (hay cambios sin publicar)' : '') : ''}`,
-        `<label class="small"><input type="checkbox" data-a="mon" ${r.off ? '' : 'checked'}> En las listas</label><button data-a="play" class="main">▶</button><button data-a="edit" title="Editar">✏️</button><button data-a="pub">${t.pub ? '🌐 Actualizar' : '🌐 Publicar'}</button>${t.pub ? '<button data-a="unpub" title="Retirar de la comunidad">Retirar</button>' : ''}`, r.id) : ''; }))).join('');
+        `<label class="small"><input type="checkbox" data-a="mon" ${r.off ? '' : 'checked'}> En las listas</label><button data-a="play" class="main">▶</button><button data-a="edit" title="Editar">✏️</button><button data-a="pub">${t.pub ? '🌐 Actualizar' : '🌐 Publicar'}</button>${t.pub ? '<button data-a="unpub" title="Retirar de la comunidad">Retirar</button>' : ''}<button data-a="delmine" title="Borrar (si está publicado, se retira también de la comunidad)">🗑</button>`, r.id) : ''; }))).join('');
     }
     for (const b of el.querySelectorAll('[data-a]')) { const id = b.closest('.cmrow').dataset.id, a = b.dataset.a, ev = b.tagName === 'INPUT' ? 'onchange' : 'onclick';
       b[ev] = async () => { try {
@@ -1834,6 +1837,8 @@
         else if (a === 'del') { if (b.dataset.sure) { await ED.delDownload(id); await customRefresh(); cmRender(); } else { b.dataset.sure = 1; b.textContent = '¿Borrar?'; } }
         else if (a === 'edit') { const t = await ED.get(id); $('comm').hidden = true; BRR.editor.open(t); }
         else if (a === 'pub') { const t = await ED.get(id); b.disabled = true; b.textContent = 'Publicando…'; await ED.publish(t, opt.netName || 'Piloto'); cmCache = null; cmRender(); }
+        else if (a === 'unpubc') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = '¿Retirar?'; return; } b.disabled = true; await BRR.cloud.trackDel(id); const t = await ED.get(id); if (t && t.pub) { delete t.pub; await ED.saveTrack(t); } cmCache = null; cmRender(); }
+        else if (a === 'delmine') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = '¿Borrar?'; return; } await ED.delTrack(id); cmCache = null; await customRefresh(); cmRender(); }
         else if (a === 'unpub') { const t = await ED.get(id); b.disabled = true; await ED.unpublish(t); cmCache = null; cmRender(); }
       } catch (e) { b.disabled = false; b.textContent = '✗ ' + (e.message || e); } }; }
   }

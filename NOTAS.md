@@ -7,6 +7,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.99**
+- **Borrar un circuito tuyo lo quita de todos sitios:** si estaba publicado, se retira de la comunidad y desaparece también de los descargados de los demás (al abrir el juego o la lista de la comunidad). Botón 🗑 en «Míos» y en «Mis circuitos» del editor.
+- En «Comunidad», tus circuitos publicados llevan botón «Retirar» aunque ya no tengas la copia en este equipo.
+
 **Novedades de la 0.98**
 - **Kart:** los objetos se usan con **RB/R1** (teclado: E o X) y **ya puedes saltar** como la IA (cruceta ↑ o V, con carga). El freno de mano queda solo en B.
 - **Reto semanal:** cada vuelta buena se envía al momento (antes solo al terminar las 3 vueltas, y si salías antes no contaba) y la clasificación del reto enseña también tus tiempos guardados.

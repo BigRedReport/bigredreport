@@ -18,7 +18,8 @@
     T.updated = Date.now(); T.rev = (T.rev || 0) + 1; await dset('trk_' + T.id, T);
     const L = (await listTracks()).filter(x => x.id !== T.id); L.unshift({ id: T.id, name: T.name, base: T.base, updated: T.updated, len: T.lenM || 0 }); await dset('list', L);
   }
-  async function delTrack(id) { await dset('trk_' + id, null); await dset('list', (await listTracks()).filter(x => x.id !== id)); }
+  async function delTrack(id) { const t = await dget('trk_' + id); if (t && t.pub && BRR.cloud && BRR.cloud.trackDel) { try { await BRR.cloud.trackDel(id); } catch (e) { } }   // si lo habías publicado, se retira también de la comunidad
+    await dset('trk_' + id, null); await dset('list', (await listTracks()).filter(x => x.id !== id)); }
   const b64 = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s); };
   const unb64 = s => { const b = atob(s), u = new Uint8Array(b.length); for (let i = 0; i < b.length; i++) u[i] = b.charCodeAt(i); return u; };
 
