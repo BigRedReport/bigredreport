@@ -213,9 +213,13 @@
     if (tool === 'road') T.road.forEach((p, i) => { const [a, b] = toScr(p[0], p[1]); g.fillStyle = i === 0 ? '#e2231a' : '#fff'; g.strokeStyle = '#000'; g.lineWidth = 2; g.beginPath(); g.arc(a, b, 7, 0, 7); g.fill(); g.stroke();
       g.fillStyle = '#000'; g.font = 'bold 10px system-ui'; g.textAlign = 'center'; g.fillText(String(i + 1), a, b + 3.5); });
     // objetos
-    for (const o of T.objs) { const [a, b] = toScr(o.x, o.z), r = Math.max(4, view.z * 0.6); g.save(); g.translate(a, b); g.rotate(-(o.r || 0) * Math.PI / 180);
-      g.fillStyle = o === sel ? '#ffd23f' : SOFTN.test(o.n) ? '#5ad17a' : '#e8e2d6'; g.strokeStyle = '#000'; g.lineWidth = 1.5; g.fillRect(-r, -r, 2 * r, 2 * r); g.strokeRect(-r, -r, 2 * r, 2 * r); g.beginPath(); g.moveTo(0, 0); g.lineTo(0, -r * 1.6); g.stroke(); g.restore();
-      if (view.z >= 6) { g.fillStyle = o.s ? '#9fd8ff' : '#fff'; g.font = '10px system-ui'; g.textAlign = 'center'; g.fillText(o.n, a, b + r + 11); } }
+    for (const o of T.objs) { const [a, b] = toScr(o.x, o.z), bd = bounds(o.s || T.base, o.n), z = view.z; g.save(); g.translate(a, b); g.rotate((o.r || 0) * Math.PI / 180);   // a escala: su huella real
+      let x0 = -2 / z, x1 = 2 / z, y0 = -2 / z, y1 = 2 / z; if (bd) { x0 = bd.x0; x1 = bd.x1; y0 = -bd.z1; y1 = -bd.z0; } const W2 = Math.max(3, (x1 - x0) * z), H2 = Math.max(3, (y1 - y0) * z), X0 = x0 * z - (W2 - (x1 - x0) * z) / 2, Y0 = y0 * z - (H2 - (y1 - y0) * z) / 2;
+      g.fillStyle = o === sel ? 'rgba(255,210,63,.85)' : o.n === 'HALFPIPE' ? 'rgba(200,120,60,.8)' : SOFTN.test(o.n) ? 'rgba(90,209,122,.75)' : 'rgba(232,226,214,.75)'; g.strokeStyle = '#000'; g.lineWidth = 1; g.fillRect(X0, Y0, W2, H2); g.strokeRect(X0, Y0, W2, H2);
+      g.beginPath(); g.moveTo(0, 0); g.lineTo(0, Y0); g.stroke(); g.restore();
+      if (view.z >= 10 && o === sel) { g.fillStyle = '#fff'; g.font = '10px system-ui'; g.textAlign = 'center'; g.fillText(o.n, a, b - Math.max(W2, H2) / 2 - 4); } }
+    if (drag && drag.row && drag.p2) { const [a, b] = toScr(drag.p1[0], drag.p1[1]), [c2, d2] = toScr(drag.p2[0], drag.p2[1]); g.strokeStyle = '#ffd23f'; g.lineWidth = 2; g.setLineDash([6, 4]); g.beginPath(); g.moveTo(a, b); g.lineTo(c2, d2); g.stroke(); g.setLineDash([]);
+      for (const q of rowPlan(drag.p1, drag.p2)) { const [x, y] = toScr(q.x, q.z); g.fillStyle = '#ffd23f'; g.fillRect(x - 2, y - 2, 4, 4); } }
     // brocha
     const hv = (drag && drag.hover) || hov; if (hv && tool === 'paint' && brush.r < 0.5) { const [a, b] = toScr(Math.floor(hv[0]), Math.floor(hv[1]) + 1); g.strokeStyle = '#fff'; g.lineWidth = 2; g.strokeRect(a, b, view.z, view.z); }
     else if (hv && (tool === 'terrain' || tool === 'paint')) { const [a, b] = toScr(hv[0], hv[1]); g.strokeStyle = '#fff'; g.lineWidth = 1.5; g.beginPath(); g.arc(a, b, brush.r * view.z, 0, 7); g.stroke(); }
@@ -238,11 +242,23 @@
     for (let z = 0; z < 256; z++) for (let x = 0; x < 256; x++) { let v = 0; oct.forEach(([c, a], o) => { const n = NN(c), gx = x / c, gz = z / c, ix = Math.floor(gx), iz = Math.floor(gz), u = gx - ix, w = gz - iz, s = q => q * q * (3 - 2 * q), G = grid[o], q = (a2, b2) => G[b2 * n + a2];
       v += a * ((q(ix, iz) * (1 - s(u)) + q(ix + 1, iz) * s(u)) * (1 - s(w)) + (q(ix, iz + 1) * (1 - s(u)) + q(ix + 1, iz + 1) * s(u)) * s(w)); }); T.h[z * 256 + x] = Math.max(0, Math.min(255, Math.round(24 + v * 2.2))); }
     hf = Float32Array.from(T.h); terrAll(); dirty = true; }
+  // en fila: el objeto elegido repetido a lo largo de la línea, pegado uno al otro y girado según la línea (vallas, carteles)
+  function rowPlan(p1, p2) { const [os, on] = (objPick || '|').split('|'), bd = bounds(os, on); if (!bd) return []; const dx = p2[0] - p1[0], dz = p2[1] - p1[1], L = Math.hypot(dx, dz); if (L < 0.05) return [];
+    const alongX = bd.x1 - bd.x0 >= bd.z1 - bd.z0, step = Math.max(0.05, alongX ? bd.x1 - bd.x0 : bd.z1 - bd.z0), r = alongX ? Math.atan2(-dz, dx) : Math.atan2(dx, dz), n = Math.max(1, Math.floor(L / step) + 1), out = [];
+    for (let i = 0; i < Math.min(n, 300); i++) { const t = i * step / L; out.push({ n: on, s: os === T.base ? undefined : os, x: p1[0] + dx * t, z: p1[1] + dz * t, r: Math.round(r * 180 / Math.PI * 10) / 10 }); } return out; }
   function pickAt(mx, my) { let best = null, bd = 12; T.road.forEach((p, i) => { const [a, b] = toScr(p[0], p[1]), d = Math.hypot(a - mx, b - my); if (d < bd) { bd = d; best = i; } }); return best; }
-  function objAt(mx, my) { let best = null, bd = Math.max(10, view.z); for (const o of T.objs) { const [a, b] = toScr(o.x, o.z), d = Math.hypot(a - mx, b - my); if (d < bd) { bd = d; best = o; } } return best; }
+  function objAt(mx, my) { const [cx, cz] = toCell(mx, my); for (let i = T.objs.length - 1; i >= 0; i--) { const o = T.objs[i], bd = bounds(o.s || T.base, o.n); if (!bd) continue; const r = (o.r || 0) * Math.PI / 180, dx = cx - o.x, dz = cz - o.z, lx = dx * Math.cos(r) - dz * Math.sin(r), lz = dx * Math.sin(r) + dz * Math.cos(r);   // a sus ejes
+      if (lx >= bd.x0 && lx <= bd.x1 && lz >= bd.z0 && lz <= bd.z1) return o; }
+    let best = null, bd = 5; for (const o of T.objs) { const [a, b] = toScr(o.x, o.z), d = Math.hypot(a - mx, b - my); if (d < bd) { bd = d; best = o; } } return best; }
   function insertRoad(c) { const P = T.road; if (P.length < 3) { P.push(c); return P.length - 1; }
     let bi = 0, bd = 1e9; for (let i = 0; i < P.length; i++) { const a = P[i], b = P[(i + 1) % P.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((c[0] - a[0]) * vx + (c[1] - a[1]) * vz) / (vx * vx + vz * vz || 1))), d = Math.hypot(a[0] + vx * t - c[0], a[1] + vz * t - c[1]); if (d < bd) { bd = d; bi = i; } }
     P.splice(bi + 1, 0, c); return bi + 1; }
+  // huella de cada objeto (en casillas, ejes propios del modelo) para dibujarlo a escala y ponerlos en fila
+  const BND = new Map(), bndLoading = new Set();
+  function bounds(s0, n) { const k = s0 + '|' + n; if (BND.has(k)) return BND.get(k); if (n === 'HALFPIPE') { const b = { x0: -0.5, x1: 0.5, z0: -0.47, z1: 0.47 }; BND.set(k, b); return b; }
+    if (!bndLoading.has(k) && host) { bndLoading.add(k); host.files().archive(s0 + '.LEV').then(A => { const raw = A.get(n + '.3DW'); if (!raw) return; const m = BRR.parse3DW(raw); let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9;
+      for (const v of m.verts) if (v) { x0 = Math.min(x0, v[0]); x1 = Math.max(x1, v[0]); z0 = Math.min(z0, v[2]); z1 = Math.max(z1, v[2]); } if (x1 > x0) { BND.set(k, { x0: x0 / CELL, x1: x1 / CELL, z0: z0 / CELL, z1: z1 / CELL }); dirty = true; } }).catch(() => { }); }
+    return null; }
   let oTh = null, oTk = 0, oA = 0;
   async function othumb() { const k = ++oTk, [lev, n] = (objPick || '|').split('|'); oTh = null; $('ed_oinfo').textContent = n || ''; if (!host.objThumb || !n) return;
     try { const th = await host.objThumb(lev, n); if (k !== oTk) return; oTh = th; if (th && th.size) $('ed_oinfo').textContent = `${n} · ${lev} · ${th.size[0].toFixed(1)} × ${th.size[2].toFixed(1)} × ${th.size[1].toFixed(1)} m`; } catch (e) { } }
@@ -257,8 +273,9 @@
     $('ed_tiles').innerHTML = ''; B.thumbs.forEach((c, i) => { const b = document.createElement('canvas'); b.width = b.height = 32; b.getContext('2d').drawImage(c, 0, 0); b.title = 'Baldosa ' + i; b.className = 'edtile'; b.onclick = () => { brush.tile = i; for (const x of $('ed_tiles').children) x.classList.toggle('on', x === b); }; $('ed_tiles').appendChild(b); });
     brush.tile = B.groundTile; $('ed_tiles').children[brush.tile] && $('ed_tiles').children[brush.tile].classList.add('on');
     const rt = $('ed_rtile'); rt.innerHTML = ''; B.thumbs.forEach((c, i) => { const b = document.createElement('canvas'); b.width = b.height = 32; b.getContext('2d').drawImage(c, 0, 0); b.className = 'edtile' + (i === T.roadTile ? ' on' : ''); b.onclick = () => { snap(); T.roadTile = i; for (const x of rt.children) x.classList.toggle('on', x === b); }; rt.appendChild(b); });
-    { const AM = await allModels(host.files()), grp = (lev, names) => `<optgroup label="${lev === T.base ? lev + ' (tema)' : lev}">${names.map(n => `<option value="${lev}|${n}">${n}</option>`).join('')}</optgroup>`;
-      $('ed_obj').innerHTML = grp(T.base, B.models) + AM.filter(g => g.lev !== T.base).map(g => grp(g.lev, g.names)).join(''); objPick = T.base + '|' + B.models[0]; $('ed_obj').value = objPick; }
+    { const AM = await allModels(host.files()), by = new Map(); for (const n of B.models) by.set(n, T.base); for (const g of AM) for (const n of g.names) if (!by.has(n)) by.set(n, g.lev);   // cada objeto una vez (si está en el tema, el del tema)
+      by.set('HALFPIPE', 'BRR'); const L = [...by].sort((a, b) => a[0].localeCompare(b[0]));
+      $('ed_obj').innerHTML = L.map(([n, lev]) => `<option value="${lev}|${n}">${n === 'HALFPIPE' ? 'HALFPIPE (half pipe)' : n}</option>`).join(''); objPick = L[0][1] + '|' + L[0][0]; $('ed_obj').value = objPick; }
     if (!keepView) setTimeout(fit, 0); dirty = true;
   }
   function readUI() { T.name = $('ed_name').value.trim().slice(0, 40) || 'Mi circuito'; T.laps = Math.max(1, Math.min(20, +$('ed_laps').value || 3)); T.nitros = Math.max(0, Math.min(12, +$('ed_nitros').value || 0)); }
@@ -294,7 +311,7 @@
           <div class="edrow"><button id="ed_hills">🎲 Colinas al azar</button><button id="ed_flatall">Todo llano</button></div><p class="small">Bajo la carretera el terreno se allana solo al probar el circuito.</p></div>
         <div class="edp" data-p="paint"><div class="edrow"><span>Tamaño</span><input type="range" id="ed_pr" min="0" max="24" value="0"></div><div id="ed_tiles" class="edtiles"></div><div class="edrow"><button id="ed_fill">Pintar todo con esta</button></div></div>
         <div class="edp" data-p="objs"><canvas id="ed_othumb" width="192" height="150" style="display:block;width:100%;max-width:240px;margin:0 auto;border-radius:10px;background:radial-gradient(#2a3040,#10131b)"></canvas><div class="small" id="ed_oinfo" style="text-align:center"></div><select id="ed_obj" size="9" style="width:100%"></select><p class="small">Clic para poner el objeto elegido · arrastra para moverlo · clic derecho para quitarlo · R o rueda con Mayús para girarlo.</p>
-          <div class="edrow"><label class="small"><input type="checkbox" id="ed_rnd" checked> Giro al azar</label><button id="ed_odel">Quitar el elegido</button><button id="ed_orot">⟳ Girar</button><button class="eddel">🗑 Modo borrar</button></div></div>
+          <div class="edrow"><label class="small"><input type="checkbox" id="ed_rnd" checked> Giro al azar</label><label class="small"><input type="checkbox" id="ed_row"> En fila (arrastra)</label><button id="ed_odel">Quitar el elegido</button><button id="ed_orot">⟳ Girar</button><button class="eddel">🗑 Modo borrar</button></div></div>
         <div class="edp" data-p="set"><p class="small" style="margin:0">Portada (sale en las listas y en la comunidad):</p><img id="ed_cover" alt="" style="width:100%;aspect-ratio:16/9;object-fit:cover;border-radius:8px;background:#222"><div class="edrow"><button id="ed_coverf">📂 Cargar imagen</button><button id="ed_cover3d">📷 Sacar foto en 3D</button><button id="ed_coverx" title="Quitar la portada">✕</button></div><input type="file" id="ed_coverfile" accept="image/*" hidden><div class="edrow"><span>Vueltas</span><input type="number" id="ed_laps" min="1" max="20" style="width:70px"></div><div class="edrow"><span>Nitros</span><input type="number" id="ed_nitros" min="0" max="12" style="width:70px"></div>
           <p class="small">Rueda del ratón: zoom · arrastrar con botón derecho o central (o Espacio): mover la vista. En pantalla táctil: dos dedos para mover y pellizcar para el zoom.</p><div class="edrow"><button id="ed_exp">⬇ Exportar archivo</button></div></div></div></div>
       <div id="ed_home" class="edhome" hidden><div class="card"><h2>🛠 Mis circuitos</h2><div id="ed_list"></div>
@@ -351,7 +368,8 @@
       if (tool === 'road') { const i = pickAt(mx, my); if (e.button === 2) { if (i != null) { snap(); T.road.splice(i, 1); dirty = true; } else drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
         snap(); drag = { road: i != null ? i : insertRoad(c) }; dirty = true; return; }
       if (tool === 'objs') { const o = objAt(mx, my); if (e.button === 2) { if (o) { snap(); T.objs = T.objs.filter(x => x !== o); if (sel === o) sel = null; dirty = true; } else drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
-        snap(); if (o) { sel = o; drag = { obj: o }; } else if (objPick) { const [os, on] = objPick.split('|'), n = { n: on, s: os === T.base ? undefined : os, x: c[0], z: c[1], r: $('ed_rnd').checked ? Math.floor(Math.random() * 24) * 15 : 0 }; T.objs.push(n); sel = n; drag = { obj: n }; } dirty = true; return; }
+        snap(); if ($('ed_row').checked && objPick && !o) { drag = { row: true, p1: c, p2: c }; return; }
+        if (o) { sel = o; drag = { obj: o }; } else if (objPick) { const [os, on] = objPick.split('|'), n = { n: on, s: os === T.base ? undefined : os, x: c[0], z: c[1], r: $('ed_rnd').checked ? Math.floor(Math.random() * 24) * 15 : 0 }; T.objs.push(n); sel = n; drag = { obj: n }; } dirty = true; return; }
       if (tool === 'terrain' || tool === 'paint') { if (tool === 'paint') brush.r = +$('ed_pr').value; else brush.r = +$('ed_r').value; snap(); drag = { brush: true, p: c, hover: c, flat: hAt(T.h, c[0], c[1]) }; }
     });
     cv.addEventListener('pointermove', e => { if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
@@ -362,8 +380,9 @@
       if (drag.pan) { view.x = drag.vx + mx - drag.mx; view.y = drag.vy + my - drag.my; dirty = true; }
       else if (drag.road != null) { T.road[drag.road] = [Math.max(4, Math.min(252, c[0])), Math.max(4, Math.min(252, c[1]))]; dirty = true; }
       else if (drag.obj) { drag.obj.x = c[0]; drag.obj.z = c[1]; dirty = true; }
+      else if (drag.row) { drag.p2 = c; dirty = true; }
       else if (drag.brush) { drag.p = c; drag.hover = c; } });
-    const up = e => { ptrs.delete(e.pointerId); if (pinch) { if (!ptrs.size) pinch = null; return; } if (drag && drag.brush) dirty = true; drag = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    const up = e => { ptrs.delete(e.pointerId); if (pinch) { if (!ptrs.size) pinch = null; return; } if (drag && drag.brush) dirty = true; if (drag && drag.row) { const L = rowPlan(drag.p1, drag.p2); if (L.length) { T.objs.push(...L); sel = L[L.length - 1]; } dirty = true; } drag = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
     addEventListener('keydown', e => { if (host.hidden || /INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || '')) return;
       if (e.code === 'Space') { space = true; e.preventDefault(); }
       if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); $('ed_undo').onclick(); } if ((e.ctrlKey || e.metaKey) && e.code === 'KeyY') { e.preventDefault(); $('ed_redo').onclick(); }

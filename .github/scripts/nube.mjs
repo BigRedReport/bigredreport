@@ -27,7 +27,7 @@ function collect([host, port], filters, ms = 9000) {
 }
 const pubRetained = (s, topic, payload) => { try { s.write(pkt(0x31, Buffer.concat([str(topic), Buffer.from(payload)]))); } catch (e) { } };
 
-const R = await Promise.all(BROKERS.map(b => collect(b, [T + 'lb/#', T + 'err/#', T + 'trki/#', T + 'trk/#'])));
+const R = await Promise.all(BROKERS.map(b => collect(b, [T + 'lb/#', T + 'err/#', T + 'trki/#', T + 'trk/#', T + 'vote/#'])));
 console.log('buzones:', R.map((r, i) => BROKERS[i][0] + ' ' + r.got.size).join(', '));
 
 // ---------- 1) clasificaciones ----------
@@ -57,6 +57,11 @@ console.log('circuitos con tiempos:', Object.keys(sorted).length);
     let j; try { j = JSON.parse(p); } catch (e) { continue; } if (!j || j.brr !== 'track' || j.id !== m[1]) continue; const f = 'datos/circuitos/' + j.id + '.json';
     let old = null; try { old = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { } if (!old || (j.rev | 0) >= (old.rev | 0)) fs.writeFileSync(f, JSON.stringify(j)); }
   fs.writeFileSync('datos/circuitos.json', JSON.stringify(IDX) + '\n'); console.log('circuitos:', Object.keys(IDX).length); }
+// ---------- 1c) votos de los circuitos: datos/votos.json = { CIRCUITO: { PILOTO: [voto, hora] } } (el más reciente de cada uno) ----------
+{ const okId = id => /^[a-z0-9\-_]{3,40}$/i.test(id); let VO = {}; try { VO = JSON.parse(fs.readFileSync('datos/votos.json', 'utf8')); } catch (e) { }
+  for (const { got } of R) for (const [topic, p] of got) { const m = topic.match(/^bigredracing\/v1\/vote\/([^/]+)\/([^/]+)$/); if (!m || !okId(m[1]) || !/^[a-z0-9]{4,12}$/.test(m[2])) continue; let j; try { j = JSON.parse(p); } catch (e) { continue; }
+    if (!j || typeof j.v !== 'number') continue; const o = (VO[m[1]] = VO[m[1]] || {}), old = o[m[2]]; if (!old || (j.t || 0) >= old[1]) o[m[2]] = [Math.sign(j.v), j.t || 0]; }
+  fs.writeFileSync('datos/votos.json', JSON.stringify(VO) + '\n'); console.log('votos:', Object.keys(VO).length); }
 
 // ---------- 2) avisos de fallos ----------
 const errs = new Map();   // huella -> { info, n, topics }

@@ -7,6 +7,14 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.107**
+- **Editor:** cada objeto se dibuja con su tamaño y forma reales (antes eran cuadrados grandes), así que se pueden poner pegados; para elegir uno basta con pinchar encima.
+- **En fila:** con la casilla «En fila (arrastra)» marcas una línea y el objeto (vallas de madera, carteles…) se repite pegado uno a otro y girado a lo largo de ella.
+- La lista de objetos ya no va separada por mapas: todos juntos, sin repetidos y por orden alfabético. Incluye el **half pipe** (se ve y se salta en el circuito).
+- **Votos** en los circuitos de la comunidad: flecha verde ▲ o roja ▼ (otra vez la misma para quitar el voto); los más votados salen arriba. Se arreglan los botones y textos que se tapaban en esa ventana.
+- **Piloto:** cabeza nueva con **casco integral** (del color del equipo), **tono de piel** a elegir (clara, media, morena u oscura, o la original de cada cabeza) y en los coches abiertos los pilotos van **sentados** con las piernas dobladas.
+- **Drift online libre**, sin los 5 minutos: en el marcador se ve quién va líder.
+
 **Novedades de la 0.106**
 - **Drift de propulsión de verdad:** una vez cruzado (a fondo girando, o con el freno de mano) el coche se queda derrapando mientras le des gas: **más gas = más de lado**, el contravolante cierra el ángulo y girar hacia dentro lo abre; sin gas se endereza poco a poco. Con gas empuja hacia delante, así que los derrapes se estiran y se enlazan; la trayectoria la marcan las ruedas de delante.
 

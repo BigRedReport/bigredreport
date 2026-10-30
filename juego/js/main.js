@@ -217,7 +217,28 @@
   // personajes: cuerpo (BLOKE/WOMAN + color del equipo) y cabeza (HEAD1x, 2, 3, 4x, 5, 6) de CHARSCN con su paleta (DRIVER.RAW)
   const CHARS = [{ b: 'BLOKE', h: 'HEAD1', v: 1 }, { b: 'BLOKE', h: 'HEAD2' }, { b: 'BLOKE', h: 'HEAD3' }, { b: 'WOMAN', h: 'HEAD4', v: 1 }, { b: 'WOMAN', h: 'HEAD5' }, { b: 'BLOKE', h: 'HEAD6' },
     // cabezas nuevas de mujer hechas con las del original cambiando colores: pelo rubio (los amarillos del rubio) · piel clara y melena castaña (sin el color del equipo)
-    { b: 'WOMAN', h: 'HEAD5', r: { 47: 84 } }, { b: 'WOMAN', h: 'HEAD4', v: 1, r: {48: 13, 49: 13, 50: 13, 51: 13, 52: 13, 53: 13, 54: 14, 55: 14, 56: 14, 57: 14, 58: 14, 59: 14, 60: 15, 61: 15, 62: 15, 63: 15, 11: 241, 12: 242, 13: 243, 14: 244, 15: 245} }];
+    { b: 'WOMAN', h: 'HEAD5', r: { 47: 84 } }, { b: 'WOMAN', h: 'HEAD4', v: 1, r: {48: 146, 49: 146, 50: 146, 51: 146, 52: 146, 53: 146, 54: 156, 55: 156, 56: 156, 57: 156, 58: 156, 59: 156, 60: 166, 61: 166, 62: 166, 63: 166, 11: 241, 12: 242, 13: 243, 14: 244, 15: 245} },
+    { b: 'BLOKE', h: 'HELMET' }];   // casco de piloto integral, hecho aquí con caras planas como las cabezas del original
+  // casco integral: del color del equipo, visera oscura, franja blanca por arriba y cuello negro (mismas medidas que las cabezas originales)
+  function helmetModel(team) {
+    const NL = 7, NJ = 12, rx = 6.8, ry = 8.6, rz = 7.6, cy = -3.4, verts = [], faces = [], T0 = 32 + 16 * team, thMax = Math.PI * 0.86;
+    verts.push([0, cy - ry, 0]);   // coronilla
+    for (let i = 1; i <= NL; i++) { const th = i / NL * thMax; for (let j = 0; j < NJ; j++) { const ph = j / NJ * 2 * Math.PI; verts.push([rx * Math.sin(th) * Math.cos(ph), cy - ry * Math.cos(th), rz * Math.sin(th) * Math.sin(ph)]); } }
+    const V = (i, j) => i === 0 ? 0 : 1 + (i - 1) * NJ + ((j % NJ) + NJ) % NJ;
+    const colOf = idx => { let x = 0, y = 0, z = 0; for (const k of idx) { x += verts[k][0]; y += verts[k][1]; z += verts[k][2]; } const n = idx.length; x /= n * rx; y = (y / n - cy) / ry; z /= n * rz;
+      const lat = Math.hypot(x, z) || 1, fz = z / lat;   // fz: 1 = de frente
+      if (fz > 0.62 && y > -0.42 && y < 0.2) return 44;                 // visera
+      if (fz > 0.62 && y >= 0.2 && y < 0.45) return T0 + 9;              // mentonera
+      if (Math.abs(x / lat) < 0.27 && fz < 0.62 && y < 0.05) return 32;   // franja
+      return y < -0.55 ? T0 + 2 : y < 0.1 ? T0 + 4 : T0 + 7; };
+    for (let j = 0; j < NJ; j++) { const idx = [0, V(1, j + 1), V(1, j)]; faces.push({ color: colOf(idx), idx, two: true }); }
+    for (let i = 1; i < NL; i++) for (let j = 0; j < NJ; j++) { const idx = [V(i, j), V(i, j + 1), V(i + 1, j + 1), V(i + 1, j)]; faces.push({ color: colOf(idx), idx, two: true }); }
+    faces.push({ color: 47, idx: Array.from({ length: NJ }, (_, j) => V(NL, j)), two: true });   // cuello
+    // filo de la visera: un listón fino que sobresale
+    const e0 = verts.length; for (let j = 0; j < NJ; j++) { const ph = j / NJ * 2 * Math.PI; if (Math.sin(ph) < 0.55) continue; const th = Math.acos(0.42) , r = 1.06; verts.push([rx * r * Math.sin(th) * Math.cos(ph), cy - ry * 0.42, rz * r * Math.sin(th) * Math.sin(ph)], [rx * Math.sin(th) * Math.cos(ph), cy - ry * 0.42 + 0.9, rz * Math.sin(th) * Math.sin(ph)]); }
+    for (let k = e0; k + 3 < verts.length; k += 2) faces.push({ color: 47, idx: [k, k + 2, k + 3, k + 1], two: true });
+    return { radius: 12, boxes: [], verts, faces, texNames: [] }; }
+  const headModel = (A, c, team) => c.h === 'HELMET' ? helmetModel(team | 0) : remapFaces(BRR.parse3DW(A.get(c.h + (c.v ? team : '') + '.3DW')), c.r);
   const remapFaces = (m, r) => r ? { ...m, faces: m.faces.map(f => f.color != null && !f.tex && r[f.color] != null ? { ...f, color: r[f.color] } : f) } : m;
   // cabeza y cuerpo por separado: cualquier cabeza con cualquier cuerpo
   const BODIES = ['BLOKE', 'WOMAN', 'BLOKE:kid', 'BLOKE:fat'];
@@ -232,18 +253,23 @@
   }
   const headScale = mod => mod === 'kid' ? 1.08 : mod === 'fat' ? 1.06 : 1;
   const charOf = ci => ci && typeof ci === 'object' ? ci : CHARS[(ci | 0) % CHARS.length];
-  const specOf = (head, body) => { const H = CHARS[(head | 0) % CHARS.length]; return { h: H.h, v: H.v, r: H.r, b: BODIES[(body | 0) % BODIES.length] }; };
+  const specOf = (head, body, sk) => { const H = CHARS[(head | 0) % CHARS.length], o = { h: H.h, v: H.v, r: H.r, b: BODIES[(body | 0) % BODIES.length] }; if (sk != null && sk >= 0) o.sk = sk | 0; return o; };
+  // tonos de piel (cara, brazos y manos): cambia las dos gamas de piel de la paleta de los pilotos (240-245 clara, 10-15 oscura)
+  const SKINS = [[250, 192, 140], [228, 150, 88], [176, 106, 56], [108, 62, 32]], SKIN_N = ['Clara', 'Media', 'Morena', 'Oscura'];
+  const skinPal = (P, sk) => { if (sk == null || !SKINS[sk]) return P; const o = Uint8Array.from(P), b = SKINS[sk], f = [1, 0.94, 0.89, 0.84, 0.79, 0.7];
+    for (let k = 0; k < 6; k++) for (const i of [240 + k, 10 + k]) for (let c = 0; c < 3; c++) o[i * 3 + c] = Math.min(255, b[c] * f[k]) | 0; return o; };
+  const mySkin = () => opt.skin != null && opt.skin >= 0 ? opt.skin : -1;
   const myHead = () => opt.head != null ? opt.head : (opt.char || 0), myBody = () => opt.body != null ? opt.body : Math.max(0, BODIES.indexOf(CHARS[(opt.char || 0) % 6].b));
-  const mySpec = () => specOf(myHead(), myBody());
-  const specFrom = e => e.head != null || e.body != null ? specOf(e.head != null ? e.head : e.char || 0, e.body != null ? e.body : BODIES.indexOf(CHARS[(e.char || 0) % 6].b)) : null;
+  const mySpec = () => specOf(myHead(), myBody(), mySkin());
+  const specFrom = e => e.head != null || e.body != null ? specOf(e.head != null ? e.head : e.char || 0, e.body != null ? e.body : BODIES.indexOf(CHARS[(e.char || 0) % 6].b), e.skin) : null;
   let charArc = null, charPal = null; const charCache = new Map();
   // el color del equipo en los pilotos es la gama 32 + 16·equipo de su paleta: con color propio se cambia esa gama
   const charPalFor = (team, paint) => paint ? BRR.paintPal(charPal, [], paint, 32 + 16 * team) : charPal;
   async function charMesh(ci, color, dirty, headOnly, paint) {
     const key = [JSON.stringify(ci), color, dirty, headOnly, paint || ''].join(); if (charCache.has(key)) return charCache.get(key);
     if (!charArc) { charArc = await files.archive('CHARSCN.SCN'); charPal = BRR.pal6(charArc.get('DRIVER.RAW').subarray(0, 768)); }
-    const c = charOf(ci), A = charArc, mb = new BRR.MeshBuilder(charPalFor(color, paint)), tm = n => A.get(n + '.TM');
-    const head = remapFaces(BRR.parse3DW(A.get(c.h + (c.v ? color : '') + '.3DW')), c.r), [bf, mod] = c.b.split(':'), hs = headScale(mod);
+    const c = charOf(ci), A = charArc, mb = new BRR.MeshBuilder(skinPal(charPalFor(color, paint), c.sk)), tm = n => A.get(n + '.TM');
+    const head = headModel(A, c, color), [bf, mod] = c.b.split(':'), hs = headScale(mod);
     let top = 0;
     if (!headOnly) { const body = morphBody(BRR.parse3DW(A.get(bf + (dirty ? 'B' : '') + color + '.3DW')), mod); top = Math.min(...body.verts.filter(Boolean).map(v => v[1])); mb.addModel(body, v => BRR.toGL(v[0], v[1], v[2]), tm); }
     const hb = Math.max(...head.verts.filter(Boolean).map(v => v[1]));
@@ -262,7 +288,7 @@
     let out = null;
     try {
       if (!charArc) { charArc = await files.archive('CHARSCN.SCN'); charPal = BRR.pal6(charArc.get('DRIVER.RAW').subarray(0, 768)); }
-      const c = charOf(ci), A = charArc, head = remapFaces(BRR.parse3DW(A.get(c.h + (c.v ? team : '') + '.3DW')), c.r), [bf, mod] = c.b.split(':'), hs = headScale(mod), body = morphBody(BRR.parse3DW(A.get(bf + team + '.3DW')), mod);
+      const c = charOf(ci), A = charArc, head = headModel(A, c, team), [bf, mod] = c.b.split(':'), hs = headScale(mod), body = morphBody(BRR.parse3DW(A.get(bf + team + '.3DW')), mod);
       // como en el menú: la cabeza encima del cuerpo; en el coche solo se ve de cintura para arriba
       const top = Math.min(...body.verts.filter(Boolean).map(v => v[1])), hb = Math.max(...head.verts.filter(Boolean).map(v => v[1]));
       const hxf = v => BRR.toGL(v[0] * hs, (v[1] - hb) * hs + top + 1, v[2] * hs), bxf = v => BRR.toGL(v[0], v[1], v[2]);
@@ -271,8 +297,10 @@
       const bmn = Math.min(...B.map(g => g[1])), bmx = Math.max(...B.map(g => g[1])), waist = bmn + (bmx - bmn) * 0.5;
       const k = 0.3 / Math.max(1e-3, hmx[1] - hmn[1]), cx = (hmn[0] + hmx[0]) / 2, cz = (hmn[2] + hmx[2]) / 2;
       const place = g => [(g[0] - cx) * k, (g[1] - hmn[1]) * k - 0.2, (g[2] - cz) * k];
-      const torso = { ...body, faces: body.faces.filter(f => f.idx.some(i => body.verts[i] && bxf(body.verts[i])[1] >= waist)) };
-      const mb = new BRR.MeshBuilder(charPalFor(team, paint)), tm = n => A.get(n + '.TM');
+      // sentado: las piernas se doblan en la cadera (muslos hacia delante) y en la rodilla (espinillas hacia abajo), en vez de ir de pie atravesando el coche
+      const oy = body.verts.filter(Boolean).map(v => v[1]), y0 = Math.min(...oy), y1 = Math.max(...oy), hip = y0 + (y1 - y0) * 0.52, L = y1 - hip;
+      const torso = { ...body, verts: body.verts.map(v => { if (!v || v[1] <= hip) return v; const d = v[1] - hip; return d <= L * 0.5 ? [v[0], hip + d * 0.12, v[2] + d] : [v[0], hip + L * 0.06 + (d - L * 0.5), v[2] + L * 0.5]; }) };
+      const mb = new BRR.MeshBuilder(skinPal(charPalFor(team, paint), c.sk)), tm = n => A.get(n + '.TM');
       mb.addModel(torso, v => place(bxf(v)), tm); mb.addModel(head, v => place(hxf(v)), tm);
       out = R.upload(mb);
     } catch (e) { console.warn('piloto', e); }
@@ -444,9 +472,10 @@
   async function renderProfile() {
     if (!front) return; const team = opt.team || 1; $('pf_name').value = opt.netName || '';
     $('pf_title').textContent = myTeamName() || (opt.paint ? 'Tu escudería' : 'Escudería ' + TEAM[team].n); $('pf_tname').value = opt.teamName || ''; $('pf_tname').placeholder = 'Equipo ' + TEAM[team].n; $('pf_title').style.color = carColOpt();
-    const heads = []; for (let i = 0; i < CHARS.length; i++) heads.push(`<div class="pitem${myHead() === i ? ' on' : ''}" tabindex="0" data-hd="${i}"><img src="${await headURL(specOf(i, myBody()), team).catch(() => '')}"></div>`);
+    const heads = []; for (let i = 0; i < CHARS.length; i++) heads.push(`<div class="pitem${myHead() === i ? ' on' : ''}" tabindex="0" data-hd="${i}"><img src="${await headURL(specOf(i, myBody(), mySkin()), team).catch(() => '')}"></div>`);
     $('pf_heads').innerHTML = heads.join('');
-    const chars = []; for (let i = 0; i < BODIES.length; i++) chars.push(`<div class="pitem${myBody() === i ? ' on' : ''}" tabindex="0" data-bd="${i}"><img src="${await charURL(specOf(myHead(), i), team).catch(() => '')}"><div>${['Hombre', 'Mujer', 'Niño', 'Grandullón'][i] || 'Cuerpo ' + (i + 1)}</div></div>`);
+    $('pf_skins').innerHTML = [-1, 0, 1, 2, 3].map(i => `<div class="pitem pskin${mySkin() === i ? ' on' : ''}" tabindex="0" data-sk="${i}" title="${i < 0 ? 'La de cada cabeza' : SKIN_N[i]}"><span style="background:${i < 0 ? 'linear-gradient(90deg,#f5c89a 50%,#7a4a26 50%)' : 'rgb(' + SKINS[i].join(',') + ')'}"></span><div>${i < 0 ? 'Original' : SKIN_N[i]}</div></div>`).join('');
+    const chars = []; for (let i = 0; i < BODIES.length; i++) chars.push(`<div class="pitem${myBody() === i ? ' on' : ''}" tabindex="0" data-bd="${i}"><img src="${await charURL(specOf(myHead(), i, mySkin()), team).catch(() => '')}"><div>${['Hombre', 'Mujer', 'Niño', 'Grandullón'][i] || 'Cuerpo ' + (i + 1)}</div></div>`);
     $('pf_chars').innerHTML = chars.join('');
     const logos = []; for (let i = 0; i < 13; i++) logos.push(`<div class="pitem${(opt.logo || 0) === i ? ' on' : ''}" tabindex="0" data-l="${i}"><img src="${orig ? await orig.logoURL(i, team, hexRGB(opt.paint)).catch(() => '') : ''}"></div>`);
     for (const L of BRR.LOGOS_EXTRA || []) logos.push(`<div class="pitem${opt.logo === 'x:' + L.id ? ' on' : ''}" tabindex="0" data-x="${L.id}" title="${esc(L.n)}"><img src="${L.src}" style="background:${carColOpt()};image-rendering:auto"></div>`);
@@ -467,9 +496,9 @@
           g2.drawImage(im, (N - im.width * k2) / 2, (N - im.height * k2) / 2, im.width * k2, im.height * k2);
           opt.customLogo = cv2.toDataURL('image/png'); for (const q of [0.9, 0.75, 0.6]) if (opt.customLogo.length > 180000) opt.customLogo = cv2.toDataURL('image/webp', q); /* siempre por debajo del límite que se acepta en online */ delete opt.customLogoHi; opt.logo = 'custom'; save(); renderProfile(); renderHomeProf(); };
         if (opt.customLogo && opt.logo !== 'custom') { opt.logo = 'custom'; save(); renderProfile(); renderHomeProf(); } else inp.click(); return; }
-      if (el.dataset.hd != null) opt.head = +el.dataset.hd; if (el.dataset.bd != null) opt.body = +el.dataset.bd; if (el.dataset.l != null) opt.logo = +el.dataset.l; if (el.dataset.x != null) opt.logo = 'x:' + el.dataset.x; if (el.dataset.t != null) opt.team = +el.dataset.t;
+      if (el.dataset.hd != null) opt.head = +el.dataset.hd; if (el.dataset.bd != null) opt.body = +el.dataset.bd; if (el.dataset.sk != null) opt.skin = +el.dataset.sk; if (el.dataset.l != null) opt.logo = +el.dataset.l; if (el.dataset.x != null) opt.logo = 'x:' + el.dataset.x; if (el.dataset.t != null) opt.team = +el.dataset.t;
       if (orig) Object.assign(orig.st, { char: opt.char || 0, logo: typeof opt.logo === 'number' ? opt.logo : 0, team: opt.team });
-      $('m_team').value = opt.team; $('t_team').value = opt.team; showTeamHead(); save(); const k = ['hd', 'bd', 'l', 'x', 't'].find(q => el.dataset[q] != null) || 't'; renderProfile().then(() => { const n = document.querySelector(`#pane_profile .pitem[data-${k}="${el.dataset[k]}"]`); if (n) n.focus(); }); };
+      $('m_team').value = opt.team; $('t_team').value = opt.team; showTeamHead(); save(); const k = ['hd', 'bd', 'sk', 'l', 'x', 't'].find(q => el.dataset[q] != null) || 't'; renderProfile().then(() => { const n = document.querySelector(`#pane_profile .pitem[data-${k}="${el.dataset[k]}"]`); if (n) n.focus(); }); };
     // vista grande: el piloto girando
     profSpin(team);
   }
@@ -806,6 +835,8 @@
       await new Promise(r => setTimeout(r, 30));
       const cT = custom ? (edTrack && BRR.editor.levelOf(edTrack) === level ? edTrack : await BRR.editor.byLevel(level)) : null; if (custom && !cT) throw new Error('No tienes ese circuito (' + level + ')');
       lvl = custom ? await BRR.loadCustomLevel(files, cT, s => $('load_msg').textContent = 'Cargando ' + (cT.name || level) + ': ' + s + '…') : await BRR.loadLevel(files, level, s => $('load_msg').textContent = 'Cargando ' + level + ': ' + s + '…');
+      trackPipes = []; if (cT) for (const o of cT.objs || []) if (o.n === 'HALFPIPE') { const S8 = 512 * BRR.S, x = o.x * S8, z = -o.z * S8, a = (o.r || 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);   // half pipes puestos en el editor
+        trackPipes.push({ p: [x, lvl.terrain(x, z) - 0.03, z], R: [[c, 0, -sn], [0, 1, 0], [sn, 0, c]] }); }
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
       R.setEnvironment(lvl.sun, lvl.sky); { const at = makeAtmos(level, lvl.sun, lvl.sky); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
       // jugadores humanos: el equipo elegido para J1 y los siguientes colores para los demás
@@ -929,6 +960,7 @@
   function groundY(x, z) { const h = BRR.raycast(lvl, [x, 200, z], [0, -1, 0], 400); return h ? 200 - h.t : lvl.terrain(x, z); }
   function placeGrid() {
     if (lvl.collider.clearDyn) lvl.collider.clearDyn(); for (const h of humans) { h.ramp = null; h.pipe = null; h.stunt = null; } netRamps.clear();
+    trackPipes.forEach((q, k) => lvl.collider.setDyn('tp' + k, makePipe().tris.map(t => t.map(v => V.add(q.p, BRR.mv(q.R, v)))), 'RAMP'));
     const S = BRR.S, a = -lvl.start.yaw, gx = lvl.start.x / S, gz = -lvl.start.z / S;
     const fw = [Math.sin(a), Math.cos(a)], rt = [Math.cos(a), -Math.sin(a)];
     const all = netRace ? netRace.order.map(e => e.id === netRace.myId ? humans[0].car : (rivals.find(r => r.id === e.id) || {}).car).filter(Boolean) : [...rivals.map(r => r.car), ...humans.map(h => h.car).reverse()];
@@ -1459,7 +1491,7 @@
     if (audio) audio.play('GEN/SIGN.WAV', { vol: 0.6 }); flash(h, 'Half pipe', 1, 'stunt'); if (h.i === 0) achCount('ramps', 10, 'rampero');
   }
   // rampas de los demás jugadores (online): se ven y se puede saltar con ellas
-  const netRamps = new Map();
+  const netRamps = new Map(); let trackPipes = [];
   async function placeNetRamp(id, kind, p, M) {
     if (!lvl || !freeMode) return; const D = kind === 'pipe' ? makePipe() : await loadRamp(); if (!D) return;
     netRamps.set(id + kind, { up: D.up, R: M, p }); lvl.collider.setDyn('net' + kind + id, D.tris.map(t => t.map(q => V.add(p, BRR.mv(M, q)))), 'RAMP');
@@ -1686,7 +1718,7 @@
   function netTracks() { return front ? front.tracks : []; }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const myLogo = () => myLogoData() || (typeof opt.logo === 'number' ? opt.logo : null);
-  const myData = () => ({ gar: garMine($('n_veh').value || opt.vehicle), team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, head: myHead(), body: myBody(), paint: opt.paint || null, teamName: myTeamName() || null });
+  const myData = () => ({ gar: garMine($('n_veh').value || opt.vehicle), team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, head: myHead(), body: myBody(), skin: mySkin() >= 0 ? mySkin() : null, paint: opt.paint || null, teamName: myTeamName() || null });
   const tById = id => netTracks().find(x => x.id === id);
   const tLabel = id => { const t = tById(id); return t ? (t.place || t.id) + ' · ' + t.id : id || '?'; };
   $('n_url').value = opt.netUrl && /^wss?:/.test(opt.netUrl) ? opt.netUrl : '';
@@ -1780,6 +1812,7 @@
   if (BRR.editor) BRR.editor.init({ files: () => files,
     objThumb: async (lev, name) => {   // miniatura girando del objeto elegido (como la de los coches)
       const key = lev + '|' + name; let up = objCache.get(key);
+      if (!up && name === 'HALFPIPE') { const D = makePipe(); if (!R.L) R.setEnvironment([-0.35, 0.75, 0.55], [0.62, 0.7, 0.82]); up = { body: D.up, c: [0, 2.3, 0], r: 5, size: [8, 4.6, D.len] }; objCache.set(key, up); }
       if (!up) { const A = await files.archive(lev + '.LEV'), sc = BRR.text(A.get(lev + '.TXT')), mp = (sc.match(/^map\s+(\w+)/m) || [0, 'MAP'])[1].toUpperCase(), env = BRR.envOf(lev), E = files.has(env + '.ENV') ? await files.archive(env + '.ENV') : new Map();
         const col = A.get(mp + '.COL') || E.get('CARSEL.RAW'), pal = BRR.pal6(col.subarray(0, 768)), raw = A.get(name + '.3DW'); if (!raw) return null;
         const m = BRR.parse3DW(raw), mb = new BRR.MeshBuilder(pal); mb.addModel(m, v => BRR.toGL(v[0], v[1], v[2]), n => A.get(n + '.TM') || E.get(n + '.TM') || null);
@@ -1797,7 +1830,7 @@
   // ---------- modo drift: Mini de propulsión trasera con más par, sin rivales (u online contra otros), puntos por derrapar y combos ----------
   // un derrape cuenta con el coche de lado (12°-75°) y avanzando; puntos según velocidad y ángulo; cada derrape nuevo antes de 1,6 s sube el combo;
   // si pasan más de 1,6 s sin derrapar, se cobran los puntos (× combo); si chocas, se pierden los del combo en curso
-  const DRIFT_LV = () => { const t = (BRR.BUILTIN_TRACKS || [])[0]; return t ? t.base + '~' + t.id : null; }, DRIFT_GAP = 1.6, DRIFT_ONLINE_T = 300;
+  const DRIFT_LV = () => { const t = (BRR.BUILTIN_TRACKS || [])[0]; return t ? t.base + '~' + t.id : null; }, DRIFT_GAP = 1.6;
   async function driftStart() {
     const lv = DRIFT_LV(); if (!files || !lv) return; if (audio) { audio.init(); audio.stopMusic(); }
     tourMode = false; ttMode = false; freeMode = false; crazyPick = 'drift'; fromOrig = false;
@@ -1820,15 +1853,15 @@
     const txt = D.chain > 0 ? `<b>${Math.round(D.chain).toLocaleString()}</b>${D.mult > 1 ? `<i>×${D.mult.toFixed(1).replace('.0', '')}</i>` : ''}<span>${on ? 'DERRAPE ' + Math.round((D.angle || 0) * 57.3) + '°' : 'COMBO ' + Math.max(0, DRIFT_GAP - D.gap).toFixed(1) + ' s'}</span>`
       : D.msg > 0 ? (D.last === 'lost' ? '<b class="lost">¡Choque!</b><span>combo perdido</span>' : `<b class="got">${D.last}</b><span>puntos</span>`) : '';
     if (el.dataset.t !== txt) { el.dataset.t = txt; el.innerHTML = txt; } el.hidden = !txt;
-    // online: puntos de todos (cada uno manda los suyos) y fin a los 5 minutos
+    // online: puntos de todos (cada uno manda los suyos), libre como en solitario
     if (driftNet && h.i === 0) { driftNet.t += dt; driftNet.sendT -= dt; driftNet.sc.set(BRR_net.id, { name: opt.netName || 'Piloto', s: D.total });
-      if (driftNet.sendT <= 0) { driftNet.sendT = 1.5; BRR_net.game({ k: 'dsc', s: D.total, n: opt.netName || 'Piloto' }); }
-      if (BRR_net.isHost && driftNet.t >= DRIFT_ONLINE_T && !driftNet.over) { BRR_net.game({ k: 'dend' }); driftEnd(); } }
+      if (driftNet.sendT <= 0) { driftNet.sendT = 1.5; BRR_net.game({ k: 'dsc', s: D.total, n: opt.netName || 'Piloto' }); }   // libre, sin final: se sale desde la pausa
+    }
   }
   function driftHud(h) { const D = h.drift || { total: 0, best: +(ST.get(driftKey()) || 0), mult: 1 };
     h.q('h_time').textContent = D.total.toLocaleString() + ' pts'; h.q('h_cur').textContent = D.chain > 0 ? '×' + D.mult.toFixed(1).replace('.0', '') : '–';
-    if (driftNet) { const L = [...driftNet.sc.values()].sort((a, b) => b.s - a.s), me = L.findIndex(x => x.name === (opt.netName || 'Piloto') && x.s === D.total) + 1, left = Math.max(0, DRIFT_ONLINE_T - driftNet.t);
-      h.q('h_best').textContent = Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0'); h.q('h_pos').textContent = (me || 1) + '/' + Math.max(1, L.length); }
+    if (driftNet) { const L = [...driftNet.sc.values()].sort((a, b) => b.s - a.s), me = L.findIndex(x => x.name === (opt.netName || 'Piloto') && x.s === D.total) + 1;
+      h.q('h_best').textContent = L[0] ? (L[0].name.length > 10 ? L[0].name.slice(0, 10) + '…' : L[0].name) + ' ' + L[0].s.toLocaleString() : '–'; h.q('h_pos').textContent = (me || 1) + '/' + Math.max(1, L.length); }
     else h.q('h_best').textContent = (D.best || 0).toLocaleString() + ' pts'; }
   function driftEnd() {
     if (!driftNet || driftNet.over) return; driftNet.over = true; const h0 = humans[0]; if (h0 && !driftNet.sc.has(BRR_net.id)) driftNet.sc.set(BRR_net.id, { name: opt.netName || 'Piloto', s: (h0.drift && h0.drift.total) || 0 }); if (h0 && h0.drift && h0.drift.chain > 0) { h0.drift.total += Math.round(h0.drift.chain * h0.drift.mult); h0.drift.chain = 0; driftNet.sc.set(BRR_net.id, { name: opt.netName || 'Piloto', s: h0.drift.total }); BRR_net.game({ k: 'dsc', s: h0.drift.total, n: opt.netName || 'Piloto' }); }
@@ -1861,12 +1894,14 @@
     const el = $('cm_body'), ED = BRR.editor, theme = b => LEVEL_NAMES[BRR.envOf(b)] || b, row = (img, title, sub, btns, id) => `<div class="cmrow" data-id="${esc(id)}"><img src="${img}" alt=""><div class="cminfo"><b data-notr>${esc(title)}</b><span class="small">${sub}</span></div><div class="rplb">${btns}</div></div>`;
     $('cm_search').hidden = cmTab !== 'com';
     if (cmTab === 'com') {
-      el.innerHTML = '<p class="small">Buscando circuitos…</p>'; let R = cmCache; if (!R || Date.now() - R.at > 60000) { try { R = await BRR.cloud.trackList(); R.at = Date.now(); cmCache = R; } catch (e) { R = { rows: [], online: false }; } }
+      el.innerHTML = '<p class="small">Buscando circuitos…</p>'; let R = cmCache; if (!R || Date.now() - R.at > 60000) { try { const [a, v] = await Promise.all([BRR.cloud.trackList(), BRR.cloud.votesAll ? BRR.cloud.votesAll().catch(() => new Map()) : new Map()]); R = a; R.votes = v; R.at = Date.now(); cmCache = R; } catch (e) { R = { rows: [], online: false }; } }
       if (cmTab !== 'com') return; await cmPurge(R.dels); const dl = new Set((await ED.downloads()).map(x => x.id)), mine = new Set((await ED.listTracks()).map(x => x.id)), q = $('cm_search').value.trim().toLowerCase();
-      const rows = R.rows.filter(r => !q || (r.name + ' ' + r.author).toLowerCase().includes(q));
+      const VT = R.votes || new Map(), vOf = id => VT.get(id) || { up: 0, down: 0, mine: 0 }, score = id => { const v = vOf(id); return v.up - v.down; };
+      const rows = R.rows.filter(r => !q || (r.name + ' ' + r.author).toLowerCase().includes(q)).sort((a, b) => score(b.id) - score(a.id) || b.t - a.t);   // los más votados arriba
+      const vbtn = id => { const v = vOf(id); return `<span class="cvote"><button data-a="vup" class="vup${v.mine > 0 ? ' on' : ''}" title="Me gusta">▲ ${v.up}</button><button data-a="vdn" class="vdn${v.mine < 0 ? ' on' : ''}" title="No me gusta">▼ ${v.down}</button></span>`; };
       el.innerHTML = !R.online && !rows.length ? '<p class="small">No se puede conectar con la nube de circuitos (¿sin Internet?).</p>' : !rows.length ? '<p class="small">Todavía no hay circuitos publicados. ¡Publica el primero desde el editor!</p>' :
         rows.map(r => row(typeof r.c === 'string' && /^data:image\/jpeg;base64,/.test(r.c) ? r.c : ED.preview((r.path || []).map(p => [p[0], p[1]]), r.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m · ${new Date(r.t).toLocaleDateString()}`,
-          mine.has(r.id) || (r.pid && BRR.cloud && r.pid === BRR.cloud.id) ? '<span class="small">Tuyo</span><button data-a="unpubc" title="Retirar de la comunidad">Retirar</button>' : dl.has(r.id) ? '<button data-a="play" class="main">▶ Correr</button><button data-a="get" title="Volver a descargar">⟳</button>' : '<button data-a="get" class="main">⬇ Descargar</button>', r.id)).join('');
+          mine.has(r.id) || (r.pid && BRR.cloud && r.pid === BRR.cloud.id) ? vbtn(r.id) + '<span class="small">Tuyo</span><button data-a="unpubc" title="Retirar de la comunidad">Retirar</button>' : vbtn(r.id) + (dl.has(r.id) ? '<button data-a="play" class="main">▶ Correr</button><button data-a="get" title="Volver a descargar">⟳</button>' : '<button data-a="get" class="main">⬇ Descargar</button>'), r.id)).join('');
     } else if (cmTab === 'dl') {
       const L = await ED.downloads(); el.innerHTML = !L.length ? '<p class="small">No has descargado ninguno. Mira en «Comunidad».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(t.cover || ED.preview(t.road, t.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m`,
         `<label class="small"><input type="checkbox" data-a="on" ${r.on ? 'checked' : ''}> En las listas</label><button data-a="play" class="main">▶</button><button data-a="del" title="Borrar">🗑</button>`, r.id) : ''; }))).join('');
@@ -1885,6 +1920,10 @@
         else if (a === 'pub') { const t = await ED.get(id); b.disabled = true; b.textContent = 'Publicando…'; await ED.publish(t, opt.netName || 'Piloto'); cmCache = null; cmRender(); }
         else if (a === 'unpubc') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = '¿Retirar?'; return; } b.disabled = true; await BRR.cloud.trackDel(id); const t = await ED.get(id); if (t && t.pub) { delete t.pub; await ED.saveTrack(t); } cmCache = null; cmRender(); }
         else if (a === 'delmine') { if (!b.dataset.sure) { b.dataset.sure = 1; b.textContent = '¿Borrar?'; return; } await ED.delTrack(id); cmCache = null; await customRefresh(); cmRender(); }
+        else if (a === 'vup' || a === 'vdn') { const VT = cmCache && cmCache.votes; if (!VT) return; const o = VT.get(id) || { up: 0, down: 0, mine: 0 }, want = a === 'vup' ? 1 : -1, nv = o.mine === want ? 0 : want;   // otra vez el mismo: se quita
+          if (o.mine > 0) o.up--; else if (o.mine < 0) o.down--; if (nv > 0) o.up++; else if (nv < 0) o.down++; o.mine = nv; VT.set(id, o);
+          const sp = b.parentNode; sp.querySelector('.vup').className = 'vup' + (nv > 0 ? ' on' : ''); sp.querySelector('.vup').textContent = '▲ ' + o.up; sp.querySelector('.vdn').className = 'vdn' + (nv < 0 ? ' on' : ''); sp.querySelector('.vdn').textContent = '▼ ' + o.down;
+          BRR.cloud.voteSet(id, nv); }
         else if (a === 'unpub') { const t = await ED.get(id); b.disabled = true; await ED.unpublish(t); cmCache = null; cmRender(); }
       } catch (e) { b.disabled = false; b.textContent = '✗ ' + (e.message || e); } }; }
   }
@@ -3136,7 +3175,7 @@
       }
       R.viewRect = [vx, vy, vw, vh];
       R.begin(cam.pos, view, proj, far, lvl.sky);
-      R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far); for (const q of netRamps.values()) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of humans) { if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p)); if (q.pipe) R.draw(q.pipe.up, BRR.M4.fromRT(q.pipe.R, q.pipe.p)); }
+      R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far); for (const q of netRamps.values()) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackPipes) R.draw(makePipe().up, BRR.M4.fromRT(q.R, q.p)); for (const q of humans) { if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p)); if (q.pipe) R.draw(q.pipe.up, BRR.M4.fromRT(q.pipe.R, q.pipe.p)); }
       for (const hh of humans) drawCar(hh.car, hh.draw, hh === h && ['capo', 'parachoques'].includes(h.camMode || opt.cam) ? (h.camMode || opt.cam) : false, hh === humans[0] ? carDraw : undefined);
       for (const r of rivals) { const d2 = (r.car.p[0] - cam.pos[0]) ** 2 + (r.car.p[2] - cam.pos[2]) ** 2; if (d2 < far * far) drawCar(r.car, r.draw, false, r.dd); }
       kartDraw(); ghostDraw(h);
@@ -3148,7 +3187,7 @@
       kartHud(h);
       { const lk = crazyR() ? crazy.mode : ''; if (h.lapLbl !== lk) { h.lapLbl = lk; const el = h.q('h_lap').previousElementSibling; if (el) el.textContent = !lk ? 'VUELTA' : lk === 'bomba' ? 'BOMBA' : lk === 'zombie' ? 'SANOS' : lk === 'polis' ? 'CACOS' : 'META EN'; } }
       h.q('h_lap').textContent = rc.phase === 'finished' ? 'META' : driftMode ? 'DRIFT' : freeMode ? 'LIBRE' : crazyR() ? crazyHud(h) : `${Math.min(rc.lap + 1, rc.laps)}/${rc.laps}`;
-      const lblK = driftMode ? (driftNet ? 'dn' : 'd') : freeMode; if (h.freeLbl !== lblK) { h.freeLbl = lblK; const rows = h.hud.querySelectorAll('.race .row'), L = driftMode ? ['Puntos ', 'Combo ', driftNet ? 'Quedan ' : 'Récord '] : freeMode ? ['Puntos ', 'Combo ', 'Récord '] : ['Tiempo ', 'Esta vuelta ', 'Mejor vuelta ']; rows.forEach((r, i) => { r.firstChild.nodeValue = L[i]; }); }
+      const lblK = driftMode ? (driftNet ? 'dn' : 'd') : freeMode; if (h.freeLbl !== lblK) { h.freeLbl = lblK; const rows = h.hud.querySelectorAll('.race .row'), L = driftMode ? ['Puntos ', 'Combo ', driftNet ? 'Líder ' : 'Récord '] : freeMode ? ['Puntos ', 'Combo ', 'Récord '] : ['Tiempo ', 'Esta vuelta ', 'Mejor vuelta ']; rows.forEach((r, i) => { r.firstChild.nodeValue = L[i]; }); }
       if (driftMode) driftHud(h); else if (freeMode) { const S = h.stunt || {}, best = +(ST.get('brr_stunt_' + lvl.name) || 0); h.q('h_time').textContent = (S.pts || 0) + ' pts'; h.q('h_cur').textContent = S.combo > 1 ? '×' + S.combo : '–'; h.q('h_best').textContent = best + ' pts'; }
       else { h.q('h_time').textContent = fmt(rc.t); h.q('h_cur').textContent = fmt(rc.t - rc.lapStart); }
       const rec = getRec(h), bl = rc.lapTimes.length ? Math.min(...rc.lapTimes) : null;

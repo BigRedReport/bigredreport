@@ -112,6 +112,13 @@
       for (const it of R.items) { const j = parse(it.p); if (!j || typeof j.id !== 'string' || typeof j.name !== 'string' || !(j.t > 0)) continue; const o = by.get(j.id); if (!o || j.t > o.t) by.set(j.id, j); }
       return { online: R.any > 0 || by.size > 0, rows: [...by.values()].filter(j => !j.del).sort((a, b) => b.t - a.t), dels: [...by.values()].filter(j => j.del).map(j => j.id) };
     },
+    // votos de los circuitos de la comunidad: cada piloto deja el suyo retenido en vote/CIRCUITO/ID (1 arriba, -1 abajo, 0 quitado)
+    async voteSet(id, v) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return 0; v = v > 0 ? 1 : v < 0 ? -1 : 0; return pubAll(T + 'vote/' + id + '/' + ID, JSON.stringify({ v, t: Date.now() }), true); },
+    async votesAll() { const [R, bk] = await Promise.all([readAll(T + 'vote/#', 3000), fetch(SITE + 'datos/votos.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))]), last = new Map();
+      for (const [id, o] of Object.entries(bk || {})) for (const [pid, q] of Object.entries(o || {})) if (Array.isArray(q)) last.set(id + '|' + pid, { id, pid, v: Math.sign(q[0]), t: q[1] || 0 });   // copia de la web
+      for (const it of R.items) { const m = /vote\/([^/]+)\/([^/]+)$/.exec(it.t), j = parse(it.p); if (!m || !j || typeof j.v !== 'number') continue; const k = m[1] + '|' + m[2], o = last.get(k); if (!o || (j.t || 0) > (o.t || 0)) last.set(k, { id: m[1], pid: m[2], v: Math.sign(j.v), t: j.t || 0 }); }
+      const out = new Map(); for (const r of last.values()) { let o = out.get(r.id); if (!o) out.set(r.id, o = { up: 0, down: 0, mine: 0 }); if (r.v > 0) o.up++; else if (r.v < 0) o.down++; if (r.pid === ID) o.mine = r.v; }
+      return out; },
     async trackGet(id) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return null; const R = await readAll(T + 'trk/' + id, 5000); let best = null;
       for (const it of R.items) { const j = parse(it.p); if (j && j.brr === 'track' && (!best || (j.rev | 0) > (best.rev | 0))) best = j; }
       if (!best) try { const r = await fetch(SITE + 'datos/circuitos/' + id + '.json', { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); if (j && j.brr === 'track') best = j; } } catch (e) { }
