@@ -103,6 +103,16 @@
       const hook = u => conn(u).then(mq => { const c = pool.get(u); if (c) c.keep = true; mq.sub(T + 'fi/' + ID, on); const was = mq.onclose; mq.onclose = () => { was && was(); setTimeout(() => hook(u), 15000); }; }, () => setTimeout(() => hook(u), 60000));
       BROKERS.forEach(hook);
     },
+    // circuitos de la comunidad: ficha pequeña retenida en trki/ID (para la lista) y el circuito entero (comprimido) en trk/ID
+    async trackPut(id, meta, data) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return 0; const a = await pubAll(T + 'trk/' + id, data, true); if (!a) return 0; return pubAll(T + 'trki/' + id, JSON.stringify(meta), true); },
+    async trackDel(id) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return 0; await pubAll(T + 'trki/' + id, '', true); return pubAll(T + 'trk/' + id, '', true); },
+    async trackList() {
+      const R = await readAll(T + 'trki/#', 3500), by = new Map();
+      for (const it of R.items) { const j = parse(it.p); if (!j || typeof j.id !== 'string' || typeof j.name !== 'string' || !(j.t > 0)) continue; const o = by.get(j.id); if (!o || j.t > o.t) by.set(j.id, j); }
+      return { online: R.any > 0, rows: [...by.values()].sort((a, b) => b.t - a.t) };
+    },
+    async trackGet(id) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return null; const R = await readAll(T + 'trk/' + id, 5000); let best = null;
+      for (const it of R.items) { const j = parse(it.p); if (j && j.brr === 'track' && (!best || (j.rev | 0) > (best.rev | 0))) best = j; } return best; },
     // aviso de fallo automático (sin datos personales: mensaje, pila, versión, navegador y dónde ocurrió)
     async report(info) {
       const s = JSON.stringify(info); let h = 0; const key = String(info.msg || '') + String(info.stack || '').split('\n')[1];

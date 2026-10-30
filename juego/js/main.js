@@ -162,6 +162,7 @@
   // vehículos de cada circuito (líneas "car" del guion del nivel), como en el original
   const levelCars = {};
   async function carsFor(id) {
+    if (String(id).includes('~')) return carsFor(id.split('~')[0]);   // circuito propio: los vehículos de su tema
     if (levelCars[id]) return levelCars[id];
     try { const A = await files.archive(id + '.LEV'), t = [...A.keys()].find(k => k === id + '.TXT') || [...A.keys()].find(k => k.endsWith('.TXT') && k !== 'VIEW.TXT');
       const txt = BRR.text(A.get(t)).replace(/;[^\n]*/g, '');
@@ -210,7 +211,7 @@
     $('m_hora').value = opt.hora || 'original'; $('m_clima').value = opt.clima || 'despejado'; $('m_hora').onchange = () => { opt.hora = $('m_hora').value; save(); }; $('m_clima').onchange = () => { opt.clima = $('m_clima').value; save(); };
     $('m_team').value = opt.team; $('m_rivals').value = opt.rivals; $('m_diff').value = opt.diff; $('m_players').value = opt.players || 1;
     $('t_team').value = opt.team; $('t_diff').value = opt.diff;
-    BRR.loadFront(files).then(async F => { front = F; try { await makeHeads(); } catch (e) { console.error(e); } renderFront(); await startOrigMenu(); }).catch(e => console.error(e));
+    BRR.loadFront(files).then(async F => { front = F; try { await makeHeads(); } catch (e) { console.error(e); } renderFront(); await startOrigMenu(); customRefresh(); }).catch(e => console.error(e));
   }
   // ---------- caras de los pilotos de cada equipo (TEAMS.TEA), renderizadas a imagen ----------
   // personajes: cuerpo (BLOKE/WOMAN + color del equipo) y cabeza (HEAD1x, 2, 3, 4x, 5, 6) de CHARSCN con su paleta (DRIVER.RAW)
@@ -309,7 +310,7 @@
       carThumb: async (veh, team, level, paint, gar) => {
         const key = veh + team + level + (paint || '') + (gar ? JSON.stringify(gar) : ''); let up = vehCache.get(key);
         if (!up) {
-          const A = await files.archive(level + '.LEV'), colk = [...A.keys()].find(k => k.endsWith('.COL'));
+          const A = await files.archive(String(level).split('~')[0] + '.LEV'), colk = [...A.keys()].find(k => k.endsWith('.COL'));
           const fake = { pal: BRR.pal6((colk ? A.get(colk) : (await files.archive('ALWAYS.WAP')).get('DEFAULT.COL')).subarray(0, 768)), find: n => A.get(n) || null };
           const d = await BRR.loadVehicle(files, veh, fake, team, { paint: hexRGB(paint), glass: gar ? garGlass(gar) : null });
           const rw = gar ? rimWheels(d, { ...gar, paint }) : null;   // garaje: llantas
@@ -338,13 +339,13 @@
   const DIFF = ['', 'Fácil', 'Mediana', 'Difícil'];
   const tname = t => (t && t.place ? t.place : '') || (t ? t.id : '');
   function card(t, extra = '') {
-    return `<div class="tcard" data-id="${t.id}">${t.view ? `<img src="${t.view}" alt="">` : `<div style="padding:30px 10px">${t.id}</div>`}<div class="tag"><b>${tname(t)}</b><span>${t.id}</span></div>${extra}</div>`;
+    return `<div class="tcard" data-id="${t.id}">${t.view ? `<img src="${t.view}" alt="">` : `<div style="padding:30px 10px">${t.id}</div>`}<div class="tag"><b${t.custom ? ' data-notr' : ''}>${t.custom ? esc(tname(t)) : tname(t)}</b><span>${t.custom ? esc(t.desc.split(' · ').pop()) : t.id}</span></div>${extra}</div>`;
   }
   function selectTrack(id, narrate) {
     const t = front.tracks.find(x => x.id === id); if (!t) return;
     $('m_level').value = id; opt.level = id; save(); fillVehicles();
     for (const c of document.querySelectorAll('#tracks .tcard')) c.classList.toggle('on', c.dataset.id === id);
-    $('d_img').src = t.view || ''; $('d_place').textContent = ''; $('d_name').textContent = t.place || t.id;   // solo el país (sin el nombre interno del mapa)
+    $('d_img').src = t.view || ''; $('d_place').textContent = ''; $('d_name').textContent = t.place || t.id; if (t.custom) $('d_name').setAttribute('data-notr', ''); else $('d_name').removeAttribute('data-notr');   // solo el país (sin el nombre interno del mapa)
     $('d_diff').textContent = DIFF[t.diff] || ''; $('d_diff').className = 'diff d' + t.diff;
     $('d_desc').textContent = (t.desc || '') + (t.laps ? `\n${t.laps} vueltas.` : '');
     let rec = null; try { for (const k of ST.keys()) if (k.startsWith('brr_rec_' + id + '_')) { const r = JSON.parse(ST.get(k)); if (r.lap && (!rec || r.lap < rec)) rec = r.lap; } } catch (e) { }
@@ -352,7 +353,8 @@
     showTTBest();
     if (narrate && audio && audio.ctx && t.intro) audio.narrate(t.intro);
     if (qmode === 'tt' && view === 'tt') refreshLB();
-    if (globeD) { const pl = t.planet > 0 && front.planets && front.planets[t.planet]; $('d_globe').hidden = t.planet > 0 && !pl; globeD.map = pl || front.world; globeD.noMarks = !!pl;
+    $('d_img').classList.toggle('cust', !!t.custom); $('d_img').hidden = !t.custom; if (globeD && t.custom) $('d_globe').hidden = true;
+    if (globeD && !t.custom) { const pl = t.planet > 0 && front.planets && front.planets[t.planet]; $('d_globe').hidden = t.planet > 0 && !pl; globeD.map = pl || front.world; globeD.noMarks = !!pl;
       if (pl) { globeD.sel = null; globeD.focus(globeD.lon + 60, 15); } else { globeD.sel = globeD.marks.find(m => m.id === id); globeD.focus(t.lon, t.lat); } }
   }
   // contrareloj: tu mejor tiempo en el circuito (con las vueltas elegidas y cualquier vehículo)
@@ -402,6 +404,7 @@
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
     if (v === 'reto') { retoOpen(); return; }
     if (v === 'friends') { frOpen(); return; }
+    if (v === 'comm') { cmOpen(); return; }
     if (v === 'editor') { if (!BRR.editor) return; BRR.editor.open(); return; }
     if (v === 'replays') { $('rplist').hidden = false; rpRenderList(); setTimeout(() => navFocusFirst($('rplist')), 0); return; }
     if (v === 'garage') { $('garage').hidden = false; garSel = opt.vehicle; garRender(); setTimeout(() => navFocusFirst($('garage')), 0); return; }
@@ -551,7 +554,7 @@
   ];
   // un logro por circuito («Visita Italia»…), con la imagen del circuito como icono: se añaden al cargar el juego
   function addVisitAch() { if (!front || !front.tracks || ACH.some(a => a[0].startsWith('v_'))) return;
-    for (const t of front.tracks) ACH.push(['v_' + t.id, t.view ? { img: t.view } : '📍', 'Visita ' + (t.place || t.id), 'Corre en ' + t.id]); }
+    for (const t of front.tracks.filter(t => !t.custom)) ACH.push(['v_' + t.id, t.view ? { img: t.view } : '📍', 'Visita ' + (t.place || t.id), 'Corre en ' + t.id]); }
   const achIco = i => i && i.img ? `<img src="${i.img}" alt="">` : i;
   const achGet = () => { try { return JSON.parse(ST.get('brr_ach')) || {}; } catch (e) { return {}; } };
   const achQ = []; let achShowing = false;
@@ -663,7 +666,7 @@
   // ---------- navegación con mando y flechas por cualquier menú (A aceptar, B atrás, cruceta/stick moverse) ----------
   function navRoot() {
     if (!$('optpanel').hidden) return $('optpanel');
-    for (const id of ['rplist', 'friends', 'garage', 'reto', 'donate']) if ($(id) && !$(id).hidden) return $(id);   // ventanas encima del menú
+    for (const id of ['comm', 'rplist', 'friends', 'garage', 'reto', 'donate']) if ($(id) && !$(id).hidden) return $(id);   // ventanas encima del menú
     if (state === 'results' && !$('results').hidden) return $('results');
     if (!$('vehpick').hidden) return $('vehpick');
     if (state === 'pause' || !$('pause').hidden) return $('pause');
@@ -800,7 +803,8 @@
     try {
       $('load_msg').textContent = 'Cargando ' + level + '…';
       await new Promise(r => setTimeout(r, 30));
-      lvl = custom && edTrack ? await BRR.loadCustomLevel(files, edTrack, s => $('load_msg').textContent = 'Cargando ' + (edTrack.name || level) + ': ' + s + '…') : await BRR.loadLevel(files, level, s => $('load_msg').textContent = 'Cargando ' + level + ': ' + s + '…');
+      const cT = custom ? (edTrack && BRR.editor.levelOf(edTrack) === level ? edTrack : await BRR.editor.byLevel(level)) : null; if (custom && !cT) throw new Error('No tienes ese circuito (' + level + ')');
+      lvl = custom ? await BRR.loadCustomLevel(files, cT, s => $('load_msg').textContent = 'Cargando ' + (cT.name || level) + ': ' + s + '…') : await BRR.loadLevel(files, level, s => $('load_msg').textContent = 'Cargando ' + level + ': ' + s + '…');
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
       R.setEnvironment(lvl.sun, lvl.sky); { const at = makeAtmos(level, lvl.sun, lvl.sky); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
       // jugadores humanos: el equipo elegido para J1 y los siguientes colores para los demás
@@ -1094,7 +1098,7 @@
       if (ttMode && h.newLap) achUnlock('record'); if (netRace) { achUnlock('online'); if (win) achUnlock('onlinewin'); }
       if (humans.length >= 2) achUnlock('fiesta'); if (opt.paint && myTeamName()) achUnlock('estilo');
       const S = statsGet(); if ((S.races || 0) >= 50) achUnlock('veterano'); if ((S.km || 0) >= 100) achUnlock('km100');
-      statsAdd(S2 => { S2.tracks = S2.tracks || {}; S2.tracks[lvl.name] = 1; if (front && front.tracks && Object.keys(S2.tracks).length >= front.tracks.length) achUnlock('turista'); }); }
+      statsAdd(S2 => { S2.tracks = S2.tracks || {}; if (!lvl.custom) S2.tracks[lvl.name] = 1; if (front && front.tracks && Object.keys(S2.tracks).length >= front.tracks.filter(t => !t.custom).length) achUnlock('turista'); }); }
     if (audio) { const v = snd.pickVoice && (pickV('FINISH') || pickV('GAMEOVER')); if (v) audio.voice(v, true); }
     // resultados cuando han llegado todos los jugadores (o 45 s después del primero)
     if (humans.every(x => x.done) && rivals.filter(r => r.remote && !r.isAI).every(r => r.fin != null)) setTimeout(showResults, 1500);
@@ -1634,6 +1638,10 @@
     if (d.k === 'ramp' && Array.isArray(d.p) && Array.isArray(d.R) && d.p.length === 3 && d.R.length === 3) { placeNetRamp(m.from, d.t === 'pipe' ? 'pipe' : 'ramp', d.p.map(Number), d.R.map(r => r.map(Number))); return; }
     if (d.k === 'hn') { const e = rivals.find(r => r.id === m.from); if (!e || !audio || !audio.ctx || typeof d.t !== 'string' || d.t === 'propia' || !BRR.HORNS.some(x => x.id === d.t)) return; const info = BRR.hornInfo(d.t);
       if (d.on) { if (e.hornH) e.hornH.stop(); e.hornH = audio.horn(1, 0.7, null, d.t, e.car.p); } else if (e.hornH && info.hold) { e.hornH.stop(); e.hornH = null; } return; }
+    if (d.k === 'trkreq' && typeof d.id === 'string' && BRR.editor) { (async () => { const t = await BRR.editor.get(d.id.slice(0, 40)); if (!t) return; const s2 = await BRR.editor.pack(t), CH = 12000, n = Math.ceil(s2.length / CH);
+        for (let i = 0; i < n; i++) { BRR_net.game({ k: 'trkd', id: d.id, i, n, d: s2.slice(i * CH, (i + 1) * CH) }, m.from); await new Promise(r => setTimeout(r, 30)); } })(); return; }
+    if (d.k === 'trkd' && typeof d.id === 'string' && trkWant.has(d.id)) { const w = trkWant.get(d.id); if (!(d.n > 0 && d.n < 400 && d.i >= 0 && d.i < d.n && typeof d.d === 'string')) return; w.parts[d.i] = d.d; w.n = d.n;
+      if (w.parts.filter(x => x != null).length === d.n) { const sj = w.parts.join(''); trkWant.delete(d.id); BRR.editor.unpack(sj).then(async t => { if (t.id !== d.id) t.id = d.id; await BRR.editor.saveDownload(t, false); w.ok(true); }, () => w.ok(false)); } return; }
     if (d.k === 'start') { if (netRace && netRace.role === 'spec' && !d.spec) specLeave(); if (!netRace && state !== 'race') netStart(d); return; }
     if (d.k === 'spec') { if (BRR_net.isHost && netRace && netLastStart && state === 'race') BRR_net.game({ ...netLastStart, spec: 1 }, m.from); return; }
     if (!netRace) return;
@@ -1647,7 +1655,19 @@
   });
   BRR_net.on('closed', m => { if (netRace && state === 'race') { netRace.lost = true; $('netbar').hidden = false; $('netbar').textContent = m.why || 'Partida cerrada'; } netRenderRoom(); });
   BRR_net.on('disconnect', () => { $('n_status').textContent = 'Desconectado (se reintentará al volver a Online).'; $('n_room').hidden = true; if (netRace && state === 'race') { $('netbar').hidden = false; $('netbar').textContent = 'Conexión perdida con el servidor'; } });
-  function netStart(d) {
+  // circuito propio en una partida online: si no lo tienes, se lo pide al anfitrión (y si no, a la nube) antes de empezar
+  const trkWant = new Map();
+  async function ensureTrack(level) {
+    if (!String(level || '').includes('~') || !BRR.editor) return true; if (await BRR.editor.byLevel(level)) return true;
+    const id = level.split('~')[1]; if (trkWant.has(id)) return trkWant.get(id).p;
+    const w = { parts: [], n: 0 }; w.p = new Promise(ok => { w.ok = ok; }); trkWant.set(id, w);
+    const host = (BRR_net.members || []).find(x => x.host); if (host && host.id !== BRR_net.id) BRR_net.game({ k: 'trkreq', id }, host.id);
+    const res = await Promise.race([w.p, new Promise(r => setTimeout(() => r(null), 20000))]);
+    if (res) return true; trkWant.delete(id);
+    try { await BRR.editor.download(id, false); return true; } catch (e) { return false; }
+  }
+  async function netStart(d) {
+    if (String(d.level || '').includes('~')) { $('netbar').hidden = false; $('netbar').textContent = 'Descargando el circuito…'; const ok = await ensureTrack(d.level); if (!ok) { $('netbar').textContent = 'No se ha podido descargar el circuito de esta partida'; return; } }
     const me = BRR_net.id; let e = d.order.find(x => x.id === me); if (!e && !d.spec) return;
     if (!e) e = { veh: (d.order.find(x => !x.ai) || d.order[0] || {}).veh || 'JEEP', team: 1 };   // espectador: un coche invisible para la cámara
     clearTimeout(netResT); $('results').hidden = true; netRace = null;
@@ -1750,9 +1770,62 @@
   let pickerClose = null;
   // ---------- editor de circuitos (no en Android): probar el circuito con tu coche y los rivales, y al salir se vuelve al editor ----------
   let edTrack = null, edBack = false; if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android');   // el editor no está en el móvil
-  if (BRR.editor) BRR.editor.init({ files: () => files, close: () => { },
+  if (BRR.editor) BRR.editor.init({ files: () => files,
     play: async T => { if (!files) return; edTrack = T; edBack = true; BRR.editor.close(); if (audio) { audio.init(); audio.stopMusic(); } ttMode = false; freeMode = false; tourMode = false;
-      const veh = files.has(opt.vehicle + '.VHC') && !/^(FEHELI|HELI|COPTER|INFLATE|HOVCAR)$/.test(opt.vehicle) ? opt.vehicle : 'JEEP'; await startRace(T.base + '~' + T.id, veh, opt.team || 1, T.laps || 3, 1); } });
+      const veh = files.has(opt.vehicle + '.VHC') && !/^(FEHELI|HELI|COPTER|INFLATE|HOVCAR)$/.test(opt.vehicle) ? opt.vehicle : 'JEEP'; await startRace(BRR.editor.levelOf(T), veh, opt.team || 1, T.laps || 3, 1); }, author: () => opt.netName || 'Piloto', close: () => customRefresh() });
+  // ---------- circuitos propios y de la comunidad: en las listas de carrera (rápida, contrarreloj, online) y la ventana para descargarlos ----------
+  async function customRefresh() {
+    if (!front || !BRR.editor) return; let A = []; try { A = await BRR.editor.active(); } catch (e) { }
+    front.tracks = front.tracks.filter(t => !t.custom);
+    for (const r of A) { const t = await BRR.editor.get(r.id); if (!t || !t.road || t.road.length < 3) continue; const b = front.tracks.find(x => x.id === t.base) || {};
+      front.tracks.push({ id: BRR.editor.levelOf(t), custom: true, place: t.name, view: BRR.editor.preview(t.road, t.base), diff: 1, laps: t.laps, cars: b.cars || ['JEEP'], planet: 0,
+        desc: (r.mine ? 'Tu circuito' : 'Circuito de ' + (t.author || 'la comunidad')) + ' · ' + (LEVEL_NAMES[BRR.envOf(t.base)] || t.base) }); }
+    const ls = $('m_level'); [...ls.querySelectorAll('.cust')].forEach(o => o.remove());
+    const C = front.tracks.filter(t => t.custom); if (C.length) { const g = document.createElement('optgroup'); g.className = 'cust'; g.label = 'Circuitos propios y de la comunidad'; for (const t of C) { const o = document.createElement('option'); o.value = t.id; o.textContent = t.place; g.appendChild(o); } ls.appendChild(g); }
+    const cur = $('m_level').value;
+    $('tracks').innerHTML = front.tracks.map(t => card(t, t.custom ? '<span class="cbadge">' + (t.desc.startsWith('Tu') ? '🛠' : '🌐') + '</span>' : '')).join('');
+    for (const c of document.querySelectorAll('#tracks .tcard')) { c.tabIndex = 0; c.onclick = () => { menuBeep(); selectTrack(c.dataset.id, true); }; }
+    if (front.tracks.some(t => t.id === cur)) selectTrack(cur, false); else if (front.tracks.some(t => t.id === opt.level)) selectTrack(opt.level, false);
+  }
+  let cmTab = 'com', cmCache = null;
+  function cmOpen(tab) { cmCache = null; $('comm').hidden = false; cmTab = tab || cmTab; cmRender(); setTimeout(() => navFocusFirst($('comm')), 0); }
+  async function cmPlay(level) { await customRefresh(); $('comm').hidden = true; go('quick'); setTimeout(() => selectTrack(level, false), 60); }
+  async function cmRender() {
+    for (const b of document.querySelectorAll('#comm [data-ct]')) b.classList.toggle('on', b.dataset.ct === cmTab);
+    const el = $('cm_body'), ED = BRR.editor, theme = b => LEVEL_NAMES[BRR.envOf(b)] || b, row = (img, title, sub, btns, id) => `<div class="cmrow" data-id="${esc(id)}"><img src="${img}" alt=""><div class="cminfo"><b data-notr>${esc(title)}</b><span class="small">${sub}</span></div><div class="rplb">${btns}</div></div>`;
+    $('cm_search').hidden = cmTab !== 'com';
+    if (cmTab === 'com') {
+      el.innerHTML = '<p class="small">Buscando circuitos…</p>'; let R = cmCache; if (!R || Date.now() - R.at > 60000) { try { R = await BRR.cloud.trackList(); R.at = Date.now(); cmCache = R; } catch (e) { R = { rows: [], online: false }; } }
+      if (cmTab !== 'com') return; const dl = new Set((await ED.downloads()).map(x => x.id)), mine = new Set((await ED.listTracks()).map(x => x.id)), q = $('cm_search').value.trim().toLowerCase();
+      const rows = R.rows.filter(r => !q || (r.name + ' ' + r.author).toLowerCase().includes(q));
+      el.innerHTML = !R.online && !rows.length ? '<p class="small">No se puede conectar con la nube de circuitos (¿sin Internet?).</p>' : !rows.length ? '<p class="small">Todavía no hay circuitos publicados. ¡Publica el primero desde el editor!</p>' :
+        rows.map(r => row(ED.preview((r.path || []).map(p => [p[0], p[1]]), r.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m · ${new Date(r.t).toLocaleDateString()}`,
+          mine.has(r.id) ? '<span class="small">Tuyo</span>' : dl.has(r.id) ? '<button data-a="play" class="main">▶ Correr</button><button data-a="get" title="Volver a descargar">⟳</button>' : '<button data-a="get" class="main">⬇ Descargar</button>', r.id)).join('');
+    } else if (cmTab === 'dl') {
+      const L = await ED.downloads(); el.innerHTML = !L.length ? '<p class="small">No has descargado ninguno. Mira en «Comunidad».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(ED.preview(t.road, t.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m`,
+        `<label class="small"><input type="checkbox" data-a="on" ${r.on ? 'checked' : ''}> En las listas</label><button data-a="play" class="main">▶</button><button data-a="del" title="Borrar">🗑</button>`, r.id) : ''; }))).join('');
+    } else {
+      const L = await ED.listTracks(); el.innerHTML = !L.length ? '<p class="small">Aún no has hecho ninguno. Ábrelo con «Abrir el editor».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(ED.preview(t.road, t.base), r.name, `${esc(theme(r.base))} · ${r.len || '?'} m${t.pub ? ' · 🌐 publicado' + (t.pub.rev < t.rev - 1 ? ' (hay cambios sin publicar)' : '') : ''}`,
+        `<label class="small"><input type="checkbox" data-a="mon" ${r.off ? '' : 'checked'}> En las listas</label><button data-a="play" class="main">▶</button><button data-a="edit" title="Editar">✏️</button><button data-a="pub">${t.pub ? '🌐 Actualizar' : '🌐 Publicar'}</button>${t.pub ? '<button data-a="unpub" title="Retirar de la comunidad">Retirar</button>' : ''}`, r.id) : ''; }))).join('');
+    }
+    for (const b of el.querySelectorAll('[data-a]')) { const id = b.closest('.cmrow').dataset.id, a = b.dataset.a, ev = b.tagName === 'INPUT' ? 'onchange' : 'onclick';
+      b[ev] = async () => { try {
+        if (a === 'get') { b.disabled = true; b.textContent = 'Descargando…'; await ED.download(id, true); await customRefresh(); cmRender(); }
+        else if (a === 'play') { const t = await ED.get(id); if (!t) return; if (t.src === 'com') await ED.setDownloadOn(id, true); else await ED.setMineOn(id, true); cmPlay(ED.levelOf(t)); }
+        else if (a === 'on') { await ED.setDownloadOn(id, b.checked); customRefresh(); }
+        else if (a === 'mon') { await ED.setMineOn(id, b.checked); customRefresh(); }
+        else if (a === 'del') { if (b.dataset.sure) { await ED.delDownload(id); await customRefresh(); cmRender(); } else { b.dataset.sure = 1; b.textContent = '¿Borrar?'; } }
+        else if (a === 'edit') { const t = await ED.get(id); $('comm').hidden = true; BRR.editor.open(t); }
+        else if (a === 'pub') { const t = await ED.get(id); b.disabled = true; b.textContent = 'Publicando…'; await ED.publish(t, opt.netName || 'Piloto'); cmCache = null; cmRender(); }
+        else if (a === 'unpub') { const t = await ED.get(id); b.disabled = true; await ED.unpublish(t); cmCache = null; cmRender(); }
+      } catch (e) { b.disabled = false; b.textContent = '✗ ' + (e.message || e); } }; }
+  }
+  (function cmSetup() {
+    for (const b of document.querySelectorAll('#comm [data-ct]')) b.onclick = () => { cmTab = b.dataset.ct; cmRender(); };
+    $('cm_close').onclick = () => { $('comm').hidden = true; }; $('comm').onclick = e => { if (e.target.id === 'comm') $('comm').hidden = true; };
+    $('cm_editor').onclick = () => { $('comm').hidden = true; BRR.editor && BRR.editor.open(); };
+    let st = 0; $('cm_search').oninput = () => { clearTimeout(st); st = setTimeout(cmRender, 250); }; $('cm_search').addEventListener('keydown', e => e.stopPropagation());
+  })();
   // ---------- amigos: código de amigo (tu id), lista guardada, quién está conectado y en qué sala, invitaciones ----------
   const frCode = id => String(id || '').toUpperCase().replace(/^(.{4})(.+)$/, '$1-$2');
   const frId = c => String(c || '').toLowerCase().replace(/[^a-z0-9]/g, '');
@@ -1845,6 +1918,7 @@
   BRR_net.on('closed', m => { $('n_status').textContent = m.why || 'La partida se ha cerrado.'; netRenderRoom(); });
   let lastLevel = null, lastFree = false;
   function netRenderRoom() {
+    { const lv = BRR_net.room && BRR_net.room.info && BRR_net.room.info.level; if (lv && String(lv).includes('~') && !BRR_net.isHost) ensureTrack(lv); }   // circuito propio del anfitrión: se descarga ya en la sala
     const r = BRR_net.room; $('n_room').hidden = !r; $('pane_online').classList.toggle('inroom', !!r); if (!r) return;
     if (r.state === 'racing' && !netRace && !BRR_net.isHost) $('n_modeinfo').textContent = 'Hay una carrera en curso: entrarás en la siguiente.';
     $('n_spec').hidden = !(r.state === 'racing' && !netRace && !BRR_net.isHost);
@@ -3052,5 +3126,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

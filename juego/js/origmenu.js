@@ -219,7 +219,7 @@
       await this.conf();
     }
     close() { this.on = false; this.root.hidden = true; }
-    tracks() { return this.h.front().tracks; }
+    tracks() { return this.h.front().tracks.filter(t => !t.custom); }
     // 1) configuración: carrera única / torneo / multijugador / cargar / opciones
     async conf() {
       await this.show('CONFSCN', { onBox: id => {

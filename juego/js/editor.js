@@ -1,4 +1,4 @@
-// Editor de circuitos (ordenador y navegador; en Android no): vista desde arriba con brochas de terreno, pintura de suelo,
+// Editor de circuitos (ordenador, Steam Deck, navegador y Android con pantalla táctil): vista desde arriba con brochas de terreno, pintura de suelo,
 // carretera dibujada con puntos (curva suave), objetos del tema y ajustes. Al probarlo, el circuito se convierte en los
 // mismos datos que usa el juego original (alturas, baldosas, objetos, recorrido, controles y parrilla) sobre un circuito
 // base que pone las texturas, la paleta y los objetos; la carretera se dibuja encima como una cinta suave.
@@ -153,10 +153,10 @@
 
   // ---------- la pantalla del editor ----------
   const ED = BRR.editor = { THEMES, listTracks, saveTrack, delTrack, loadBase, spline, prepare, build };
-  let hov = null, hf = null, host = null, T = null, B = null, cv = null, cx2 = null, terr = null, view = { z: 4, x: 0, y: 0 }, tool = 'road', brush = { r: 4, mode: 'up', str: 1 }, drag = null, undo = [], redo = [], sel = null, dirty = true, objPick = null;
+  let delMode = false, hov = null, hf = null, host = null, T = null, B = null, cv = null, cx2 = null, terr = null, view = { z: 4, x: 0, y: 0 }, tool = 'road', brush = { r: 4, mode: 'up', str: 1 }, drag = null, undo = [], redo = [], sel = null, dirty = true, objPick = null;
   const $ = id => document.getElementById(id);
   function newTrack(base, Bb) { const h = new Uint8Array(65536).fill(48), t = new Uint8Array(65536).fill(Bb.groundTile);
-    return { v: 1, id: Date.now().toString(36), name: 'Mi circuito', base, h, t, road: [[112, 112], [148, 106], [160, 132], [140, 156], [108, 150]], w: 14, objs: [], laps: 3, nitros: 3, roadTile: Bb.roadTile, rev: 0 }; }
+    return { v: 1, id: ((BRR.cloud && BRR.cloud.id) || 'x') + '-' + Date.now().toString(36), name: 'Mi circuito', base, h, t, road: [[112, 112], [148, 106], [160, 132], [140, 156], [108, 150]], w: 14, objs: [], laps: 3, nitros: 3, roadTile: Bb.roadTile, rev: 0 }; }
   function snap() { undo.push({ h: T.h.slice(), t: T.t.slice(), road: JSON.stringify(T.road), objs: JSON.stringify(T.objs), w: T.w }); if (undo.length > 30) undo.shift(); redo = []; }
   function restore(st) { T.h = st.h; hf = Float32Array.from(T.h); T.t = st.t; T.road = JSON.parse(st.road); T.objs = JSON.parse(st.objs); T.w = st.w; terrAll(); dirty = true; }
   const cur = () => ({ h: T.h.slice(), t: T.t.slice(), road: JSON.stringify(T.road), objs: JSON.stringify(T.objs), w: T.w });
@@ -238,29 +238,29 @@
       else if (a === 'del') { if (b.dataset.sure) { await delTrack(id); renderList(); } else { b.dataset.sure = 1; b.textContent = '¿Borrar?'; } } };
   }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  function exportTrack(t) { const j = JSON.stringify({ ...t, h: b64(t.h), t: b64(t.t), brr: 'track' }), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([j], { type: 'application/json' })); a.download = (t.name || 'circuito').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '_') + '.brrtrack'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); }
-  async function importTrack(f) { const j = JSON.parse(await f.text()); if (j.brr !== 'track' || !j.h || !j.t || !Array.isArray(j.road)) throw new Error('No es un circuito de Big Red Report');
-    const t = { v: 1, id: Date.now().toString(36), name: String(j.name || 'Circuito').slice(0, 40), base: THEMES.includes(j.base) ? j.base : 'CITY1', h: unb64(j.h), t: unb64(j.t), road: j.road.filter(p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])).slice(0, 200).map(p => [+p[0], +p[1]]),
+  async function exportTrack(t) { const j = await ED.pack(t), a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([j], { type: 'application/json' })); a.download = (t.name || 'circuito').replace(/[^\w\- ]+/g, '').trim().replace(/\s+/g, '_') + '.brrtrack'; document.body.appendChild(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 2000); }
+  async function importTrack(f) { const j = JSON.parse(await f.text()); if (j && j.hz) { const t = await ED.unpack(j); t.id = ((BRR.cloud && BRR.cloud.id) || 'x') + '-' + Date.now().toString(36); delete t.pub; await saveTrack(t); return t; } if (j.brr !== 'track' || !j.h || !j.t || !Array.isArray(j.road)) throw new Error('No es un circuito de Big Red Report');
+    const t = { v: 1, id: ((BRR.cloud && BRR.cloud.id) || 'x') + '-' + Date.now().toString(36), name: String(j.name || 'Circuito').slice(0, 40), base: THEMES.includes(j.base) ? j.base : 'CITY1', h: unb64(j.h), t: unb64(j.t), road: j.road.filter(p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])).slice(0, 200).map(p => [+p[0], +p[1]]),
       w: Math.max(8, Math.min(30, +j.w || 14)), objs: (j.objs || []).slice(0, 2000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), laps: j.laps | 0 || 3, nitros: j.nitros | 0, roadTile: j.roadTile | 0, rev: 0 };
     if (t.h.length !== 65536 || t.t.length !== 65536) throw new Error('Circuito incompleto'); await saveTrack(t); return t; }
 
   ED.init = function (opts) {
-    host = document.createElement('div'); host.id = 'editor'; host.hidden = true; host.files = opts.files; host.play = opts.play; host.close = opts.close;
+    host = document.createElement('div'); host.id = 'editor'; host.hidden = true; host.files = opts.files; host.play = opts.play; host.close = opts.close; host.author = opts.author || (() => 'Piloto');
     host.innerHTML = `<div class="edtop"><b>🛠 Editor de circuitos</b><input id="ed_name" maxlength="40" placeholder="Nombre del circuito"><span class="small">Tema: <b id="ed_base"></b></span><span class="small" id="ed_info"></span>
-      <span style="flex:1"></span><button id="ed_undo" title="Deshacer (Ctrl+Z)">↶</button><button id="ed_redo" title="Rehacer (Ctrl+Y)">↷</button><button id="ed_fit" title="Ver todo">⤢</button><button id="ed_save">💾 Guardar</button><button id="ed_play" class="main">▶ Probar</button><button id="ed_my">📁 Mis circuitos</button><button id="ed_exit">✕ Salir</button></div>
+      <span style="flex:1"></span><button id="ed_undo" title="Deshacer (Ctrl+Z)">↶</button><button id="ed_redo" title="Rehacer (Ctrl+Y)">↷</button><button id="ed_fit" title="Ver todo">⤢</button><button id="ed_save">💾 Guardar</button><button id="ed_play" class="main">▶ Probar</button><button id="ed_pub">🌐 Publicar</button><button id="ed_my">📁 Mis circuitos</button><button id="ed_exit">✕ Salir</button></div>
       <div class="edmain"><div class="edcv"><canvas id="ed_cv"></canvas><div id="ed_toast" hidden></div></div>
       <div class="edside"><div class="edtools"><button data-tool="road">🛣️ Carretera</button><button data-tool="terrain">⛰️ Terreno</button><button data-tool="paint">🎨 Suelo</button><button data-tool="objs">🌴 Objetos</button><button data-tool="set">⚙️ Ajustes</button></div>
         <div class="edp" data-p="road"><p class="small">Clic para añadir un punto (se mete en el tramo más cercano) · arrastra para moverlo · clic derecho para quitarlo. El punto rojo es la salida. Los controles y la parrilla se ponen solos.</p>
           <div class="edrow"><span>Ancho</span><input type="range" id="ed_w" min="8" max="30" step="1"><span id="ed_wv"></span></div>
-          <div class="edrow"><button id="ed_rev">⇄ Cambiar sentido</button><button id="ed_clear">Borrar carretera</button></div><p class="small">Suelo de la carretera:</p><div id="ed_rtile" class="edtiles"></div></div>
+          <div class="edrow"><button id="ed_rev">⇄ Cambiar sentido</button><button id="ed_clear">Borrar carretera</button><button class="eddel">🗑 Modo borrar</button></div><p class="small">Suelo de la carretera:</p><div id="ed_rtile" class="edtiles"></div></div>
         <div class="edp" data-p="terrain"><div class="edrow edmodes"><button data-m="up" class="on">⬆ Subir</button><button data-m="down">⬇ Bajar</button><button data-m="flat">▬ Allanar</button><button data-m="smooth">≈ Suavizar</button></div>
           <div class="edrow"><span>Tamaño</span><input type="range" id="ed_r" min="1" max="24" value="4"></div><div class="edrow"><span>Fuerza</span><input type="range" id="ed_s" min="1" max="10" value="5"></div>
           <div class="edrow"><button id="ed_hills">🎲 Colinas al azar</button><button id="ed_flatall">Todo llano</button></div><p class="small">Bajo la carretera el terreno se allana solo al probar el circuito.</p></div>
         <div class="edp" data-p="paint"><div class="edrow"><span>Tamaño</span><input type="range" id="ed_pr" min="1" max="24" value="3"></div><div id="ed_tiles" class="edtiles"></div><div class="edrow"><button id="ed_fill">Pintar todo con esta</button></div></div>
         <div class="edp" data-p="objs"><select id="ed_obj" size="10" style="width:100%"></select><p class="small">Clic para poner el objeto elegido · arrastra para moverlo · clic derecho para quitarlo · R o rueda con Mayús para girarlo.</p>
-          <div class="edrow"><label class="small"><input type="checkbox" id="ed_rnd" checked> Giro al azar</label><button id="ed_odel">Quitar el elegido</button></div></div>
+          <div class="edrow"><label class="small"><input type="checkbox" id="ed_rnd" checked> Giro al azar</label><button id="ed_odel">Quitar el elegido</button><button id="ed_orot">⟳ Girar</button><button class="eddel">🗑 Modo borrar</button></div></div>
         <div class="edp" data-p="set"><div class="edrow"><span>Vueltas</span><input type="number" id="ed_laps" min="1" max="20" style="width:70px"></div><div class="edrow"><span>Nitros</span><input type="number" id="ed_nitros" min="0" max="12" style="width:70px"></div>
-          <p class="small">Rueda del ratón: zoom · arrastrar con botón derecho o central (o Espacio): mover la vista.</p><div class="edrow"><button id="ed_exp">⬇ Exportar archivo</button></div></div></div></div>
+          <p class="small">Rueda del ratón: zoom · arrastrar con botón derecho o central (o Espacio): mover la vista. En pantalla táctil: dos dedos para mover y pellizcar para el zoom.</p><div class="edrow"><button id="ed_exp">⬇ Exportar archivo</button></div></div></div></div>
       <div id="ed_home" class="edhome" hidden><div class="card"><h2>🛠 Mis circuitos</h2><div id="ed_list"></div>
         <h3 style="margin:14px 0 6px">Nuevo circuito</h3><div class="edrow"><span>Tema</span><select id="ed_theme"></select><button id="ed_new" class="main">Crear</button></div>
         <div class="grid2" style="margin-top:12px"><button id="ed_imp">📂 Importar archivo…</button><button id="ed_hclose">Cerrar</button></div><input type="file" id="ed_file" accept=".brrtrack,application/json" hidden></div></div>`;
@@ -275,12 +275,16 @@
     $('ed_hills').onclick = hills; $('ed_flatall').onclick = () => { snap(); T.h.fill(48); hf = Float32Array.from(T.h); terrAll(); dirty = true; };
     $('ed_fill').onclick = () => { if (brush.tile == null) return; snap(); T.t.fill(brush.tile); terrAll(); dirty = true; };
     $('ed_obj').onchange = () => { objPick = $('ed_obj').value; };
+    for (const b of host.querySelectorAll('.eddel')) b.onclick = () => { delMode = !delMode; for (const x of host.querySelectorAll('.eddel')) x.classList.toggle('on', delMode); };
+    $('ed_orot').onclick = () => { if (sel) { sel.r = ((sel.r || 0) + 15) % 360; dirty = true; } };
     $('ed_odel').onclick = () => { if (!sel) return; snap(); T.objs = T.objs.filter(o => o !== sel); sel = null; dirty = true; };
     $('ed_undo').onclick = () => { const s = undo.pop(); if (s) { redo.push(cur()); restore(s); } }; $('ed_redo').onclick = () => { const s = redo.pop(); if (s) { undo.push(cur()); restore(s); } };
     $('ed_fit').onclick = fit; $('ed_save').onclick = () => saveNow();
     $('ed_play').onclick = async () => { await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } host.play(T); };
     $('ed_my').onclick = async () => { await saveNow(false); $('ed_home').hidden = false; renderList(); };
     $('ed_exit').onclick = async () => { if (T) await saveNow(false); ED.close(); };
+    $('ed_pub').onclick = async () => { const b = $('ed_pub'); await saveNow(false); if (T.road.length < 3) { toast('Pon al menos 3 puntos de carretera'); return; } b.disabled = true; b.textContent = 'Publicando…';
+      try { await ED.publish(T, host.author()); toast('Publicado en la comunidad'); } catch (e) { toast(e.message || String(e)); } b.disabled = false; b.textContent = '🌐 Publicar'; };
     $('ed_exp').onclick = async () => { await saveNow(false); exportTrack(T); };
     $('ed_theme').innerHTML = THEMES.map(t => `<option value="${t}">${t}</option>`).join('');
     $('ed_new').onclick = async () => { const base = $('ed_theme').value; try { const Bb = await loadBase(host.files(), base); $('ed_home').hidden = true; await openTrack(newTrack(base, Bb)); await saveNow(false); } catch (e) { toast('No se puede usar ese tema: ' + (e.message || e)); } };
@@ -293,7 +297,13 @@
     cv.addEventListener('wheel', e => { e.preventDefault(); const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top;
       if (e.shiftKey && tool === 'objs' && sel) { sel.r = ((sel.r || 0) + (e.deltaY > 0 ? 15 : -15) + 360) % 360; dirty = true; return; }
       const [cx, cz] = toCell(mx, my), k = e.deltaY > 0 ? 1 / 1.15 : 1.15; view.z = Math.max(0.8, Math.min(40, view.z * k)); view.x = mx - cx * view.z; view.y = my + cz * view.z; dirty = true; }, { passive: false });
-    cv.addEventListener('pointerdown', e => { const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, c = toCell(mx, my); cv.setPointerCapture(e.pointerId);
+    // táctil: dos dedos mueven y hacen zoom (pellizco); con «Borrar» activado, tocar quita el punto o el objeto
+    const ptrs = new Map(); let pinch = null;
+    const pinchStart = () => { const [a, b] = [...ptrs.values()], r = cv.getBoundingClientRect(); if (drag && drag.brush) { const s0 = undo.pop(); if (s0) restore(s0); } else if (drag && (drag.road != null || drag.obj)) { const s0 = undo.pop(); if (s0) restore(s0); }
+      drag = null; pinch = { d: Math.hypot(a.x - b.x, a.y - b.y) || 1, mx: (a.x + b.x) / 2 - r.left, my: (a.y + b.y) / 2 - r.top, z: view.z, vx: view.x, vy: view.y }; };
+    cv.addEventListener('pointerdown', e => { ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY }); if (ptrs.size === 2) { pinchStart(); return; } if (ptrs.size > 2 || pinch) return;
+      const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, c = toCell(mx, my); cv.setPointerCapture(e.pointerId);
+      if (delMode && (tool === 'road' || tool === 'objs')) { if (tool === 'road') { const i = pickAt(mx, my); if (i != null) { snap(); T.road.splice(i, 1); dirty = true; } } else { const o = objAt(mx, my); if (o) { snap(); T.objs = T.objs.filter(x => x !== o); if (sel === o) sel = null; dirty = true; } } return; }
       if (e.button === 1 || (e.button === 2 && tool !== 'road' && tool !== 'objs') || space) { drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
       if (tool === 'road') { const i = pickAt(mx, my); if (e.button === 2) { if (i != null) { snap(); T.road.splice(i, 1); dirty = true; } else drag = { pan: true, mx, my, vx: view.x, vy: view.y }; return; }
         snap(); drag = { road: i != null ? i : insertRoad(c) }; dirty = true; return; }
@@ -301,13 +311,16 @@
         snap(); if (o) { sel = o; drag = { obj: o }; } else if (objPick) { const n = { n: objPick, x: c[0], z: c[1], r: $('ed_rnd').checked ? Math.floor(Math.random() * 24) * 15 : 0 }; T.objs.push(n); sel = n; drag = { obj: n }; } dirty = true; return; }
       if (tool === 'terrain' || tool === 'paint') { if (tool === 'paint') brush.r = +$('ed_pr').value; else brush.r = +$('ed_r').value; snap(); drag = { brush: true, p: c, hover: c, flat: hAt(T.h, c[0], c[1]) }; }
     });
-    cv.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, c = toCell(mx, my);
+    cv.addEventListener('pointermove', e => { if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pinch) { if (ptrs.size < 2) return; const [a, b] = [...ptrs.values()], r = cv.getBoundingClientRect(), d = Math.hypot(a.x - b.x, a.y - b.y) || 1, mx = (a.x + b.x) / 2 - r.left, my = (a.y + b.y) / 2 - r.top;
+        const z2 = Math.max(0.8, Math.min(40, pinch.z * d / pinch.d)), cx = (pinch.mx - pinch.vx) / pinch.z, cz = (pinch.vy - pinch.my) / pinch.z; view.z = z2; view.x = mx - cx * z2; view.y = my + cz * z2; dirty = true; return; }
+      const r = cv.getBoundingClientRect(), mx = e.clientX - r.left, my = e.clientY - r.top, c = toCell(mx, my);
       if (!drag) { if (tool === 'terrain' || tool === 'paint') { hov = c; dirty = true; } return; }
       if (drag.pan) { view.x = drag.vx + mx - drag.mx; view.y = drag.vy + my - drag.my; dirty = true; }
       else if (drag.road != null) { T.road[drag.road] = [Math.max(4, Math.min(252, c[0])), Math.max(4, Math.min(252, c[1]))]; dirty = true; }
       else if (drag.obj) { drag.obj.x = c[0]; drag.obj.z = c[1]; dirty = true; }
       else if (drag.brush) { drag.p = c; drag.hover = c; } });
-    const up = () => { if (drag && drag.brush) dirty = true; drag = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
+    const up = e => { ptrs.delete(e.pointerId); if (pinch) { if (!ptrs.size) pinch = null; return; } if (drag && drag.brush) dirty = true; drag = null; }; cv.addEventListener('pointerup', up); cv.addEventListener('pointercancel', up);
     addEventListener('keydown', e => { if (host.hidden || /INPUT|SELECT|TEXTAREA/.test((document.activeElement || {}).tagName || '')) return;
       if (e.code === 'Space') { space = true; e.preventDefault(); }
       if ((e.ctrlKey || e.metaKey) && e.code === 'KeyZ') { e.preventDefault(); $('ed_undo').onclick(); } if ((e.ctrlKey || e.metaKey) && e.code === 'KeyY') { e.preventDefault(); $('ed_redo').onclick(); }
@@ -324,4 +337,37 @@
   ED.close = function () { host.hidden = true; if (host.close) host.close(); };
   ED.isOpen = () => host && !host.hidden; ED.cur = () => T;
   ED.get = id => dget('trk_' + id);
+  // ---------- circuitos de la comunidad: empaquetar (comprimido), publicar, descargar, activar ----------
+  const z = async (u8, mode) => { const S = mode === 'c' ? new CompressionStream('deflate-raw') : new DecompressionStream('deflate-raw'); const w = S.writable.getWriter(); w.write(u8); w.close(); return new Uint8Array(await new Response(S.readable).arrayBuffer()); };
+  ED.pack = async t => JSON.stringify({ v: 1, brr: 'track', id: t.gid || t.id, name: t.name, author: t.author || '', pid: t.pid || '', base: t.base, w: t.w, road: t.road.map(p => [+p[0].toFixed(2), +p[1].toFixed(2)]), objs: (t.objs || []).map(o => ({ n: o.n, x: +o.x.toFixed(2), z: +o.z.toFixed(2), r: o.r | 0 })), laps: t.laps, nitros: t.nitros, roadTile: t.roadTile, rev: t.rev || 0, hz: b64(await z(t.h, 'c')), tz: b64(await z(t.t, 'c')) });
+  ED.unpack = async (s, extra = {}) => { const j = typeof s === 'string' ? JSON.parse(s) : s; if (!j || j.brr !== 'track' || !j.hz || !j.tz || !Array.isArray(j.road)) throw new Error('No es un circuito de Big Red Report');
+    const t = { v: 1, id: String(j.id || '').replace(/[^a-z0-9\-_]/gi, '').slice(0, 40), name: String(j.name || 'Circuito').slice(0, 40), author: String(j.author || '').slice(0, 24), pid: String(j.pid || '').slice(0, 12), base: THEMES.includes(j.base) ? j.base : 'CITY1',
+      h: await z(unb64(j.hz), 'd'), t: await z(unb64(j.tz), 'd'), road: j.road.filter(p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])).slice(0, 200).map(p => [Math.max(2, Math.min(253, +p[0])), Math.max(2, Math.min(253, +p[1]))]), w: Math.max(8, Math.min(30, +j.w || 14)),
+      objs: (j.objs || []).slice(0, 2000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), laps: Math.max(1, Math.min(20, j.laps | 0 || 3)), nitros: Math.max(0, Math.min(12, j.nitros | 0)), roadTile: j.roadTile | 0, rev: j.rev | 0, ...extra };
+    if (!t.id || t.h.length !== 65536 || t.t.length !== 65536) throw new Error('Circuito incompleto'); return t; };
+  ED.levelOf = t => t.base + '~' + t.id;
+  ED.byLevel = async level => { const id = String(level || '').split('~')[1]; if (!id) return null; if (T && T.id === id) return T; return dget('trk_' + id); };
+  ED.downloads = async () => (await dget('dl')) || [];
+  ED.saveDownload = async (t, on = true) => { t.src = 'com'; t.on = on; await dset('trk_' + t.id, t); const L = (await ED.downloads()).filter(x => x.id !== t.id); L.unshift({ id: t.id, name: t.name, base: t.base, author: t.author, on, rev: t.rev, len: t.lenM || Math.round(spline(t.road).total || 0), date: Date.now() }); await dset('dl', L); };
+  ED.setDownloadOn = async (id, on) => { const L = await ED.downloads(), r = L.find(x => x.id === id); if (r) { r.on = on; await dset('dl', L); } };
+  ED.delDownload = async id => { await dset('dl', (await ED.downloads()).filter(x => x.id !== id)); const t = await dget('trk_' + id); if (t && t.src === 'com') await dset('trk_' + id, null); };
+  ED.setMineOn = async (id, on) => { const L = await listTracks(), r = L.find(x => x.id === id); if (r) { r.off = !on; await dset('list', L); } };
+  // los circuitos que salen en las listas de carrera: los tuyos (salvo los que quites) y los descargados activados
+  ED.active = async () => { const out = []; for (const r of await listTracks()) if (!r.off) out.push({ ...r, mine: true }); for (const r of await ED.downloads()) if (r.on) out.push({ ...r, mine: false }); return out; };
+  // dibujo pequeño del circuito (para las tarjetas)
+  ED.preview = (road, base, W = 240, H = 150) => { const c = document.createElement('canvas'); c.width = W; c.height = H; const g = c.getContext('2d'), S = spline(road || []);
+    const col = { CITY: ['#4d5a3c', '#8a8f99'], DIRT: ['#3f5e2c', '#8b6a44'], SNOW: ['#c9d3e6', '#7f8fb5'], RUF: ['#b89a64', '#7a5530'], RIG: ['#4c3a22', '#a07040'], MOON: ['#6e2b25', '#c26b55'] }[BRR.envOf(base)] || ['#444', '#999'];
+    g.fillStyle = col[0]; g.fillRect(0, 0, W, H); if (S.length < 3) return c.toDataURL();
+    let x0 = 1e9, x1 = -1e9, z0 = 1e9, z1 = -1e9; for (const p of S) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
+    const k = Math.min((W - 30) / (x1 - x0 || 1), (H - 30) / (z1 - z0 || 1)), X = x => W / 2 + (x - (x0 + x1) / 2) * k, Y = z => H / 2 - (z - (z0 + z1) / 2) * k;
+    g.lineJoin = 'round'; g.beginPath(); S.forEach((p, i) => i ? g.lineTo(X(p.x), Y(p.z)) : g.moveTo(X(p.x), Y(p.z))); g.closePath(); g.strokeStyle = 'rgba(0,0,0,.5)'; g.lineWidth = 9; g.stroke(); g.strokeStyle = col[1]; g.lineWidth = 6; g.stroke();
+    g.fillStyle = '#e2231a'; g.beginPath(); g.arc(X(S[0].x), Y(S[0].z), 4.5, 0, 7); g.fill(); return c.toDataURL(); };
+  ED.publish = async (t, author) => { if (!BRR.cloud || !BRR.cloud.trackPut) throw new Error('Sin conexión'); if ((t.road || []).length < 3) throw new Error('La carretera necesita al menos 3 puntos');
+    t.author = author || t.author || 'Piloto'; t.pid = BRR.cloud.id; const S = spline(t.road); t.lenM = Math.round(S.total);
+    const data = await ED.pack(t), meta = { id: t.id, name: t.name, author: t.author, pid: t.pid, base: t.base, len: t.lenM, laps: t.laps, rev: t.rev || 0, t: Date.now(), size: data.length, path: S.filter((p, i) => i % Math.max(1, Math.floor(S.length / 40)) === 0).map(p => [+p.x.toFixed(1), +p.z.toFixed(1)]) };
+    const n = await BRR.cloud.trackPut(t.id, meta, data); if (!n) throw new Error('No se ha podido publicar (¿sin Internet?)');
+    t.pub = { t: meta.t, rev: meta.rev }; await saveTrack(t); return meta; };
+  ED.unpublish = async t => { await BRR.cloud.trackDel(t.id); delete t.pub; await saveTrack(t); };
+  ED.download = async (id, on = true) => { const s = await BRR.cloud.trackGet(id); if (!s) throw new Error('No se encuentra ese circuito en la nube'); const t = await ED.unpack(s); await ED.saveDownload(t, on); return t; };
+  ED.isMine = id => listTracks().then(L => L.some(x => x.id === id));
 })();
