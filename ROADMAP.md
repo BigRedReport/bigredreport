@@ -199,4 +199,4 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 ## Más adelante
 - [ ] Texturas en alta resolución (hay que redibujarlas)
 - [ ] Banda sonora remasterizada (si se consigue)
-- [ ] Modo drift
+- [x] Modo drift (0.100: Mini en Redrock, puntos y combos, también online)

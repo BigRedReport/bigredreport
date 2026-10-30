@@ -320,7 +320,8 @@
       const vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K, def = this.def;
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
-      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55;
+      const DR = this.driftMode;   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
+      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1);   // más giro para contravolante
       this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * 10);
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
       const K = this.K, L0 = K.L0, nW = this.W.length; let grounded = 0, wetN = 0;
@@ -332,6 +333,9 @@
       if (this.nitroT > 0) { this.nitroT -= dt; drive = Math.max(drive, curve(def.gearF, Math.max(0, spdScript) * 0.7) / 600 * 7.5 * this.m) + 0.38 * 9.81 * this.m; }
       let braking = 0; this.brakeLight = brake > 0.05 && Math.abs(this.speed()) > 0.3;
       if (brake > 0.01) { if (vf > 1) braking = brake; else drive = -brake * curve(def.gearB, vf < 0 ? spdScript : 0) / 444 * 5 * this.m; }
+      const vside = V.dot(this.v, right), beta = Math.atan2(vside, Math.max(0.5, Math.abs(vf))) * Math.sign(vf || 1), nRear = this.W.filter(w => !w.steer).length || 1;
+      this.beta = beta;
+      if (DR) { this.dHold = inp.handbrake ? 0.45 : Math.max(0, (this.dHold || 0) - dt); }   // el tirón del freno de mano dura un momento
       for (const w of this.W) {
         const top = V.add(this.p, mv(R, [w.c[0], w.c[1] + 0.3, w.c[2]])), down = V.mul(up, -1);
         const hit = BRR.raycast(this.lvl, top, down, L0 + w.radius, this.ghost ? BRR.THIN : null);
@@ -349,7 +353,8 @@
         const vLong = V.dot(vc, fw), vLat = V.dot(vc, lat); let Flong0 = 0;
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
-        const mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer ? 0.45 : 1);
+        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer ? 0.45 : 1);
+        if (DR && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, 0.5); else if (Math.abs(beta) > 0.12 && throttle > 0.25 && vf > 3) mu *= 0.8 - 0.1 * throttle; }   // de lado y con gas, el eje trasero sigue deslizando
         if (w.surface === 'agua' && !K.floats) Flong0 -= vLong * 120;   // el agua frena (salvo a lo que flota)
         let dmul = 1;
         const rampHit = hit.surf && /RAMP|JUMP|SKI|WEDGE|SLOPE|KICK/.test(hit.tag || ''); if (rampHit) this.onRamp = 0.5;
@@ -358,9 +363,9 @@
         if (K.floats && !hit.surf && w.surface === 'agua') wetN++;
         const share = this.m / nW;
         let Flat = -vLat * Math.min(14000, 0.5 * share / dt) * K.lat;
-        let Flong = (K.thrust ? 0 : drive * dmul / this.ndrive) - vLong * 25 + Flong0;
+        let Flong = (K.thrust ? 0 : DR ? (w.steer ? 0 : drive * 1.55 * dmul / nRear) : drive * dmul / this.ndrive) - vLong * 25 + Flong0;
         if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * share, Math.abs(vLong) * share / dt * 0.5);
-        if (inp.handbrake && !w.steer) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
+        if (inp.handbrake && !w.steer && !DR) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
         if (!throttle && !brake && Math.abs(vLong) < 1.5) Flong -= vLong * Math.min(0.3 * share / dt, 6000);
         const lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong);
         // derrape visible (marcas, humo, chirrido): de lado solo si la rueda resbala de verdad (>~1 m/s), no por el tope de agarre
@@ -374,6 +379,11 @@
         F = V.add(F, V.add(Fsus, Ftire)); T = V.add(T, V.add(V.cross(r, Fsus), V.cross(rT, Ftire)));
         w.spinRate = vLong / w.radius; w.spin += w.spinRate * dt;
       }
+      // drift: con gas el coche no se para al ir de lado (empuja en el sentido de la marcha) y no pasa de ~70° (se puede sujetar con contravolante)
+      if (DR && grounded) { const ab = Math.abs(beta), hv = Math.hypot(this.v[0], this.v[2]);
+        if (ab > 0.12 && vf > 2 && throttle > 0.1) { const vd = V.norm([this.v[0], 0, this.v[2]]); F = V.madd(F, vd, this.m * 9.81 * 0.7 * throttle * Math.min(1, ab / 0.4)); }
+        if (ab > 0.62 && hv > 4) { const wy = V.dot(this.w, up), sgn = Math.sign(wy * beta) > 0 ? 1 : 0.4; T = V.madd(T, up, -wy * this.I[1] * 4.5 * Math.min(1, (ab - 0.62) * 3) * sgn); }   // pasado de ~40°: frena el giro para que no se cruce del todo
+        if (ab > 0.08) { const wy = V.dot(this.w, up); T = V.madd(T, up, -wy * this.I[1] * 0.35); } }
       if (!grounded) { this.air = (this.air || 0) + dt; this.fallV = Math.min(this.fallV || 0, this.v[1]); }
       else { if ((this.air || 0) > 0.35) { this.landed = Math.max(this.landed || 0, -(this.fallV || 0)); this.landEv = -(this.fallV || 0); } this.lastAir = this.air || 0; this.air = 0; this.fallV = 0; }
       this.grounded = grounded;

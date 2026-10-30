@@ -389,7 +389,9 @@
       objs: (j.objs || []).slice(0, 2000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), ...(/^[A-Z]{3,8}\d$/.test(o.s || '') ? { s: o.s } : {}), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), surf: ['asfalto', 'tierra', 'arena', 'nieve'].includes(j.surf) ? j.surf : undefined, cover: typeof j.cover === 'string' && j.cover.length < 200000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(j.cover) ? j.cover : undefined, laps: Math.max(1, Math.min(20, j.laps | 0 || 3)), nitros: Math.max(0, Math.min(12, j.nitros | 0)), roadTile: j.roadTile | 0, rev: j.rev | 0, ...extra };
     if (!t.id || t.h.length !== 65536 || t.t.length !== 65536) throw new Error('Circuito incompleto'); return t; };
   ED.levelOf = t => t.base + '~' + t.id;
-  ED.byLevel = async level => { const id = String(level || '').split('~')[1]; if (!id) return null; if (T && T.id === id) return T; return dget('trk_' + id); };
+  const BI = new Map();   // circuitos que vienen con el juego (Redrock)
+  ED.builtin = async id => { if (BI.has(id)) return BI.get(id); const j = (BRR.BUILTIN_TRACKS || []).find(x => x.id === id); if (!j) return null; const t = await ED.unpack(j, { builtin: true }); BI.set(id, t); return t; };
+  ED.byLevel = async level => { const id = String(level || '').split('~')[1]; if (!id) return null; if (T && T.id === id) return T; return (await dget('trk_' + id)) || ED.builtin(id); };
   ED.downloads = async () => (await dget('dl')) || [];
   ED.saveDownload = async (t, on = true) => { t.src = 'com'; t.on = on; await dset('trk_' + t.id, t); const L = (await ED.downloads()).filter(x => x.id !== t.id); L.unshift({ id: t.id, name: t.name, base: t.base, author: t.author, on, rev: t.rev, len: t.lenM || Math.round(spline(t.road).total || 0), date: Date.now() }); await dset('dl', L); };
   ED.setDownloadOn = async (id, on) => { const L = await ED.downloads(), r = L.find(x => x.id === id); if (r) { r.on = on; await dset('dl', L); } };

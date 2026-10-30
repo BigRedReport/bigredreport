@@ -7,6 +7,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.100**
+- **💨 Modo drift** (Un jugador → junto a Modo libre): de momento con el **Mini** y en **Redrock** (el circuito de DevBigRedReport, que ya viene con el juego).
+  - El coche va de **propulsión trasera con más par**: el **freno de mano lo cruza sin frenarlo** y con gas se mantiene de lado; con contravolante se sujeta el ángulo (unos 45° a buena velocidad) y al soltar el gas se endereza.
+  - **Puntos por derrapar** según velocidad y ángulo; cada derrape nuevo antes de 1,6 s sube el **combo** (×1,5, ×2… hasta ×10); si pasas ese tiempo sin derrapar se cobran los puntos y si chocas se pierde el combo en curso.
+  - Libre y sin final; tu récord se guarda en este equipo.
+  - **Online/LAN:** «Modo drift» en los modos extra de la sala: todos en Mini, sin IA, 5 minutos y gana quien más puntos haga (se ven los de todos y el tiempo que queda).
+
 **Novedades de la 0.99**
 - **Borrar un circuito tuyo lo quita de todos sitios:** si estaba publicado, se retira de la comunidad y desaparece también de los descargados de los demás (al abrir el juego o la lista de la comunidad). Botón 🗑 en «Míos» y en «Mis circuitos» del editor.
 - En «Comunidad», tus circuitos publicados llevan botón «Retirar» aunque ya no tengas la copia en este equipo.

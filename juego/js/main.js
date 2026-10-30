@@ -397,13 +397,14 @@
     quick: { pane: 'quick', title: 'Carrera rápida', back: 'single' }, tt: { pane: 'quick', title: 'Contrareloj', back: 'single' }, free: { pane: 'quick', title: 'Modo libre', back: 'single' }, split: { pane: 'quick', title: 'Pantalla partida', back: 'multi' },
     tourn: { pane: 'tourn', title: 'Campeonato', back: 'single' }, online: { pane: 'online', title: 'Online', back: 'multi' }, lan: { pane: 'online', title: 'Red local (LAN)', back: 'multi' },
     mods: { pane: 'mods', title: 'Mods', back: 'home' }, profile: { pane: 'profile', title: 'Piloto y escudería', back: 'home' } };
-  let view = 'home', qmode = 'quick', ttMode = false, freeMode = false;
+  let view = 'home', qmode = 'quick', ttMode = false, freeMode = false, driftMode = false, driftNet = null;
   const sfx = n => { if (audio) { audio.init(); audio.play('SAMPLES/' + n + '.WAV', { vol: 0.5, bus: 'ui' }); } };
   function go(v, silent) {
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
     if (v === 'reto') { retoOpen(); return; }
     if (v === 'friends') { frOpen(); return; }
+    if (v === 'drift') { driftStart(); return; }
     if (v === 'comm') { cmOpen(); return; }
     if (v === 'editor') { if (!BRR.editor) return; BRR.editor.open(); return; }
     if (v === 'replays') { $('rplist').hidden = false; rpRenderList(); setTimeout(() => navFocusFirst($('rplist')), 0); return; }
@@ -780,7 +781,7 @@
     tourMode = false; ttMode = qmode === 'tt'; freeMode = qmode === 'free'; if (audio) audio.init();
     if (!ttMode && !freeMode) { opt.rivals = +$('m_rivals').value; opt.diff = +$('m_diff').value; }
     const pl = qmode === 'split' ? Math.max(2, +$('m_players').value) : 1; if (qmode === 'split') opt.players = pl; save();
-    crazyPick = ttMode || freeMode ? 'normal' : $('m_crazy').value;
+    crazyPick = ttMode || freeMode ? 'normal' : $('m_crazy').value; if (crazyPick === 'drift') crazyPick = 'normal';
     startRace($('m_level').value, $('m_veh').value, +$('m_team').value, freeMode || (crazyPick !== 'normal' && crazyPick !== 'kart') ? 99 : +$('m_laps').value, pl);
   };
 
@@ -819,7 +820,7 @@
       car = humans[0].car; race = humans[0].race;
       carDraw = { body: humans[0].draw, ...vehDraw(def0) }; { const rw = rimWheels(def0, garMine(def0.name)); if (rw) carDraw = { ...carDraw, wheels: carDraw.wheels.map((w, i) => rw[i] || w) }; }   // llantas del garaje
       // rivales de la máquina: los demás equipos, con el mismo vehículo
-      rivals = []; const nR = ttMode || freeMode || ed3d ? 0 : Math.min(12 - nPlayers, opt.rivals | 0), skill = [0, 0.86, 0.95, 1.0, 1.06][opt.diff] || 0.95, lanes = [-0.45, 0.45, -0.15, 0.15, 0, -0.3, 0.3, -0.6, 0.6, -0.05, 0.05];
+      rivals = []; const nR = ttMode || freeMode || ed3d || crazyPick === 'drift' ? 0 : Math.min(12 - nPlayers, opt.rivals | 0), skill = [0, 0.86, 0.95, 1.0, 1.06][opt.diff] || 0.95, lanes = [-0.45, 0.45, -0.15, 0.15, 0, -0.3, 0.3, -0.6, 0.6, -0.05, 0.05];
       const profiles = ['experto', 'agresivo', 'torpe', 'prudente', 'imprevisible'].sort(() => Math.random() - .5); while (profiles.length < 11) profiles.push(profiles[profiles.length % 5]);
       if (rpLoad) {   // repetición guardada: todos los coches son marionetas que mueve la grabación (el tuyo no corre)
         for (const e of rpLoad.cars) { $('load_msg').textContent = 'Cargando ' + (e.name || 'coche') + '…';
@@ -1074,6 +1075,7 @@
       if (e.type === 'beep') { flash(h, String(e.n), 1, 'big cnt n' + e.n); if (first && audio) { audio.play('SAMPLES/BEEP3.WAV'); if (e.n === 3 && snd.pickVoice) { const v = pickV('READYGO'); if (v) audio.voice(v, true); } } }
       if (e.type === 'go') { flash(h, '¡YA!', 1, 'big cnt go'); if (first && audio) audio.play('SAMPLES/BEEP4.WAV'); }
       if (e.type === 'check') { flash(h, `Control ${e.num}/${e.of}  ·  ${fmt(e.split)}`, 2); if (audio) audio.play('GEN/CHECKPOI.WAV'); }
+      if (e.type === 'missed' && driftMode) continue;
       if (e.type === 'missed') { if (opt.hudstyle === 'original') h.oMsg = { k: 40, t: 2.5 }; else flash(h, '¡Te has saltado un control! Vuelve atrás', 2.5, 'warn'); if (audio) audio.play('GEN/CHCKMIS.WAV'); }
       if (e.type === 'wrong') { if (audio) audio.play('GEN/WRGWAY.WAV'); if (h === humans[0]) say(['WRONG', 'WRGWAY', 'BACKW'], 0.7, false); }
       if (e.type === 'lap' || e.type === 'finish') ghostLap(h, e.lapTime);
@@ -1144,7 +1146,7 @@
     if (netRace) { const ids = netRace.resultIds; netRace = null; netWait = false; clearTimeout(netResT); $('netbar').hidden = true; if (BRR_net.isHost && BRR_net.room) netAfterRace(ids); fromOrig = false; if (orig) orig.close(); opt.menu = 'moderno';
       setTimeout(() => { go(BRR_net.lanUrl ? 'lan' : 'online'); netRenderRoom(); }, 50); }
     statsFlush(); clearTimeout(finishTimer); finishTimer = null; $('results').hidden = true; if (audio) { audio.stopAll(); audio.stopMusic(); }
-    retoEnd(); state = 'menu'; show('menu'); if (edBack) { edBack = false; setTimeout(() => BRR.editor && BRR.editor.open(edTrack), 30); } renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
+    retoEnd(); if (crazyPick === 'drift') crazyPick = 'normal'; driftMode = false; driftNet = null; state = 'menu'; show('menu'); if (edBack) { edBack = false; setTimeout(() => BRR.editor && BRR.editor.open(edTrack), 30); } renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
     if (orig && fromOrig && opt.menu !== 'moderno') { fromOrig = false; state = 'origmenu'; if (!orig.on) { orig.on = true; orig.root.hidden = false; orig.loop(); } if (audio) audio.playTrack(2); orig.globe(); }
     else menuMusic();
   }
@@ -1645,6 +1647,8 @@
         for (let i = 0; i < n; i++) { BRR_net.game({ k: 'trkd', id: d.id, i, n, d: s2.slice(i * CH, (i + 1) * CH) }, m.from); await new Promise(r => setTimeout(r, 30)); } })(); return; }
     if (d.k === 'trkd' && typeof d.id === 'string' && trkWant.has(d.id)) { const w = trkWant.get(d.id); if (!(d.n > 0 && d.n < 400 && d.i >= 0 && d.i < d.n && typeof d.d === 'string')) return; w.parts[d.i] = d.d; w.n = d.n;
       if (w.parts.filter(x => x != null).length === d.n) { const sj = w.parts.join(''); trkWant.delete(d.id); BRR.editor.unpack(sj).then(async t => { if (t.id !== d.id) t.id = d.id; await BRR.editor.saveDownload(t, false); w.ok(true); }, () => w.ok(false)); } return; }
+    if (d.k === 'dsc' && driftNet && typeof d.s === 'number') { driftNet.sc.set(m.from, { name: String(d.n || 'Piloto').slice(0, 20), s: Math.max(0, Math.min(1e9, d.s | 0)) }); return; }
+    if (d.k === 'dend' && driftNet) { driftEnd(); return; }
     if (d.k === 'start') { if (netRace && netRace.role === 'spec' && !d.spec) specLeave(); if (!netRace && state !== 'race') netStart(d); return; }
     if (d.k === 'spec') { if (BRR_net.isHost && netRace && netLastStart && state === 'race') BRR_net.game({ ...netLastStart, spec: 1 }, m.from); return; }
     if (!netRace) return;
@@ -1790,6 +1794,47 @@
       humans[0].car.out = true; $('help').hidden = true; togglePhoto(); $('ph_cover').hidden = false; $('ph_cover').textContent = '🖼 Usar como portada'; if (photo) { const c = humans[0].car, f = c.forward(); photo.p = [c.p[0] - f[0] * 30, c.p[1] + 28, c.p[2] - f[2] * 30]; photo.yaw = Math.atan2(-f[0], -f[2]); photo.pitch = -0.55; } },
     play: async T => { if (!files) return; edTrack = T; edBack = true; ed3d = false; BRR.editor.close(); if (audio) { audio.init(); audio.stopMusic(); } ttMode = false; freeMode = false; tourMode = false;
       const veh = files.has(opt.vehicle + '.VHC') && !/^(FEHELI|HELI|COPTER|INFLATE|HOVCAR)$/.test(opt.vehicle) ? opt.vehicle : 'JEEP'; await startRace(BRR.editor.levelOf(T), veh, opt.team || 1, T.laps || 3, 1); }, author: () => opt.netName || 'Piloto', close: () => customRefresh() });
+  // ---------- modo drift: Mini de propulsión trasera con más par, sin rivales (u online contra otros), puntos por derrapar y combos ----------
+  // un derrape cuenta con el coche de lado (12°-75°) y avanzando; puntos según velocidad y ángulo; cada derrape nuevo antes de 1,6 s sube el combo;
+  // si pasan más de 1,6 s sin derrapar, se cobran los puntos (× combo); si chocas, se pierden los del combo en curso
+  const DRIFT_LV = () => { const t = (BRR.BUILTIN_TRACKS || [])[0]; return t ? t.base + '~' + t.id : null; }, DRIFT_GAP = 1.6, DRIFT_ONLINE_T = 300;
+  async function driftStart() {
+    const lv = DRIFT_LV(); if (!files || !lv) return; if (audio) { audio.init(); audio.stopMusic(); }
+    tourMode = false; ttMode = false; freeMode = false; crazyPick = 'drift'; fromOrig = false;
+    await startRace(lv, files.has('MINI.VHC') ? 'MINI' : opt.vehicle, opt.team || 1, 99, 1);
+  }
+  const driftKey = () => 'brr_drift_' + (lvl ? lvl.name : '');
+  function driftFrame(h, dt) {
+    if (!driftMode || h.race.phase !== 'race') return; const c = h.car, D = h.drift || (h.drift = { total: 0, chain: 0, mult: 1, seg: 0, gap: 99, on: false, best: +(ST.get(driftKey()) || 0), bestChain: 0, msg: 0, last: '' });
+    const R = c.R, fwd = BRR.mv(R, [0, 0, -1]), right = BRR.mv(R, [1, 0, 0]), vf = V.dot(c.v, fwd), vs = V.dot(c.v, right), sp = Math.hypot(c.v[0], c.v[2]), ang = Math.atan2(Math.abs(vs), Math.max(0.1, vf));
+    const on = c.grounded && sp > 7 && vf > 1.5 && ang > 0.21 && ang < 1.31 && !c.out;
+    if (c.hitV > 6 && D.chain > 0) { D.chain = 0; D.mult = 1; D.seg = 0; D.gap = 99; D.last = 'lost'; D.msg = 1.6; c.hitV = 0; }   // choque: combo perdido
+    if (on) { if (!D.on) { if (D.gap < DRIFT_GAP && D.chain > 0) { D.seg++; D.mult = Math.min(10, 1 + D.seg * 0.5); } else { D.seg = 0; D.mult = 1; } }
+      D.chain += sp * 3.6 * Math.min(1, ang / 0.7) * dt * 1.2; D.gap = 0; D.angle = ang; }
+    else { D.gap += dt; if (D.chain > 0 && D.gap >= DRIFT_GAP) { const got = Math.round(D.chain * D.mult); D.total += got; D.bestChain = Math.max(D.bestChain, got); D.last = '+' + got.toLocaleString(); D.msg = 1.8; D.chain = 0; D.mult = 1; D.seg = 0;
+        if (D.total > D.best) { D.best = D.total; if (!netRace) ST.set(driftKey(), String(D.best)); } } }
+    D.on = on; D.msg = Math.max(0, D.msg - dt);
+    // marcador grande: el derrape en curso (puntos × combo) o lo último cobrado
+    let el = h.dEl; if (!el) { el = h.dEl = document.createElement('div'); el.className = 'driftbig'; h.hud.appendChild(el); }
+    const txt = D.chain > 0 ? `<b>${Math.round(D.chain).toLocaleString()}</b>${D.mult > 1 ? `<i>×${D.mult.toFixed(1).replace('.0', '')}</i>` : ''}<span>${on ? 'DERRAPE ' + Math.round((D.angle || 0) * 57.3) + '°' : 'COMBO ' + Math.max(0, DRIFT_GAP - D.gap).toFixed(1) + ' s'}</span>`
+      : D.msg > 0 ? (D.last === 'lost' ? '<b class="lost">¡Choque!</b><span>combo perdido</span>' : `<b class="got">${D.last}</b><span>puntos</span>`) : '';
+    if (el.dataset.t !== txt) { el.dataset.t = txt; el.innerHTML = txt; } el.hidden = !txt;
+    // online: puntos de todos (cada uno manda los suyos) y fin a los 5 minutos
+    if (driftNet && h.i === 0) { driftNet.t += dt; driftNet.sendT -= dt; driftNet.sc.set(BRR_net.id, { name: opt.netName || 'Piloto', s: D.total });
+      if (driftNet.sendT <= 0) { driftNet.sendT = 1.5; BRR_net.game({ k: 'dsc', s: D.total, n: opt.netName || 'Piloto' }); }
+      if (BRR_net.isHost && driftNet.t >= DRIFT_ONLINE_T && !driftNet.over) { BRR_net.game({ k: 'dend' }); driftEnd(); } }
+  }
+  function driftHud(h) { const D = h.drift || { total: 0, best: +(ST.get(driftKey()) || 0), mult: 1 };
+    h.q('h_time').textContent = D.total.toLocaleString() + ' pts'; h.q('h_cur').textContent = D.chain > 0 ? '×' + D.mult.toFixed(1).replace('.0', '') : '–';
+    if (driftNet) { const L = [...driftNet.sc.values()].sort((a, b) => b.s - a.s), me = L.findIndex(x => x.name === (opt.netName || 'Piloto') && x.s === D.total) + 1, left = Math.max(0, DRIFT_ONLINE_T - driftNet.t);
+      h.q('h_best').textContent = Math.floor(left / 60) + ':' + String(Math.floor(left % 60)).padStart(2, '0'); h.q('h_pos').textContent = (me || 1) + '/' + Math.max(1, L.length); }
+    else h.q('h_best').textContent = (D.best || 0).toLocaleString() + ' pts'; }
+  function driftEnd() {
+    if (!driftNet || driftNet.over) return; driftNet.over = true; const h0 = humans[0]; if (h0 && !driftNet.sc.has(BRR_net.id)) driftNet.sc.set(BRR_net.id, { name: opt.netName || 'Piloto', s: (h0.drift && h0.drift.total) || 0 }); if (h0 && h0.drift && h0.drift.chain > 0) { h0.drift.total += Math.round(h0.drift.chain * h0.drift.mult); h0.drift.chain = 0; driftNet.sc.set(BRR_net.id, { name: opt.netName || 'Piloto', s: h0.drift.total }); BRR_net.game({ k: 'dsc', s: h0.drift.total, n: opt.netName || 'Piloto' }); }
+    setTimeout(() => { const L = [...driftNet.sc.entries()].sort((a, b) => b[1].s - a[1].s);
+      state = 'results'; $('r_title').textContent = 'Drift · ' + (L[0] && L[0][0] === BRR_net.id ? '¡Has ganado!' : 'gana ' + (L[0] ? L[0][1].name : '?'));
+      $('r_list').innerHTML = L.map(([id, x], i) => `<tr${id === BRR_net.id ? ' class="me"' : ''}><td>${i + 1}. ${esc(x.name)}</td><td>${x.s.toLocaleString()} pts</td></tr>`).join(''); $('r_rec').textContent = '';
+      $('r_replay').hidden = true; $('r_rpsave').hidden = true; $('r_again').hidden = true; $('results').hidden = false; }, 1200); }
   // ---------- circuitos propios y de la comunidad: en las listas de carrera (rápida, contrarreloj, online) y la ventana para descargarlos ----------
   async function customRefresh() {
     if (!front || !BRR.editor) return; let A = []; try { A = await BRR.editor.active(); } catch (e) { }
@@ -2026,7 +2071,7 @@
     const used = new Set(players.map(p => p.team)), free = [1, 2, 3, 4, 5, 6].filter(x => !used.has(x)), prof = ['experto', 'agresivo', 'imprevisible', 'prudente', 'torpe'];
     const aiLooks = opt.rivLook !== 'clasico' ? rivalLooks(12, players.map(e => hueOf(e.paint || TEAM[e.team || 1].c))) : [];
     const ais = Array.from({ length: freeR ? 0 : Math.min(info.ai || 0, 12 - players.length) }, (_, k) => ({ id: 'ai' + k, ai: true, name: 'IA ' + (k + 1), team: free[k % Math.max(1, free.length)] || (k % 6) + 1, veh: cars[k % cars.length], profile: prof[k % 5], ...(aiLooks[k] || {}) }));
-    const cz = !freeR && info.crazy && info.crazy !== 'normal' ? info.crazy : null;
+    const cz = !freeR && info.crazy && info.crazy !== 'normal' ? info.crazy : null; if (cz === 'drift') { ais.length = 0; for (const p of players) p.veh = files.has('MINI.VHC') ? 'MINI' : p.veh; }   // drift online: todos en Mini y sin IA
     const d = { k: 'start', level: info.level, laps: freeR || (cz && cz !== 'kart') ? 99 : info.laps || 0, diff: info.diff || 2, free: freeR ? 1 : 0, crazy: cz, order: [...ais, ...players.reverse()] };
     netLastStart = d; BRR_net.info(info, 'racing'); BRR_net.game(d); netStart(d);
   }
@@ -2228,13 +2273,14 @@
   // el que se elimina desaparece (sin física, sin choques, sin dibujo); gana el último que queda
   let crazy = null, crazyId = 0, crazyPick = 'normal';   // crazyPick: solo lo pone «Correr» del menú moderno
   const BOMB_T = 60, ZOMBIE_T = 300, COPS_T = 300;
-  const CRAZY_NAME = { elim_cp: 'Eliminación', bomba: 'Bomba caliente', zombie: 'Infección zombi', polis: 'Polis y cacos', kart: 'Modo kart' };
+  const CRAZY_NAME = { drift: 'Modo drift', elim_cp: 'Eliminación', bomba: 'Bomba caliente', zombie: 'Infección zombi', polis: 'Polis y cacos', kart: 'Modo kart' };
   const crazyR = () => crazy && crazy.mode !== 'kart';   // modos con eliminados/ganadores propios (el kart es una carrera normal)
   const crazyJump = () => crazy && (crazy.mode === 'bomba' || crazy.mode === 'zombie' || crazy.mode === 'polis');   // modos sin vueltas: se puede saltar
   function crazyInit() {
     const mode = ttMode || tourMode || rpLoad ? 'normal' : netRace ? (netRace.crazy || 'normal') : !freeMode ? crazyPick : 'normal';
     for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = !!c.spec; c.outN = 0; c.bombLeft = BOMB_T; c.cop = false; c.robber = false; }
-    crazyId++; crazy = null; kart = null; if (!CRAZY_NAME[mode] || humans.length + rivals.length < 2) return;
+    crazyId++; crazy = null; kart = null; driftMode = mode === 'drift'; for (const h of humans) { h.car.driftMode = driftMode; h.drift = null; } driftNet = driftMode && netRace ? { sc: new Map(), t: 0, sendT: 0, over: false } : null;
+    if (driftMode || !CRAZY_NAME[mode] || humans.length + rivals.length < 2) return;
     // eliminación por controles según el tamaño del circuito: pequeño → cada vuelta; mediano → cada media vuelta; grande → cada ~1 km de controles
     const rc = humans[0].race, G = rc.maxNum + 1, L = rc.total;
     // controles juntos (mapa pequeño) → cada 2 controles; separados (mapa largo) → cada control; y que con muchos coches no pase de unas 2 vueltas
@@ -3041,7 +3087,7 @@
     else if (photo) { photoFrame(dt); }
     else if (state === 'replay' && rp) { rpFrame(dt); }
     else if (state === 'race' || state === 'results') {
-      for (const h of humans) { const inp = readInput(h, dt); if (freeMode && inp.ramp && !h.rampPrev && h.race.phase === 'race') placeRamp(h); h.rampPrev = !!inp.ramp; if (freeMode && inp.pipe && !h.pipePrev && h.race.phase === 'race') placePipe(h); h.pipePrev = !!inp.pipe; if ((freeMode || crazyJump() || kart) && h.race.phase === 'race') jumpCharge(h, !!inp.jump); h.jumpPrev = !!inp.jump; if (kart && h.race.phase === 'race' && ((inp.item && !h.kjPrev) || (inp.ramp && !h.krPrev))) kUse(h.car); h.kjPrev = !!inp.item; h.krPrev = !!inp.ramp; /* kart: objeto con R1 (o E/X), salto como en los modos libres */ if (freeMode) stuntFrame(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
+      for (const h of humans) { const inp = readInput(h, dt); if (freeMode && inp.ramp && !h.rampPrev && h.race.phase === 'race') placeRamp(h); h.rampPrev = !!inp.ramp; if (freeMode && inp.pipe && !h.pipePrev && h.race.phase === 'race') placePipe(h); h.pipePrev = !!inp.pipe; if ((freeMode || crazyJump() || kart) && h.race.phase === 'race') jumpCharge(h, !!inp.jump); h.jumpPrev = !!inp.jump; if (kart && h.race.phase === 'race' && ((inp.item && !h.kjPrev) || (inp.ramp && !h.krPrev))) kUse(h.car); h.kjPrev = !!inp.item; h.krPrev = !!inp.ramp; /* kart: objeto con R1 (o E/X), salto como en los modos libres */ if (freeMode) stuntFrame(h, dt); if (driftMode) driftFrame(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
       for (const r of rivals) if (r.inp && r.inp.nitro && r.car.fireNitro()) nitroFx(r.car);
       const ps = Math.max(...humans.map(h => h.race.score())), tA = performance.now();
       for (const r of rivals) if (r.ai && !r.car.out) { r.inp = roamMode() ? roamControl(r, dt) : r.ai.control(dt, allCars, null); if (!roamMode()) crazyChase(r); if (r.car.kSpin > 0) { r.inp.throttle = 0; r.inp.nitro = false; } }   // ritmo: lo pone el pelotón (packFrame)
@@ -3100,12 +3146,12 @@
       if (opt.hnames || (crazy && (crazy.bomb || crazy.zN || crazy.mode === 'polis'))) nameTags(h, BRR.M4.mul(proj, view), vw, vh); else if (h.tagsOn) { h.q('tags').innerHTML = ''; h.tagsOn = false; }
       kartHud(h);
       { const lk = crazyR() ? crazy.mode : ''; if (h.lapLbl !== lk) { h.lapLbl = lk; const el = h.q('h_lap').previousElementSibling; if (el) el.textContent = !lk ? 'VUELTA' : lk === 'bomba' ? 'BOMBA' : lk === 'zombie' ? 'SANOS' : lk === 'polis' ? 'CACOS' : 'META EN'; } }
-      h.q('h_lap').textContent = rc.phase === 'finished' ? 'META' : freeMode ? 'LIBRE' : crazyR() ? crazyHud(h) : `${Math.min(rc.lap + 1, rc.laps)}/${rc.laps}`;
-      if (h.freeLbl !== freeMode) { h.freeLbl = freeMode; const rows = h.hud.querySelectorAll('.race .row'), L = freeMode ? ['Puntos ', 'Combo ', 'Récord '] : ['Tiempo ', 'Esta vuelta ', 'Mejor vuelta ']; rows.forEach((r, i) => { r.firstChild.nodeValue = L[i]; }); }
-      if (freeMode) { const S = h.stunt || {}, best = +(ST.get('brr_stunt_' + lvl.name) || 0); h.q('h_time').textContent = (S.pts || 0) + ' pts'; h.q('h_cur').textContent = S.combo > 1 ? '×' + S.combo : '–'; h.q('h_best').textContent = best + ' pts'; }
+      h.q('h_lap').textContent = rc.phase === 'finished' ? 'META' : driftMode ? 'DRIFT' : freeMode ? 'LIBRE' : crazyR() ? crazyHud(h) : `${Math.min(rc.lap + 1, rc.laps)}/${rc.laps}`;
+      const lblK = driftMode ? (driftNet ? 'dn' : 'd') : freeMode; if (h.freeLbl !== lblK) { h.freeLbl = lblK; const rows = h.hud.querySelectorAll('.race .row'), L = driftMode ? ['Puntos ', 'Combo ', driftNet ? 'Quedan ' : 'Récord '] : freeMode ? ['Puntos ', 'Combo ', 'Récord '] : ['Tiempo ', 'Esta vuelta ', 'Mejor vuelta ']; rows.forEach((r, i) => { r.firstChild.nodeValue = L[i]; }); }
+      if (driftMode) driftHud(h); else if (freeMode) { const S = h.stunt || {}, best = +(ST.get('brr_stunt_' + lvl.name) || 0); h.q('h_time').textContent = (S.pts || 0) + ' pts'; h.q('h_cur').textContent = S.combo > 1 ? '×' + S.combo : '–'; h.q('h_best').textContent = best + ' pts'; }
       else { h.q('h_time').textContent = fmt(rc.t); h.q('h_cur').textContent = fmt(rc.t - rc.lapStart); }
       const rec = getRec(h), bl = rc.lapTimes.length ? Math.min(...rc.lapTimes) : null;
-      if (!freeMode) h.q('h_best').textContent = fmt(bl != null && (!rec.lap || bl < rec.lap) ? bl : rec.lap);
+      if (!freeMode && !driftMode) h.q('h_best').textContent = fmt(bl != null && (!rec.lap || bl < rec.lap) ? bl : rec.lap);
       h.q('wrong').hidden = !rc.wrong;
       { const d = Math.min(100, Math.round(c.dmg || 0)), on = opt.damage !== '0' && !netRace; h.q('h_dmg').hidden = h.q('h_dmgl').hidden = !on; if (on) { h.q('h_dmg').textContent = d + '%'; h.q('h_dmg').style.color = d >= 95 ? '#ff4a3d' : d >= 80 ? '#ffb13d' : ''; } }
       h.q('h_nitro').textContent = c.nitroInf ? '∞' : '▮'.repeat(Math.max(0, c.nitros | 0)) || '–'; h.q('nitrobox').classList.toggle('on', c.nitroT > 0);
@@ -3150,5 +3196,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, get driftNet() { return driftNet ? { t: driftNet.t, over: driftNet.over, sc: [...driftNet.sc.values()] } : null; }, get dstate() { return [state, humans[0] && humans[0].race.phase, netWait]; }, driftEndNow: () => { if (driftNet) { BRR_net.game({ k: 'dend' }); driftEnd(); } }, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

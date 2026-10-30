@@ -118,6 +118,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
 #editor .edrow{display:flex;align-items:center;gap:8px;flex-wrap:wrap} #editor .edrow>span:first-child{min-width:60px} #editor .edrow button{width:auto;margin:0;padding:6px 10px} #editor .edrow input[type=range]{flex:1}
 #editor .edtiles{display:grid;grid-template-columns:repeat(auto-fill,34px);gap:4px;max-height:300px;overflow:auto} #editor .edtile{width:32px;height:32px;border:1px solid #000;image-rendering:pixelated;cursor:pointer} #editor .edtile.on{outline:3px solid #ffd23f}
 @media (max-width:900px){#editor .edtop>b{display:none} #editor .edtop button{padding:5px 7px;font-size:13px} #editor .edside{width:210px;padding:6px} #editor .edtop{gap:4px;padding:4px 6px} #editor .edtop input{width:120px} #editor .edtop .small{display:none} #editor .edtools button{font-size:12px;padding:6px 3px}}
+.driftbig{position:absolute;left:50%;top:62%;transform:translateX(-50%);text-align:center;pointer-events:none;text-shadow:0 0 4px #000,0 2px 0 #000;color:#fff;white-space:nowrap} .driftbig b{display:block;font:900 44px system-ui;letter-spacing:.02em} .driftbig i{font:900 italic 30px system-ui;color:#ffd23f;margin-left:6px} .driftbig span{display:block;font:800 15px system-ui;letter-spacing:.12em;opacity:.9} .driftbig b.got{color:#7dffa0} .driftbig b.lost{color:#ff6a5a} .driftbig[hidden]{display:none}
 #ed_toast{position:absolute;left:50%;top:14px;transform:translateX(-50%);background:#141824;border:1px solid var(--line);border-radius:10px;padding:8px 14px}
 #editor .edhome{position:absolute;inset:0;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center} #editor .edhome[hidden]{display:none} #editor .edhome .card{width:min(640px,94vw);max-height:90vh;overflow:auto;background:#141824;border:1px solid var(--line);border-radius:14px;padding:22px}
 #donate,#reto,#garage,#rplist,#friends,#comm{position:fixed;inset:0;z-index:80;background:rgba(0,0,0,.72);display:flex;align-items:center;justify-content:center}#donate[hidden],#reto[hidden],#garage[hidden],#rplist[hidden],#friends[hidden],#comm[hidden]{display:none}
@@ -247,6 +248,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="tourn"><span class="ico">🏆</span>Campeonato</button>
         <button class="hbtn" data-go="tt"><span class="ico">🏁</span>Contrareloj</button>
         <button class="hbtn" data-go="free"><span class="ico">🌄</span>Modo libre</button>
+        <button class="hbtn" data-go="drift"><span class="ico">💨</span>Modo drift</button>
         <button class="hbtn" data-go="reto"><span class="ico">⭐</span>Reto semanal</button>
         <button class="hbtn small2" data-go="back">◀ Volver</button>
       </div>
@@ -371,7 +373,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <div class="grid3"><div><label class="row">Vueltas</label><select id="n_laps"><option value="0">Original</option><option>1</option><option>2</option><option>3</option><option>5</option></select></div>
           <div><label class="row">Rivales de la máquina</label><select id="n_ai"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option><option>10</option></select></div>
           <div><label class="row">Dificultad</label><select id="n_diff"><option value="1">Fácil</option><option value="2" selected>Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div></div>
-        <div class="grid2"><div><label class="row">Modos extra</label><select id="n_crazy"><option value="normal">Carrera normal</option><option value="elim_cp">Eliminación</option><option value="bomba">Bomba caliente</option><option value="zombie">Infección zombi</option><option value="polis">Polis y cacos</option><option value="kart">Modo kart</option></select></div><div></div></div>
+        <div class="grid2"><div><label class="row">Modos extra</label><select id="n_crazy"><option value="normal">Carrera normal</option><option value="elim_cp">Eliminación</option><option value="bomba">Bomba caliente</option><option value="zombie">Infección zombi</option><option value="polis">Polis y cacos</option><option value="kart">Modo kart</option><option value="drift">Modo drift (5 min, todos en Mini)</option></select></div><div></div></div>
         <div class="grid2" style="margin-top:10px"><button class="main" id="n_create">Crear</button><button id="n_cancel">Cancelar</button></div>
       </div>
     </div>
@@ -599,6 +601,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/logos_data.js"></script>
 <script src="js/horns_data.js"></script>
 <script src="js/horns.js"></script>
+<script src="js/drift_data.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/main.js"></script>
 
