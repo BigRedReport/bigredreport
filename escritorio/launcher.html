@@ -133,6 +133,7 @@ async function checkUpd(manual) {
   $('upd_st').textContent = 'Buscando…'; const u = await N.checkUpdate().catch(() => null);
   if (!u || !u.ok) { $('upd_st').textContent = 'No se ha podido comprobar (¿sin Internet?)'; return; }
   $('upd_st').textContent = 'Juego ' + u.cur + ' · programa ' + u.appVer + ' · última ' + u.ver;
+  if (u.pending && !u.game) { $('upd').hidden = false; $('upd_t').innerHTML = 'La versión <b>' + u.ver + '</b> se está preparando: en unos minutos podrás actualizar.'; $('upd_game').hidden = true; return; }   // recién publicada: los paquetes del programa aún se están construyendo
   if (!u.game && !u.app) { $('upd').hidden = !manual; $('upd_t').textContent = 'Tienes la última versión (' + u.ver + ').'; $('upd_game').hidden = true; return; }
   $('upd').hidden = false; $('upd_t').innerHTML = 'Hay una versión nueva: <b>' + u.ver + '</b> (tienes ' + (u.app ? u.appVer : u.cur) + ').';
   $('upd_game').hidden = false; $('upd_game').disabled = false; $('upd_game').textContent = 'Actualizar ahora';

@@ -121,7 +121,7 @@ ipcMain.handle('upd:check', async () => {
   const cur = process.env.BRR_FAKE_VER || verOf(gameDir()), appVer = process.env.BRR_FAKE_VER || app.getVersion();   // BRR_FAKE_VER: solo para probar el actualizador
   let failed = null; try { failed = fs.readFileSync(path.join(app.getPath('userData'), 'actualizacion-fallida.txt'), 'utf8').trim(); } catch (x) { }
   try { const L = await latest(), retried = !!(cfg.updTry && cfg.updTry.ver === L.ver && Date.now() - cfg.updTry.t < 30 * 60000);
-    return { ok: true, ver: L.ver, cur, appVer, game: newer(L.ver, cur) && !!L.game, app: newer(L.ver, appVer), appUrl: L.app ? L.app.browser_download_url : L.url, url: L.url, retried: retried && newer(L.ver, appVer), failed }; }
+    return { ok: true, ver: L.ver, cur, appVer, game: newer(L.ver, cur) && !!L.game, app: newer(L.ver, appVer) && !!L.app, pending: newer(L.ver, appVer) && !L.app, appUrl: L.app ? L.app.browser_download_url : L.url, url: L.url, retried: retried && newer(L.ver, appVer), failed }; }
   catch (e) { return { ok: false, cur, appVer, err: String(e.message || e) }; }
 });
 // descarga con progreso (para la barra del lanzador)
@@ -147,7 +147,7 @@ function untar(buf, dest) {
 }
 // actualizar el PROGRAMA entero (lanzador + juego): se descarga, se descomprime aparte y, al cerrarse, un pequeño guion copia los archivos encima y lo vuelve a abrir
 ipcMain.handle('upd:app', async (e) => {
-  const L = await latest(); if (!L.app) throw new Error('No hay paquete para este sistema');
+  const L = await latest(); if (!L.app) throw new Error('La versión ' + L.ver + ' todavía se está preparando (tarda unos minutos en salir). Prueba otra vez en un rato.');
   const send = (p, got, total) => { try { e.sender.send('upd:progress', { p, got, total }); } catch (x) { } };
   const buf = await download(L.app.browser_download_url, send);
   // carpeta nueva en cada intento (lo que quedara de un intento fallido se borra si se puede; si no, da igual)

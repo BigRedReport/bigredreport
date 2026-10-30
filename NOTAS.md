@@ -7,6 +7,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.105**
+- Lanzador (Windows/Linux/Steam Deck): si una versión se acaba de publicar y sus paquetes aún se están construyendo, avisa «se está preparando, en unos minutos podrás actualizar» en vez de dar el error «No hay paquete para este sistema».
+
 **Novedades de la 0.104**
 - **Drift al estilo de los juegos de drift:** derrapando, el coche va hacia donde apuntan las ruedas de delante (ya no se va de lado hacia la curva): con contravolante sigue recto aunque vaya cruzado y con el volante decides tú la trayectoria. El volante también mueve la trasera, así que es fácil cambiar de lado y enlazar derrapes.
 - Al soltar el gas ya no frena de golpe; de lado y con gas no pierde velocidad.
