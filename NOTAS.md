@@ -7,6 +7,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.93**
+- **Botones táctiles y mando** (aviso de un probador de Android): si juegas con mando, los botones de la pantalla se esconden solos y vuelven al tocar la pantalla. Y hay opción nueva en Opciones → Juego: Botones táctiles en pantalla → Automático / Siempre / Nunca.
+
 **Novedades de la 0.92**
 - **Carreras justas:** los rivales son ahora por defecto la **IA con físicas** (siguen las trazadas de las carreras de 1995, pero conducen de verdad: chocan, derrapan y se apartan). Los «originales» grabados, que iban por raíles, atravesaban cosas y volaban, quedan como opción (Opciones → Rivales).
 - **Sin pelotón por defecto:** se acabó que los rivales frenen o aceleren según dónde vayas tú; cada uno va a su ritmo según la dificultad. Si lo quieres, Opciones → Pelotón (goma elástica) → Sí.
