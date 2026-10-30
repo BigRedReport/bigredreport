@@ -638,7 +638,7 @@
   // ---------- contrareloj: clasificación local y online por circuito ----------
   const lbKey = id => 'brr_lb_' + id;
   const lbLocal = id => { try { return JSON.parse(ST.get(lbKey(id))) || []; } catch (e) { return []; } };
-  function lbAddLocal(id, row) { const L = lbLocal(id); L.push(row); L.sort((a, b) => a.lap - b.lap); ST.set(lbKey(id), JSON.stringify(L.slice(0, 10))); }
+  function lbAddLocal(id, row) { const L = lbLocal(id), o = L.find(r => r.veh === row.veh && r.name === row.name); if (o) { if (row.lap < o.lap) Object.assign(o, row); } else L.push(row); L.sort((a, b) => a.lap - b.lap); ST.set(lbKey(id), JSON.stringify(L.slice(0, 10))); }
   let lbOnline = null;
   // clasificación online: buzones públicos (BRR.cloud); si hay servidor dedicado configurado, también se manda allí
   async function refreshLB() {
@@ -1080,6 +1080,7 @@
       if (e.type === 'lap') {
         const rec = getRec(h), best = !rec.lap || e.lapTime < rec.lap; if (best) { rec.lap = e.lapTime; ST.set(recKey(h), JSON.stringify(rec)); }
         flash(h, `Vuelta ${e.lap}: ${fmt(e.lapTime)}${best ? '  ·  ¡récord!' : ''}${e.final ? '  ·  ÚLTIMA VUELTA' : ''}`, 3); if (e.final && opt.hudstyle === 'original') h.oMsg = { k: 21, t: 3 };
+        if (ttMode && !netRace && humans.length === 1 && h.race.lapTimes.length && e.lapTime <= Math.min(...h.race.lapTimes)) { lbSubmit(lvl.name, h.car.def.name, e.lapTime, null); if (reto && reto.level === lvl.name) lbSubmit(reto.id, h.car.def.name, e.lapTime, null); }   // contrarreloj y reto: cada vuelta buena cuenta ya (aunque no termines)
         if (audio) audio.play(e.final ? 'GEN/FINLAP.WAV' : 'GEN/LAPCOM.WAV'); if (e.final && h === humans[0]) setTimeout(() => say(['LASTLAP', 'LAST', 'FINAL'], 0.9), 900); else if (best && h === humans[0]) say(['RECORD', 'FAST', 'BEST'], 0.5, false);
       }
       if (e.type === 'finish') humanFinished(h, e);
@@ -1214,6 +1215,7 @@
   // ---------- modo foto: la carrera se congela y la cámara vuela libre ----------
   let photo = null;
   function togglePhoto() {
+    $('ph_cover').hidden = true;
     if (photo && ed3d) { photo = null; ed3d = false; $('photo').hidden = true; document.body.classList.remove('photo'); R.exposure = 0; R.dof = 0; if (document.pointerLockElement) document.exitPointerLock(); toMenu(); return; }   // vista 3D del editor: al salir, de vuelta al editor
     if (photo) { photo = null; $('photo').hidden = true; R.exposure = 0; R.dof = 0; document.body.classList.remove('photo'); $('hud').hidden = false; if (document.pointerLockElement) document.exitPointerLock(); last = performance.now(); return; }
     if (state !== 'race' || netRace || !humans.length) return;
@@ -1221,7 +1223,7 @@
     photo = { p: cam.pos.slice(), yaw: Math.atan2(-f[0], -f[2]), pitch: Math.asin(Math.max(-1, Math.min(1, f[1]))) };
     $('photo').hidden = false; $('ph_hud').checked = false; $('hud').hidden = true; $('ph_exp').value = 0; $('ph_dof').value = 0;
   }
-  $('ph_exit').onclick = togglePhoto;
+  $('ph_exit').onclick = togglePhoto; $('ph_cover').onclick = () => { coverShot = true; };
   $('ph_hud').onchange = () => { $('hud').hidden = !$('ph_hud').checked; };
   $('ph_exp').oninput = () => R.exposure = +$('ph_exp').value / 100 * 1.5;
   $('ph_dof').oninput = () => R.dof = +$('ph_dof').value / 100;
@@ -1317,13 +1319,13 @@
     humans.forEach((h, i) => { h.ctl = i < kbN ? { kb: kbN === 1 ? 'all' : (i === 0 ? 'A' : 'B'), pad: null } : { kb: null, pad: P[pi] ? P[pi++].index : null }; });
   }
   const KB = {
-    all: { up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'], left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], hb: ['Space'], nitro: ['ShiftLeft', 'KeyN'], horn: ['KeyH'], cam: ['KeyC'], reset: ['KeyR'], ramp: ['KeyT'], pipe: ['KeyG'], jump: ['KeyV'], climb: ['KeyE'], dive: ['KeyQ'], lookL: ['KeyJ'], lookR: ['KeyL'], lookB: ['KeyK'] },
-    A: { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], hb: ['Space'], nitro: ['ShiftLeft'], horn: ['KeyH'], cam: ['KeyC'], reset: ['KeyR'], ramp: ['KeyT'], pipe: ['KeyG'], jump: ['KeyV'], climb: ['KeyE'], dive: ['KeyQ'], lookL: [], lookR: [], lookB: [] },
-    B: { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], hb: ['ControlRight'], nitro: ['Enter', 'ShiftRight'], horn: ['Numpad0', 'Backslash'], cam: [], reset: ['Backspace'], ramp: ['Numpad1', 'Period'], pipe: ['Numpad2', 'Comma'], jump: ['Numpad3', 'Slash'], climb: ['PageUp'], dive: ['PageDown'], lookL: [], lookR: [], lookB: [] },
+    all: { up: ['ArrowUp', 'KeyW'], down: ['ArrowDown', 'KeyS'], left: ['ArrowLeft', 'KeyA'], right: ['ArrowRight', 'KeyD'], hb: ['Space'], nitro: ['ShiftLeft', 'KeyN'], horn: ['KeyH'], cam: ['KeyC'], reset: ['KeyR'], ramp: ['KeyT'], pipe: ['KeyG'], jump: ['KeyV'], item: ['KeyE', 'KeyX'], climb: ['KeyE'], dive: ['KeyQ'], lookL: ['KeyJ'], lookR: ['KeyL'], lookB: ['KeyK'] },
+    A: { up: ['KeyW'], down: ['KeyS'], left: ['KeyA'], right: ['KeyD'], hb: ['Space'], nitro: ['ShiftLeft'], horn: ['KeyH'], cam: ['KeyC'], reset: ['KeyR'], ramp: ['KeyT'], pipe: ['KeyG'], jump: ['KeyV'], item: ['KeyE'], climb: ['KeyE'], dive: ['KeyQ'], lookL: [], lookR: [], lookB: [] },
+    B: { up: ['ArrowUp'], down: ['ArrowDown'], left: ['ArrowLeft'], right: ['ArrowRight'], hb: ['ControlRight'], nitro: ['Enter', 'ShiftRight'], horn: ['Numpad0', 'Backslash'], cam: [], reset: ['Backspace'], ramp: ['Numpad1', 'Period'], pipe: ['Numpad2', 'Comma'], jump: ['Numpad3', 'Slash'], item: ['Numpad4', 'Quote'], climb: ['PageUp'], dive: ['PageDown'], lookL: [], lookR: [], lookB: [] },
   };
   // controles a gusto (Opciones → Controles): se guardan en opt.keys / opt.pad y se aplican encima de los de fábrica
   const KB_DEF = JSON.parse(JSON.stringify(KB));
-  const PAD_DEF = { throttle: [7, 0], brake: [6, 2], hb: [1, 5], nitro: [4], horn: [10, 11], reset: [3], cam: [8], ramp: [14], pipe: [15], jump: [12], climb: [12], dive: [13] };
+  const PAD_DEF = { throttle: [7, 0], brake: [6, 2], hb: [1], item: [5], nitro: [4], horn: [10, 11], reset: [3], cam: [8], ramp: [14], pipe: [15], jump: [12], climb: [12], dive: [13] };
   let PAD = { ...PAD_DEF };
   function applyBindings() {
     for (const L of Object.keys(KB_DEF)) for (const a of Object.keys(KB_DEF[L])) KB[L][a] = ((opt.keys || {})[L] || {})[a] || KB_DEF[L][a].slice();
@@ -1332,8 +1334,8 @@
   applyBindings();
   // pantalla de controles
   const K_ACT = [['up', 'Acelerar'], ['down', 'Frenar / marcha atrás'], ['left', 'Girar a la izquierda'], ['right', 'Girar a la derecha'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'],
-    ['cam', 'Cámara'], ['reset', 'Recolocar'], ['ramp', 'Poner rampa (modo libre)'], ['pipe', 'Poner half pipe (modo libre)'], ['jump', 'Saltar (modo libre)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)'], ['lookL', 'Mirar a la izquierda'], ['lookR', 'Mirar a la derecha'], ['lookB', 'Mirar atrás']];
-  const P_ACT = [['throttle', 'Acelerar'], ['brake', 'Frenar / marcha atrás'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'], ['reset', 'Recolocar'], ['cam', 'Cámara'], ['ramp', 'Poner rampa (modo libre)'], ['pipe', 'Poner half pipe (modo libre)'], ['jump', 'Saltar (modo libre)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)']];
+    ['cam', 'Cámara'], ['reset', 'Recolocar'], ['ramp', 'Poner rampa (modo libre)'], ['pipe', 'Poner half pipe (modo libre)'], ['jump', 'Saltar (modo libre y modos extra)'], ['item', 'Usar objeto (kart)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)'], ['lookL', 'Mirar a la izquierda'], ['lookR', 'Mirar a la derecha'], ['lookB', 'Mirar atrás']];
+  const P_ACT = [['throttle', 'Acelerar'], ['brake', 'Frenar / marcha atrás'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'], ['reset', 'Recolocar'], ['cam', 'Cámara'], ['ramp', 'Poner rampa (modo libre)'], ['pipe', 'Poner half pipe (modo libre)'], ['jump', 'Saltar (modo libre y modos extra)'], ['item', 'Usar objeto (kart)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)']];
   const PAD_N = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Menú', 'L3', 'R3', 'Cruceta ↑', 'Cruceta ↓', 'Cruceta ←', 'Cruceta →'];
   const keyName = c => !c ? '—' : c.startsWith('Key') ? c.slice(3) : c.startsWith('Digit') ? c.slice(5) : c.startsWith('Numpad') ? 'Num ' + c.slice(6) : ({ ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Espacio', ShiftLeft: 'Mayús izq.', ShiftRight: 'Mayús dcha.', ControlLeft: 'Ctrl izq.', ControlRight: 'Ctrl dcha.', AltLeft: 'Alt', AltRight: 'Alt Gr', Enter: 'Intro', Backspace: 'Retroceso', Backslash: '\\', PageUp: 'Re Pág', PageDown: 'Av Pág', Tab: 'Tab' }[c] || c);
   let kWait = null;
@@ -1362,7 +1364,7 @@
       h.steerKb += (kbSteer - h.steerKb) * Math.min(1, dt * (kbSteer ? 6 : 10)); inp.steer = h.steerKb;
       inp.throttle = any(K.up) ? 1 : 0; inp.brake = any(K.down) ? 1 : 0; inp.handbrake = any(K.hb); inp.pitchAir = inp.throttle - inp.brake;
       if (any(K.lookL) || any(K.lookR)) inp.lookX = (any(K.lookR) ? 1 : 0) - (any(K.lookL) ? 1 : 0); if (any(K.lookB)) inp.lookX = 1;
-      if (K.ramp && any(K.ramp)) inp.ramp = true; if (K.pipe && any(K.pipe)) inp.pipe = true; if (K.jump && any(K.jump)) inp.jump = true; if (any(K.nitro)) inp.nitro = true; if (K.horn && any(K.horn)) inp.horn = true; if (any(K.climb) || any(K.dive)) inp.climb = (any(K.climb) ? 1 : 0) - (any(K.dive) ? 1 : 0);
+      if (K.ramp && any(K.ramp)) inp.ramp = true; if (K.pipe && any(K.pipe)) inp.pipe = true; if (K.jump && any(K.jump)) inp.jump = true; if (K.item && any(K.item)) inp.item = true; if (any(K.nitro)) inp.nitro = true; if (K.horn && any(K.horn)) inp.horn = true; if (any(K.climb) || any(K.dive)) inp.climb = (any(K.climb) ? 1 : 0) - (any(K.dive) ? 1 : 0);
     }
     for (const gp of padsFor(ctl)) {
       const prev = (h.padPrevs || (h.padPrevs = {}))[gp.index] || {};
@@ -1373,7 +1375,7 @@
       inp.throttle = Math.max(inp.throttle, bv(PAD.throttle)); inp.brake = Math.max(inp.brake, bv(PAD.brake));
       inp.handbrake = inp.handbrake || bp(PAD.hb); inp.pitchAir = dz(gp.axes[1] || 0) * -1 || inp.pitchAir;
       inp.lookX = dz(gp.axes[2] || 0, 0.15) || inp.lookX; inp.lookY = dz(gp.axes[3] || 0, 0.15);   // stick derecho: mirar alrededor
-      if (bp(PAD.nitro)) inp.nitro = true; if (bp(PAD.ramp)) inp.ramp = true; if (PAD.pipe && bp(PAD.pipe)) inp.pipe = true; if (PAD.jump && bp(PAD.jump)) inp.jump = true;
+      if (bp(PAD.nitro)) inp.nitro = true; if (bp(PAD.ramp)) inp.ramp = true; if (PAD.pipe && bp(PAD.pipe)) inp.pipe = true; if (PAD.jump && bp(PAD.jump)) inp.jump = true; if (PAD.item && bp(PAD.item)) inp.item = true;
       if (bp(PAD.horn)) inp.horn = true;
       if (bp(PAD.climb) || bp(PAD.dive)) inp.climb = (bp(PAD.climb) ? 1 : 0) - (bp(PAD.dive) ? 1 : 0);
       const edge = i => pressed(i) && !prev[i];
@@ -1389,7 +1391,7 @@
       const T = TOUCH.k, ts = (T.right ? 1 : 0) - (T.left ? 1 : 0);
       if (ts || TOUCH.was) { h.steerT = (h.steerT || 0) + (ts - (h.steerT || 0)) * Math.min(1, dt * (ts ? 6 : 10)); if (ts || Math.abs(h.steerT) > 0.01) inp.steer = h.steerT; } TOUCH.was = !!ts;
       if (T.gas) inp.throttle = 1; if (T.brake) inp.brake = 1; if (T.gas || T.brake) inp.pitchAir = inp.throttle - inp.brake; if (T.hb) inp.handbrake = true; if (T.nitro) inp.nitro = true;
-      if (T.act) { inp.jump = true; if (freeMode) inp.ramp = true; } if (T.horn) inp.horn = true;
+      if (T.act) { if (kart) inp.item = true; else inp.jump = true; if (freeMode) inp.ramp = true; } if (T.horn) inp.horn = true;
     }
     if (h.i === 0 && window.BRR_TEST_INPUT) Object.assign(inp, window.BRR_TEST_INPUT);
     if (+opt.assist && h.race.phase === 'race' && !netRace) assist(h, inp, dt, +opt.assist);
@@ -1770,7 +1772,7 @@
   }
   let pickerClose = null;
   // ---------- editor de circuitos (no en Android): probar el circuito con tu coche y los rivales, y al salir se vuelve al editor ----------
-  let edTrack = null, edBack = false, ed3d = false; const objCache = new Map(); if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android');   // el editor no está en el móvil
+  let edTrack = null, edBack = false, ed3d = false, coverShot = false; const objCache = new Map(); if (/Android/i.test(navigator.userAgent)) document.documentElement.classList.add('android');   // el editor no está en el móvil
   if (BRR.editor) BRR.editor.init({ files: () => files,
     objThumb: async (lev, name) => {   // miniatura girando del objeto elegido (como la de los coches)
       const key = lev + '|' + name; let up = objCache.get(key);
@@ -1785,7 +1787,7 @@
     },
     view3d: async T => { if (!files) return; edTrack = T; edBack = true; ed3d = true; BRR.editor.close(); if (audio) { audio.init(); audio.stopMusic(); } ttMode = false; freeMode = false; tourMode = false;
       await startRace(BRR.editor.levelOf(T), 'JEEP', opt.team || 1, 1, 1); if (state !== 'race') { ed3d = false; return; }
-      humans[0].car.out = true; $('help').hidden = true; togglePhoto(); if (photo) { const c = humans[0].car, f = c.forward(); photo.p = [c.p[0] - f[0] * 30, c.p[1] + 28, c.p[2] - f[2] * 30]; photo.yaw = Math.atan2(-f[0], -f[2]); photo.pitch = -0.55; } },
+      humans[0].car.out = true; $('help').hidden = true; togglePhoto(); $('ph_cover').hidden = false; $('ph_cover').textContent = '🖼 Usar como portada'; if (photo) { const c = humans[0].car, f = c.forward(); photo.p = [c.p[0] - f[0] * 30, c.p[1] + 28, c.p[2] - f[2] * 30]; photo.yaw = Math.atan2(-f[0], -f[2]); photo.pitch = -0.55; } },
     play: async T => { if (!files) return; edTrack = T; edBack = true; ed3d = false; BRR.editor.close(); if (audio) { audio.init(); audio.stopMusic(); } ttMode = false; freeMode = false; tourMode = false;
       const veh = files.has(opt.vehicle + '.VHC') && !/^(FEHELI|HELI|COPTER|INFLATE|HOVCAR)$/.test(opt.vehicle) ? opt.vehicle : 'JEEP'; await startRace(BRR.editor.levelOf(T), veh, opt.team || 1, T.laps || 3, 1); }, author: () => opt.netName || 'Piloto', close: () => customRefresh() });
   // ---------- circuitos propios y de la comunidad: en las listas de carrera (rápida, contrarreloj, online) y la ventana para descargarlos ----------
@@ -1793,7 +1795,7 @@
     if (!front || !BRR.editor) return; let A = []; try { A = await BRR.editor.active(); } catch (e) { }
     front.tracks = front.tracks.filter(t => !t.custom);
     for (const r of A) { const t = await BRR.editor.get(r.id); if (!t || !t.road || t.road.length < 3) continue; const b = front.tracks.find(x => x.id === t.base) || {};
-      front.tracks.push({ id: BRR.editor.levelOf(t), custom: true, place: t.name, view: BRR.editor.preview(t.road, t.base), diff: 1, laps: t.laps, cars: b.cars || ['JEEP'], planet: 0,
+      front.tracks.push({ id: BRR.editor.levelOf(t), custom: true, place: t.name, view: t.cover || BRR.editor.preview(t.road, t.base), diff: 1, laps: t.laps, cars: b.cars || ['JEEP'], planet: 0,
         desc: (r.mine ? 'Tu circuito' : 'Circuito de ' + (t.author || 'la comunidad')) + ' · ' + (LEVEL_NAMES[BRR.envOf(t.base)] || t.base) }); }
     const ls = $('m_level'); [...ls.querySelectorAll('.cust')].forEach(o => o.remove());
     const C = front.tracks.filter(t => t.custom); if (C.length) { const g = document.createElement('optgroup'); g.className = 'cust'; g.label = 'Circuitos propios y de la comunidad'; for (const t of C) { const o = document.createElement('option'); o.value = t.id; o.textContent = t.place; g.appendChild(o); } ls.appendChild(g); }
@@ -1814,13 +1816,13 @@
       if (cmTab !== 'com') return; const dl = new Set((await ED.downloads()).map(x => x.id)), mine = new Set((await ED.listTracks()).map(x => x.id)), q = $('cm_search').value.trim().toLowerCase();
       const rows = R.rows.filter(r => !q || (r.name + ' ' + r.author).toLowerCase().includes(q));
       el.innerHTML = !R.online && !rows.length ? '<p class="small">No se puede conectar con la nube de circuitos (¿sin Internet?).</p>' : !rows.length ? '<p class="small">Todavía no hay circuitos publicados. ¡Publica el primero desde el editor!</p>' :
-        rows.map(r => row(ED.preview((r.path || []).map(p => [p[0], p[1]]), r.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m · ${new Date(r.t).toLocaleDateString()}`,
+        rows.map(r => row(typeof r.c === 'string' && /^data:image\/jpeg;base64,/.test(r.c) ? r.c : ED.preview((r.path || []).map(p => [p[0], p[1]]), r.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m · ${new Date(r.t).toLocaleDateString()}`,
           mine.has(r.id) ? '<span class="small">Tuyo</span>' : dl.has(r.id) ? '<button data-a="play" class="main">▶ Correr</button><button data-a="get" title="Volver a descargar">⟳</button>' : '<button data-a="get" class="main">⬇ Descargar</button>', r.id)).join('');
     } else if (cmTab === 'dl') {
-      const L = await ED.downloads(); el.innerHTML = !L.length ? '<p class="small">No has descargado ninguno. Mira en «Comunidad».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(ED.preview(t.road, t.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m`,
+      const L = await ED.downloads(); el.innerHTML = !L.length ? '<p class="small">No has descargado ninguno. Mira en «Comunidad».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(t.cover || ED.preview(t.road, t.base), r.name, `de ${esc(r.author || '?')} · ${esc(theme(r.base))} · ${r.len || '?'} m`,
         `<label class="small"><input type="checkbox" data-a="on" ${r.on ? 'checked' : ''}> En las listas</label><button data-a="play" class="main">▶</button><button data-a="del" title="Borrar">🗑</button>`, r.id) : ''; }))).join('');
     } else {
-      const L = await ED.listTracks(); el.innerHTML = !L.length ? '<p class="small">Aún no has hecho ninguno. Ábrelo con «Abrir el editor».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(ED.preview(t.road, t.base), r.name, `${esc(theme(r.base))} · ${r.len || '?'} m${t.pub ? ' · 🌐 publicado' + (t.pub.rev < t.rev - 1 ? ' (hay cambios sin publicar)' : '') : ''}`,
+      const L = await ED.listTracks(); el.innerHTML = !L.length ? '<p class="small">Aún no has hecho ninguno. Ábrelo con «Abrir el editor».</p>' : (await Promise.all(L.map(async r => { const t = await ED.get(r.id); return t ? row(t.cover || ED.preview(t.road, t.base), r.name, `${esc(theme(r.base))} · ${r.len || '?'} m${t.pub ? ' · 🌐 publicado' + (t.pub.rev < t.rev - 1 ? ' (hay cambios sin publicar)' : '') : ''}`,
         `<label class="small"><input type="checkbox" data-a="mon" ${r.off ? '' : 'checked'}> En las listas</label><button data-a="play" class="main">▶</button><button data-a="edit" title="Editar">✏️</button><button data-a="pub">${t.pub ? '🌐 Actualizar' : '🌐 Publicar'}</button>${t.pub ? '<button data-a="unpub" title="Retirar de la comunidad">Retirar</button>' : ''}`, r.id) : ''; }))).join('');
     }
     for (const b of el.querySelectorAll('[data-a]')) { const id = b.closest('.cmrow').dataset.id, a = b.dataset.a, ev = b.tagName === 'INPUT' ? 'onchange' : 'onclick';
@@ -2532,7 +2534,7 @@
   function kartHud(h) {   // el objeto que llevas (arriba en el centro)
     let el = h.kEl; if (!el) { el = h.kEl = document.createElement('div'); el.className = 'kitem'; h.hud.appendChild(el); }
     const it = kart && h.car.kItem; const on = !!kart; el.hidden = !on; if (!on) return;
-    const k = it || ''; if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = it ? `<b>${KITEMS[it].e}</b><span>${KITEMS[it].n}</span><small>V / ↑</small>` : '<b style="opacity:.35">?</b>'; }
+    const k = it || ''; if (el.dataset.k !== k) { el.dataset.k = k; el.innerHTML = it ? `<b>${KITEMS[it].e}</b><span>${KITEMS[it].n}</span><small>RB · E</small>` : '<b style="opacity:.35">?</b>'; }
   }
 
   // ---------- fantasmas en contrarreloj: tu mejor vuelta (azul) y la del récord online (dorado) ----------
@@ -2739,8 +2741,8 @@
     $('rt_body').innerHTML = `<img class="rtimg" alt="" src="${(w.track && w.track.view) || ''}"><div class="rtgrid"><span>Circuito</span><b>${esc(tname(w.track))} · ${esc(w.level)}</b><span>Vehículo</span><b>${esc(VEH_NAMES[w.veh] || w.veh)}</b>
       <span>Condiciones</span><b><span>${HORA_N[w.hora]}</span> · <span>${CLIMA_N[w.clima]}</span></b><span>Termina en</span><b>${d} d ${hh} h</b></div><label class="row">Clasificación del reto</label><table class="lbt" id="rt_lb"><tr><td>Cargando…</td></tr></table>`;
     setTimeout(() => navFocusFirst($('reto')), 0);
-    try { const L = await BRR.cloud.lbGet(w.id), rows = (L.rows || []).slice(0, 10), me = BRR.cloud.id;
-      $('rt_lb').innerHTML = rows.length ? rows.map((r, i) => `<tr${r.pid === me ? ' class="me"' : ''}><td>${i + 1}. ${esc(r.name || 'Piloto')}</td><td>${fmt(r.lap)}</td></tr>`).join('') : (L.online ? '<tr><td>Nadie lo ha corrido todavía. ¡Sé el primero!</td></tr>' : '<tr><td>Sin conexión</td></tr>'); } catch (e) { $('rt_lb').innerHTML = '<tr><td>Sin conexión</td></tr>'; }
+    try { const L = await BRR.cloud.lbGet(w.id), me = BRR.cloud.id, mine = lbLocal(w.id).map(r => ({ ...r, pid: me })), by = new Map(); for (const r of (L.rows || []).concat(mine)) { const k = (r.pid || r.name) + '|' + (r.veh || ''); const o = by.get(k); if (!o || r.lap < o.lap) by.set(k, r); } const rows = [...by.values()].sort((a, b) => a.lap - b.lap).slice(0, 10);
+      $('rt_lb').innerHTML = rows.length ? rows.map((r, i) => `<tr${r.pid === me ? ' class="me"' : ''}><td>${i + 1}. ${esc(r.name || 'Piloto')}</td><td>${fmt(r.lap)}</td></tr>`).join('') : (L.online ? '<tr><td>Nadie lo ha corrido todavía. ¡Sé el primero!</td></tr>' : '<tr><td>Sin conexión</td></tr>'); } catch (e) { const m2 = lbLocal(w.id); $('rt_lb').innerHTML = m2.length ? m2.map((r, i) => `<tr class="me"><td>${i + 1}. ${esc(r.name || 'Tú')}</td><td>${fmt(r.lap)}</td></tr>`).join('') + '<tr><td class="small">Sin conexión: solo tus tiempos</td></tr>' : '<tr><td>Sin conexión</td></tr>'; }
   }
   $('rt_close').onclick = () => { $('reto').hidden = true; };
   $('reto').onclick = e => { if (e.target.id === 'reto') $('reto').hidden = true; };
@@ -3034,7 +3036,7 @@
     else if (photo) { photoFrame(dt); }
     else if (state === 'replay' && rp) { rpFrame(dt); }
     else if (state === 'race' || state === 'results') {
-      for (const h of humans) { const inp = readInput(h, dt); if (freeMode && inp.ramp && !h.rampPrev && h.race.phase === 'race') placeRamp(h); h.rampPrev = !!inp.ramp; if (freeMode && inp.pipe && !h.pipePrev && h.race.phase === 'race') placePipe(h); h.pipePrev = !!inp.pipe; if ((freeMode || crazyJump()) && h.race.phase === 'race') jumpCharge(h, !!inp.jump); h.jumpPrev = !!inp.jump; if (kart && h.race.phase === 'race' && ((inp.jump && !h.kjPrev) || (inp.ramp && !h.krPrev))) kUse(h.car); h.kjPrev = !!inp.jump; h.krPrev = !!inp.ramp; if (freeMode) stuntFrame(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
+      for (const h of humans) { const inp = readInput(h, dt); if (freeMode && inp.ramp && !h.rampPrev && h.race.phase === 'race') placeRamp(h); h.rampPrev = !!inp.ramp; if (freeMode && inp.pipe && !h.pipePrev && h.race.phase === 'race') placePipe(h); h.pipePrev = !!inp.pipe; if ((freeMode || crazyJump() || kart) && h.race.phase === 'race') jumpCharge(h, !!inp.jump); h.jumpPrev = !!inp.jump; if (kart && h.race.phase === 'race' && ((inp.item && !h.kjPrev) || (inp.ramp && !h.krPrev))) kUse(h.car); h.kjPrev = !!inp.item; h.krPrev = !!inp.ramp; /* kart: objeto con R1 (o E/X), salto como en los modos libres */ if (freeMode) stuntFrame(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
       for (const r of rivals) if (r.inp && r.inp.nitro && r.car.fireNitro()) nitroFx(r.car);
       const ps = Math.max(...humans.map(h => h.race.score())), tA = performance.now();
       for (const r of rivals) if (r.ai && !r.car.out) { r.inp = roamMode() ? roamControl(r, dt) : r.ai.control(dt, allCars, null); if (!roamMode()) crazyChase(r); if (r.car.kSpin > 0) { r.inp.throttle = 0; r.inp.nitro = false; } }   // ritmo: lo pone el pelotón (packFrame)
@@ -3106,6 +3108,8 @@
       drawMinimap(h); ohudDraw(h, dt);
     }
     R.gl.disable(R.gl.SCISSOR_TEST); R.viewRect = null; R.frameEnd();
+    if (coverShot) { coverShot = false; try { const c2 = document.createElement('canvas'); c2.width = 480; c2.height = 270; const g = c2.getContext('2d'), sw = canvas.width, sh = canvas.height, k = Math.max(480 / sw, 270 / sh);
+        g.drawImage(canvas, (480 - sw * k) / 2, (270 - sh * k) / 2, sw * k, sh * k); if (edTrack) { edTrack.cover = c2.toDataURL('image/jpeg', 0.78); BRR.editor.saveTrack(edTrack); $('ph_cover').textContent = '✓ Portada guardada'; } } catch (e) { $('ph_cover').textContent = '✗ ' + (e.message || e); } }   // vista 3D del editor: la foto como portada del circuito
     if (photoShot) { photoShot = false; achUnlock('foto'); canvas.toBlob(b => { if (!b) return; const a = document.createElement('a'); a.href = URL.createObjectURL(b); a.download = 'BigRedRacing_' + lvl.name + '_' + new Date().toISOString().replace(/[:.]/g, '-').slice(0, 19) + '.png'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 5000); }, 'image/png'); }
     fpsN++; fpsT += dt; if (fpsT > 0.5) { fps = Math.round(fpsN / fpsT); fpsN = 0; fpsT = 0;
       if (opt.autoRes !== false && state === 'race') { dynT = (dynT || 0) + 1;

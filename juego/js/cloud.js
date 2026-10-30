@@ -105,14 +105,17 @@
     },
     // circuitos de la comunidad: ficha pequeña retenida en trki/ID (para la lista) y el circuito entero (comprimido) en trk/ID
     async trackPut(id, meta, data) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return 0; const a = await pubAll(T + 'trk/' + id, data, true); if (!a) return 0; return pubAll(T + 'trki/' + id, JSON.stringify(meta), true); },
-    async trackDel(id) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return 0; await pubAll(T + 'trki/' + id, '', true); return pubAll(T + 'trk/' + id, '', true); },
+    async trackDel(id) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return 0; await pubAll(T + 'trki/' + id, JSON.stringify({ id, del: 1, t: Date.now(), name: '' }), true); return pubAll(T + 'trk/' + id, '', true); },   // retirado: se deja una marca (la copia de GitHub lo borra también)
     async trackList() {
-      const R = await readAll(T + 'trki/#', 3500), by = new Map();
+      const [R, bk] = await Promise.all([readAll(T + 'trki/#', 3500), fetch(SITE + 'datos/circuitos.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))]), by = new Map();
+      for (const j of Object.values(bk || {})) if (j && typeof j.id === 'string' && typeof j.name === 'string' && j.t > 0) by.set(j.id, j);   // copia de seguridad de la web (por si los buzones han perdido alguno)
       for (const it of R.items) { const j = parse(it.p); if (!j || typeof j.id !== 'string' || typeof j.name !== 'string' || !(j.t > 0)) continue; const o = by.get(j.id); if (!o || j.t > o.t) by.set(j.id, j); }
-      return { online: R.any > 0, rows: [...by.values()].sort((a, b) => b.t - a.t) };
+      return { online: R.any > 0 || by.size > 0, rows: [...by.values()].filter(j => !j.del).sort((a, b) => b.t - a.t) };
     },
     async trackGet(id) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return null; const R = await readAll(T + 'trk/' + id, 5000); let best = null;
-      for (const it of R.items) { const j = parse(it.p); if (j && j.brr === 'track' && (!best || (j.rev | 0) > (best.rev | 0))) best = j; } return best; },
+      for (const it of R.items) { const j = parse(it.p); if (j && j.brr === 'track' && (!best || (j.rev | 0) > (best.rev | 0))) best = j; }
+      if (!best) try { const r = await fetch(SITE + 'datos/circuitos/' + id + '.json', { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); if (j && j.brr === 'track') best = j; } } catch (e) { }
+      return best; },
     // aviso de fallo automático (sin datos personales: mensaje, pila, versión, navegador y dónde ocurrió)
     async report(info) {
       const s = JSON.stringify(info); let h = 0; const key = String(info.msg || '') + String(info.stack || '').split('\n')[1];

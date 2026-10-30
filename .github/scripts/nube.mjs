@@ -27,7 +27,7 @@ function collect([host, port], filters, ms = 9000) {
 }
 const pubRetained = (s, topic, payload) => { try { s.write(pkt(0x31, Buffer.concat([str(topic), Buffer.from(payload)]))); } catch (e) { } };
 
-const R = await Promise.all(BROKERS.map(b => collect(b, [T + 'lb/#', T + 'err/#'])));
+const R = await Promise.all(BROKERS.map(b => collect(b, [T + 'lb/#', T + 'err/#', T + 'trki/#', T + 'trk/#'])));
 console.log('buzones:', R.map((r, i) => BROKERS[i][0] + ' ' + r.got.size).join(', '));
 
 // ---------- 1) clasificaciones ----------
@@ -45,6 +45,18 @@ for (const lv of Object.keys(LB)) { const best = new Map(); for (const r of LB[l
 const sorted = Object.fromEntries(Object.keys(LB).sort().map(k => [k, LB[k]]));
 fs.writeFileSync('datos/lb.json', JSON.stringify(sorted, null, 0) + '\n');
 console.log('circuitos con tiempos:', Object.keys(sorted).length);
+
+// ---------- 1b) circuitos de la comunidad: ficha (datos/circuitos.json) y circuito entero (datos/circuitos/ID.json) ----------
+{ let IDX = {}; try { IDX = JSON.parse(fs.readFileSync('datos/circuitos.json', 'utf8')); } catch (e) { }
+  fs.mkdirSync('datos/circuitos', { recursive: true }); const okId = id => /^[a-z0-9\-_]{3,40}$/i.test(id);
+  for (const { got } of R) for (const [topic, p] of got) { const m = topic.match(/^bigredracing\/v1\/trki\/(.+)$/); if (!m || !okId(m[1])) continue; let j; try { j = JSON.parse(p); } catch (e) { continue; }
+    if (!j || j.id !== m[1] || !(j.t > 0)) continue; const o = IDX[j.id]; if (o && o.t >= j.t) continue;
+    if (j.del) { IDX[j.id] = { id: j.id, del: 1, t: j.t, name: '' }; try { fs.rmSync('datos/circuitos/' + j.id + '.json', { force: true }); } catch (e) { } continue; }
+    if (typeof j.name !== 'string' || p.length > 60000) continue; IDX[j.id] = j; }
+  for (const { got } of R) for (const [topic, p] of got) { const m = topic.match(/^bigredracing\/v1\/trk\/(.+)$/); if (!m || !okId(m[1]) || p.length > 900000) continue; const meta = IDX[m[1]]; if (!meta || meta.del) continue;
+    let j; try { j = JSON.parse(p); } catch (e) { continue; } if (!j || j.brr !== 'track' || j.id !== m[1]) continue; const f = 'datos/circuitos/' + j.id + '.json';
+    let old = null; try { old = JSON.parse(fs.readFileSync(f, 'utf8')); } catch (e) { } if (!old || (j.rev | 0) >= (old.rev | 0)) fs.writeFileSync(f, JSON.stringify(j)); }
+  fs.writeFileSync('datos/circuitos.json', JSON.stringify(IDX) + '\n'); console.log('circuitos:', Object.keys(IDX).length); }
 
 // ---------- 2) avisos de fallos ----------
 const errs = new Map();   // huella -> { info, n, topics }

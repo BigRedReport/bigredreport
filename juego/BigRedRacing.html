@@ -503,7 +503,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <div id="phuds"></div>
   <div id="trackinfo"></div>
   <div id="help">Teclado: ↑ acelerar · ↓ frenar/atrás · ←→ girar · Espacio freno de mano · J/L/K mirar · Mayús/N nitro · E/Q subir/bajar (helicóptero) · C cámara · R recolocar · Esc pausa<br>
-  Mando: RT/A acelerar · LT/X frenar · stick izq. girar · stick der. mirar · B/RB freno de mano · LB nitro · cruceta subir/bajar · Y recolocar · View cámara · Start pausa</div>
+  Mando: RT/A acelerar · LT/X frenar · stick izq. girar · stick der. mirar · B freno de mano · LB nitro · RB objeto (kart) · cruceta ↑ saltar / subir · Y recolocar · View cámara · Start pausa</div>
 </div>
 <template id="phud_t"><div class="phud"><div class="tags"></div><div class="hudin">
   <div class="race"><div class="lap"><small class="pname"></small><small>POS</small><span class="h_pos">–</span> <small style="margin-left:10px">VUELTA</small><span class="h_lap">1/3</span></div>
@@ -519,7 +519,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 </div></div>
 <div id="photo" hidden><b>Modo foto</b><span class="small">WASD/stick: mover · ratón/stick der.: mirar · Q/E: subir/bajar · Mayús: rápido</span>
   <label>Exposición <input id="ph_exp" type="range" min="-100" max="100" value="0"></label><label>Enfoque <input id="ph_dof" type="range" min="0" max="100" value="0"></label>
-  <label><input id="ph_hud" type="checkbox"> Mostrar marcador</label><button id="ph_shot">Guardar foto</button><button id="ph_exit">Salir (F)</button></div>
+  <label><input id="ph_hud" type="checkbox"> Mostrar marcador</label><button id="ph_shot">Guardar foto</button><button id="ph_cover" hidden>🖼 Usar como portada</button><button id="ph_exit">Salir (F)</button></div>
 <div id="fps"></div><div id="netbar" hidden></div>
 
 <div id="garage" hidden><div class="card">

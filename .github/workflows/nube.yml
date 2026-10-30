@@ -20,7 +20,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: node .github/scripts/nube.mjs
       - run: |
-          if ! git diff --quiet -- datos/lb.json || [ -n "$(git status --porcelain datos)" ]; then
+          if [ -n "$(git status --porcelain datos)" ]; then
             git config user.name "github-actions[bot]"; git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add datos/lb.json && git commit -m "Clasificaciones: copia de seguridad" && git push
+            git add datos && git commit -m "Clasificaciones y circuitos: copia de seguridad" && git pull --rebase && git push
           fi
