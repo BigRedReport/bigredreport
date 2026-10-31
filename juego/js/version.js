@@ -1,1 +1,1 @@
-window.BRR.VERSION = '0.110.0';
+window.BRR.VERSION = '0.111.0';

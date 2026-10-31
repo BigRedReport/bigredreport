@@ -829,6 +829,7 @@
   }
   async function startRace(level, veh, team, laps = opt.laps, nPlayers = 1, net = null) {
     curLevelId = level; if (isGPLevel(level) && files.has('MINI.VHC') && !net) veh = 'GT';
+    { const bid = level.split('~')[1]; if (bid && (BRR.BUILTIN_TRACKS || []).some(t => t.id === bid) && BRR.editor) { $('load_msg').textContent = 'Buscando la última versión del circuito…'; show('loading'); await BRR.editor.builtinRefresh(bid); } }   // circuitos de serie (GP y drift): la última versión publicada, también en carrera rápida y contrarreloj
     const custom = level.includes('~'); if (!custom) { opt.level = level; opt.vehicle = veh; opt.team = team; opt.laps = laps; save(); }
     nPlayers = Math.max(1, Math.min(8, nPlayers | 0)); if (tourMode || net) nPlayers = 1;
     netRace = net; netWait = !!net; netLoaded = new Set(); netT = 0;
@@ -1864,6 +1865,8 @@
     else if (D) $('gp_champ').innerHTML = (() => { const b = +(ST.get('brr_drift_' + (L.find(g => g.id === sel) ? L.find(g => g.id === sel).t.base + '~' + sel : '')) || 0); return b ? `<label class="row">Tu récord aquí: ${b.toLocaleString()} pts</label>` : ''; })();
     else { $('gp_champ').innerHTML = opt.gpCh && opt.gpCh.done ? '<label class="row">Último campeonato</label><table>' + Object.entries(C.pts).sort((a, b) => b[1] - a[1]).map(([k, p], i) => `<tr${k === 'me' ? ' class="me"' : ''}><td>${i + 1}. ${k === 'me' ? 'Tú' : esc(C.names[k] || k)}</td><td>${p}</td></tr>`).join('') + '</table>' : ''; $('gp_cup').textContent = '🏆 Campeonato (' + L.length + ' circuito' + (L.length === 1 ? '' : 's') + ')'; }
     $('gpm').hidden = false; setTimeout(() => navFocusFirst($('gpm')), 0);
+    // portadas al día: si su autor ha publicado una versión nueva (con otra portada), se cambia en cuanto llega
+    for (const g of L) if (!g.custom && BRR.editor) BRR.editor.builtinRefresh(g.id).then(() => BRR.editor.builtin(g.id)).then(t => { if (!t || !t.cover) return; const im = $('gp_tracks').querySelector(`[data-gp="${g.id}"] img`); if (im && im.src !== t.cover) im.src = t.cover; }).catch(() => { });
   }
   function gpSaveOpts() { if (gpKind === 'drift') { opt.driftCar = $('gp_car').value; save(); return; } opt.gpCar = $('gp_car').value; opt.gpLaps = +$('gp_laps').value; opt.gpRiv = +$('gp_riv').value; opt.gpDiff = +$('gp_diff').value; save(); }
   async function gpStart(id) {

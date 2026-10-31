@@ -425,7 +425,8 @@
   ED.levelOf = t => t.base + '~' + t.id;
   const BI = new Map();   // circuitos que vienen con el juego (Redrock)
   // si el autor ha publicado una versión más nueva, se usa esa (y se queda guardada para la próxima vez)
-  ED.builtinRefresh = async id => { try { const j0 = (BRR.BUILTIN_TRACKS || []).find(x => x.id === id); if (!j0 || !BRR.cloud || !BRR.cloud.trackGet) return; const loc = await dget('bi_' + id), cur = Math.max(j0.rev | 0, (loc && loc.rev) | 0);
+  const biChecked = new Map();
+  ED.builtinRefresh = async id => { try { const j0 = (BRR.BUILTIN_TRACKS || []).find(x => x.id === id); if (!j0 || !BRR.cloud || !BRR.cloud.trackGet) return; if (Date.now() - (biChecked.get(id) || 0) < 120000) return; biChecked.set(id, Date.now());   // como mucho una vez cada 2 minutos const loc = await dget('bi_' + id), cur = Math.max(j0.rev | 0, (loc && loc.rev) | 0);
       const j = await Promise.race([BRR.cloud.trackGet(id), new Promise(r => setTimeout(() => r(null), 4000))]); if (j && (j.rev | 0) > cur) { await dset('bi_' + id, j); BI.delete(id); } } catch (e) { } };
   ED.builtin = async id => { if (BI.has(id)) return BI.get(id); { const loc = await dget('bi_' + id), j0 = (BRR.BUILTIN_TRACKS || []).find(x => x.id === id); if (loc && j0 && (loc.rev | 0) > (j0.rev | 0)) { const t = await ED.unpack(loc, { builtin: true }); BI.set(id, t); return t; } } const j = (BRR.BUILTIN_TRACKS || []).find(x => x.id === id); if (!j) return null; const t = await ED.unpack(j, { builtin: true }); BI.set(id, t); return t; };
   ED.byLevel = async level => { const id = String(level || '').split('~')[1]; if (!id) return null; if (T && T.id === id) return T; return (await dget('trk_' + id)) || ED.builtin(id); };

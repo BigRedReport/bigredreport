@@ -7,6 +7,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.111**
+- Los circuitos del Grand Prix y del drift llevan su **portada** en los menús y en el selector de circuitos.
+- Su **última versión publicada** se busca al empezar en cualquier modo (también carrera rápida y contrarreloj), y en los menús del Grand Prix y del drift la portada se cambia sola si su autor ha publicado una nueva.
+
 **Novedades de la 0.110**
 - **Grand Prix con 7 circuitos:** Suzuka, Cartagena, Jerez, Donington Park, Brands Hatch, Mugello y Fuente Álamo (en ese orden en el campeonato).
 - **El Grand Prix es el «gran turismo» de Big Red Racing:** sin nitros, el GT Racer frena bastante más y agarra más, y los rivales corren limpio (adelantan por donde hay hueco, esperan detrás si no lo hay y dejan sitio rueda con rueda).
