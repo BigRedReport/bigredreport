@@ -356,8 +356,8 @@
         const vLong = V.dot(vc, fw), vLat = V.dot(vc, lat); let Flong0 = 0;
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
-        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer ? 0.45 : 1) * (GP ? 1.15 : 1);   // GP: neumáticos de carreras
-        if (DR && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, 0.5);   // freno de mano: tirón para cruzarlo (sin frenar)
+        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (GP ? 1.15 : 1);   // GP: neumáticos de carreras
+        if (DR && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, this.dOn ? 0.62 : 0.55);   // freno de mano: tirón para cruzarlo (sin frenar)
           else { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
             mu *= 1 - 0.5 * ps; if (this.dOn && throttle > 0.3) mu *= 0.6; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando
         if (w.surface === 'agua' && !K.floats) Flong0 -= vLong * 120;   // el agua frena (salvo a lo que flota)
@@ -389,18 +389,21 @@
         const fh = V.norm([fwd[0], 0, fwd[2]]), rh = V.norm([right[0], 0, right[2]]), sa = this.steerAng, wd = V.norm(V.add(V.mul(fh, Math.cos(sa)), V.mul(rh, Math.sin(sa))));
         const hbOn = inp.handbrake || this.dHold > 0;
         // estado de derrape: entra al cruzarse (gas a fondo girando, o freno de mano) y sale al enderezarse
-        if (!this.dOn && ab > 0.2 && vf > 4) this.dOn = true; else if (this.dOn && (ab < 0.07 || vf < 2.5)) this.dOn = false;
+        if (!this.dOn && ab > 0.2 && vf > 4) { this.dOn = true; this.dRamp = 0; } else if (this.dOn && (ab < 0.07 || vf < 2.5)) this.dOn = false;
+        this.dRamp = this.dOn ? Math.min(1, (this.dRamp || 0) + dt / 0.6) : 0; const rp = this.dRamp * this.dRamp * (3 - 2 * this.dRamp);   // entra suave: sin el último tirón al empezar el derrape
         if (this.dOn && hv > 4) {
           // el ángulo lo decide el gas (propulsión trasera: más gas = más de lado), el contravolante lo cierra y girar hacia dentro lo abre;
           // sin gas se va enderezando. La trayectoria la llevan las ruedas de delante (poco a poco) y con gas no pierde velocidad: derrapes largos
           const sg = Math.sign(beta) || 1, cs = Math.max(0, inp.steer * sg), into = Math.max(0, -inp.steer * sg);
-          let mag = throttle > 0.3 ? 0.28 + 0.42 * throttle + 0.3 * into - 0.32 * cs : ab * 0.45; mag = Math.max(0.1, Math.min(hbOn ? 1.2 : 0.9, mag + (hbOn ? 0.35 : 0)));
-          const wyT = 3.2 * (sg * mag - beta); T = V.madd(T, up, (wyT - wy) * this.I[1] * 3.5);
-          const vH = [this.v[0], 0, this.v[2]]; F = V.madd(F, V.sub(V.mul(wd, hv), vH), this.m * 1.3);   // la trayectoria sigue a las ruedas de delante
+          let mag = throttle > 0.3 ? 0.28 + 0.42 * throttle + 0.3 * into - 0.32 * cs : ab * 0.45; mag = Math.max(0.1, Math.min(0.9, mag));
+          if (hbOn) mag = Math.max(mag, Math.min(0.9, ab));   // freno de mano: sujeta el ángulo que lleva (alarga el derrape), no lo cruza más
+          if (rp < 1) mag = ab + (mag - ab) * rp;   // al empezar, parte del ángulo que ya lleva
+          const wyT = Math.max(-2.2, Math.min(2.2, 3.2 * (sg * mag - beta))); T = V.madd(T, up, (wyT - wy) * this.I[1] * 3.5 * (0.35 + 0.65 * rp));
+          const vH = [this.v[0], 0, this.v[2]]; F = V.madd(F, V.sub(V.mul(wd, hv), vH), this.m * 1.3 * rp);   // la trayectoria sigue a las ruedas de delante (entrando poco a poco)
           if (throttle > 0.1) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.55 * throttle);   // con gas empuja hacia delante (estira el derrape)
         }
         if (throttle < 0.1 && vf > 1) F = V.madd(F, fh, -this.m * 9.81 * 0.05 * Math.min(1, vf / 4));   // sin gas retiene un poco (no de golpe)
-        if (hbOn && hv > 5) T = V.madd(T, up, -inp.steer * this.I[1] * 2.4 * Math.min(1, hv / 12));   // freno de mano + volante: gira la trasera hacia fuera
+        if (hbOn && hv > 5 && !this.dOn) T = V.madd(T, up, -inp.steer * this.I[1] * 1.3 * Math.min(1, hv / 12));   // freno de mano + volante (solo para empezar): cruza un poco la trasera
         if (ab > 1.25 && hv > 4) { const sgn = Math.sign(wy * beta) > 0 ? 1 : 0.4; T = V.madd(T, up, -wy * this.I[1] * 6 * sgn); } }   // seguro: que no trompee
       if (!grounded) { this.air = (this.air || 0) + dt; this.fallV = Math.min(this.fallV || 0, this.v[1]); }
       else { if ((this.air || 0) > 0.35) { this.landed = Math.max(this.landed || 0, -(this.fallV || 0)); this.landEv = -(this.fallV || 0); } this.lastAir = this.air || 0; this.air = 0; this.fallV = 0; }

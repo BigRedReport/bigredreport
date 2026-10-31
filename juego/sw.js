@@ -1,5 +1,5 @@
 // Service worker: guarda el port (no los datos del juego, que salen de tu carpeta) para que funcione sin conexión
-const V = 'brr-v8', FILES = ['./BigRedRacing.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './title.jpg', './paypal_qr.png',
+const V = 'brr-v9', FILES = ['./BigRedRacing.html', './manifest.webmanifest', './icon-192.png', './icon-512.png', './title.jpg', './paypal_qr.png',
   ...['lang', 'i18n', 'brrdata', 'zip', 'model3dw', 'level', 'vehicle', 'carsx', 'race', 'ai', 'replay', 'props', 'effects', 'audio', 'render', 'net', 'p2p', 'version', 'cloud', 'front', 'origmenu', 'logos_data', 'horns_data', 'horns', 'drift_data', 'gp_data', 'editor', 'main'].map(n => './js/' + n + '.js')];
 self.addEventListener('install', e => { e.waitUntil(caches.open(V).then(c => c.addAll(FILES)).then(() => self.skipWaiting())); });
 self.addEventListener('activate', e => { e.waitUntil(caches.keys().then(ks => Promise.all(ks.filter(k => k !== V).map(k => caches.delete(k)))).then(() => self.clients.claim())); });

@@ -26,7 +26,8 @@
     setVolumes(v) { Object.assign(this.vol, v); if (!this.ctx) return; const V = this.vol;
       this.gMaster.gain.value = V.master ?? 1; this.gSfx.gain.value = V.sfx; this.gMusic.gain.value = V.music; this.gVoice.gain.value = V.voice;
       this.gEngine.gain.value = V.engine ?? V.sfx; this.gUI.gain.value = V.ui ?? V.sfx; this.gAmb.gain.value = V.amb ?? V.sfx;
-      if (this.music && V.music <= 0) this.stopMusic(); }
+      if (this.stream) this.stream.volume = Math.max(0, Math.min(1, (V.music ?? 1) * (V.master ?? 1) * (this.streamK ?? 1)));
+      if ((this.music || this.stream) && V.music <= 0) this.stopMusic(); }
     bus(name) { return { voice: this.gVoice, ui: this.gUI, engine: this.gEngine, amb: this.gAmb, horn: this.gHorn, music: this.gMusic }[name] || this.gSfx; }
     // escucha para el sonido posicional (cámara del jugador); con pantalla partida no hay oyente único: sin panorama
     setListener(pos, fwd, up, on = true) {
@@ -181,6 +182,8 @@
       const l = longs.length ? longs : cd.audio;
       return this.playTrack(l[((seed % l.length) + l.length) % l.length].n);
     }
-    stopMusic() { this.musicToken = null; this.musicTrack = null; if (this.music) { const m = this.music; this.music = null; try { m.onended = null; m.stop(); } catch (e) { } } }
+    // música larga de un modo (Grand Prix, drift): se reproduce en streaming (sin decodificarla entera) y en bucle
+    playStream(url, k = 1) { this.stopMusic(); if (!this.ctx || this.vol.music <= 0) return false; const a = new Audio(url); a.loop = true; this.streamK = k; a.volume = Math.max(0, Math.min(1, (this.vol.music ?? 1) * (this.vol.master ?? 1) * k)); a.play().catch(() => { }); this.stream = a; this.musicTrack = 'stream'; return url; }
+    stopMusic() { if (this.stream) { try { this.stream.pause(); } catch (e) { } this.stream = null; } this.musicToken = null; this.musicTrack = null; if (this.music) { const m = this.music; this.music = null; try { m.onended = null; m.stop(); } catch (e) { } } }
   };
 })();

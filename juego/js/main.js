@@ -6,7 +6,7 @@
   try { R = new BRR.Renderer(canvas); } catch (e) { $('err').textContent = e.message; return; }
 
   // ---------- opciones ----------
-  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudstyle: 'moderno', touch: 'auto', aiPack: 'no', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, cabin: true, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', fxs: 'original', engSnd: 'mejorado', gloss: 'si', ssao: 'si', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
+  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, modeMusic: 'propia', modeVol: 80, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudstyle: 'moderno', touch: 'auto', aiPack: 'no', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, cabin: true, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', fxs: 'original', engSnd: 'mejorado', gloss: 'si', ssao: 'si', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
   let opt = { ...DEF };
   // perfiles: cada uno guarda sus ajustes, récords, campeonato y estadísticas aparte (claves con @perfil)
   let PROF = ''; try { PROF = localStorage.getItem('brr_profile') || ''; } catch (e) { }
@@ -36,7 +36,9 @@
     for (const k of ['vsfx', 'vmusic', 'vvoice', 'vmaster', 'vengine', 'vui', 'vamb']) { const el = $('o_' + k); el.value = opt[k]; const sv = () => { const v = $('o_' + k + '_v'); if (v) v.textContent = opt[k] + '%'; }; sv(); el.oninput = () => { opt[k] = +el.value; sv(); applyVol(); save(); }; }
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
     { const el = $('o_lang'); el.innerHTML = Object.entries(BRR.LANGS).map(([k, n]) => `<option value="${k}">${n}</option>`).join(''); el.value = BRR.lang(); el.onchange = () => BRR.setLang(el.value); }
-    for (const k of ['ssao', 'gloss', 'engSnd', 'fxs', 'aa', 'parts', 'fpslim', 'hudw', 'hudstyle', 'aiPack', 'touch', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'clouds']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ssao') R.ssao = opt.ssao === 'no' ? 0 : 1; if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    for (const k of ['ssao', 'gloss', 'engSnd', 'fxs', 'aa', 'parts', 'fpslim', 'hudw', 'hudstyle', 'aiPack', 'touch', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'clouds', 'modeMusic']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ssao') R.ssao = opt.ssao === 'no' ? 0 : 1; if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    { const el = $('o_modeVol'); el.value = opt.modeVol ?? 80; const sv = () => $('o_modeVol_v').textContent = (opt.modeVol ?? 80) + '%'; sv(); el.oninput = () => { opt.modeVol = +el.value; sv(); save(); if (audio && audio.stream) { audio.streamK = opt.modeVol / 100; audio.setVolumes({}); } }; }
+    $('o_modeMusic').addEventListener('change', () => { if (!audio || !(state === 'race' || state === 'pause') || !modeKind(curLevelId)) return; audio.stopMusic(); if (!modeMusic(curLevelId)) audio.playMusic(Math.abs([...String(curLevelId)].reduce((a, c) => a * 31 + c.charCodeAt(0), 0))); });   // se cambia al momento, también en pausa
     for (const k of ['cabin', 'hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
@@ -162,7 +164,8 @@
   // vehículos de cada circuito (líneas "car" del guion del nivel), como en el original
   const levelCars = {};
   async function carsFor(id) {
-    if (isGPLevel(id) && files.has('MINI.VHC')) return ['GT'];   // circuitos de Grand Prix: con el GT Racer (también en contrarreloj)
+    if (isGPLevel(id) && files.has('MINI.VHC')) return ['GT'];
+    if (String(id).includes('~') && front && (front.tracks.find(t => t.id === id) || {}).kind === 'drift' && files.has('MINI.VHC')) return ['PANDA'];   // circuitos de Grand Prix: con el GT Racer (también en contrarreloj)
     if (String(id).includes('~')) return carsFor(id.split('~')[0]);   // circuito propio: los vehículos de su tema
     if (levelCars[id]) return levelCars[id];
     try { const A = await files.archive(id + '.LEV'), t = [...A.keys()].find(k => k === id + '.TXT') || [...A.keys()].find(k => k.endsWith('.TXT') && k !== 'VIEW.TXT');
@@ -372,7 +375,7 @@
   }
   function selectTrack(id, narrate) {
     const t = front.tracks.find(x => x.id === id); if (!t) return;
-    $('m_level').value = id; opt.level = id; save(); fillVehicles();
+    $('m_level').value = id; if (qmode === 'gp') opt.gpLevel = id; else if (qmode === 'drift') opt.driftLevel = id; else opt.level = id; save(); fillVehicles();
     for (const c of document.querySelectorAll('#tracks .tcard, #tracks_gp .tcard')) c.classList.toggle('on', c.dataset.id === id);
     $('d_img').src = t.view || ''; $('d_place').textContent = ''; $('d_name').textContent = t.place || t.id; if (t.custom) $('d_name').setAttribute('data-notr', ''); else $('d_name').removeAttribute('data-notr');   // solo el país (sin el nombre interno del mapa)
     $('d_diff').textContent = DIFF[t.diff] || ''; $('d_diff').className = 'diff d' + t.diff;
@@ -419,22 +422,26 @@
   const wakeAudio = () => { if (!audio) return; audio.init(); if (audio.ctx && audio.ctx.state === 'suspended') audio.ctx.resume(); if (state === 'menu' || state === 'bye') menuMusic(); };
   for (const ev of ['pointerdown', 'keydown']) addEventListener(ev, wakeAudio, { capture: true });
   setInterval(() => { if (state === 'menu' && audio && (!audio.ctx || !audio.musicTrack) && pads().some(g => g.buttons.some(b => b.pressed))) wakeAudio(); }, 300);
+  // música de los modos Grand Prix y drift (la original si así se elige en Opciones)
+  function modeKind(level) { const id = String(level || '').split('~')[1], ck = netRace ? netRace.crazy : crazyPick;
+    if (ck === 'drift' || (id && (kindOfId(id) === 'drift' || customKinds.some(c => c.id === id && c.kind === 'drift')))) return 'drift';
+    if (ck === 'gp' || isGPLevel(level)) return 'gp'; return null; }
+  function modeMusic(level) { const k = modeKind(level); if (!k || !audio || opt.modeMusic === 'original') return false; audio.playStream('music/' + k + '.mp3', (opt.modeVol ?? 80) / 100); $('trackinfo').textContent = ''; return true; }
   function menuMusic() { if (audio && audio.ctx && state === 'menu') audio.playTrack(2); }
   // ---------- menú principal: pantallas y navegación ----------
   const VIEWS = {
     home: { pane: 'home', col: 'h_main', title: '' }, single: { pane: 'home', col: 'h_single', title: 'Un jugador', back: 'home' }, multi: { pane: 'home', col: 'h_multi', title: 'Multijugador', back: 'home' },
-    quick: { pane: 'quick', title: 'Carrera rápida', back: 'single' }, tt: { pane: 'quick', title: 'Contrareloj', back: 'single' }, free: { pane: 'quick', title: 'Modo libre', back: 'single' }, split: { pane: 'quick', title: 'Pantalla partida', back: 'multi' },
+    quick: { pane: 'quick', title: 'Carrera rápida', back: 'single' }, gp: { pane: 'quick', title: 'Grand Prix', back: 'single' }, drift: { pane: 'quick', title: 'Modo drift', back: 'single' }, tt: { pane: 'quick', title: 'Contrareloj', back: 'single' }, free: { pane: 'quick', title: 'Modo libre', back: 'single' }, split: { pane: 'quick', title: 'Pantalla partida', back: 'multi' },
     tourn: { pane: 'tourn', title: 'Campeonato', back: 'single' }, online: { pane: 'online', title: 'Online', back: 'multi' }, lan: { pane: 'online', title: 'Red local (LAN)', back: 'multi' },
     mods: { pane: 'mods', title: 'Mods', back: 'home' }, profile: { pane: 'profile', title: 'Piloto y escudería', back: 'home' } };
   let view = 'home', qmode = 'quick', ttMode = false, freeMode = false, driftMode = false, driftNet = null;
   const sfx = n => { if (audio) { audio.init(); audio.play('SAMPLES/' + n + '.WAV', { vol: 0.5, bus: 'ui' }); } };
+  $('p_opts').onclick = () => { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); };
   function go(v, silent) {
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
     if (v === 'reto') { retoOpen(); return; }
     if (v === 'friends') { frOpen(); return; }
-    if (v === 'drift') { gpOpen('drift'); return; }
-    if (v === 'gp') { gpOpen('gp'); return; }
     if (v === 'comm') { cmOpen(); return; }
     if (v === 'editor') { if (!BRR.editor) return; BRR.editor.open(); return; }
     if (v === 'replays') { $('rplist').hidden = false; rpRenderList(); setTimeout(() => navFocusFirst($('rplist')), 0); return; }
@@ -456,13 +463,14 @@
   for (const b of document.querySelectorAll('.hbtn')) b.onclick = () => { sfx(b.dataset.go === 'back' ? 'BEEP2' : 'BEEP4'); go(b.dataset.go); };
   $('bye_back').onclick = () => { state = 'menu'; show('menu'); go('home'); menuMusic(); };
   function setQuickMode(v) {
-    qmode = v; const tt = v === 'tt', split = v === 'split', free = v === 'free';
-    $('m_rivals').parentElement.hidden = tt || free; $('m_diff').parentElement.hidden = tt || free; $('m_laps').parentElement.hidden = free; $('m_crazy').parentElement.hidden = tt || free; $('m_ghost').parentElement.hidden = !tt; $('m_laps').disabled = !(tt || free) && $('m_crazy').value !== 'normal' && $('m_crazy').value !== 'kart';
+    qmode = v; const tt = v === 'tt', split = v === 'split', free = v === 'free', GPm = v === 'gp', DRm = v === 'drift';
+    $('m_rivals').parentElement.hidden = tt || free || DRm; $('m_diff').parentElement.hidden = tt || free || DRm; $('m_laps').parentElement.hidden = free || DRm; $('m_crazy').parentElement.parentElement.style.display = tt || free || GPm || DRm ? 'none' : ''; $('q_gp').hidden = !GPm; $('m_ghost').parentElement.hidden = !tt; $('m_laps').disabled = !(tt || free) && $('m_crazy').value !== 'normal' && $('m_crazy').value !== 'kart';
     $('m_players').parentElement.parentElement.hidden = !split;
     const pl = $('m_players'); for (const o of pl.options) o.hidden = split && o.value === '1';
     if (split && +pl.value < 2) pl.value = String(Math.max(2, opt.players || 2)); if (!split) pl.value = '1';
     if (tt && $('m_laps').value === '0') $('m_laps').value = '3';
-    $('go').textContent = tt ? 'Salir a por el récord' : split ? 'Correr (pantalla partida)' : free ? 'Conducir' : 'Correr';
+    $('go').textContent = tt ? 'Salir a por el récord' : split ? 'Correr (pantalla partida)' : free ? 'Conducir' : DRm ? '▶ Derrapar' : GPm ? '▶ Carrera suelta' : 'Correr';
+    renderGrid(); if (GPm) { $('m_laps').value = String(opt.gpLaps || 0); $('m_rivals').value = String(opt.gpRiv || 5); $('m_diff').value = String(opt.gpDiff || 2); gpChampRender(); }
     fillVehicles();
     $('d_lb').hidden = !tt; if (tt) refreshLB(); showTTBest(); showTeamHead();
   }
@@ -809,6 +817,8 @@
     tset(T); return msg;
   }
   $('go').onclick = () => {
+    if (qmode === 'gp' || qmode === 'drift') { const id = String($('m_level').value).split('~')[1]; if (qmode === 'drift') { driftStart(id); return; }
+      opt.gpLaps = +$('m_laps').value; opt.gpRiv = +$('m_rivals').value; opt.gpDiff = +$('m_diff').value; save(); const C = opt.gpCh; if (C && !C.done && C.i < C.list.length && C.list[C.i] === id) { delete opt.gpCh; save(); } gpStart(id); return; }   // carrera suelta: no cuenta para el campeonato
     tourMode = false; ttMode = qmode === 'tt'; freeMode = qmode === 'free'; if (audio) audio.init();
     if (!ttMode && !freeMode) { opt.rivals = +$('m_rivals').value; opt.diff = +$('m_diff').value; }
     const pl = qmode === 'split' ? Math.max(2, +$('m_players').value) : 1; if (qmode === 'split') opt.players = pl; save();
@@ -1018,6 +1028,7 @@
     const tm = front && front.tracks.find(t => t.id === level);
     let seed = 0; for (const ch of level) seed = seed * 31 + ch.charCodeAt(0);
     // la música que pide el circuito; si esa pista dura menos de un minuto es una presentación hablada (WATER2: «This is wet and wild…»), no música
+    if (modeMusic(level)) return;   // Grand Prix y drift: su propia música
     (async () => { let mt = tm && tm.music; try { const cd = await audio.cdTracks(), tr = cd && mt && cd.audio.find(t => t.n === mt); if (tr && tr.end - tr.start < 44100 * 4 * 60) mt = 0; } catch (e) { }
       return mt ? audio.playTrack(mt) : audio.playMusic(Math.abs(seed)); })().then(n => { if (n) $('trackinfo').textContent = 'CD pista ' + n; });
   }
@@ -1184,7 +1195,7 @@
     if (netRace) { const ids = netRace.resultIds; netRace = null; netWait = false; clearTimeout(netResT); $('netbar').hidden = true; if (BRR_net.isHost && BRR_net.room) netAfterRace(ids); fromOrig = false; if (orig) orig.close(); opt.menu = 'moderno';
       setTimeout(() => { go(BRR_net.lanUrl ? 'lan' : 'online'); netRenderRoom(); }, 50); }
     statsFlush(); clearTimeout(finishTimer); finishTimer = null; $('results').hidden = true; if (audio) { audio.stopAll(); audio.stopMusic(); }
-    retoEnd(); if (crazyPick === 'drift' || crazyPick === 'gp') crazyPick = 'normal'; driftMode = false; driftNet = null; gpMode = false; gpRace = false; state = 'menu'; show('menu'); if (gpBack) { const k = gpBack; gpBack = false; setTimeout(() => gpOpen(k), 30); } if (edBack) { edBack = false; setTimeout(() => BRR.editor && BRR.editor.open(edTrack), 30); } renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
+    retoEnd(); if (crazyPick === 'drift' || crazyPick === 'gp') crazyPick = 'normal'; driftMode = false; driftNet = null; gpMode = false; gpRace = false; state = 'menu'; show('menu'); if (gpBack) { gpBack = false; } if (edBack) { edBack = false; setTimeout(() => BRR.editor && BRR.editor.open(edTrack), 30); } renderTourn(); selectTrack(opt.level, false); tourMode = false; ttMode = false; freeMode = false; go(view, true); if (qmode === 'tt' && view === 'tt') refreshLB();
     if (orig && fromOrig && opt.menu !== 'moderno') { fromOrig = false; state = 'origmenu'; if (!orig.on) { orig.on = true; orig.root.hidden = false; orig.loop(); } if (audio) audio.playTrack(2); orig.globe(); }
     else menuMusic();
   }
@@ -1868,12 +1879,18 @@
     // portadas al día: si su autor ha publicado una versión nueva (con otra portada), se cambia en cuanto llega
     for (const g of L) if (!g.custom && BRR.editor) BRR.editor.builtinRefresh(g.id).then(() => BRR.editor.builtin(g.id)).then(t => { if (!t || !t.cover) return; const im = $('gp_tracks').querySelector(`[data-gp="${g.id}"] img`); if (im && im.src !== t.cover) im.src = t.cover; }).catch(() => { });
   }
+  function gpChampRender() {
+    const C = opt.gpCh, L = gpTracks('gp'), tab = C => '<table>' + Object.entries(C.pts).sort((a, b) => b[1] - a[1]).map(([k, p], i) => `<tr${k === 'me' ? ' class="me"' : ''}><td>${i + 1}. ${k === 'me' ? 'Tú' : esc(C.names[k] || k)}</td><td>${p}</td></tr>`).join('') + '</table>';
+    if (C && C.list && !C.done && C.i < C.list.length) { const nx = L.find(g => g.id === C.list[C.i]); $('q_gpchamp').innerHTML = `<label class="row">Campeonato · carrera ${C.i + 1} de ${C.list.length}</label>` + (Object.keys(C.pts).length ? tab(C) : ''); $('q_cup').textContent = '🏆 Siguiente: ' + (nx ? nx.name : '?'); $('q_quit').hidden = false; }
+    else { $('q_gpchamp').innerHTML = C && C.done ? '<label class="row">Último campeonato</label>' + tab(C) : ''; $('q_cup').textContent = '🏆 Campeonato (' + L.length + ' circuito' + (L.length === 1 ? '' : 's') + ')'; $('q_quit').hidden = true; } }
+  $('q_quit').onclick = () => { delete opt.gpCh; save(); gpChampRender(); };
+  $('q_cup').onclick = () => { opt.gpLaps = +$('m_laps').value; opt.gpRiv = +$('m_rivals').value; opt.gpDiff = +$('m_diff').value; let C = opt.gpCh; if (!C || C.done || C.i >= C.list.length) { C = opt.gpCh = { list: gpTracks('gp').map(g => g.id), i: 0, pts: {}, names: {} }; } save(); gpStart(C.list[C.i]); };
   function gpSaveOpts() { if (gpKind === 'drift') { opt.driftCar = $('gp_car').value; save(); return; } opt.gpCar = $('gp_car').value; opt.gpLaps = +$('gp_laps').value; opt.gpRiv = +$('gp_riv').value; opt.gpDiff = +$('gp_diff').value; save(); }
   async function gpStart(id) {
     const g = gpTracks().find(x => x.id === id); if (!g) return; $('gpm').hidden = true; if (audio) { audio.init(); audio.stopMusic(); }
     tourMode = false; ttMode = false; freeMode = false; fromOrig = false; crazyPick = 'gp'; gpRace = true; gpCur = g.id; gpBack = 'gp'; opt.rivals = opt.gpRiv || 5; opt.diff = opt.gpDiff || 2;
     $('load_msg').textContent = 'Buscando la última versión del circuito…'; show('loading'); await BRR.editor.builtinRefresh(g.id);
-    await startRace(gpLv(g), opt.gpCar || 'GT', opt.team || 1, opt.gpLaps || g.laps || g.t.laps || 2, 1);
+    await startRace(gpLv(g), 'GT', +$('m_team').value || opt.team || 1, opt.gpLaps || g.laps || g.t.laps || 2, 1);
   }
   function gpResult(myPos) {
     const C = opt.gpCh, pts = GP_PTS[myPos - 1] || 0; if (!C || C.done || C.list[C.i] !== gpCur) { return `Grand Prix · ${myPos}º` + (pts ? ` (${pts} puntos en un campeonato)` : ''); }
@@ -1926,19 +1943,25 @@
     if (!front || !BRR.editor) return; let A = []; try { A = await BRR.editor.active(); } catch (e) { }
     front.tracks = front.tracks.filter(t => !t.custom); customKinds = [];
     for (const r of A) { const t = await BRR.editor.get(r.id); if (!t || !t.road || t.road.length < 3 || t.open) continue; const b = front.tracks.find(x => x.id === t.base) || {}, kind = kindOfId(t.id) || t.kind || 'normal';
-      if (kind !== 'normal') customKinds.push({ id: t.id, name: t.name, laps: t.laps, t, kind, custom: true }); if (kind === 'drift') continue;   // los de drift solo salen en su menú
+      if (kind !== 'normal') customKinds.push({ id: t.id, name: t.name, laps: t.laps, t, kind, custom: true });
       front.tracks.push({ id: BRR.editor.levelOf(t), custom: true, kind, place: t.name, view: t.cover || BRR.editor.preview(t.road, t.base), diff: 1, laps: t.laps, cars: kind === 'gp' ? ['GT'] : b.cars || ['JEEP'], planet: 0, lon: t.lon, lat: t.lat, comment: t.desc || '',
         desc: (r.mine ? 'Tu circuito' : 'Circuito de ' + (t.author || 'la comunidad')) + ' · ' + (t.placeName || LEVEL_NAMES[BRR.envOf(t.base)] || t.base) }); }
-    for (const g of gpTracks('gp')) { const lv = gpLv(g); if (front.tracks.some(x => x.id === lv)) continue;   // los del Grand Prix de serie, en su recuadro
-      front.tracks.push({ id: lv, custom: true, builtin: true, kind: 'gp', place: g.name, view: g.t.cover || gpPrev(g.t), diff: 2, laps: g.laps, cars: ['GT'], planet: 0, lon: g.t.lon, lat: g.t.lat, comment: g.t.desc || '', desc: 'Grand Prix · ' + (g.t.len ? (g.t.len / 1000).toFixed(1) + ' km' : '') }); }
+    for (const g of [...gpTracks('gp'), ...gpTracks('drift').map(x => ({ ...x, drift: 1 }))]) { const lv = gpLv(g); if (front.tracks.some(x => x.id === lv)) continue;   // los de serie del Grand Prix y del drift
+      front.tracks.push({ id: lv, custom: true, builtin: true, kind: g.drift ? 'drift' : 'gp', place: g.name, view: g.t.cover || gpPrev(g.t), diff: 2, laps: g.laps, cars: [g.drift ? 'PANDA' : 'GT'], planet: 0, lon: g.t.lon, lat: g.t.lat, comment: g.t.desc || '', ...(g.t.lon == null && g.place && BRR.editor.PLACES ? (P => P ? { lon: P[1], lat: P[2] } : {})(BRR.editor.PLACES.find(q => q[0] === g.place)) : {}), desc: (g.drift ? 'Drift' : 'Grand Prix') + (g.t.len ? ' · ' + (g.t.len / 1000).toFixed(1) + ' km' : '') }); }
     const ls = $('m_level'); [...ls.querySelectorAll('.cust')].forEach(o => o.remove());
-    for (const [lab, C] of [['Circuitos propios y de la comunidad', front.tracks.filter(t => t.custom && t.kind !== 'gp')], ['Grand Prix', front.tracks.filter(t => t.kind === 'gp')]]) if (C.length) { const g = document.createElement('optgroup'); g.className = 'cust'; g.label = lab; for (const t of C) { const o = document.createElement('option'); o.value = t.id; o.textContent = t.place; g.appendChild(o); } ls.appendChild(g); }
+    for (const [lab, C] of [['Circuitos propios y de la comunidad', front.tracks.filter(t => t.custom && t.kind !== 'gp' && t.kind !== 'drift')], ['Grand Prix', front.tracks.filter(t => t.kind === 'gp')], ['Drift', front.tracks.filter(t => t.kind === 'drift')]]) if (C.length) { const g = document.createElement('optgroup'); g.className = 'cust'; g.label = lab; for (const t of C) { const o = document.createElement('option'); o.value = t.id; o.textContent = t.place; g.appendChild(o); } ls.appendChild(g); }
     const cur = $('m_level').value;
+    renderGrid(cur);
+  }
+  // rejilla de circuitos según el modo: en Grand Prix y drift solo los suyos; en los demás, los normales y los de Grand Prix en su recuadro
+  function renderGrid(cur) {
+    if (!front) return; cur = cur || $('m_level').value; const M = qmode === 'gp' || qmode === 'drift' ? qmode : null;
     const badge = t => t.custom && !t.builtin ? '<span class="cbadge">' + (t.desc.startsWith('Tu') ? '🛠' : '🌐') + '</span>' : '';
-    $('tracks').innerHTML = front.tracks.filter(t => t.kind !== 'gp').map(t => card(t, badge(t))).join('');
-    const GPT = front.tracks.filter(t => t.kind === 'gp'); $('tracks_gp').innerHTML = GPT.map(t => card(t, badge(t))).join(''); $('tracks_gpw').hidden = !GPT.length;   // los de Grand Prix en su propio recuadro, debajo
-    for (const c of document.querySelectorAll('#tracks .tcard, #tracks_gp .tcard')) { c.tabIndex = 0; c.onclick = () => { menuBeep(); selectTrack(c.dataset.id, true); }; }
-    if (front.tracks.some(t => t.id === cur)) selectTrack(cur, false); else if (front.tracks.some(t => t.id === opt.level)) selectTrack(opt.level, false);
+    const main = front.tracks.filter(t => M ? t.kind === M : t.kind !== 'gp' && t.kind !== 'drift'), GPT = M ? [] : front.tracks.filter(t => t.kind === 'gp');
+    $('tracks').innerHTML = main.map(t => card(t, badge(t))).join(''); $('tracks_gp').innerHTML = GPT.map(t => card(t, badge(t))).join(''); $('tracks_gpw').hidden = !GPT.length;
+    for (const c of document.querySelectorAll('#tracks .tcard, #tracks_gp .tcard')) { c.tabIndex = 0; c.onclick = () => { menuBeep(); selectTrack(c.dataset.id, true); if (qmode === 'gp') gpChampRender(); }; }
+    const ok = id => main.some(t => t.id === id) || GPT.some(t => t.id === id), last = M === 'gp' ? opt.gpLevel : M === 'drift' ? opt.driftLevel : opt.level;
+    const pick = ok(cur) ? cur : ok(last) ? last : main[0] && main[0].id; if (pick) selectTrack(pick, false);
   }
   let cmTab = 'com', cmCache = null;
   // circuitos que su autor ha borrado o retirado: fuera también de los descargados de todos
@@ -1969,7 +1992,7 @@
     for (const b of el.querySelectorAll('[data-a]')) { const id = b.closest('.cmrow').dataset.id, a = b.dataset.a, ev = b.tagName === 'INPUT' ? 'onchange' : 'onclick';
       b[ev] = async () => { try {
         if (a === 'get') { b.disabled = true; b.textContent = 'Descargando…'; await ED.download(id, true); await customRefresh(); cmRender(); }
-        else if (a === 'play') { const t = await ED.get(id); if (!t) return; if (t.src === 'com') await ED.setDownloadOn(id, true); else await ED.setMineOn(id, true); if ((kindOfId(t.id) || t.kind) === 'drift') { await customRefresh(); $('comm').hidden = true; gpSelD = t.id; gpOpen('drift'); } else if ((kindOfId(t.id) || t.kind) === 'gp') { await customRefresh(); $('comm').hidden = true; gpSel = t.id; gpOpen('gp'); } else cmPlay(ED.levelOf(t)); }
+        else if (a === 'play') { const t = await ED.get(id); if (!t) return; if (t.src === 'com') await ED.setDownloadOn(id, true); else await ED.setMineOn(id, true); const kd = kindOfId(t.id) || t.kind; if (kd === 'drift' || kd === 'gp') { await customRefresh(); $('comm').hidden = true; if (kd === 'gp') opt.gpLevel = ED.levelOf(t); else opt.driftLevel = ED.levelOf(t); go(kd); } else cmPlay(ED.levelOf(t)); }
         else if (a === 'on') { await ED.setDownloadOn(id, b.checked); customRefresh(); }
         else if (a === 'mon') { await ED.setMineOn(id, b.checked); customRefresh(); }
         else if (a === 'del') { if (b.dataset.sure) { await ED.delDownload(id); await customRefresh(); cmRender(); } else { b.dataset.sure = 1; b.textContent = '¿Borrar?'; } }

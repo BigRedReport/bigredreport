@@ -207,7 +207,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   .pskin span{display:block;width:34px;height:34px;border-radius:50%;margin:4px auto;border:2px solid rgba(255,255,255,.25)}
   #gpm .card{max-height:92vh;overflow:auto;width:min(640px,96vw)} .gptracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
   .gptrack{padding:6px;border-radius:10px;border:2px solid var(--line);background:#0e121b;cursor:pointer;text-align:left;margin:0} .gptrack.on{border-color:var(--red,#e2231a)} .gptrack img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:6px;display:block} .gptrack b{display:block;margin-top:4px}
-  #gp_champ table{width:100%;border-collapse:collapse;margin-top:8px} #gp_champ td{padding:3px 6px;border-top:1px solid var(--line)} #gp_champ td:last-child{text-align:right;font-weight:700} #gp_champ tr.me td{color:#ffd23f}
+  #gp_champ table,#q_gpchamp table{width:100%;border-collapse:collapse;margin-top:8px} #gp_champ td,#q_gpchamp td{padding:3px 6px;border-top:1px solid var(--line)} #gp_champ td:last-child,#q_gpchamp td:last-child{text-align:right;font-weight:700} #gp_champ tr.me td,#q_gpchamp tr.me td{color:#ffd23f}
   .tgph{margin:14px 0 6px;font-weight:800;font-size:15px;color:#ffd23f;letter-spacing:.5px}
 </style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#e23b3b"><link rel="icon" href="icon-192.png">
 </head><body>
@@ -324,6 +324,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <div class="grid2"><div><label class="row">Jugadores (pantalla partida)</label><select id="m_players"><option value="1">1 jugador</option><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4">4 jugadores</option><option value="5">5 jugadores</option><option value="6">6 jugadores</option><option value="7">7 jugadores</option><option value="8">8 jugadores</option></select></div>
         <div><p class="small" style="margin:30px 0 0">Cada mando es un jugador. Sin mandos suficientes: J1 teclado WASD, J2 flechas.</p></div></div>
         <div id="d_lb" hidden><label class="row">Clasificación contrareloj <span class="small" id="d_lbsrc"></span></label><table id="d_lbt" class="lbt"></table></div>
+        <div id="q_gp" hidden><div id="q_gpchamp"></div><div class="grid2" style="margin:8px 0"><button id="q_cup">🏆 Campeonato</button><button id="q_quit" hidden>Abandonar el campeonato</button></div></div>
         <button class="main" id="go">Correr</button>
       </div>
     </aside>
@@ -459,6 +460,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <div class="opt"><span>Menús</span><input id="o_vui" type="range" min="0" max="100" step="1"><span id="o_vui_v"></span></div>
     <div class="opt"><span>Ambiente</span><input id="o_vamb" type="range" min="0" max="100" step="1"><span id="o_vamb_v"></span></div>
     <div class="opt"><span>Música</span><select id="o_msrc"><option value="cd">Banda sonora original (CD)</option><option value="mias">Mis canciones</option><option value="mezcla">Mezcla de las dos</option><option value="off">Sin música</option></select><span></span></div>
+    <div class="opt"><span>Música del Grand Prix y del drift</span><select id="o_modeMusic"><option value="propia">La de cada modo</option><option value="original">La original del juego</option></select><span></span></div>
+    <div class="opt"><span>Volumen de esa música</span><input id="o_modeVol" type="range" min="0" max="100" step="1"><span id="o_modeVol_v"></span></div>
     <div class="opt"><span>Mis canciones</span><button id="o_mymusic">Añadir canciones…</button><span id="o_mymusic_n"></span></div>
     <input type="file" id="o_mymusic_in" accept="audio/*" multiple hidden>
     <p class="small"><button id="o_mymusic_clear">Quitar mis canciones</button> Se guardan en el navegador; MP3, OGG, WAV o M4A.</p>
@@ -503,6 +506,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <button id="p_restart" style="width:100%;margin-top:8px">Reiniciar carrera</button>
   <button id="p_swap" style="width:100%;margin-top:8px" hidden>🚗 Cambiar de vehículo</button>
   <button id="p_photo" style="width:100%;margin-top:8px">📷 Modo foto</button>
+  <button id="p_opts" style="width:100%;margin-top:8px">⚙️ Opciones (música, volumen…)</button>
   <button class="optbtn" style="width:100%;margin-top:8px">Opciones</button>
   <button id="p_menu" style="width:100%;margin-top:8px">Salir al menú</button>
 </div></div>

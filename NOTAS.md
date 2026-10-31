@@ -7,6 +7,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.112**
+- **Menús de Grand Prix y de drift** como el de carrera rápida: circuitos con sus portadas, el globo terráqueo con su lugar, **hora del día y clima**, rivales, dificultad y vueltas (en drift, solo el circuito). En Grand Prix, debajo, el campeonato con su clasificación.
+- **Música propia** en Grand Prix y drift (sustituye a la original solo en esos modos). En **Opciones** se puede volver a la original y subir o bajar su volumen; la pausa tiene ahora un botón de Opciones para cambiarlo en plena carrera. Música libre de derechos: «Neon Drift» (LoJazz Radio) en el drift y un tema de FreeMusicHome en el Grand Prix.
+- **Drift más fino:** al empezar el derrape ya no hay un último tirón que descoloca el coche (entra poco a poco), y el **freno de mano** sujeta el ángulo que llevas para alargar el derrape en vez de cruzar el coche.
+
 **Novedades de la 0.111**
 - Los circuitos del Grand Prix y del drift llevan su **portada** en los menús y en el selector de circuitos.
 - Su **última versión publicada** se busca al empezar en cualquier modo (también carrera rápida y contrarreloj), y en los menús del Grand Prix y del drift la portada se cambia sola si su autor ha publicado una nueva.
