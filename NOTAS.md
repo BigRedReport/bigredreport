@@ -7,6 +7,19 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.110**
+- **Grand Prix con 7 circuitos:** Suzuka, Cartagena, Jerez, Donington Park, Brands Hatch, Mugello y Fuente Álamo (en ese orden en el campeonato).
+- **El Grand Prix es el «gran turismo» de Big Red Racing:** sin nitros, el GT Racer frena bastante más y agarra más, y los rivales corren limpio (adelantan por donde hay hueco, esperan detrás si no lo hay y dejan sitio rueda con rueda).
+- Los circuitos de Grand Prix salen en su **propio recuadro** debajo de los demás al elegir circuito, y en **contrarreloj** (y carrera rápida) se corren con el GT Racer y las reglas del Grand Prix.
+- **Editor, ajustes del circuito:**
+  - **Modo:** normal, Grand Prix o drift. Los de Grand Prix salen en el menú del Grand Prix y en su recuadro; los de drift, en el menú del drift.
+  - **Lugar** en el mundo (como los circuitos originales: se ve en el globo al elegirlo).
+  - **Comentario**, que sale en pequeño debajo del nombre en el selector de circuitos y en la comunidad.
+  - **Tamaño del trazado:** una barra para hacerlo más grande o más pequeño sin cambiar la forma, todo de una pieza (con los objetos).
+- **Terreno al azar** con estilos: colinas suaves, desniveles intermedios, montañas grandes, casi llano y dunas.
+- **Editor:** los puntos de la carretera caen justo donde pinchas (antes se desplazaban si la barra de arriba cambiaba de alto).
+- **Comunidad:** en tus propios circuitos publicados ya salen «▶ Correr» (o «Descargar»); se ve el tipo (GP o drift) y el comentario.
+
 **Novedades de la 0.109**
 - **Grand Prix:** nuevos circuitos **Suzuka** y **Cartagena** (con Jerez, el campeonato es de 3 carreras: Suzuka, Cartagena y Jerez). De momento se corre solo con el **GT Racer** (también online).
 - **Modo drift con menú** como el del Grand Prix: eliges circuito (**Redrock** o **Drift track**) y ves tu récord en cada uno; al salir vuelves a ese menú.

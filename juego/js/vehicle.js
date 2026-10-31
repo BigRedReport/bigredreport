@@ -258,7 +258,7 @@
   const SPEED_K = 30 / 35000;   // unidades de velocidad del script -> m/s (35000 ≈ 108 km/h)
   BRR.SPEED_K = SPEED_K;
   // modo Grand Prix: circuitos largos y rápidos. Todo va más deprisa (punta ×1,45: de ~80 de media a ~115), con más empuje, frenos más fuertes y apoyo aerodinámico
-  const GPV = 1.45, GPF = 1.5, GPB = 1.8; BRR.GPV = GPV;
+  const GPV = 1.45, GPF = 1.5, GPB = 2.7;   // frenos de carreras BRR.GPV = GPV;
   const curve = (rows, spd) => { // fuerza (0..~650) según la velocidad del script
     for (let i = 0; i < rows.length - 1; i++) {
       const [s0, f0] = rows[i], [s1, f1] = rows[i + 1];
@@ -307,7 +307,7 @@
     steerLock() { const def = this.def, spd = Math.abs(this.speed()) / SPEED_K, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spd - s1) / (s2 - s1))); return (a1 + (a2 - a1) * tt) / 0x280 * 0.55; }
     get topSpeed() { if (this._top) return this._top; if (this.K.fly) return this._top = 48; const r = this.def.gearF; let v = r[r.length - 1][0]; for (const x of r) if (x[1] <= 0) { v = x[0]; break; } return this._top = Math.min(60, v * SPEED_K) * (this.gpMode ? GPV : 1); }
     get wheelBase() { const z = this.W.map(w => w.c[2]); return Math.max(1.5, Math.max(...z) - Math.min(...z)); }
-    fireNitro() { if (this.nitroT > 0 || !(this.nitros > 0 || this.nitroInf)) return false; if (!this.nitroInf) this.nitros--; this.nitroT = 2.6; return true; }
+    fireNitro() { if (this.gpMode || this.nitroT > 0 || !(this.nitros > 0 || this.nitroInf)) return false; if (!this.nitroInf) this.nitros--; this.nitroT = 2.6; return true; }
     get R() { return BRR.Q.mat(this.q); }
     // régimen del motor 0..255 según la tabla "hnd gear" (columnas 4 y 5) -> tono del sonido
     rpm() {
@@ -356,7 +356,7 @@
         const vLong = V.dot(vc, fw), vLat = V.dot(vc, lat); let Flong0 = 0;
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
-        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer ? 0.45 : 1);
+        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer ? 0.45 : 1) * (GP ? 1.15 : 1);   // GP: neumáticos de carreras
         if (DR && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, 0.5);   // freno de mano: tirón para cruzarlo (sin frenar)
           else { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
             mu *= 1 - 0.5 * ps; if (this.dOn && throttle > 0.3) mu *= 0.6; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando

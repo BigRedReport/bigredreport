@@ -279,11 +279,17 @@
         const d = V.sub(o.p, car.p), ahead = V.dot(d, here.t), side = d[0] * -here.t[2] + d[2] * here.t[0];
         if (ahead > 0 && ahead < 14 + v * 0.6 && Math.abs(side) < 3.2) {
           if (clean) { if (ahead < 9 && Math.abs(side) < 2.4) blockSpeed = Math.max(0, V.dot(o.v, here.t) - 0.5); continue; }   // en la salida: levantar el pie, no embestir
+          if (car.gpMode) {   // Grand Prix: carreras limpias, sin toques; adelanta por donde hay hueco y si no, espera detrás
+            const vo = V.dot(o.v, here.t), myS = this.lane * Math.max(1, half), room = side > myS ? -1 : 1;
+            if (vo < v - 1.5 && Math.random() < dt * 2) this.passSide = room; if (this.passSide) lane = this.passSide * 0.6;
+            if (ahead < 6 + v * 0.35 && Math.abs(side) < 2.4) blockSpeed = Math.max(0, vo - 1.5); continue; }
           if (P.aggro > 0.6 && o.isPlayer && Math.random() < P.aggro * dt * 3) lane = (side / Math.max(1, half)) * 0.9;   // ir a por el jugador
           else if (Math.random() < P.overtake) lane = (side > 0 ? -1 : 1) * 0.55;          // abrirse para adelantar
           else blockSpeed = Math.max(0, V.dot(o.v, here.t) - 1);                             // quedarse detrás
         }
       }
+      if (car.gpMode) { for (const o of others) { if (o === car) continue; const d = V.sub(o.p, car.p), ah = V.dot(d, here.t), sd = d[0] * -here.t[2] + d[2] * here.t[0]; if (Math.abs(ah) < 5.5 && Math.abs(sd) < 3.2) lane = Math.max(-0.9, Math.min(0.9, this.lane - Math.sign(sd || 1) * 0.35)); }   // rueda con rueda: dejar sitio
+        if (Math.random() < dt * 0.3) this.passSide = 0; }
       // obstáculos sólidos delante (vallas, farolas, señales): apartarse hacia el lado libre
       this.scanT = (this.scanT || 0) - dt;
       if (this.scanT <= 0) {

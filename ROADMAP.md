@@ -205,3 +205,4 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Modo Grand Prix: Jerez, campeonato con puntos, online y el coche GT Racer (0.108)
 - [x] Grand Prix: Suzuka y Cartagena (0.109)
 - [x] Menú del modo drift con Redrock y Drift track (0.109)
+- [x] Grand Prix con 7 circuitos, sin nitros y con IA limpia; editor con tipo de circuito, lugar, comentario, tamaño y estilos de terreno (0.110)

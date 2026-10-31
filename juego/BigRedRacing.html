@@ -208,6 +208,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   #gpm .card{max-height:92vh;overflow:auto;width:min(640px,96vw)} .gptracks{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px;margin:10px 0}
   .gptrack{padding:6px;border-radius:10px;border:2px solid var(--line);background:#0e121b;cursor:pointer;text-align:left;margin:0} .gptrack.on{border-color:var(--red,#e2231a)} .gptrack img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:6px;display:block} .gptrack b{display:block;margin-top:4px}
   #gp_champ table{width:100%;border-collapse:collapse;margin-top:8px} #gp_champ td{padding:3px 6px;border-top:1px solid var(--line)} #gp_champ td:last-child{text-align:right;font-weight:700} #gp_champ tr.me td{color:#ffd23f}
+  .tgph{margin:14px 0 6px;font-weight:800;font-size:15px;color:#ffd23f;letter-spacing:.5px}
 </style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#e23b3b"><link rel="icon" href="icon-192.png">
 </head><body>
 <canvas id="c"></canvas><div id="err"></div>
@@ -301,7 +302,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <aside class="detail"><div class="dbody"><h2>Mods</h2><p class="small">Se guardan en el navegador (no se modifica tu carpeta del juego). Puedes activarlos, desactivarlos o borrarlos cuando quieras.</p></div></aside>
   </section>
   <section id="pane_quick" class="pane" hidden>
-    <div id="tracks" class="tracks"></div>
+    <div id="tracks" class="tracks"></div><div id="tracks_gpw" hidden><div class="tgph">🏎️ Grand Prix</div><div id="tracks_gp" class="tracks"></div></div>
     <aside class="detail">
       <div class="dimg"><img id="d_img" alt="" hidden><canvas id="d_globe" width="440" height="440"></canvas><div id="d_place"></div><div id="d_ttbest" class="ttbest" hidden></div></div>
       <div class="dbody">
