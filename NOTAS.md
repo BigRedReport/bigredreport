@@ -7,6 +7,23 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.113**
+- **IA nueva:** ya no hay pilotos «agresivos», «prudentes» o «torpes» fijos. Todos conducen bien y todos pueden, a ratos, atacar, defender la posición, buscar el hueco o equivocarse; cada uno con su frecuencia. En el **Grand Prix** todos son expertos: frenan más tarde, pasan más rápido por curva, aprovechan mejor el circuito y a veces dan un toque de freno de mano para colocar el coche en las curvas cerradas. La frenada de la IA es progresiva (sin toquecitos). El tipo de piloto ya no aparece en ningún sitio.
+- **Polis y cacos, zombi y bomba:** la IA espera al GO y ya no se escapa del mapa (si se aleja del circuito vuelve, y si no, se la devuelve a la pista).
+- **Drift:** nueva física **B** (arcade, estilo kart) para comparar con la **A** de siempre; se elige en el menú del drift. Con la B el derrape empieza fácil a 30-50 km/h, el coche va de lado con la trayectoria casi recta, el motor no pierde fuerza, y hay una pequeña ayuda para no salirse de la pista. **Imán del tándem:** dos coches derrapando juntos se mantienen a buena distancia (ni se pegan ni se separan).
+- **Coches nuevos:** **GT Sprint** (variante del GT Racer, mismas prestaciones, otra carrocería) para el Grand Prix; **Bávaro 30** (berlina alemana de los 80) y **Zeta 35** (coupé japonés de los 2000) para el drift.
+- **GT Racer:** carrocería más alta (ya no va pegada al suelo ni la atraviesan las ruedas) y punta de unos 200 km/h.
+- **Garaje:** 11 llantas nuevas (JDM de 6 radios, en Y, dobles de los 2000, competición, 3 radios de los 90, multirradio, puntas, rally, turbina, estrella de 7 y clásica de 8). Los neones tienen luz fija y se puede ajustar su **intensidad**.
+- **Gráficos:** sombras sin parpadeo sobre el suelo y la carrocería, y el humo, el polvo y el turbo sin los cuadrados alrededor.
+- **Editor:** gradas de público, boxes de circuito, emisores de humo de colores (6 colores), **pianos automáticos** en el interior de las curvas (casilla en la carretera), pórticos en los controles (la pancarta de salida queda solo en la meta), **selección con recuadro** para borrar varios objetos a la vez (o con la tecla Supr) y **goma de borrar** de tamaño ajustable. Al salir del editor se vuelve a «Circuitos y editor».
+- **Selector de circuitos:** los originales arriba, debajo el recuadro de **Grand Prix** y debajo los propios y descargados; las opciones siguen a la derecha. En el Grand Prix, los botones **CAMPEONATO** y **CARRERA RÁPIDA** son iguales y rojos.
+- **Contrarreloj con salida lanzada:** en la cuenta atrás el coche viene de su vuelta de reconocimiento y en el GO pasa por la meta en marcha.
+- **Retos semanales:** respetan los coches de cada circuito (también los del Grand Prix), son de 1 a 3 vueltas según lo largo que sea y cuenta el **tiempo total** de la carrera.
+- **Online:** Grand Prix y Drift son modos principales y cada modo solo muestra sus circuitos (los de GP y los de drift no se mezclan con los normales). El Grand Prix online sale a 99 vueltas.
+- **Eliminación:** el marcador de posición cuenta solo a los que siguen vivos (1/12, 1/9, 1/6…).
+- **Menú:** recuadro de **novedades** arriba a la derecha; «Salir de la partida» del online lleva al menú principal; en la pausa se quita el botón de Opciones repetido.
+- **Logros nuevos:** crear, publicar y votar circuitos, reto semanal, Grand Prix (correr, podio, victoria, campeonato, todos los circuitos), drift (10.000 y 100.000 puntos, combo de 5.000) y tuneo (llantas, neones, cristales, claxon y color propio).
+
 **Novedades de la 0.112**
 - **Menús de Grand Prix y de drift** como el de carrera rápida: circuitos con sus portadas, el globo terráqueo con su lugar, **hora del día y clima**, rivales, dificultad y vueltas (en drift, solo el circuito). En Grand Prix, debajo, el campeonato con su clasificación.
 - **Música propia** en Grand Prix y drift (sustituye a la original solo en esos modos). En **Opciones** se puede volver a la original y subir o bajar su volumen; la pausa tiene ahora un botón de Opciones para cambiarlo en plena carrera. Música libre de derechos: «Neon Drift» (LoJazz Radio) en el drift y un tema de FreeMusicHome en el Grand Prix.

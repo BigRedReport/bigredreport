@@ -322,7 +322,7 @@
       const GP = this.gpMode, vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K / (GP ? GPV : 1), def = this.def;   // en GP las tablas del coche se leen a escala (misma respuesta, más velocidad)
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
-      const DR = this.driftMode;   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
+      const DR = this.driftMode, DB = DR && this.driftB ? (this.dB || (this.dB = { on: false, lat: 1, side: 1, charge: 0, offT: 0, cT: 0, exit: 0 })) : null;   // drift B (arcade): ver más abajo   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
       const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1);   // más giro para contravolante
       this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * 10);
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
@@ -357,7 +357,7 @@
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
         let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (GP ? 1.15 : 1);   // GP: neumáticos de carreras
-        if (DR && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, this.dOn ? 0.62 : 0.55);   // freno de mano: tirón para cruzarlo (sin frenar)
+        if (DR && !DB && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, this.dOn ? 0.62 : 0.55);   // freno de mano: tirón para cruzarlo (sin frenar)
           else { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
             mu *= 1 - 0.5 * ps; if (this.dOn && throttle > 0.3) mu *= 0.6; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando
         if (w.surface === 'agua' && !K.floats) Flong0 -= vLong * 120;   // el agua frena (salvo a lo que flota)
@@ -367,8 +367,8 @@
         // en el agua lo que flota puede remontar los rápidos (en el original el agua no frena las subidas)
         if (K.floats && !hit.surf && w.surface === 'agua') wetN++;
         const share = this.m / nW;
-        let Flat = -vLat * Math.min(14000, 0.5 * share / dt) * K.lat;
-        let Flong = (K.thrust ? 0 : DR ? (w.steer ? 0 : drive * 1.55 * dmul / nRear) : drive * dmul / this.ndrive) - vLong * 25 + Flong0;
+        let Flat = -vLat * Math.min(14000, 0.5 * share / dt) * K.lat * (DB ? DB.lat : 1);   // drift B: de lado las gomas apenas sujetan (la trayectoria la lleva el derrape)
+        let Flong = (K.thrust ? 0 : DR ? (w.steer || (DB && DB.on) ? 0 : drive * 1.55 * dmul / nRear) : drive * dmul / this.ndrive) - vLong * (DB && DB.on ? 2 : 25) + Flong0;
         if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * (GP ? GPB : 1) * share, Math.abs(vLong) * share / dt * 0.5);
         if (inp.handbrake && !w.steer && !DR) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
         if (!throttle && !brake && Math.abs(vLong) < 1.5) Flong -= vLong * Math.min(0.3 * share / dt, 6000);
@@ -385,7 +385,27 @@
         w.spinRate = vLong / w.radius; w.spin += w.spinRate * dt;
       }
       // drift: con gas el coche no se para al ir de lado (empuja en el sentido de la marcha) y no pasa de ~70° (se puede sujetar con contravolante)
-      if (DR && grounded) { const ab = Math.abs(beta), hv = Math.hypot(this.v[0], this.v[2]), wy = V.dot(this.w, up);
+      // drift B, arcade (como un kart o la lancha sobre el agua, pero en asfalto): el derrape empieza fácil a 30-50 km/h (freno de mano o
+      // volante a fondo con gas), el coche va de lado y la trayectoria sigue casi recta girando poco a poco hacia la curva; el volante abre o cierra
+      // el giro, el motor empuja igual aunque vaya muy cruzado, y se sale soltando el gas o con contravolante fuerte
+      if (DB && grounded) { const hv = Math.hypot(this.v[0], this.v[2]), wy = V.dot(this.w, up), vH = [this.v[0], 0, this.v[2]];
+        if (!DB.on) { DB.charge = Math.abs(inp.steer) > 0.55 && throttle > 0.6 ? DB.charge + dt : 0;
+          if (hv > 8 && vf > 4 && (inp.handbrake || DB.charge > 0.2)) { DB.on = true; DB.side = Math.sign(inp.steer) || (wy > 0 ? -1 : 1); DB.offT = 0; DB.cT = 0; DB.t = 0; } }
+        if (DB.on) { DB.t += dt; const into = inp.steer * DB.side;
+          DB.offT = throttle < 0.2 ? DB.offT + dt : 0; DB.cT = into < -0.6 ? DB.cT + dt : 0;
+          if (hv < 5.5 || DB.offT > 0.4 || DB.cT > 0.35 || Math.abs(beta) > 1.45) { DB.on = false; DB.exit = 0.6; }
+          else { const rate = (0.5 + 0.6 * Math.max(-0.7, into)) * Math.min(1, hv / 10), betaT = -DB.side * (0.55 + 0.2 * Math.max(0, into) - 0.15 * Math.max(0, -into)) * Math.min(1, DB.t / 0.35);
+            // la trayectoria: gira poco a poco hacia la curva (no hacia donde apunta el morro)
+            const ang = -DB.side * rate * dt, ca = Math.cos(ang), sa2 = Math.sin(ang), vR = [vH[0] * ca + vH[2] * sa2, 0, -vH[0] * sa2 + vH[2] * ca];   // giro alrededor del eje vertical (positivo = a la izquierda)
+            F = V.madd(F, V.sub(vR, vH), this.m / dt * 0.85);
+            // el motor no pierde fuerza de lado: empuja en el sentido de la marcha
+            const vmax = this.topSpeed * 0.9; if (throttle > 0.2 && hv < vmax) F = V.madd(F, V.mul(vH, 1 / Math.max(1, hv)), this.m * 4.2 * throttle); else F = V.madd(F, V.mul(vH, 1 / Math.max(1, hv)), -this.m * 1.2);
+            // la carrocería: el ángulo de derrape (más volante hacia dentro = más de lado)
+            const wyT = Math.max(-2.2, Math.min(2.2, -DB.side * rate + 3 * (betaT - beta))); T = V.madd(T, up, (wyT - wy) * this.I[1] * 5); } }
+        DB.exit = Math.max(0, DB.exit - dt); DB.lat = DB.on ? 0.012 : DB.exit > 0 ? 1 - DB.exit / 0.6 * 0.9 : 1;   // al salir, las gomas vuelven a agarrar poco a poco (sin latigazo)
+        }
+      if (DR && grounded && this.drAssist) F = V.madd(F, this.drAssist, this.m);   // ayudas del modo drift (seguir en la pista, imán del tándem): las pone el juego
+      if (DR && !DB && grounded) { const ab = Math.abs(beta), hv = Math.hypot(this.v[0], this.v[2]), wy = V.dot(this.w, up);
         const fh = V.norm([fwd[0], 0, fwd[2]]), rh = V.norm([right[0], 0, right[2]]), sa = this.steerAng, wd = V.norm(V.add(V.mul(fh, Math.cos(sa)), V.mul(rh, Math.sin(sa))));
         const hbOn = inp.handbrake || this.dHold > 0;
         // estado de derrape: entra al cruzarse (gas a fondo girando, o freno de mano) y sale al enderezarse

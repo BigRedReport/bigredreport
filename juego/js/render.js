@@ -23,7 +23,7 @@ void main(){ vec4 w=W*vec4(p,1.); vn=mat3(W)*nrm; vuv=uv; vcol=col; wp=w.xyz; lp
 precision highp float; precision highp sampler2DShadow;
 in vec2 vuv; in vec3 vcol; in vec3 wp; in vec4 lp; in float vwat; in vec3 vn;
 uniform float time; uniform vec3 animPal[16]; uniform int animN; uniform float animStep;
-uniform sampler2D T; uniform sampler2DShadow SM; uniform int useTex; uniform int mode; uniform int shadows; uniform float smTexel;
+uniform sampler2D T; uniform sampler2DShadow SM; uniform int useTex; uniform int mode; uniform int shadows; uniform float smTexel; uniform mat4 LVP; uniform float smW;
 uniform vec3 cam; uniform float far; uniform vec3 fogc; uniform vec3 L; uniform vec3 sunC; uniform vec3 skyC; uniform vec3 gndC; uniform float glow;
 uniform float fogK; uniform float wet; uniform float gloss; uniform vec4 hlP[16]; uniform vec4 hlD[16]; uniform int hlN;
 out vec4 o;
@@ -32,8 +32,9 @@ vec3 headl(vec3 n){ vec3 s=vec3(0.); for(int i=0;i<16;i++){ if(i>=hlN) break; ve
   float cone=smoothstep(.78,.94,dot(l,hlD[i].xyz)); float att=hlD[i].w*cone/(1.+dd*dd*.010); float ty=hlP[i].w; vec3 hc=ty<.5?vec3(1.,.94,.8):ty<1.5?vec3(.86,.93,1.08):ty<2.5?vec3(1.,.96,.88):vec3(1.,.8,.38); s+=hc*att*(max(dot(n,-l),0.)*.75+.25); } return s; }
 float shadow(vec3 n){
   if(shadows==0) return 1.;
-  vec3 q=lp.xyz/lp.w*.5+.5; if(q.x<0.||q.x>1.||q.y<0.||q.y>1.||q.z>1.) return 1.;
-  float b=0.00012+0.0005*(1.-max(dot(n,L),0.)); /* ~7-37 cm de 600 m: los coches en el suelo también dan sombra */ float s=0.;
+  /* «normal offset»: se mira la sombra un poco separado de la superficie (1,5 texels) -> sin el parpadeo de las sombras sobre la carrocería al moverse */
+  float nl=max(dot(n,L),0.); vec4 lq=LVP*vec4(wp+n*smW*(1.5+2.*(1.-nl)),1.); vec3 q=lq.xyz/lq.w*.5+.5; if(q.x<0.||q.x>1.||q.y<0.||q.y>1.||q.z>1.) return 1.;
+  float b=0.00008+0.0002*(1.-nl); /* ~7-37 cm de 600 m: los coches en el suelo también dan sombra */ float s=0.;
   for(int i=-1;i<=1;i++) for(int j=-1;j<=1;j++) s+=texture(SM,vec3(q.xy+vec2(i,j)*smTexel,q.z-b));
   float fade=smoothstep(.85,1.,max(abs(q.x-.5),abs(q.y-.5))*2.);
   return mix(s/9.,1.,fade); }
@@ -71,7 +72,7 @@ void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
   float f=1.-exp(-d*2.2*fogK/far); f=max(f*.75,clamp((d-far*.7)/(far*.3),0.,1.));
   o=vec4(mix(rgb,fogc,f),1.); }`;
       this.pr = prog(gl, VS, FS, ['p', 'uv', 'col', 'lay', 'nrm']); gl.vertexAttrib3f(4, 0, 0, 0);
-      this.U = uniforms(gl, this.pr, ['VP', 'W', 'LVP', 'T', 'SM', 'useTex', 'mode', 'shadows', 'smTexel', 'cam', 'far', 'fogc', 'layK', 'L', 'sunC', 'skyC', 'gndC', 'glow', 'time', 'animPal', 'animN', 'animStep', 'fogK', 'wet', 'gloss', 'hlP', 'hlD', 'hlN']);
+      this.U = uniforms(gl, this.pr, ['VP', 'W', 'LVP', 'T', 'SM', 'useTex', 'mode', 'shadows', 'smTexel', 'smW', 'cam', 'far', 'fogc', 'layK', 'L', 'sunC', 'skyC', 'gndC', 'glow', 'time', 'animPal', 'animN', 'animStep', 'fogK', 'wet', 'gloss', 'hlP', 'hlD', 'hlN']);
       // pase de sombras (solo profundidad, con recorte por transparencia para árboles y vallas)
       this.dpr = prog(gl, `#version 300 es
 in vec3 p; in vec2 uv; uniform mat4 LVP; uniform mat4 W; out vec2 vuv; void main(){ vuv=uv; gl_Position=LVP*W*vec4(p,1.); }`,
@@ -280,7 +281,7 @@ void main(){ vec3 c = aa==1 ? fxaa(uv) : texture(C,uv).rgb;
       const U = this.U;
       gl.uniformMatrix4fv(U.VP, false, VP); gl.uniformMatrix4fv(U.LVP, false, this.LVP || BRR.M4.I);
       gl.uniform3fv(U.cam, camPos); gl.uniform1f(U.far, far); gl.uniform3fv(U.fogc, fogc); gl.uniform1i(U.T, 0); gl.uniform1f(U.layK, this.layers === false ? 0 : 1);
-      gl.uniform1i(U.mode, modern ? 1 : 0); gl.uniform1i(U.shadows, modern && this.shadowQ && this.LVP ? 1 : 0); gl.uniform1f(U.smTexel, 1 / this.shadowSize);
+      gl.uniform1i(U.mode, modern ? 1 : 0); gl.uniform1i(U.shadows, modern && this.shadowQ && this.LVP ? 1 : 0); gl.uniform1f(U.smTexel, 1 / this.shadowSize); gl.uniform1f(U.smW, 2 * this.shadowRange / this.shadowSize);
       { const A = this.atmos || {}; gl.uniform1f(U.fogK, A.fogK || 1); gl.uniform1f(U.gloss, 0); gl.uniform1f(U.wet, A.wet || 0); const H = this.headl || []; gl.uniform1i(U.hlN, Math.min(16, H.length)); if (H.length) { const P = new Float32Array(64), D = new Float32Array(64); H.slice(0, 16).forEach((q, i) => { P.set([q.p[0], q.p[1], q.p[2], q.t || 0], i * 4); D.set([q.d[0], q.d[1], q.d[2], q.k], i * 4); }); gl.uniform4fv(U.hlP, P); gl.uniform4fv(U.hlD, D); } }
       gl.uniform3fv(U.L, this.L); gl.uniform3fv(U.sunC, this.sunC || [1, 1, 1]); gl.uniform3fv(U.skyC, this.skyC || [.8, .8, .8]); gl.uniform3fv(U.gndC, this.gndC || [.4, .4, .4]);
       gl.uniform1f(U.glow, 0); const tnow = performance.now() / 1000; gl.uniform1f(U.time, tnow % 3600);

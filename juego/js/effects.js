@@ -16,12 +16,13 @@ precision highp float; in vec2 vuv; in vec4 vcol; in vec3 wp; uniform vec3 cam; 
 void main(){ float a=vcol.a;
   vec3 rgb=vcol.rgb;
   if(vuv.x>=10.){ vec4 t=texture(S,vec2(vuv.x-10.,vuv.y)); if(t.a<.06) discard; rgb=t.rgb*mix(vec3(1.),vcol.rgb*1.3,.3); a*=smoothstep(.15,.75,t.a); }   /* humo y polvo del original (hojas SPOTFX2 del .ENV) */
-  else if(vuv.x>=0.){ vec2 q=vuv*2.-1.;
-    // borde irregular (ruido según la posición) para que el humo y el polvo no sean círculos perfectos
-    float ang=atan(q.y,q.x), sd=dot(floor(wp*1.7),vec3(1.7,9.2,3.1));
-    float wob=.82+.12*sin(ang*3.+sd)+.08*sin(ang*7.-sd*1.3);
-    float r=length(q)/wob; if(r>1.) discard; a*=1.-smoothstep(.2,1.,r);
-    if(vuv.y<=1.) rgb*=.78+.34*vuv.y+.06*sin(q.x*5.+sd);   // volumen: más claro arriba (luz del cielo) y más oscuro abajo
+  else if(vuv.y>=2.){ vec2 q=vec2(vuv.x,vuv.y-2.)*2.-1.; float r=max(length(q),0.); a*=1.-smoothstep(.15,1.,r); if(r>1.) discard; }   /* luces (neones, brillos): mancha suave y estable, sin bordes */
+  else if(vuv.x>=0.){ float k=floor(vuv.x/2.); vec2 q=vec2(vuv.x-2.*k,vuv.y)*2.-1.;
+    // borde irregular para que el humo y el polvo no sean círculos perfectos: la forma va con cada partícula (no con la posición: así no salen cortes rectos)
+    float ang=atan(q.y,q.x), sd=k*2.31+1.;
+    float wob=.84+.1*sin(ang*3.+sd)+.06*sin(ang*7.-sd*1.3);
+    float r=length(q)/wob; if(r>1.) discard; a*=1.-smoothstep(.1,1.,r);
+    rgb*=.8+.3*(vuv.y)+.05*sin(q.x*5.+sd);   // volumen: más claro arriba (luz del cielo) y más oscuro abajo
   }
   float f=clamp((length(wp-cam)-far*.55)/(far*.45),0.,1.); o=vec4(mix(rgb,fogc,f),a*(1.-f)); }`;
       const sh = (t, s) => { const x = gl.createShader(t); gl.shaderSource(x, s); gl.compileShader(x); if (!gl.getShaderParameter(x, gl.COMPILE_STATUS)) throw new Error(gl.getShaderInfoLog(x)); return x; };
@@ -44,6 +45,8 @@ void main(){ float a=vcol.a;
         for (let pass = 0; pass < 2; pass++) for (let y = 1; y < H - 1; y++) for (let x = 1; x < W - 1; x++) { const i = (y * W + x) * 4; if (D[i + 3] || o[i + 3]) continue; let r = 0, g = 0, b = 0, n = 0;   // color sangrado hacia lo transparente (sin halo negro al filtrar)
           for (const j of [i - 4, i + 4, i - W * 4, i + W * 4]) if (o[j + 3] || o[j] + o[j + 1] + o[j + 2]) { r += o[j]; g += o[j + 1]; b += o[j + 2]; n++; } if (n) { o[i] = r / n; o[i + 1] = g / n; o[i + 2] = b / n; } }
         D = o; }
+      { const k = W / img.w; D = new Uint8Array(D); for (const S of Object.values(SPR)) for (let f = 0; f < S.n; f++) { const x0 = (S.x + (f % S.cols) * S.w) * k, y0 = (S.y + ((f / S.cols) | 0) * S.h) * k, w = S.w * k, h = S.h * k, m = Math.min(w, h) * 0.2;
+          for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) { const e = Math.min(x, y, w - 1 - x, h - 1 - y), i = ((y0 + y) * W + x0 + x) * 4; if (i < 0 || i >= D.length) continue; if (e < m) D[i + 3] = Math.round(D[i + 3] * Math.max(0, e - 1) / m); } } }   // los bordes de cada fotograma, transparentes: sin cuadrados alrededor del humo y del polvo
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, W, H, 0, gl.RGBA, gl.UNSIGNED_BYTE, D); gl.generateMipmap(gl.TEXTURE_2D);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE); this.sprTex = t; this.sprH = img.h; }
@@ -172,13 +175,14 @@ void main(){ float a=vcol.a;
           r = V.mul(right, s2 * S.w / S.h); u = V.mul(up, s2); const c2 = [p[0], p[1] + s2 * (S.mid ? 0 : 0.6), p[2]], Q0 = V.sub(V.sub(c2, r), u), Q1 = V.sub(V.add(c2, r), u), Q2 = V.add(V.add(c2, r), u), Q3 = V.add(V.sub(c2, r), u);
           put(Q0, u0, v1, q.col, aa); put(Q1, u1, v1, q.col, aa); put(Q2, u1, v0, q.col, aa); put(Q0, u0, v1, q.col, aa); put(Q2, u1, v0, q.col, aa); put(Q3, u0, v0, q.col, aa); continue; }
         const P0 = V.sub(V.sub(p, r), u), P1 = V.sub(V.add(p, r), u), P2 = V.add(V.add(p, r), u), P3 = V.add(V.sub(p, r), u);
-        put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a);
+        const K = 2 * ((q.sd != null ? q.sd : (q.sd = Math.random() * 4 | 0)));
+        put(P0, K, 0, q.col, a); put(P1, K + 1, 0, q.col, a); put(P2, K + 1, 1, q.col, a); put(P0, K, 0, q.col, a); put(P2, K + 1, 1, q.col, a); put(P3, K, 1, q.col, a);
       }
       const nPart = n / 9;
-      for (const q of this.glows || []) { if (q.quad) { const [A, B, C, Dd] = q.quad, a = q.col[3]; put(A, 0, 0, q.col, a); put(B, 1, 0, q.col, a); put(C, 1, 1, q.col, a); put(A, 0, 0, q.col, a); put(C, 1, 1, q.col, a); put(Dd, 0, 1, q.col, a); continue; }
+      for (const q of this.glows || []) { if (q.quad) { const [A, B, C, Dd] = q.quad, a = q.col[3]; put(A, 0, 2, q.col, a); put(B, 1, 2, q.col, a); put(C, 1, 3, q.col, a); put(A, 0, 2, q.col, a); put(C, 1, 3, q.col, a); put(Dd, 0, 3, q.col, a); continue; }
         const r = V.mul(right, q.size), u = V.mul(up, q.size), p = q.p, a = q.col[3];
         const P0 = V.sub(V.sub(p, r), u), P1 = V.sub(V.add(p, r), u), P2 = V.add(V.add(p, r), u), P3 = V.add(V.sub(p, r), u);
-        put(P0, 0, 0, q.col, a); put(P1, 1, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P0, 0, 0, q.col, a); put(P2, 1, 1, q.col, a); put(P3, 0, 1, q.col, a); }
+        put(P0, 0, 2, q.col, a); put(P1, 1, 2, q.col, a); put(P2, 1, 3, q.col, a); put(P0, 0, 2, q.col, a); put(P2, 1, 3, q.col, a); put(P3, 0, 3, q.col, a); }
       if (this.glows) this.glows.length = 0;
       const verts = n / 9; if (!verts) return;
       gl.useProgram(this.pr); if (this.sprTex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, this.sprTex); gl.uniform1i(this.U.S, 0); } gl.uniformMatrix4fv(this.U.VP, false, VP); gl.uniform3fv(this.U.cam, cam); gl.uniform1f(this.U.far, far); gl.uniform3fv(this.U.fogc, fog);

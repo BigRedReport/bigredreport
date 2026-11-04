@@ -209,6 +209,10 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   .gptrack{padding:6px;border-radius:10px;border:2px solid var(--line);background:#0e121b;cursor:pointer;text-align:left;margin:0} .gptrack.on{border-color:var(--red,#e2231a)} .gptrack img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:6px;display:block} .gptrack b{display:block;margin-top:4px}
   #gp_champ table,#q_gpchamp table{width:100%;border-collapse:collapse;margin-top:8px} #gp_champ td,#q_gpchamp td{padding:3px 6px;border-top:1px solid var(--line)} #gp_champ td:last-child,#q_gpchamp td:last-child{text-align:right;font-weight:700} #gp_champ tr.me td,#q_gpchamp tr.me td{color:#ffd23f}
   .tgph{margin:14px 0 6px;font-weight:800;font-size:15px;color:#ffd23f;letter-spacing:.5px}
+  .tcol{overflow:auto;min-height:0;padding-right:2px} .tcol .tracks{overflow:visible}
+  #pane_home{position:relative} .hnews{position:absolute;top:0;right:0;width:min(330px,42vw);max-height:46%;overflow:auto;background:rgba(10,12,18,.62);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.35;backdrop-filter:blur(4px)}
+  .hnews h4{margin:0 0 6px;font-size:13px;color:#ffd23f;letter-spacing:.4px} .hnews .nv{margin:0 0 7px} .hnews .nv b{color:#fff} .hnews .nv span{color:var(--mut)} .hnews a{color:#9fd8ff;font-size:12px}
+  @media (max-width:820px){.hnews{display:none!important}}
 </style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#e23b3b"><link rel="icon" href="icon-192.png">
 </head><body>
 <canvas id="c"></canvas><div id="err"></div>
@@ -267,6 +271,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
       </div>
     </div>
     <aside class="hprof" id="h_prof"></aside>
+    <div id="h_news" class="hnews" hidden></div>
   </section>
   <section id="pane_profile" class="pane" hidden>
     <div class="tlist">
@@ -302,7 +307,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <aside class="detail"><div class="dbody"><h2>Mods</h2><p class="small">Se guardan en el navegador (no se modifica tu carpeta del juego). Puedes activarlos, desactivarlos o borrarlos cuando quieras.</p></div></aside>
   </section>
   <section id="pane_quick" class="pane" hidden>
-    <div id="tracks" class="tracks"></div><div id="tracks_gpw" hidden><div class="tgph">🏎️ Grand Prix</div><div id="tracks_gp" class="tracks"></div></div>
+    <div class="tcol"><div id="tracks" class="tracks"></div><div id="tracks_gpw" hidden><div class="tgph">🏎️ Grand Prix</div><div id="tracks_gp" class="tracks"></div></div><div id="tracks_cw" hidden><div class="tgph">🛠 Circuitos propios y de la comunidad</div><div id="tracks_c" class="tracks"></div></div></div>
     <aside class="detail">
       <div class="dimg"><img id="d_img" alt="" hidden><canvas id="d_globe" width="440" height="440"></canvas><div id="d_place"></div><div id="d_ttbest" class="ttbest" hidden></div></div>
       <div class="dbody">
@@ -324,7 +329,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <div class="grid2"><div><label class="row">Jugadores (pantalla partida)</label><select id="m_players"><option value="1">1 jugador</option><option value="2">2 jugadores</option><option value="3">3 jugadores</option><option value="4">4 jugadores</option><option value="5">5 jugadores</option><option value="6">6 jugadores</option><option value="7">7 jugadores</option><option value="8">8 jugadores</option></select></div>
         <div><p class="small" style="margin:30px 0 0">Cada mando es un jugador. Sin mandos suficientes: J1 teclado WASD, J2 flechas.</p></div></div>
         <div id="d_lb" hidden><label class="row">Clasificación contrareloj <span class="small" id="d_lbsrc"></span></label><table id="d_lbt" class="lbt"></table></div>
-        <div id="q_gp" hidden><div id="q_gpchamp"></div><div class="grid2" style="margin:8px 0"><button id="q_cup">🏆 Campeonato</button><button id="q_quit" hidden>Abandonar el campeonato</button></div></div>
+        <div id="q_dr" hidden><label class="row">Física del drift</label><select id="m_dphys"><option value="A">A · la de ahora</option><option value="B">B · arcade (estilo kart)</option></select></div>
+        <div id="q_gp" hidden><div id="q_gpchamp"></div><button class="main" id="q_cup" style="width:100%;margin:8px 0">CAMPEONATO</button><button id="q_quit" class="small2" style="width:100%;margin:0 0 8px" hidden>Abandonar el campeonato</button></div>
         <button class="main" id="go">Correr</button>
       </div>
     </aside>
@@ -374,13 +380,13 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
           <div><label class="row">Tipo</label><select id="n_pub"><option value="1">Pública (sale en la lista)</option><option value="0">Privada (solo con el código)</option></select></div></div>
         <div class="grid3"><div><label class="row">Contraseña</label><input id="n_rpass" class="inp" placeholder="(opcional)"></div>
           <div><label class="row">Jugadores</label><select id="n_max"><option>2</option><option>3</option><option selected>4</option><option>5</option><option>6</option><option>8</option><option>10</option><option>12</option></select></div>
-          <div><label class="row">Modo</label><select id="n_mode"><option value="single">Una carrera</option><option value="list">Lista de carreras</option><option value="champ">Campeonato (serie del torneo)</option><option value="rotate">Circuito al azar cada carrera</option><option value="vote">Votación al terminar cada carrera</option><option value="free">Modo libre (sin vueltas, con rampas)</option></select></div></div>
+          <div><label class="row">Modo</label><select id="n_mode"><option value="single">Una carrera</option><option value="gp">🏎️ Grand Prix</option><option value="drift">💨 Drift</option><option value="list">Lista de carreras</option><option value="champ">Campeonato (serie del torneo)</option><option value="rotate">Circuito al azar cada carrera</option><option value="vote">Votación al terminar cada carrera</option><option value="free">Modo libre (sin vueltas, con rampas)</option></select></div></div>
         <div id="n_mapsrow"><label class="row">Circuitos <span class="small" id="n_mapshint"></span></label><div id="n_maps" class="small"></div><button id="n_pickmaps" style="margin-top:6px">Elegir circuitos…</button></div>
         <div id="n_seriesrow" hidden><label class="row">Serie</label><select id="n_series"></select></div>
-        <div class="grid3"><div><label class="row">Vueltas</label><select id="n_laps"><option value="0">Original</option><option>1</option><option>2</option><option>3</option><option>5</option></select></div>
+        <div class="grid3"><div><label class="row">Vueltas</label><select id="n_laps"><option value="0">Original</option><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option><option>99</option></select></div>
           <div><label class="row">Rivales de la máquina</label><select id="n_ai"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option><option>10</option></select></div>
           <div><label class="row">Dificultad</label><select id="n_diff"><option value="1">Fácil</option><option value="2" selected>Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div></div>
-        <div class="grid2"><div><label class="row">Modos extra</label><select id="n_crazy"><option value="normal">Carrera normal</option><option value="elim_cp">Eliminación</option><option value="bomba">Bomba caliente</option><option value="zombie">Infección zombi</option><option value="polis">Polis y cacos</option><option value="kart">Modo kart</option><option value="drift">Modo drift (libre, todos con el Panda 86)</option><option value="gp">Grand Prix (sus circuitos y coches)</option></select></div><div></div></div>
+        <div class="grid2"><div><label class="row">Modos extra</label><select id="n_crazy"><option value="normal">Carrera normal</option><option value="elim_cp">Eliminación</option><option value="bomba">Bomba caliente</option><option value="zombie">Infección zombi</option><option value="polis">Polis y cacos</option><option value="kart">Modo kart</option></select></div><div></div></div>
         <div class="grid2" style="margin-top:10px"><button class="main" id="n_create">Crear</button><button id="n_cancel">Cancelar</button></div>
       </div>
     </div>
@@ -506,7 +512,6 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <button id="p_restart" style="width:100%;margin-top:8px">Reiniciar carrera</button>
   <button id="p_swap" style="width:100%;margin-top:8px" hidden>🚗 Cambiar de vehículo</button>
   <button id="p_photo" style="width:100%;margin-top:8px">📷 Modo foto</button>
-  <button id="p_opts" style="width:100%;margin-top:8px">⚙️ Opciones (música, volumen…)</button>
   <button class="optbtn" style="width:100%;margin-top:8px">Opciones</button>
   <button id="p_menu" style="width:100%;margin-top:8px">Salir al menú</button>
 </div></div>
@@ -540,11 +545,11 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <canvas id="gr_car" width="360" height="200" style="display:block;width:100%;max-width:360px;margin:6px auto;border-radius:10px;background:radial-gradient(#2a3040,#10131b)"></canvas>
   <div class="grrow"><div><b>Vehículo</b></div><select id="gr_vsel"></select></div>
   <div class="grrow"><div><b>Llantas</b> <span class="small">neumático y llanta nuevos (mismo tamaño de rueda)</span><br><canvas id="gr_rimcv" width="96" height="96" style="margin-top:6px"></canvas></div>
-    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><select id="gr_rim"><option value="orig">Originales</option><option value="malla">Malla (cruzada)</option><option value="radios5">5 radios</option><option value="multi">Radios finos</option><option value="estrella">Estrella partida</option><option value="disco">Disco</option><option value="acero">De acero</option></select>
+    <div style="display:flex;flex-direction:column;gap:6px;align-items:flex-end"><select id="gr_rim"><option value="orig">Originales</option><option value="malla">Malla (cruzada)</option><option value="radios5">5 radios</option><option value="multi">Radios finos</option><option value="estrella">Estrella partida</option><option value="disco">Disco</option><option value="acero">De acero</option><option value="jdm6">6 radios gruesos (JDM)</option><option value="ysp">Radios en Y (deportiva)</option><option value="doble5">5 radios dobles (años 2000)</option><option value="comp10">Competición (10 radios)</option><option value="tres">3 radios (años 90)</option><option value="multi20">Multirradio (20)</option><option value="puntas">Puntas (agresiva)</option><option value="rally">Rally (disco con agujeros)</option><option value="turbina">Turbina (aerodinámica)</option><option value="estrella7">Estrella de 7</option><option value="clasica8">Clásica (8 radios)</option></select>
     <select id="gr_rimsize"><option value="15">15"</option><option value="16">16"</option><option value="17">17"</option><option value="18">18"</option><option value="19">19"</option></select>
     <select id="gr_rimcol"><option value="plata">Plata</option><option value="negro">Negro</option><option value="gris">Grafito</option><option value="oro">Oro</option><option value="bronce">Bronce</option><option value="blanco">Blanco</option><option value="carro">Color del coche</option></select></div></div>
   <div class="grrow"><div><b>Color del turbo</b></div><div><input type="color" id="gr_turbo"> <button id="gr_turbo0">Como el coche</button></div></div>
-  <div class="grrow"><div><b>Neones</b> <span class="small">luz de color bajo el coche</span></div><div><select id="gr_neon"><option value="no">Sin neones</option><option value="si">Con neones</option></select> <input type="color" id="gr_neoncol"></div></div>
+  <div class="grrow"><div><b>Neones</b> <span class="small">luz de color bajo el coche</span></div><div><select id="gr_neon"><option value="no">Sin neones</option><option value="si">Con neones</option></select> <input type="color" id="gr_neoncol"> <input type="range" id="gr_neonint" min="15" max="140" step="5" title="Intensidad" style="width:110px;vertical-align:middle"></div></div>
   <div class="grrow"><div><b>Luces</b> <span class="small">color de los faros (de noche, niebla y lluvia)</span></div><select id="gr_lights"><option value="normal">Originales</option><option value="blanca">Blancas (xenón)</option><option value="intermedia">Blanco cálido</option><option value="amarilla">Amarillas</option></select></div>
   <div class="grrow"><div><b>Ventanas</b></div><div><select id="gr_glass"><option value="normal">Normales</option><option value="oscuro">Tintadas</option><option value="negro">Muy oscuras</option><option value="color">De color</option></select> <input type="color" id="gr_glasscol"></div></div>
   <button id="gr_close" style="margin-top:12px">Cerrar</button>
@@ -624,6 +629,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/horns.js"></script>
 <script src="js/drift_data.js"></script>
 <script src="js/gp_data.js"></script>
+<script src="js/procobjs.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/main.js"></script>
 
