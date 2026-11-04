@@ -7,6 +7,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.115.2**
+- **Decoración de los circuitos Grand Prix también para su autor:** si tienes el circuito en tu editor, el juego usaba tu copia sin decoración; ahora la lleva al jugar (tu copia guardada no cambia; con «🏟 Mejoras del juego» puedes meterla en ella para retocarla).
+
 **Novedades de la 0.115.1**
 - **Decoración de los circuitos Grand Prix:** ahora aparece también cuando su autor ha retocado el circuito en la comunidad (antes solo salían las vallas, los pianos y el puente). Cada grada, box, torre o árbol se comprueba contra la carretera tal como esté, y solo se quita lo que la pise.
 
