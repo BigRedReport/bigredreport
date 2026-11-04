@@ -7,6 +7,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.115.3**
+- **F1:** suspensión mucho más dura (el fondo ya no atraviesa el suelo con el apoyo aerodinámico) y dirección más tranquila a alta velocidad (ya no se va con el mínimo toque en las rectas largas).
+- **Drift (física A):** con el contravolante a fondo y gas el coche cruza al otro lado de un tirón, sin cortar el derrape (ya no se queda pillado al encadenar curvas). Por debajo de unos 50 km/h el derrape se apaga solo y el coche sale acelerando con normalidad.
+
 **Novedades de la 0.115.2**
 - **Decoración de los circuitos Grand Prix también para su autor:** si tienes el circuito en tu editor, el juego usaba tu copia sin decoración; ahora la lleva al jugar (tu copia guardada no cambia; con «🏟 Mejoras del juego» puedes meterla en ella para retocarla).
 

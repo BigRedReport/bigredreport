@@ -323,8 +323,8 @@
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
       const DR = this.driftMode, DB = DR && this.driftB ? (this.dB || (this.dB = { on: false, lat: 1, side: 1, charge: 0, offT: 0, cT: 0, exit: 0 })) : null;   // drift B (arcade): ver más abajo   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
-      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1);   // más giro para contravolante
-      this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * 10);
+      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1) * (F1 ? 1 / (1 + (vf / 38) ** 2) : 1);   // más giro para contravolante; el F1, mucho menos a alta velocidad (si no, se va con el mínimo toque)
+      this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * (F1 ? 10 / (1 + Math.max(0, vf) / 30) : 10));
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
       if (this.gpMode && this.grounded && this.def.name === 'F1' && inp.throttle > 0.1 && V.dot(this.v, fwd) > -0.5) { const tp = this.topSpeed, vf0 = V.dot(this.v, fwd); if (vf0 < tp * 0.98) F = V.madd(F, fwd, this.m * 7.5 * inp.throttle * Math.max(0.15, 1 - vf0 / tp)); }   // F1: tracción de monoplaza (0-100 en ~2,4 s)
       if (this.gpMode && this.grounded) { const sp2 = this.v[0] ** 2 + this.v[2] ** 2, f1 = this.def.name === 'F1'; F = V.add(F, V.mul(up, -Math.min((f1 ? 0.0045 : 0.0028) * sp2, f1 ? 14 : 6) * this.m)); }   // F1: mucho más apoyo   // GP: apoyo aerodinámico (más agarre cuanto más rápido)
@@ -349,7 +349,7 @@
         if (!hit) { w.prevLen = w.len = L0; w.load = 0; w.spin += (w.spinRate || 0) * dt; continue; }
         grounded++;
         const len = Math.max(0, hit.t - w.radius), dl = (len - w.prevLen) / dt; w.prevLen = w.len = len;
-        const kw = w.k || this.k, cw = w.cd || this.c; let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
+        const kw = (w.k || this.k) * (F1 ? 7 : 1), cw = (w.cd || this.c) * (F1 ? 3 : 1); /* F1: suspensión muy dura (con tanto apoyo el fondo tocaba el suelo) */ let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
         Fs = Math.max(0, Fs); w.load = Fs;
         const n = hit.n, cp = V.madd(top, down, hit.t), r = V.sub(cp, this.p);
         const vc = V.add(this.v, V.cross(this.w, r));
@@ -370,8 +370,8 @@
         // en el agua lo que flota puede remontar los rápidos (en el original el agua no frena las subidas)
         if (K.floats && !hit.surf && w.surface === 'agua') wetN++;
         const share = this.m / nW;
-        let Flat = -vLat * Math.min(14000, 0.5 * share / dt) * K.lat * (DB ? DB.lat : DR && this.dOn ? 1 - 0.985 * (this.dRamp || 0) : 1);   // drift A: de lado las gomas apenas tiran del coche hacia el morro (la trayectoria la lleva el derrape)   // drift B: de lado las gomas apenas sujetan (la trayectoria la lleva el derrape)
-        const dA = DR && !DB && this.dOn ? this.dRamp || 0 : 0;   // drift A en marcha: el motor empuja en el sentido de la marcha (abajo), no hacia el morro
+        let Flat = -vLat * Math.min(14000, 0.5 * share / dt) * K.lat * (DB ? DB.lat : DR && this.dOn ? 1 - 0.985 * (this.dRamp || 0) * (this.dSpd ?? 1) : 1);   // drift A: de lado las gomas apenas tiran del coche hacia el morro (la trayectoria la lleva el derrape)   // drift B: de lado las gomas apenas sujetan (la trayectoria la lleva el derrape)
+        const dA = DR && !DB && this.dOn ? (this.dRamp || 0) * (this.dSpd ?? 1) : 0;   // drift A en marcha: el motor empuja en el sentido de la marcha (abajo), no hacia el morro
         let Flong = (K.thrust ? 0 : DR ? (w.steer || (DB && DB.on) ? 0 : drive * 1.55 * dmul / nRear * (1 - dA)) : drive * dmul / this.ndrive) - vLong * (DB && DB.on ? 2 : 25 - 23 * dA) + Flong0;
         if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * (F1 ? 4.6 : GP ? GPB : 1) * share, Math.abs(vLong) * share / dt * 0.5);
         if (inp.handbrake && !w.steer && !DR) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
@@ -413,24 +413,25 @@
         const fh = V.norm([fwd[0], 0, fwd[2]]), rh = V.norm([right[0], 0, right[2]]), sa = this.steerAng, wd = V.norm(V.add(V.mul(fh, Math.cos(sa)), V.mul(rh, Math.sin(sa))));
         const hbOn = inp.handbrake || this.dHold > 0;
         // estado de derrape: entra al cruzarse (gas a fondo girando, o freno de mano) y sale al enderezarse
-        if (!this.dOn && ab > 0.2 && vf > 4) { this.dOn = true; this.dRamp = 0; } else if (this.dOn && ((ab < 0.07 && !inp.handbrake) || vf < 2.5 || hv < 3)) this.dOn = false;
-        this.dRamp = this.dOn ? Math.min(1, (this.dRamp || 0) + dt / 0.6) : 0; const rp = this.dRamp * this.dRamp * (3 - 2 * this.dRamp);   // entra suave: sin el último tirón al empezar el derrape
+        if (!this.dOn && ab > 0.2 && vf > 4) { this.dOn = true; this.dRamp = 0; } else if (this.dOn && ((ab < 0.07 && !inp.handbrake && !(Math.abs(inp.steer) > 0.5 && throttle > 0.3)) || vf < 2.5 || hv < 4)) this.dOn = false;   /* al cambiar de lado (volante a fondo con gas) el derrape sigue al pasar por recto */
+        this.dRamp = this.dOn ? Math.min(1, (this.dRamp || 0) + dt / 0.6) : 0; this.dSpd = Math.max(0, Math.min(1, (hv - 8) / 6)); const rp = this.dRamp * this.dRamp * (3 - 2 * this.dRamp);   /* dSpd: por debajo de ~50 km/h el derrape se va apagando: las gomas agarran y el coche sale con fuerza */   // entra suave: sin el último tirón al empezar el derrape
         if (!(this.dOn && inp.handbrake)) this.hbA = null;
         if (!this.dOn) this.dDir = null;
         if (this.dOn && hv > 4) {
           // el ángulo lo decide el gas (más gas = más de lado), el contravolante lo cierra y girar hacia dentro lo abre; sin gas se va enderezando.
           // La trayectoria NO va hacia donde apunta el morro: sigue casi recta y gira despacio hacia la curva (más si giras hacia dentro, menos con contravolante)
           const sg = Math.sign(beta) || 1, cs = Math.max(0, inp.steer * sg), into = Math.max(0, -inp.steer * sg);
-          let mag = throttle > 0.3 ? 0.28 + 0.42 * throttle + 0.3 * into - 0.32 * cs : ab * 0.45; mag = Math.max(0.1, Math.min(0.9, mag));
+          let mag = throttle > 0.3 ? 0.28 + 0.42 * throttle + 0.3 * into - 0.32 * Math.min(cs, 0.6) - 1.6 * Math.max(0, cs - 0.6) : ab * 0.45; mag = Math.max(throttle > 0.3 ? -0.7 : 0.1, Math.min(0.9, mag));   /* contravolante a fondo: el coche cruza al otro lado (cambio de dirección del derrape) */
           // freno de mano: mantiene el ángulo que lleva (el volante lo sigue ajustando un poco) y alarga el derrape sin acelerar
           if (inp.handbrake) { if (this.hbA == null) { this.hbA = Math.max(0.2, ab); this.hbV = hv; } mag = Math.max(0.1, Math.min(1.0, this.hbA + 0.15 * into - 0.15 * cs)); }
           if (rp < 1) mag = ab + (mag - ab) * rp;   // al empezar, parte del ángulo que ya lleva
+          mag *= this.dSpd;   // despacio se endereza solo
           const vH = [this.v[0], 0, this.v[2]], rate = Math.max(0.05, 0.32 + 0.45 * into - 0.3 * cs) * Math.min(1, hv / 10) * rp;
           const wyT = Math.max(-2.2, Math.min(2.2, sg * rate + 3.2 * (sg * mag - beta))); T = V.madd(T, up, (wyT - wy) * this.I[1] * 7 * (0.6 + 0.4 * rp));   // la carrocería gira con la trayectoria y mantiene el ángulo
           // dirección de la marcha guardada: gira solo lo que diga el derrape (si un golpe la cambia de verdad, parte de la nueva)
           const cd = [vH[0] / hv, 0, vH[2] / hv]; if (!this.dDir || this.dDir[0] * cd[0] + this.dDir[2] * cd[2] < 0.94) this.dDir = cd;
           const ang = sg * rate * dt, ca = Math.cos(ang), sn = Math.sin(ang), d0 = this.dDir; this.dDir = [d0[0] * ca + d0[2] * sn, 0, -d0[0] * sn + d0[2] * ca];   // giro alrededor del eje vertical hacia el lado del morro
-          this.dLock = 0.9 * rp;
+          this.dLock = 0.9 * rp * this.dSpd;
           if (inp.handbrake) { this.hbV = Math.max(0, this.hbV - 1.2 * dt); if (hv < this.hbV) F = V.madd(F, V.mul(vH, 1 / hv), this.m * Math.min(6, (this.hbV - hv) * 3)); }   // sin acelerar: solo no deja que se pare (pierde ~1 m/s cada segundo)
           else if (throttle > 0.1 && hv < this.topSpeed * 0.88) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.5 * throttle);   // con gas empuja en el sentido de la marcha (estira el derrape)
           else if (throttle <= 0.1) F = V.madd(F, V.mul(vH, 1 / hv), -this.m * 2.5);   // sin gas pierde velocidad
