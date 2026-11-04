@@ -20,6 +20,7 @@ Ein von Fans erstellter Port von **Big Red Racing** (Big Red Software, 1995) fü
 
 ## Funktionen
 
+- **Originalspiel von 1995:** mit F2 startet das originale RACING.EXE in einem eingebauten DOS-Emulator (DOSBox), mit deiner eigenen Kopie, Bildfiltern (scharf, weich oder CRT) und Gamepad.
 - **Grafik:** hohe Auflösung, moderne Beleuchtung mit Sonne und Schatten (oder der originale Look von 1995), geglättetes Gelände, Rauch und Staub, Wellen auf dem Wasser, Ultrawide-Unterstützung und unbegrenzte Bildrate
 - **Gegner:** die aufgezeichneten Rennen des Originalspiels oder eine neue KI, im Pulk und mit saubereren Starts
 - **Mehrspieler:** geteilter Bildschirm für bis zu 8 Spieler und Online-Spiel für bis zu 12, mit Wiederverbindung, Host-Wechsel sowie Text- und Sprachchat

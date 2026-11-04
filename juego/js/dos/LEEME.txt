@@ -1,0 +1,5 @@
+Emulador DOS usado por "Juego original (1995)" (F2):
+js-dos 6.22.60 (https://github.com/caiiiycuk/js-dos, licencia ISC), que incluye DOSBox
+compilado a WebAssembly (https://www.dosbox.com, licencia GNU GPL v2; código fuente en los
+enlaces anteriores). Estos archivos se distribuyen sin cambios. El juego original NO se incluye:
+se usa la copia de cada jugador (su carpeta BIGRED y, si la tiene, la imagen del CD).

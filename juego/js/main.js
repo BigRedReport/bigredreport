@@ -366,7 +366,16 @@
     await orig.init();
     if (opt.menu !== 'moderno') { state = 'origmenu'; orig.open(); }
   }
-  addEventListener('keydown', e => { if (e.code === 'F2' && state === 'menu' && orig && !orig.on) { opt.menu = 'original'; save(); orig.open(); } });
+  addEventListener('keydown', e => { if (e.code === 'F2' && state === 'menu' && !(orig && orig.on) && !(BRR.DosGame && BRR.DosGame.on)) { e.preventDefault(); e.stopImmediatePropagation(); setTimeout(() => dosOpen(), 0); } });   // F2: el juego original de verdad (la misma pulsación no debe llegar a nada más)
+  // ---------- el juego original de 1995 en el emulador DOS (ver dosgame.js) ----------
+  function dosOpen() {
+    if (!files || !BRR.DosGame) return; if (!files.has('RACING.EXE')) { frToast('Para el juego original hace falta RACING.EXE en tu carpeta BIGRED.', []); return; }
+    if (orig && orig.on) orig.close();
+    if (audio) { audio.stopMusic(); audio.stopNarration && audio.stopNarration(); if (audio.ctx) audio.ctx.suspend(); }
+    state = 'dos'; show('none');
+    BRR.DosGame.open(files, { filter: opt.dosFilter || 'pixel', setFilter: v => { opt.dosFilter = v; save(); },
+      onExit: () => { state = 'menu'; show('menu'); go('home'); if (audio && audio.ctx) audio.ctx.resume(); menuMusic(); } });
+  }   // la misma pulsación no debe llegar al menú original (lo cerraría al momento)
   // ---------- menú con las tarjetas originales de los circuitos y torneo ----------
   let front = null, tourMode = false; let customKinds = [], curLevelId = null;
   const DIFF = ['', 'Fácil', 'Mediana', 'Difícil'];
@@ -439,6 +448,7 @@
   const sfx = n => { if (audio) { audio.init(); audio.play('SAMPLES/' + n + '.WAV', { vol: 0.5, bus: 'ui' }); } };
   function go(v, silent) {
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
+    if (v === 'dos') { dosOpen(); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
     if (v === 'reto') { retoOpen(); return; }
     if (v === 'friends') { frOpen(); return; }
@@ -873,8 +883,17 @@
       if (cT) lvl.title = cT.name;
       trackPipes = []; if (cT) for (const o of cT.objs || []) if (o.n === 'HALFPIPE') { const S8 = 512 * BRR.S, x = o.x * S8, z = -o.z * S8, a = (o.r || 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);   // half pipes puestos en el editor
         trackPipes.push({ p: [x, lvl.terrain(x, z) - 0.03, z], R: [[c, 0, -sn], [0, 1, 0], [sn, 0, c]] }); }
-      trackProcs = []; if (cT) for (const o of cT.objs || []) { const D = BRR.PROC_OBJS && BRR.PROC_OBJS[o.n]; if (!D) continue; const S8 = 512 * BRR.S, x = o.x * S8, z = -o.z * S8, a = (o.r || 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);   // gradas, boxes, humo…
+      trackProcs = []; trackMerge = []; if (cT) for (const o of cT.objs || []) { const D = BRR.PROC_OBJS && BRR.PROC_OBJS[o.n]; if (!D) continue; const S8 = 512 * BRR.S, x = o.x * S8, z = -o.z * S8, a = (o.r || 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a);   // gradas, boxes, humo…
+        if (D.merge) { trackMerge.push({ n: o.n, x, z, c, sn }); continue; }   // vallas: se unen en bloques (abajo)
         trackProcs.push({ n: o.n, p: [x, lvl.terrain(x, z) - 0.03, z], R: [[c, 0, -sn], [0, 1, 0], [sn, 0, c]], up: procMesh(o.n).up, smoke: D.smoke }); }
+      trackBridges = cT && cT.bridge && BRR.editor && BRR.editor.spline ? buildBridges(cT) : [];
+      if (cT && trackMerge.length && BRR.editor && BRR.editor.spline) {   // ninguna valla encima de la carretera (cruces) ni debajo de un puente
+        const S = BRR.editor.spline(cT.road), half = (cT.w || 14) / 2, G = new Map(), key = (x, z) => Math.floor(x / 24) + ',' + Math.floor(z / 24);
+        for (const p of S) { const x = p.x * 8, z = -p.z * 8, k = key(x, z); if (!G.has(k)) G.set(k, []); G.get(k).push([x, z]); }
+        for (const b of trackBridges) for (const q of b.axis) { const k = key(q[0], q[1]); if (!G.has(k)) G.set(k, []); G.get(k).push([q[0], q[1], q[2]]); }
+        const near = (x, z) => { let m = 1e9; const cx = Math.floor(x / 24), cz = Math.floor(z / 24); for (let a = -1; a <= 1; a++) for (let c = -1; c <= 1; c++) for (const q of G.get((cx + a) + ',' + (cz + c)) || []) { const d = Math.hypot(x - q[0], z - q[1]) - (q[2] || 0); if (d < m) m = d; } return m; };
+        trackMerge = trackMerge.filter(o => o.n !== 'VALLA' || near(o.x, o.z) > half + 0.8); }
+      trackFences = buildMerged(trackMerge); trackMerge = [];
       // pórticos de los controles en los circuitos propios (la pancarta de salida queda solo en la meta)
       if (cT) for (const g of lvl.checkpoints || []) { if (g.num === 0) continue; const M = [[g.ax[0], 0, g.az[0]], [0, 1, 0], [g.ax[2], 0, g.az[2]]], y = lvl.terrain(g.c[0], g.c[2]);
         trackProcs.push({ n: 'GANTRY', w: cT.w || 14, p: [g.c[0], y - 0.05, g.c[2]], R: M, up: gantryMesh(cT.w || 14).up }); }
@@ -1002,6 +1021,8 @@
   function placeGrid() {
     if (lvl.collider.clearDyn) lvl.collider.clearDyn(); for (const h of humans) { h.ramp = null; h.pipe = null; h.stunt = null; } netRamps.clear();
     trackPipes.forEach((q, k) => lvl.collider.setDyn('tp' + k, makePipe().tris.map(t => t.map(v => V.add(q.p, BRR.mv(q.R, v)))), 'RAMP'));
+    trackFences.forEach((q, k) => lvl.collider.setDyn('pf' + k, q.tris, 'VALLA'));
+    trackBridges.forEach((q, k) => lvl.collider.setDyn('pb' + k, q.tris, 'PUENTE'));
     trackProcs.forEach((q, k) => { const T = q.n === 'GANTRY' ? gantryMesh(q.w).tris : procMesh(q.n).tris; if (T.length) lvl.collider.setDyn('pp' + k, T.map(t => t.map(v => V.add(q.p, BRR.mv(q.R, v)))), q.n); });
     const S = BRR.S, a = -lvl.start.yaw, gx = lvl.start.x / S, gz = -lvl.start.z / S;
     const fw = [Math.sin(a), Math.cos(a)], rt = [Math.cos(a), -Math.sin(a)];
@@ -1535,7 +1556,52 @@
     if (audio) audio.play('GEN/SIGN.WAV', { vol: 0.6 }); flash(h, 'Half pipe', 1, 'stunt'); if (h.i === 0) achCount('ramps', 10, 'rampero');
   }
   // rampas de los demás jugadores (online): se ven y se puede saltar con ellas
-  const netRamps = new Map(); let trackPipes = [], trackProcs = [];
+  const netRamps = new Map(); let trackPipes = [], trackProcs = [], trackMerge = [], trackFences = [], trackBridges = [];
+  // muchos objetos pequeños iguales (vallas): una malla por bloque de ~100 m, cada vértice pegado al terreno
+  function buildMerged(list) {
+    const blocks = new Map(), BS = 100;
+    for (const o of list) { const k = Math.floor(o.x / BS) + ',' + Math.floor(o.z / BS); let b = blocks.get(k); if (!b) blocks.set(k, b = []); b.push(o); }
+    const out = [];
+    for (const L of blocks.values()) { const mb = new BRR.MeshBuilder(null), g = mb.group('COLOR'), tris = []; let cx = 0, cz = 0;
+      for (const o of L) { const K = procKit(o.n), src = K.mb.groups.get('COLOR'), drape = o.n === 'VALLA', y0 = lvl.terrain(o.x, o.z) - 0.03, at = (v) => { const x = o.x + o.c * v[0] - o.sn * v[2], z = o.z + o.sn * v[0] + o.c * v[2]; return [x, (drape ? lvl.terrain(x, z) - 0.03 : y0) + v[1], z]; };   // la valla se pega al terreno; los árboles, rectos
+        for (let i = 0; i < src.pos.length; i += 3) g.pos.push(...at([src.pos[i], src.pos[i + 1], src.pos[i + 2]]));
+        g.col.push(...src.col); g.lay.push(...src.lay); for (const t of K.tris) tris.push(t.map(at)); cx += o.x; cz += o.z; }
+      out.push({ up: R.upload(mb), tris, c: [cx / L.length, 0, cz / L.length] }); }
+    return out;
+  }
+  const FENCE_M = BRR.M4.fromRT([[1, 0, 0], [0, 1, 0], [0, 0, 1]], [0, 0, 0]);
+  // cruce a distinto nivel (Suzuka): donde la carretera se cruza consigo misma, el tramo que va después en la vuelta pasa por encima
+  // en un puente (rampas suaves, tablero de 6,5 m de alto, muretes y pilares fuera de la carretera de abajo)
+  function buildBridges(T) {
+    const S = BRR.editor.spline(T.road), n = S.length, half = (T.w || 14) / 2, out = []; if (n < 20) return out;
+    const W = p => [p.x * 8, 0, -p.z * 8], used = [];
+    const X = (a, b, c, d) => { const r = (o, p, q) => (p.x - o.x) * (q.z - o.z) - (p.z - o.z) * (q.x - o.x), d1 = r(c, d, a), d2 = r(c, d, b), d3 = r(a, b, c), d4 = r(a, b, d); return d1 * d2 < 0 && d3 * d4 < 0 ? d1 / (d1 - d2) : null; };
+    for (let i = 0; i < n; i++) for (let j = i + 12; j < n; j++) { if (i < 6 && j > n - 6) continue; if (used.some(u => Math.abs(u - j) < 60)) continue;
+      const t = X(S[j], S[(j + 1) % n], S[i], S[(i + 1) % n]); if (t == null) continue; used.push(j);
+      // cruce: el tramo j (más tarde en la vuelta) va arriba
+      const lo = [S[i], S[(i + 1) % n]], ang = Math.abs(Math.asin(Math.max(-1, Math.min(1, S[i].tx * S[j].tz - S[i].tz * S[j].tx)))) || 0.5;
+      const sc = S[j].s + t * (S[(j + 1) % n].s - S[j].s), H = 6.5, Lf = Math.min(60, (half + 5) / Math.max(0.35, Math.sin(ang)) + 4), Lr = 70, TOT = S.total;
+      const hAt = ds => { const a = Math.abs(ds); if (a <= Lf) return H; if (a >= Lf + Lr) return 0; const u = 1 - (a - Lf) / Lr; return H * u * u * (3 - 2 * u); };
+      const dist = (a, b) => { let d = a - b; if (d > TOT / 2) d -= TOT; if (d < -TOT / 2) d += TOT; return d; };
+      const lowD = (x, z) => { let m = 1e9; for (let k = -40; k <= 40; k++) { const p = S[(i + k + n) % n], q = W(p); m = Math.min(m, Math.hypot(x - q[0], z - q[2])); } return m; };
+      const mb = new BRR.MeshBuilder(null), g = mb.group('COLOR'), tris = [], asph = [0.3, 0.3, 0.32], line = [0.92, 0.92, 0.9], conc = [0.7, 0.7, 0.68], dark = [0.45, 0.45, 0.47];
+      const quad = (a, b, c, d, col, solid) => { for (const [x, y, z] of [[a, b, c], [a, c, d]]) { for (const v of [x, y, z]) { g.pos.push(...v); g.col.push(...col); g.lay.push(0); } for (const v of [x, z, y]) { g.pos.push(...v); g.col.push(...col); g.lay.push(0); } if (solid) tris.push([x, y, z]); } };
+      const box = (x0, y0, z0, x1, y1, z1, col) => { const V = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]; for (const f of [[0, 1, 2, 3], [4, 5, 6, 7], [3, 2, 6, 7], [0, 3, 7, 4], [1, 2, 6, 5]]) quad(...f.map(k => V[k]), col, true); };
+      const pts = []; for (let k = 0; k < n; k++) { const p = S[k], d = dist(p.s, sc); if (Math.abs(d) <= Lf + Lr) pts.push({ p, d }); } pts.sort((a, b) => a.d - b.d);
+      const sec = pts.map(({ p, d }) => { const c = W(p), nx = p.tz, nz = p.tx, h = hAt(d), y = lvl.terrain(c[0], c[2]) + 0.06 + h; return { c, nx, nz, h, y, d, at: (o, dy = 0) => [c[0] + nx * o, y + dy, c[2] + nz * o] }; });
+      const hw = half + 0.8;
+      for (let k = 0; k + 1 < sec.length; k++) { const A = sec[k], B = sec[k + 1];
+        quad(A.at(-hw), A.at(hw), B.at(hw), B.at(-hw), asph, true);   // tablero (se conduce encima)
+        for (const o of [-half + 0.4, half - 0.6]) quad(A.at(o, 0.02), A.at(o + 0.2, 0.02), B.at(o + 0.2, 0.02), B.at(o, 0.02), line, false);   // líneas blancas
+        if (Math.max(A.h, B.h) > 0.6) { for (const sd of [-1, 1]) { const o = sd * hw; quad(A.at(o), B.at(o), B.at(o, 1.1), A.at(o, 1.1), conc, true); quad(A.at(o, 1.1), B.at(o, 1.1), B.at(o + sd * 0.35, 1.1), A.at(o + sd * 0.35, 1.1), conc, false); quad(A.at(o + sd * 0.35, -1.3), B.at(o + sd * 0.35, -1.3), B.at(o + sd * 0.35, 1.1), A.at(o + sd * 0.35, 1.1), dark, false); }   // muretes y cantos
+          quad(A.at(-hw - 0.35, -1.3), A.at(hw + 0.35, -1.3), B.at(hw + 0.35, -1.3), B.at(-hw - 0.35, -1.3), dark, false); } }   // panza del tablero
+      let lastP = -1e9; for (const q of sec) { if (q.h < 2.2 || Math.abs(q.d - lastP) < 14) continue;   // pilares (nunca sobre la carretera de abajo)
+        let ok = true; const P = [-hw + 0.6, hw - 0.6].map(o => q.at(o)); for (const v of P) if (lowD(v[0], v[2]) < half + 2.5) ok = false; if (!ok) continue; lastP = q.d;
+        for (const v of P) { const gy = lvl.terrain(v[0], v[2]); box(v[0] - 0.6, gy - 0.2, v[2] - 0.6, v[0] + 0.6, q.y - 1.3, v[2] + 0.6, conc); } }
+      const m = sec[sec.length >> 1]; out.push({ up: R.upload(mb), tris, c: m ? m.c : [0, 0, 0], axis: sec.map(q => [q.c[0], q.c[2], hw + 2 - half]) }); }
+    return out;
+  }
+  const kitCache = new Map(); function procKit(n) { let K = kitCache.get(n); if (!K) kitCache.set(n, K = BRR.PROC_OBJS[n].build()); return K; }
   // objetos propios del editor (procobjs.js): malla subida una vez por tipo
   const procCache = new Map();
   function procMesh(n) { let m = procCache.get(n); if (!m) { const K = BRR.PROC_OBJS[n].build(); m = { up: R.upload(K.mb), tris: K.tris }; procCache.set(n, m); } return m; }
@@ -2465,7 +2531,7 @@
   const crazyJump = () => crazy && (crazy.mode === 'bomba' || crazy.mode === 'zombie' || crazy.mode === 'polis');   // modos sin vueltas: se puede saltar
   function crazyInit() {
     const mode = ttMode || tourMode || rpLoad ? 'normal' : netRace ? (netRace.crazy || 'normal') : !freeMode ? crazyPick : 'normal';
-    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = !!c.spec; c.outN = 0; c.bombLeft = BOMB_T; c.cop = false; c.robber = false; }
+    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = !!c.spec; c.outN = 0; c.vmul = 1; c.bombLeft = BOMB_T; c.cop = false; c.robber = false; }
     crazyId++; crazy = null; kart = null; driftMode = mode === 'drift'; for (const h of humans) { h.car.driftMode = driftMode; h.drift = null; }
     for (const h of humans) h.car.driftB = driftMode && opt.driftPhys === 'B';   // física del drift: A (la de siempre) o B (arcade)
     gpMode = mode === 'gp' || mode === 'f1' || isGPLevel(curLevelId); for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.gpMode = gpMode; c._top = 0; if (gpMode) c.nitros = 0; }   // GP: sin nitros (es el «gran turismo» de Big Red Racing)   // Grand Prix: todos más rápidos (también la IA) driftNet = driftMode && netRace ? { sc: new Map(), t: 0, sendT: 0, over: false } : null;
@@ -2523,6 +2589,7 @@
     let B = crazy.bomb;
     if (!B) { crazy.bombT0 -= dt; if (crazy.bombT0 <= 0) { crazy.bomb = { car: null, cool: 0 }; bombGive(alive[Math.random() * alive.length | 0].car); } return; }
     B.cool -= dt; const c = B.car; c.bombLeft = Math.max(0, c.bombLeft - dt); B.t = c.bombLeft;
+    for (const x of alive) x.car.vmul = x.car === c ? 1 + (20 / 3.6) / Math.max(8, x.car.topSpeed) : 1;   // el que lleva la bomba corre 20 km/h más
     if (B.cool <= 0) { const t = touchOf(c, alive, () => true) || (c.hitBy && !c.hitBy.out ? { car: c.hitBy } : null); c.hitBy = null; if (t) { bombGive(t.car, c); return; } }
     if (Math.random() < dt * 40) fx.sparks(V.add(c.p, [0, 2.4, 0]), 2);   // la mecha
     if (c.bombLeft < 10 && Math.ceil(c.bombLeft) !== Math.ceil(c.bombLeft + dt) && audio && audio.ctx) audio.play('SAMPLES/BEEP3.WAV', { vol: 0.6 });
@@ -3343,7 +3410,7 @@
       const [rx, ry, rw, rh] = h.rect, vx = Math.round(rx * W), vw = Math.round(rw * W), vh = Math.round(rh * H), vy = H - Math.round(ry * H) - vh;
       const cam = h.cam, aspect = vw / Math.max(1, vh), fov = opt.fov * Math.PI / 180 * (humans.length === 2 ? 0.8 : 1) * (1 + (h.fovK = (h.fovK || 0) + ((h.car && h.car.nitroT > 0 ? 0.09 : 0) - (h.fovK || 0)) * Math.min(1, dt * 4)));
       const proj = BRR.M4.persp(fov, aspect, 0.3, far), view = BRR.M4.lookAt(cam.pos, cam.look, cam.up);
-      if (R.mode === 1 && R.shadowQ && (humans.length > 1 || (shTick++ & 1) === 0)) {   // con 1 jugador, sombras a 30 Hz
+      if (R.mode === 1 && R.shadowQ) {   // sombras en cada fotograma (a 30 Hz la del coche iba a saltos y parpadeaba)
         const c = h.car, fwd = c.forward(); R.shadowBegin(V.madd(c.p, [fwd[0], 0, fwd[2]], R.shadowRange * 0.45));
         R.drawDepth(statics); for (const o of props.list) { const dx = o.pos[0] - c.p[0], dz = o.pos[2] - c.p[2]; if (dx * dx + dz * dz < 40000) R.drawDepth(props.models.get(o.name), BRR.M4.fromRT(o.rot, o.pos)); }
         for (const hh of humans) if (!hh.car.out) R.drawDepth(hh.draw, BRR.M4.fromRT(hh.car.R, hh.car.p));
@@ -3352,7 +3419,7 @@
       }
       R.viewRect = [vx, vy, vw, vh];
       R.begin(cam.pos, view, proj, far, lvl.sky);
-      R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far); for (const q of netRamps.values()) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackPipes) R.draw(makePipe().up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackProcs) if (camDist(q.p) < far + 40) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of humans) { if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p)); if (q.pipe) R.draw(q.pipe.up, BRR.M4.fromRT(q.pipe.R, q.pipe.p)); }
+      R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far); for (const q of netRamps.values()) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackPipes) R.draw(makePipe().up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackProcs) if (camDist(q.p) < far + 40) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackFences) if (camDist(q.c) < far + 80) R.draw(q.up, FENCE_M); for (const q of trackBridges) R.draw(q.up, FENCE_M); for (const q of humans) { if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p)); if (q.pipe) R.draw(q.pipe.up, BRR.M4.fromRT(q.pipe.R, q.pipe.p)); }
       for (const hh of humans) drawCar(hh.car, hh.draw, hh === h && ['capo', 'parachoques'].includes(h.camMode || opt.cam) ? (h.camMode || opt.cam) : false, hh === humans[0] ? carDraw : undefined);
       for (const r of rivals) { const d2 = (r.car.p[0] - cam.pos[0]) ** 2 + (r.car.p[2] - cam.pos[2]) ** 2; if (d2 < far * far) drawCar(r.car, r.draw, false, r.dd); }
       kartDraw(); ghostDraw(h);
@@ -3413,5 +3480,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, get driftNet() { return driftNet ? { t: driftNet.t, over: driftNet.over, sc: [...driftNet.sc.values()] } : null; }, get dstate() { return [state, humans[0] && humans[0].race.phase, netWait]; }, driftEndNow: () => { if (driftNet) { BRR_net.game({ k: 'dend' }); driftEnd(); } }, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), endRace: () => { for (const h of humans) h.done = true; showResults(); }, get gpCh() { return opt.gpCh; }, get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, get bridges() { return trackBridges; }, get driftNet() { return driftNet ? { t: driftNet.t, over: driftNet.over, sc: [...driftNet.sc.values()] } : null; }, get dstate() { return [state, humans[0] && humans[0].race.phase, netWait]; }, driftEndNow: () => { if (driftNet) { BRR_net.game({ k: 'dend' }); driftEnd(); } }, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), endRace: () => { for (const h of humans) h.done = true; showResults(); }, get gpCh() { return opt.gpCh; }, get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

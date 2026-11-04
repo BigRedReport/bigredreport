@@ -213,6 +213,19 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   #pane_home{position:relative} .hnews{position:absolute;top:0;right:0;width:min(330px,42vw);max-height:46%;overflow:auto;background:rgba(10,12,18,.62);border:1px solid var(--line);border-radius:12px;padding:10px 12px;font-size:12.5px;line-height:1.35;backdrop-filter:blur(4px)}
   .hnews h4{margin:0 0 6px;font-size:13px;color:#ffd23f;letter-spacing:.4px} .hnews .nv{margin:0 0 7px} .hnews .nv b{color:#fff} .hnews .nv span{color:var(--mut)} .hnews a{color:#9fd8ff;font-size:12px}
   @media (max-width:820px){.hnews{display:none!important}}
+#dosgame{position:fixed;inset:0;z-index:9000;background:#000;display:flex;flex-direction:column;align-items:center;justify-content:center;color:#ccc;font:13px system-ui,sans-serif}
+#dosgame .dg_bar{position:absolute;top:0;left:0;right:0;height:36px;display:flex;align-items:center;gap:8px;padding:0 10px;background:#111;z-index:2}
+#dosgame .dg_t{flex:1;color:#e23b3b;font-weight:bold;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}#dosgame .dg_bar>select,#dosgame .dg_bar>button{width:auto;flex:none;margin:0;min-width:0;height:28px}#dosgame select,#dosgame button{background:#222;color:#ddd;border:1px solid #444;border-radius:4px;padding:4px 8px;font:inherit;cursor:pointer}
+#dosgame .dg_scr{position:relative;margin-top:36px}#dosgame .dg_cv{width:100%;height:100%;display:block;outline:none;image-rendering:pixelated}
+#dosgame .f_suave .dg_cv{image-rendering:auto}#dosgame .f_crt .dg_cv{image-rendering:auto;filter:contrast(1.15) saturate(1.15) brightness(1.08)}
+#dosgame .f_crt::after{content:'';position:absolute;inset:0;pointer-events:none;background:repeating-linear-gradient(to bottom,rgba(0,0,0,.28) 0 1px,transparent 1px 3px),radial-gradient(ellipse at center,transparent 60%,rgba(0,0,0,.45) 100%)}
+#dosgame .dg_msg{position:absolute;top:50%;left:0;right:0;text-align:center;font-size:16px;color:#fff;text-shadow:0 0 4px #000;pointer-events:none;padding:0 16px}
+#dosgame .dg_help{position:absolute;bottom:4px;left:8px;right:8px;font-size:11px;color:#777;text-align:center;pointer-events:none}
+#dosgame .dg_touch{position:absolute;inset:36px 0 0 0;pointer-events:none}#dosgame .dg_touch[hidden]{display:none}
+#dosgame .dg_touch b{pointer-events:auto;position:absolute;width:58px;height:58px;border-radius:50%;background:rgba(255,255,255,.14);border:1px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:15px;color:#fff;user-select:none;touch-action:none}
+#dosgame .dg_touch b.on{background:rgba(226,59,59,.55)}
+#dosgame .dg_pad b[data-k=up]{left:70px;bottom:136px}#dosgame .dg_pad b[data-k=down]{left:70px;bottom:20px}#dosgame .dg_pad b[data-k=left]{left:10px;bottom:78px}#dosgame .dg_pad b[data-k=right]{left:130px;bottom:78px}
+#dosgame .dg_btns b[data-k=enter]{right:16px;bottom:78px}#dosgame .dg_btns b[data-k=esc]{right:16px;bottom:150px}#dosgame .dg_btns b[data-k=ctrl]{right:84px;bottom:40px}#dosgame .dg_btns b[data-k=alt]{right:84px;bottom:112px}
 </style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#e23b3b"><link rel="icon" href="icon-192.png">
 </head><body>
 <canvas id="c"></canvas><div id="err"></div>
@@ -247,7 +260,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="comm"><span class="ico">🗺️</span>Circuitos y editor</button>
         <button class="hbtn" data-go="options"><span class="ico">⚙️</span>Opciones</button>
         <button class="hbtn" data-go="mods"><span class="ico">🧩</span>Mods</button>
-        <div class="hrow"><button class="hbtn small2" data-go="orig">Menú original (1995)</button>
+        <div class="hrow"><button class="hbtn small2" data-go="dos" title="F2">Juego original (1995)</button><button class="hbtn small2" data-go="orig">Menú clásico</button>
         <button class="hbtn small2 dnt" data-go="donate">❤ Apoyar el proyecto</button>
         <button class="hbtn small2" data-go="exit">Salir</button></div>
         <div id="updbar" class="updbar" hidden></div>
@@ -625,11 +638,13 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/cloud.js"></script>
 <script src="js/front.js"></script>
 <script src="js/origmenu.js"></script>
+<script src="js/dosgame.js"></script>
 <script src="js/logos_data.js"></script>
 <script src="js/horns_data.js"></script>
 <script src="js/horns.js"></script>
 <script src="js/drift_data.js"></script>
 <script src="js/gp_data.js"></script>
+<script src="js/gp_decor.js"></script>
 <script src="js/procobjs.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/main.js"></script>
