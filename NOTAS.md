@@ -7,6 +7,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.115.1**
+- **Decoración de los circuitos Grand Prix:** ahora aparece también cuando su autor ha retocado el circuito en la comunidad (antes solo salían las vallas, los pianos y el puente). Cada grada, box, torre o árbol se comprueba contra la carretera tal como esté, y solo se quita lo que la pise.
+
 **Novedades de la 0.115**
 - **Juego original de 1995 de verdad (F2):** la tecla F2 y el botón «Juego original (1995)» arrancan el RACING.EXE original dentro de un emulador DOS (DOSBox), con tu propia carpeta BIGRED: menús, carreras y todo tal cual era. Tus pilotos y récords se guardan en el navegador. Filtro de imagen (píxeles nítidos, suavizado o pantalla CRT), pantalla completa, mando y botones táctiles; las teclas + y − del juego cambian entre 320×200 y 640×480, y F2 vuelve al juego moderno. Si tienes la imagen del CD (IMAGE.img), se usan sus archivos de datos; sin ella, los sonidos de motor quedan en silencio. La música del CD todavía no suena dentro del juego original. El menú recreado de siempre sigue en «Menú clásico».
 - **Arreglado F2 en el menú principal** (abría el menú y la misma pulsación lo cerraba).

@@ -457,7 +457,15 @@
     if (D.fence) for (const o of t.objs || []) if (o.n === 'ARROSIGN') { o.n = 'VALLA'; delete o.s; ch = true; }   // las flechas de límite → vallas
     if (D.kerbs && !t.kerbs) { t.kerbs = true; ch = true; }
     if (D.bridge && !t.bridge) { t.bridge = true; ch = true; }   // cruce a distinto nivel (puente)
-    if (D.objs && roadSig(t.road) === D.sig && !(t.objs || []).some(o => EXTRA.test(o.n))) { t.objs = (t.objs || []).concat(D.objs.map(o => ({ ...o }))); ch = true; }   // gradas, boxes, torre, pinos (si el trazado no ha cambiado y aún no tiene)
+    if (D.objs && !(t.objs || []).some(o => EXTRA.test(o.n))) {   // gradas, boxes, torres, árboles: los que no pisen la carretera tal como esté ahora (aunque su autor la haya retocado)
+      const S = spline(t.road || []), half = (t.w || 14) / 2, G = new Map(), K = (x, z) => Math.floor(x / 4) + ',' + Math.floor(z / 4);
+      for (const p of S) { const k = K(p.x, p.z); if (!G.has(k)) G.set(k, []); G.get(k).push(p); }
+      const dm = (x, z) => { let m = 1e9; const cx = Math.floor(x / 4), cz = Math.floor(z / 4); for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) for (const p of G.get((cx + a) + ',' + (cz + b)) || []) m = Math.min(m, Math.hypot(x - p.x, z - p.z)); return m * CM; };
+      const add = D.objs.filter(o => { const P = BRR.PROC_OBJS && BRR.PROC_OBJS[o.n]; if (!P || o.n === 'LADRILLOS' || o.n === 'PASARELA') return !!P; const f = P.fp, a = (o.r || 0) * Math.PI / 180, c = Math.cos(a), sn = Math.sin(a), tree = !!P.merge;
+        const F = tree ? [-0.5, 0.5, -0.5, 0.5] : o.n === 'TORRE' ? [-7.5, 7.5, -9.5, -1.4] : f;   // árboles: el tronco; torre: sus pilares (el platillo vuela por encima)
+        for (const lx of [F[0], (F[0] + F[1]) / 2, F[1]]) for (const lz of [F[2], (F[2] + F[3]) / 2, F[3]]) if (dm(o.x + (c * lx - sn * lz) / CM, o.z - (sn * lx + c * lz) / CM) < half + (tree ? 3 : 1.5)) return false;
+        return true; });
+      if (add.length) { t.objs = (t.objs || []).concat(add.map(o => ({ ...o }))); ch = true; } }
     return ch; };
   const decor = (id, t) => { if (t && !t.decor) { ED.decorate(id, t); t.decor = true; } return t; };
   ED.roadSig = roadSig;
