@@ -202,7 +202,7 @@
   const SURF_MU = { asfalto: 1.0, tierra: 0.9, arena: 0.78, nieve: 0.7, agua: 0.6 };
   BRR.aiProfile = function (line, car, P) {
     const N = line.N, st = line.step, vtop = car.topSpeed * P.pace * (car.K.fly ? 1.1 : 1);
-    const mu = (car.K.fly ? 2.5 : car.K.boat ? 0.6 : car.K.thrust ? 0.55 : 1.0) * P.corner * (car.gpMode ? 1.32 : 1), out = new Float32Array(N);   // GP: gomas de carreras y apoyo aerodinámico
+    const mu = (car.K.fly ? 2.5 : car.K.boat ? 0.6 : car.K.thrust ? 0.55 : 1.0) * P.corner * (car.gpMode ? (car.def.name === 'F1' ? 1.6 : 1.32) : 1), out = new Float32Array(N);   // GP: gomas de carreras y apoyo aerodinámico
     for (let i = 0; i < N; i++) {
       const a = line.pts[(i - 5 + N) % N].t, b = line.pts[(i + 5) % N].t, ang = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[2] * b[2])));
       // agarre del suelo en ese punto (arena, nieve... agarran menos que el asfalto): la curva se toma más despacio
@@ -215,7 +215,7 @@
       for (let v = 0; v <= 70; v++) { const def = car.def, sp = v / SK, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (sp - s1) / (s2 - s1))); kmax.push(Math.tan((a1 + (a2 - a1) * tt) / 0x280 * 0.55) / L); }
       for (let i = 0; i < N; i++) { const a = line.pts[(i - 5 + N) % N].t, b = line.pts[(i + 5) % N].t, ang = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[2] * b[2]))), k = ang / (10 * st) * 1.25;
         let v = Math.min(70, Math.floor(out[i])); while (v > 7 && kmax[v] < k) v--; out[i] = Math.min(out[i], Math.max(7, v)); } }
-    const brake = 6.5 * Math.min(1.2, P.corner) * (car.gpMode ? 1.9 : 1);   // en GP frenan mucho más fuerte: la frenada empieza más tarde
+    const brake = 6.5 * Math.min(1.2, P.corner) * (car.gpMode ? (car.def.name === 'F1' ? 3.4 : 2.4) : 1);   // en GP frenan mucho más fuerte (y el F1 más aún): la frenada empieza más tarde
     for (let pass = 0; pass < 2; pass++) for (let i = N - 1; i >= 0; i--) { const j = (i + 1) % N; out[i] = Math.min(out[i], Math.sqrt(out[j] * out[j] + 2 * brake * st)); }
     for (let i = 0; i < N; i++) out[i] = Math.max(7, out[i]);
     return out;
@@ -315,12 +315,9 @@
       this.lane += (lane - this.lane) * Math.min(1, dt * (this.avoid ? 4 : 1.6));
       // perfil de velocidad de la trazada (curvatura + frenada), una vez por coche
       if (!this.vprof) {
-        if (line.vrec) {   // trazada de una grabación original: su velocidad, limitada por la curva y con margen de frenada para estas físicas
-          const cv = BRR.aiProfile(line, car, P), N0 = line.N, o = new Float32Array(N0);
-          for (let i = 0; i < N0; i++) o[i] = Math.max(7, Math.min(line.vrec[i] * P.pace, cv[i] * 1.15, car.topSpeed * 1.02));
-          for (let pass = 0; pass < 2; pass++) for (let i = N0 - 1; i >= 0; i--) { const j = (i + 1) % N0; o[i] = Math.min(o[i], Math.sqrt(o[j] * o[j] + 2 * 7 * line.step)); }
-          this.vprof = o;
-        } else this.vprof = BRR.aiProfile(line, car, P);
+        // misma regla para todos: la velocidad sale de la física del coche en esa trazada (también en las trazadas de las grabaciones originales,
+        // que antes usaban la velocidad grabada y un 15 % más de paso por curva: por eso siempre había dos rivales más rápidos)
+        this.vprof = BRR.aiProfile(line, car, P);
       }
       // punto objetivo (persecución pura) con visión directa: si una valla lo tapa, uno más cercano
       let look = 7 + v * 0.55, tg = BRR.aiAt(line, s + look);

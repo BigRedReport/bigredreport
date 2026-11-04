@@ -7,6 +7,16 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.114**
+- **Modo Fórmula 1** (un jugador y online, como modo principal): en los circuitos del Grand Prix y con el monoplaza propio (morro largo, alerones, halo y ruedas al aire). Adaptado a la escala del juego: 0-100 en unos 2,5 s, punta muy por encima del GT, frenadas de casi 3 G y mucho más agarre en curva. Tiene su propio campeonato.
+- **Campeonato:** ahora se corren **todas** las carreras de la serie, con puntos repartidos (25-18-15-12-10-8-6-4-2-1), y la gana quien más puntos sume; si eres tú pasas a la siguiente serie, si no la repites. Ya no basta con ganar dos carreras. En el Grand Prix cada piloto tiene su casilla (antes dos rivales del mismo color sumaban juntos) y el online usa los mismos puntos.
+- **Rivales justos:** algunos rivales seguían la trazada de las carreras grabadas del original con su velocidad grabada y un 15 % más de paso por curva; por eso siempre había dos más rápidos. Ahora todos van con la misma física.
+- **Modo kart:** todos en **go-kart** (se conduce como un coche normal); el modo Go-Kart propio llegará más adelante.
+- **Grand Prix:** frenos mucho más fuertes (unos 2 G sin bloquear) y la IA frena más tarde. Online, las vueltas por defecto son las de cada circuito (se pueden cambiar).
+- **Drift (física A):** con el freno de mano a mitad de derrape el coche sigue deslizando sin frenar y coge un poco más de ángulo, para llegar a la curva si te quedas corto.
+- **Arreglados los fallos enviados automáticamente:** el menú original con mando antes de que salgan sus botones, una pista vacía en algunas imágenes de CD y el botón de pantalla completa en móviles que no la tienen.
+- Web: solo las últimas noticias (el resto, en las notas) y sin la hoja de ruta.
+
 **Novedades de la 0.113**
 - **IA nueva:** ya no hay pilotos «agresivos», «prudentes» o «torpes» fijos. Todos conducen bien y todos pueden, a ratos, atacar, defender la posición, buscar el hueco o equivocarse; cada uno con su frecuencia. En el **Grand Prix** todos son expertos: frenan más tarde, pasan más rápido por curva, aprovechan mejor el circuito y a veces dan un toque de freno de mano para colocar el coche en las curvas cerradas. La frenada de la IA es progresiva (sin toquecitos). El tipo de piloto ya no aparece en ningún sitio.
 - **Polis y cacos, zombi y bomba:** la IA espera al GO y ya no se escapa del mapa (si se aleja del circuito vuelve, y si no, se la devuelve a la pista).

@@ -24,7 +24,11 @@ A fan-made port of **Big Red Racing** (Big Red Software, 1995) for modern comput
 - **Rivals:** the original game's recorded races or a new AI, racing in packs with cleaner starts.
 - **Multiplayer:** split-screen for up to 8 players and online play for up to 12, with reconnection, host migration, text chat, and voice chat.
 - **Your team:** choose your driver's head and body, team name, logos (including custom ones), RGB colors, and more than 35 horns.
-- **Accessibility and options:** customizable controls, driving assists, color-blind modes, 6 languages, and 21 achievements.
+- **Accessibility and options:** customizable controls, driving assists, color-blind modes, 6 languages, and more than 60 achievements.
+- **Modes:** quick race, championship, time trial with a flying start, weekly challenge, free mode, **Grand Prix** and **Formula 1** on real-style circuits, **drift** mode with tandems, kart with items, elimination, hot bomb, zombies, and cops & robbers.
+- **Creators:** a track editor (terrain, road, objects, grandstands, pit boxes, automatic kerbs) with community tracks you can publish, vote on, and download automatically online.
+- **Garage:** rims, neons, windows, lights, and turbo colour; new cars such as GT Racer, GT Sprint, Panda 86, Bávaro 30, Zeta 35, go-kart, and a Formula car.
+- **Platforms:** browser, Windows, Linux, Steam Deck, and Android, with automatic updates.
 - **More:** TV cameras, photo mode, time trials with online leaderboards, stunt mode with ramps and tricks, profiles, and mods.
 
 ## How to play

@@ -6,7 +6,7 @@
 "use strict";
 (function () {
   const BRR = window.BRR;
-  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' } };
+  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' } };
   const orig = BRR.loadVehicle;
   BRR.loadVehicle = async function (files, name, lvl, team = 1, extra = {}) {
     const C = BRR.CUSTOM_CARS[String(name).toUpperCase()]; if (!C) return orig(files, name, lvl, team, extra);
@@ -17,6 +17,8 @@
     if (NM === 'GT') return gt(d, (extra.paint || [200, 30, 26]).map(v => v / 255), 'GT', gl);
     if (NM === 'GTS') return gt(d, (extra.paint || [30, 90, 200]).map(v => v / 255), 'GTS', gl, 'sprint');   // la variante del GT: mismo coche, otra carrocería
     if (NM === 'BAV30' || NM === 'ZETA35') return coupe(d, (extra.paint || (NM === 'BAV30' ? [235, 235, 230] : [235, 150, 30])).map(v => v / 255), NM, gl);
+    if (NM === 'KART') return kart(d, (extra.paint || [230, 40, 30]).map(v => v / 255));
+    if (NM === 'F1') return f1(d, (extra.paint || [200, 20, 20]).map(v => v / 255));
     return panda(d, paint, NM, gl);
   };
   // ---------- carrocería ----------
@@ -75,6 +77,77 @@
     const gearF = d.gearF.map(r => [r[0] * 1.45, r[1] * 1.9, ...r.slice(2)]);
     return { ...d, gearF, name, vname: name, mesh: mb, brake, wheels: W, box: { c: [0, 0.05, 0], h: [0.82, 0.5, 2.06] }, interior: null, logoSlot: false,
       brakeSpots: [[-0.55, 0.67 + G, 2.12], [0.55, 0.67 + G, 2.12]], nitro: [0.35, 0.3 + G, 2.12], decoParts: [] };
+  }
+  // ---------- ayudantes para los coches de ruedas al aire (kart y fórmula): cajas, cuñas y ruedas propias ----------
+  function kit3(pal, G) {
+    const mb = new BRR.MeshBuilder(pal), g = mb.group('COLOR'), brake = new BRR.MeshBuilder(pal), gb = brake.group('COLOR');
+    const tri = (q, a, b, c, col) => { for (const v of [a, b, c]) { q.pos.push(v[0], v[1] + G, v[2]); q.col.push(...col); q.lay.push(0); } };
+    const quad = (a, b, c, e, col, q = g) => { tri(q, a, b, c, col); tri(q, a, c, e, col); tri(q, a, c, b, col); tri(q, a, e, c, col); };
+    const box = (x0, y0, z0, x1, y1, z1, col, top = col) => { const V = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]];
+      quad(V[0], V[1], V[2], V[3], col); quad(V[4], V[5], V[6], V[7], col); quad(V[3], V[2], V[6], V[7], top); quad(V[0], V[1], V[5], V[4], col); quad(V[0], V[3], V[7], V[4], col); quad(V[1], V[2], V[6], V[5], col); };
+    // pieza con sección distinta delante y detrás (morros, pontones): [ancho, alto abajo, alto arriba] en cada extremo
+    const loft = (z0, a, z1, b, col, top = col, xc = 0) => { const P = (z, q) => [[xc - q[0], q[1], z], [xc + q[0], q[1], z], [xc + q[0], q[2], z], [xc - q[0], q[2], z]], A = P(z0, a), B = P(z1, b);
+      quad(A[0], A[1], A[2], A[3], col); quad(B[0], B[1], B[2], B[3], col); quad(A[3], A[2], B[2], B[3], top); quad(A[0], A[1], B[1], B[0], col); quad(A[0], A[3], B[3], B[0], col); quad(A[1], A[2], B[2], B[1], col); };
+    return { mb, g, brake, gb, tri, quad, box, loft };
+  }
+  // rueda propia (cubierta, flancos y llanta): centrada, con el eje en x
+  function wheel(pal, r, hw, rim, tread = [0.07, 0.07, 0.08]) {
+    const mb = new BRR.MeshBuilder(pal), g = mb.group('COLOR'), N = 18, T = (a, b, c, k) => { for (const v of [a, b, c, a, c, b]) { g.pos.push(...v); g.col.push(...k); g.lay.push(0); } };
+    const P = (x, rr, a) => [x, Math.cos(a) * rr, Math.sin(a) * rr], Q = (a, b, c, d, k) => { T(a, b, c, k); T(a, c, d, k); }, wall = [0.12, 0.12, 0.13], rr = r * 0.62;
+    for (let i = 0; i < N; i++) { const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832;
+      Q(P(-hw, r, a0), P(hw, r, a0), P(hw, r, a1), P(-hw, r, a1), tread);
+      for (const x of [-hw, hw]) { Q(P(x, r, a0), P(x, rr, a0), P(x, rr, a1), P(x, r, a1), wall); Q(P(x * 1.01, rr, a0), P(x * 1.01, rr * 0.25, a0), P(x * 1.01, rr * 0.25, a1), P(x * 1.01, rr, a1), rim); Q(P(x * 1.02, rr * 0.25, a0), P(x * 1.02, 0, a0), P(x * 1.02, 0, a1), P(x * 1.02, rr * 0.25, a1), rim.map(v => v * 0.6)); }
+      if (i % 3 === 0) for (const x of [-hw, hw]) Q(P(x * 1.015, rr * 0.9, a0), P(x * 1.015, rr * 0.3, a0), P(x * 1.015, rr * 0.3, a0 + 0.18), P(x * 1.015, rr * 0.9, a0 + 0.18), [0.04, 0.04, 0.05]); }   // huecos de la llanta
+    return mb;
+  }
+  // coloca las 4 ruedas: [x, z, radio, medio ancho] delante y detrás; el suelo no cambia (la carrocería se ajusta encima)
+  function placeWheels(d, front, rear, rimCol) { const low = Math.min(...d.wheels.map(w => w.c[1] - w.radius));
+    const W = d.wheels.map(w => { const fr = w.c[2] < 0, q = fr ? front : rear; return { ...w, c: [Math.sign(w.c[0]) * q[0], low + q[2], q[1]], radius: q[2] }; });
+    const M = W.map(w => wheel(d.mesh.pal, w.radius, (w.c[2] < 0 ? front : rear)[3], rimCol)); return { W, M, G: low }; }
+  // ---------- go-kart: pequeño, bajito, sin carrocería; el piloto va sentado a la vista ----------
+  function kart(d, P) {
+    const { W, M, G } = placeWheels(d, [0.5, -0.52, 0.13, 0.07], [0.55, 0.5, 0.14, 0.1], [0.75, 0.76, 0.78]), K = kit3(d.mesh.pal, G);
+    const TUBE = [0.55, 0.56, 0.6], BLK = [0.08, 0.08, 0.09], SEAT = [0.1, 0.1, 0.12], ENG = [0.35, 0.36, 0.38], NUM = [0.95, 0.95, 0.92];
+    K.box(-0.32, 0.06, -0.62, 0.32, 0.09, 0.62, BLK);   // bandeja del suelo
+    for (const sx of [-1, 1]) K.box(sx * 0.34 - 0.02, 0.07, -0.7, sx * 0.34 + 0.02, 0.11, 0.66, TUBE);   // largueros del chasis
+    K.box(-0.5, 0.1, -0.55, 0.5, 0.13, -0.5, TUBE); K.box(-0.55, 0.1, 0.48, 0.55, 0.13, 0.53, TUBE);   // ejes
+    K.loft(-0.95, [0.32, 0.08, 0.16], -0.62, [0.36, 0.08, 0.24], P);   // morro (carenado delantero)
+    K.box(-0.18, 0.16, -0.97, 0.18, 0.3, -0.92, NUM);   // placa del número
+    for (const sx of [-1, 1]) K.loft(-0.25, [0.09, 0.08, 0.2], 0.4, [0.09, 0.08, 0.22], P, P, sx * 0.48);   // pontones laterales
+    K.box(-0.5, 0.08, 0.66, 0.5, 0.2, 0.74, P);   // paragolpes trasero
+    K.box(-0.18, 0.09, -0.05, 0.18, 0.18, 0.32, SEAT); K.box(-0.18, 0.18, 0.24, 0.18, 0.5, 0.32, SEAT);   // asiento
+    K.box(0.22, 0.1, 0.18, 0.42, 0.34, 0.44, ENG); K.box(0.3, 0.34, 0.25, 0.36, 0.42, 0.37, BLK);   // motor a un lado
+    K.box(-0.02, 0.12, -0.55, 0.02, 0.36, -0.5, TUBE);   // columna de dirección
+    for (let k = 0; k < 8; k++) { const a0 = k / 8 * 6.2832, a1 = (k + 1) / 8 * 6.2832, r = 0.13, y = 0.4, z = -0.45; K.quad([0, y, z], [Math.cos(a0) * r, y + Math.sin(a0) * r, z], [Math.cos(a1) * r, y + Math.sin(a1) * r, z], [0, y, z], BLK); }   // volante
+    K.quad([-0.2, 0.12, 0.745], [0.2, 0.12, 0.745], [0.2, 0.18, 0.745], [-0.2, 0.18, 0.745], [1, 0.15, 0.1], K.gb);
+    const gearF = d.gearF.map(r => [r[0] * 1.15, r[1] * 1.5, ...r.slice(2)]);   // ligero y con mucho tirón
+    return { ...d, gearF, name: 'KART', vname: 'KART', mesh: K.mb, brake: K.brake, wheels: W, wheelMeshes: M, box: { c: [0, G + 0.22, 0], h: [0.62, 0.22, 0.85] }, interior: null, logoSlot: false,
+      brakeSpots: [[-0.15, G + 0.15, 0.75], [0.15, G + 0.15, 0.75]], nitro: [0, G + 0.2, 0.78], decoParts: [], headPos: [0, G + 0.86, 0.1] };   // piloto sentado (con el cuerpo y las piernas a la vista)
+  }
+  // ---------- fórmula (estilo F1): morro largo, alerones, pontones, toma de aire sobre el piloto y ruedas grandes al aire ----------
+  function f1(d, P) {
+    const { W, M, G } = placeWheels(d, [0.78, -1.45, 0.32, 0.15], [0.76, 1.32, 0.35, 0.2], [0.18, 0.18, 0.2]), K = kit3(d.mesh.pal, G);
+    const CARB = [0.1, 0.1, 0.11], WHITE = [0.94, 0.94, 0.92], ACC = [0.98, 0.82, 0.12];
+    K.loft(-2.45, [0.08, 0.12, 0.2], -1.2, [0.2, 0.1, 0.42], P, P);   // morro
+    K.box(-0.95, 0.06, -2.5, 0.95, 0.1, -2.15, P, ACC); for (const sx of [-1, 1]) K.box(sx * 0.95 - 0.02, 0.06, -2.5, sx * 0.95 + 0.02, 0.3, -2.12, CARB);   // alerón delantero con derivas
+    K.box(-0.9, 0.12, -2.42, 0.9, 0.15, -2.28, CARB);   // segundo plano del alerón
+    K.loft(-1.2, [0.26, 0.08, 0.46], 0.0, [0.34, 0.08, 0.58], P, P);   // monocasco (cockpit)
+    K.loft(0.0, [0.3, 0.08, 0.6], 1.6, [0.18, 0.12, 0.4], P, P);   // tapa del motor
+    K.loft(-0.15, [0.12, 0.62, 0.95], 0.55, [0.1, 0.62, 0.72], P, WHITE);   // toma de aire sobre el piloto
+    for (const sx of [-1, 1]) K.loft(-0.6, [0.22, 0.1, 0.42], 0.9, [0.14, 0.1, 0.3], P, P, sx * 0.48);   // pontones
+    for (const sx of [-1, 1]) K.box(sx * 0.48 - 0.2, 0.25, -0.62, sx * 0.48 + 0.2, 0.4, -0.58, CARB);   // bocas de los pontones
+    K.box(-0.34, 0.585, -0.95, 0.34, 0.6, -0.4, CARB);   // borde del cockpit (hueco del piloto)
+    for (const sx of [-1, 1]) { K.box(sx * 0.27 - 0.025, 0.84, -0.95, sx * 0.27 + 0.025, 0.88, -0.2, CARB); K.box(sx * 0.27 - 0.025, 0.6, -0.24, sx * 0.27 + 0.025, 0.88, -0.2, CARB); } K.box(-0.27, 0.84, -0.99, 0.27, 0.88, -0.95, CARB); K.box(-0.03, 0.6, -1.05, 0.03, 0.88, -0.98, CARB);   // halo (un aro: el casco se ve por dentro)
+    K.box(-0.55, 0.92, 1.95, 0.55, 0.97, 2.3, P, ACC); K.box(-0.55, 0.78, 2.0, 0.55, 0.81, 2.25, CARB);   // alerón trasero (dos planos)
+    for (const sx of [-1, 1]) K.box(sx * 0.56 - 0.02, 0.4, 1.9, sx * 0.56 + 0.02, 1.0, 2.32, P);   // derivas del alerón
+    K.box(-0.04, 0.35, 1.85, 0.04, 0.95, 2.0, CARB);   // soporte central
+    for (const sx of [-1, 1]) { K.box(sx * 0.2, 0.2, -1.4, sx * 0.62, 0.23, -1.36, CARB); K.box(sx * 0.2, 0.25, 1.28, sx * 0.6, 0.28, 1.32, CARB); }   // brazos de suspensión
+    K.box(-0.35, 0.03, -0.8, 0.35, 0.06, 1.7, CARB);   // fondo plano
+    K.box(-0.12, 0.18, 1.6, 0.12, 0.32, 1.7, [0.95, 0.15, 0.1]); K.quad([-0.1, 0.2, 1.705], [0.1, 0.2, 1.705], [0.1, 0.3, 1.705], [-0.1, 0.3, 1.705], [1, 0.15, 0.1], K.gb);   // luz de lluvia (freno)
+    for (const sx of [-1, 1]) { const x = sx * 0.345, cy = 0.4, cz = -0.5, r = 0.12; for (let k = 0; k < 10; k++) { const a0 = k / 10 * 6.2832, a1 = (k + 1) / 10 * 6.2832; K.quad([x, cy, cz], [x, cy + Math.sin(a0) * r, cz + Math.cos(a0) * r], [x, cy + Math.sin(a1) * r, cz + Math.cos(a1) * r], [x, cy, cz], WHITE); } }   // dorsal
+    const gearF = d.gearF.map(r => [r[0] * 2.0, r[1] * 2.4, ...r.slice(2)]);   // punta ~260 km/h en su modo
+    return { ...d, gearF, name: 'F1', vname: 'F1', mesh: K.mb, brake: K.brake, wheels: W, wheelMeshes: M, box: { c: [0, G + 0.35, 0], h: [0.95, 0.3, 2.4] }, interior: null, logoSlot: false,
+      brakeSpots: [[0, G + 0.25, 1.71]], nitro: [0, G + 0.3, 1.75], decoParts: [], headPos: [0, G + 0.82, -0.5] };   // solo asoma el casco
   }
   // ---------- coupés de drift: Bávaro 30 (berlina alemana de los 80, cuadrada, paragolpes negros, faros dobles redondos)
   //            y Zeta 35 (coupé japonés de los 2000, curvo, capó largo, trasera corta y pasos de rueda marcados) ----------

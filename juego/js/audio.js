@@ -139,7 +139,8 @@
       this.cdCache = this.cdCache || new Map();
       if (!this.cdCache.has(n)) this.cdCache.set(n, (async () => {
         const raw = new Int16Array(await cd.img.slice(tr.start, tr.end - ((tr.end - tr.start) % 4)).arrayBuffer());
-        const k = raw.length / 2, b = this.ctx.createBuffer(2, k, 44100), L = b.getChannelData(0), Rr = b.getChannelData(1);
+        const k = raw.length / 2; if (k < 1) return null;   // pista vacía en la imagen del CD (aviso #13)
+        const b = this.ctx.createBuffer(2, k, 44100), L = b.getChannelData(0), Rr = b.getChannelData(1);
         for (let i = 0; i < k; i++) { L[i] = raw[2 * i] / 32768; Rr[i] = raw[2 * i + 1] / 32768; }
         if (this.cdCache.size > 6) this.cdCache.delete(this.cdCache.keys().next().value);
         return b;

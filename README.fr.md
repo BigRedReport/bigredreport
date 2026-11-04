@@ -24,7 +24,11 @@ Un portage créé par des fans de **Big Red Racing** (Big Red Software, 1995) po
 - **Adversaires:** les courses enregistrées du jeu original ou une nouvelle IA, en peloton et avec des départs plus propres
 - **Multijoueur:** écran partagé jusqu’à 8 joueurs et jeu en ligne jusqu’à 12, avec reconnexion, transfert du rôle d’hôte, chat texte et vocal
 - **Votre équipe:** choisissez la tête et le corps du pilote, le nom de l’équipe, les logos (y compris personnalisés), les couleurs RVB et plus de 35 klaxons
-- **Accessibilité et options:** commandes personnalisables, aides à la conduite, options pour daltoniens, 6 langues et 21 succès
+- **Accessibilité et options:** commandes personnalisables, aides à la conduite, options pour daltoniens, 6 langues et plus de 60 succès
+- **Modes :** course rapide, championnat, contre-la-montre lancé, défi de la semaine, mode libre, **Grand Prix** et **Formule 1** sur des circuits façon réels, **drift** en tandem, kart avec objets, élimination, bombe, zombies et gendarmes et voleurs.
+- **Créateurs :** éditeur de circuits (terrain, route, objets, tribunes, stands, vibreurs automatiques) et circuits de la communauté à publier, noter et télécharger automatiquement en ligne.
+- **Garage :** jantes, néons, vitres, phares et couleur du turbo ; nouvelles voitures (GT Racer, GT Sprint, Panda 86, Bávaro 30, Zeta 35, kart et formule).
+- **Plateformes :** navigateur, Windows, Linux, Steam Deck et Android, avec mises à jour automatiques.
 - **Plus:** caméras TV, mode photo, contre-la-montre avec classements en ligne, mode acrobaties avec rampes et figures, profils et mods
 
 ## Code,Le dossier [`juego/`](juego/) contient le jeu : JavaScript + WebGL2, sans dépendances. Un serveur dédié facultatif se trouve dans `juego/server/` (Node.js).

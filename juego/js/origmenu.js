@@ -180,7 +180,7 @@
       if (e.code === 'F2') { e.preventDefault(); this.h.modern(); return; }
       const sc = { Escape: 1, Enter: 0x1C, NumpadEnter: 0x1C, Space: 0x39, ArrowLeft: 0x4B, ArrowRight: 0x4D, ArrowUp: 0x48, ArrowDown: 0x50 }[e.code];
       if (e.code === 'Escape') { e.preventDefault(); this.back(); return; }
-      if (e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') { e.preventDefault(); const b = this.boxes[this.focus]; if (b && this.kbFocus) this.press(b.id); else { const k = this.S.keys.find(k => k.sc === sc); if (k) this.press(k.id); } return; }
+      if (e.code === 'Enter' || e.code === 'Space' || e.code === 'NumpadEnter') { e.preventDefault(); const b = this.boxes && this.boxes[this.focus]; if (b && this.kbFocus) this.press(b.id); else { const k = this.S.keys.find(k => k.sc === sc); if (k) this.press(k.id); } return; }
       if (e.code.startsWith('Arrow')) { e.preventDefault(); this.move(e.code.slice(5).toLowerCase()); return; }
       if (e.key && e.key.length === 1) { const k = this.S.keys.find(k => k.sc === LETTER_SC[e.key.toLowerCase()]); if (k) this.press(k.id); }
     }
@@ -188,6 +188,7 @@
       const bs = this.boxes.map((b, i) => ({ b, i })).filter(o => o.b.w > 4 && !this.boxOff(o.b));
       if (this.onArrow && this.onArrow(dir)) return;
       if (!this.kbFocus || this.focus < 0) { this.kbFocus = true; this.focus = bs.length ? bs[0].i : -1; return; }
+      if (!this.boxes || !this.boxes.length) return; if (!this.boxes[this.focus]) this.focus = 0;
       const c = this.boxes[this.focus], cx = c.x + c.w / 2, cy = c.y + c.h / 2, dx = { left: -1, right: 1 }[dir] || 0, dy = { up: -1, down: 1 }[dir] || 0;
       let best = null, bd = 1e9;
       for (const o of bs) { if (o.i === this.focus) continue; const ox = o.b.x + o.b.w / 2 - cx, oy = o.b.y + o.b.h / 2 - cy; if (ox * dx + oy * dy <= 2) continue; const d = Math.hypot(ox, oy) + Math.abs(ox * dy - oy * dx) * 1.5; if (d < bd) { bd = d; best = o.i; } }
@@ -197,9 +198,9 @@
       const gp = (navigator.getGamepads ? [...navigator.getGamepads()] : []).find(g => g && g.connected); if (!gp) return;
       const p = i => gp.buttons[i] && gp.buttons[i].pressed, ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
       const cur = { a: p(0), b: p(1), up: p(12) || ay < -0.6, down: p(13) || ay > 0.6, left: p(14) || ax < -0.6, right: p(15) || ax > 0.6, menu: p(8) };
-      const ed = k => cur[k] && !this.padPrev[k]; if (Object.keys(cur).some(ed)) this.wake();
+      const ed = k => cur[k] && !(this.padPrev || {})[k]; if (Object.keys(cur).some(ed)) this.wake();
       if (ed('up')) this.move('up'); if (ed('down')) this.move('down'); if (ed('left')) this.move('left'); if (ed('right')) this.move('right');
-      if (ed('a')) { const b = this.boxes[this.focus]; if (b) this.press(b.id); else this.move('down'); }
+      if (ed('a')) { const b = this.boxes && this.focus >= 0 ? this.boxes[this.focus] : null; /* aviso #8-#15: aún sin botones en pantalla */ if (b) this.press(b.id); else this.move('down'); }
       if (ed('b')) this.back(); if (ed('menu')) this.h.modern();
       this.padPrev = cur;
     }

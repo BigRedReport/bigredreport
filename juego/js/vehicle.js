@@ -258,7 +258,7 @@
   const SPEED_K = 30 / 35000;   // unidades de velocidad del script -> m/s (35000 ≈ 108 km/h)
   BRR.SPEED_K = SPEED_K;
   // modo Grand Prix: circuitos largos y rápidos. Todo va más deprisa (punta ×1,45: de ~80 de media a ~115), con más empuje, frenos más fuertes y apoyo aerodinámico
-  const GPV = 1.45, GPF = 1.5, GPB = 2.7;   // frenos de carreras BRR.GPV = GPV;
+  const GPV = 1.45, GPF = 1.5, GPB = 3.4;   // frenos de carreras BRR.GPV = GPV;
   const curve = (rows, spd) => { // fuerza (0..~650) según la velocidad del script
     for (let i = 0; i < rows.length - 1; i++) {
       const [s0, f0] = rows[i], [s1, f1] = rows[i + 1];
@@ -319,19 +319,21 @@
     forward() { return mv(this.R, [0, 0, -1]); }
     step(dt, inp) {
       const R = this.R, up = mv(R, [0, 1, 0]), fwd = mv(R, [0, 0, -1]), right = mv(R, [1, 0, 0]);
-      const GP = this.gpMode, vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K / (GP ? GPV : 1), def = this.def;   // en GP las tablas del coche se leen a escala (misma respuesta, más velocidad)
+      const GP = this.gpMode, F1 = GP && this.def.name === 'F1', vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K / (GP ? GPV : 1), def = this.def;   // en GP las tablas del coche se leen a escala (misma respuesta, más velocidad)
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
       const DR = this.driftMode, DB = DR && this.driftB ? (this.dB || (this.dB = { on: false, lat: 1, side: 1, charge: 0, offT: 0, cT: 0, exit: 0 })) : null;   // drift B (arcade): ver más abajo   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
       const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1);   // más giro para contravolante
       this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * 10);
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
-      if (this.gpMode && this.grounded) { const sp2 = this.v[0] ** 2 + this.v[2] ** 2; F = V.add(F, V.mul(up, -Math.min(0.0028 * sp2, 6) * this.m)); }   // GP: apoyo aerodinámico (más agarre cuanto más rápido)
+      if (this.gpMode && this.grounded && this.def.name === 'F1' && inp.throttle > 0.1 && V.dot(this.v, fwd) > -0.5) { const tp = this.topSpeed, vf0 = V.dot(this.v, fwd); if (vf0 < tp * 0.98) F = V.madd(F, fwd, this.m * 7.5 * inp.throttle * Math.max(0.15, 1 - vf0 / tp)); }   // F1: tracción de monoplaza (0-100 en ~2,4 s)
+      if (this.gpMode && this.grounded) { const sp2 = this.v[0] ** 2 + this.v[2] ** 2, f1 = this.def.name === 'F1'; F = V.add(F, V.mul(up, -Math.min((f1 ? 0.0045 : 0.0028) * sp2, f1 ? 14 : 6) * this.m)); }   // F1: mucho más apoyo   // GP: apoyo aerodinámico (más agarre cuanto más rápido)
       const K = this.K, L0 = K.L0, nW = this.W.length; let grounded = 0, wetN = 0;
       const throttle = inp.throttle, brake = inp.brake; this.thr = throttle;
       // marcha: adelante, freno o atrás
       let drive = 0;
       if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m * (GP ? GPF : 1);
+      // F1: tracción y empuje de un monoplaza (0-100 en unos 2,5 s; adaptado a la escala del juego, punta ~260 km/h)
       // nitro: empuje extra y supera la velocidad máxima
       if (this.nitroT > 0) { this.nitroT -= dt; drive = Math.max(drive, curve(def.gearF, Math.max(0, spdScript) * 0.7) / 600 * 7.5 * this.m) + 0.38 * 9.81 * this.m; }
       let braking = 0; this.brakeLight = brake > 0.05 && Math.abs(this.speed()) > 0.3;
@@ -356,7 +358,7 @@
         const vLong = V.dot(vc, fw), vLat = V.dot(vc, lat); let Flong0 = 0;
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
-        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (GP ? 1.15 : 1);   // GP: neumáticos de carreras
+        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (F1 ? 1.32 : GP ? 1.15 : 1);   // GP: neumáticos de carreras (F1: aún más)
         if (DR && !DB && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, this.dOn ? 0.62 : 0.55);   // freno de mano: tirón para cruzarlo (sin frenar)
           else { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
             mu *= 1 - 0.5 * ps; if (this.dOn && throttle > 0.3) mu *= 0.6; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando
@@ -369,10 +371,10 @@
         const share = this.m / nW;
         let Flat = -vLat * Math.min(14000, 0.5 * share / dt) * K.lat * (DB ? DB.lat : 1);   // drift B: de lado las gomas apenas sujetan (la trayectoria la lleva el derrape)
         let Flong = (K.thrust ? 0 : DR ? (w.steer || (DB && DB.on) ? 0 : drive * 1.55 * dmul / nRear) : drive * dmul / this.ndrive) - vLong * (DB && DB.on ? 2 : 25) + Flong0;
-        if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * (GP ? GPB : 1) * share, Math.abs(vLong) * share / dt * 0.5);
+        if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * (F1 ? 4.6 : GP ? GPB : 1) * share, Math.abs(vLong) * share / dt * 0.5);
         if (inp.handbrake && !w.steer && !DR) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
         if (!throttle && !brake && Math.abs(vLong) < 1.5) Flong -= vLong * Math.min(0.3 * share / dt, 6000);
-        const lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong);
+        const lk = GP && braking ? (F1 ? 2.7 : 1.7) : 1, lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong / lk);   // GP: frenos de carreras (la frenada agarra mucho más sin bloquear)
         // derrape visible (marcas, humo, chirrido): de lado solo si la rueda resbala de verdad (>~1 m/s), no por el tope de agarre
         // en una curva normal (a los coches pequeños les pasaba siempre); de frente (frenazo o acelerón), según el exceso de fuerza
         { const raw = tot > lim ? 1 - lim / tot : 0; w.slip = !raw ? 0 : Math.abs(Flong) > Math.abs(Flat) ? raw * 0.7 : Math.min(raw, Math.max(0, (Math.abs(vLat) - 0.9) / 2.5)); }
@@ -416,11 +418,12 @@
           // sin gas se va enderezando. La trayectoria la llevan las ruedas de delante (poco a poco) y con gas no pierde velocidad: derrapes largos
           const sg = Math.sign(beta) || 1, cs = Math.max(0, inp.steer * sg), into = Math.max(0, -inp.steer * sg);
           let mag = throttle > 0.3 ? 0.28 + 0.42 * throttle + 0.3 * into - 0.32 * cs : ab * 0.45; mag = Math.max(0.1, Math.min(0.9, mag));
-          if (hbOn) mag = Math.max(mag, Math.min(0.9, ab));   // freno de mano: sujeta el ángulo que lleva (alarga el derrape), no lo cruza más
+          if (hbOn) mag = Math.min(1.0, Math.max(mag, ab) + 0.1);   // freno de mano: el derrape sigue y se alarga (un poco más de ángulo para cerrar la curva si te quedas corto)
           if (rp < 1) mag = ab + (mag - ab) * rp;   // al empezar, parte del ángulo que ya lleva
           const wyT = Math.max(-2.2, Math.min(2.2, 3.2 * (sg * mag - beta))); T = V.madd(T, up, (wyT - wy) * this.I[1] * 3.5 * (0.35 + 0.65 * rp));
           const vH = [this.v[0], 0, this.v[2]]; F = V.madd(F, V.sub(V.mul(wd, hv), vH), this.m * 1.3 * rp);   // la trayectoria sigue a las ruedas de delante (entrando poco a poco)
           if (throttle > 0.1) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.55 * throttle);   // con gas empuja hacia delante (estira el derrape)
+          if (hbOn) { F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.3); this.dHold = Math.max(this.dHold || 0, 0.2); }   // con el freno de mano no frena: sigue deslizando
         }
         if (throttle < 0.1 && vf > 1) F = V.madd(F, fh, -this.m * 9.81 * 0.05 * Math.min(1, vf / 4));   // sin gas retiene un poco (no de golpe)
         if (hbOn && hv > 5 && !this.dOn) T = V.madd(T, up, -inp.steer * this.I[1] * 1.3 * Math.min(1, hv / 12));   // freno de mano + volante (solo para empezar): cruza un poco la trasera

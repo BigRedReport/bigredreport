@@ -24,7 +24,11 @@ Ein von Fans erstellter Port von **Big Red Racing** (Big Red Software, 1995) fü
 - **Gegner:** die aufgezeichneten Rennen des Originalspiels oder eine neue KI, im Pulk und mit saubereren Starts
 - **Mehrspieler:** geteilter Bildschirm für bis zu 8 Spieler und Online-Spiel für bis zu 12, mit Wiederverbindung, Host-Wechsel sowie Text- und Sprachchat
 - **Dein Team:** wähle Kopf und Körper des Fahrers, Teamnamen, Logos (auch eigene), RGB-Farben und mehr als 35 Hupen
-- **Barrierefreiheit und Optionen:** anpassbare Steuerung, Fahrhilfen, Farbenblind-Modi, 6 Sprachen und 21 Erfolge
+- **Barrierefreiheit und Optionen:** anpassbare Steuerung, Fahrhilfen, Farbenblind-Modi, 6 Sprachen und über 60 Erfolge
+- **Modi:** Schnelles Rennen, Meisterschaft, Zeitfahren mit fliegendem Start, Wochen-Challenge, freier Modus, **Grand Prix** und **Formel 1** auf realistisch angelehnten Strecken, **Drift** im Tandem, Kart mit Items, Eliminierung, heiße Bombe, Zombies und Räuber und Gendarm.
+- **Kreative:** Strecken-Editor (Gelände, Straße, Objekte, Tribünen, Boxen, automatische Curbs) und Community-Strecken zum Veröffentlichen, Bewerten und automatischen Laden online.
+- **Garage:** Felgen, Neon, Scheiben, Lichter und Turbofarbe; neue Autos (GT Racer, GT Sprint, Panda 86, Bávaro 30, Zeta 35, Gokart und ein Formelwagen).
+- **Plattformen:** Browser, Windows, Linux, Steam Deck und Android, mit automatischen Updates.
 - **Mehr:** TV-Kameras, Fotomodus, Zeitfahren mit Online-Bestenlisten, Stunt-Modus mit Rampen und Tricks, Profile und Mods
 
 ## Code,Der Ordner [`juego/`](juego/) enthält das Spiel: JavaScript + WebGL2, ohne Abhängigkeiten. Ein optionaler Dedicated Server befindet sich in `juego/server/` (Node.js).

@@ -24,7 +24,11 @@ Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores mod
 - **Rivales:** las carreras grabadas del juego original o una IA nueva, en pelotón y con salidas limpias.
 - **Multijugador:** pantalla partida hasta 8 y online sin servidor hasta 12, con reconexión, cambio de anfitrión, chat de texto y de voz.
 - **Tu escudería:** cabeza y cuerpo del piloto, nombre de equipo, logos (también propios), color RGB y más de 35 bocinas.
-- **Para todos:** controles a gusto, ayudas de conducción, colores para daltonismo, 6 idiomas y 21 logros.
+- **Para todos:** controles a gusto, ayudas de conducción, colores para daltonismo, 6 idiomas y más de 60 logros.
+- **Modos:** carrera rápida, campeonato, contrarreloj con salida lanzada, reto semanal, modo libre, **Grand Prix** y **Fórmula 1** en circuitos de estilo real, modo **drift** con tándems, kart con objetos, eliminación, bomba caliente, zombis y polis y cacos.
+- **Creadores:** editor de circuitos (terreno, carretera, objetos, gradas, boxes, pianos automáticos) y circuitos de la comunidad que se publican, se votan y se descargan solos en el online.
+- **Garaje:** llantas, neones, cristales, faros y color del turbo; coches nuevos como GT Racer, GT Sprint, Panda 86, Bávaro 30, Zeta 35, go-kart y un fórmula.
+- **Plataformas:** navegador, Windows, Linux, Steam Deck y Android, con actualizaciones automáticas.
 - **Extras:** cámaras de televisión, modo foto, contrareloj con clasificación online, modo libre con rampas y acrobacias, perfiles y mods.
 
 ## Cómo jugar
