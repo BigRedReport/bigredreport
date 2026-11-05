@@ -15,6 +15,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Comprobar la clave de Cloudflare
+        env:
+          T: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          A: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: |
+          echo "Longitud del token: ${#T} · longitud del Account ID: ${#A} (debe ser 32)"
+          curl -sS -H "Authorization: Bearer $T" https://api.cloudflare.com/client/v4/user/tokens/verify | jq -c '{token_valido: .success, estado: .result.status, errores: .errors}'
+          curl -sS -H "Authorization: Bearer $T" "https://api.cloudflare.com/client/v4/accounts/$A" | jq -c '{cuenta_accesible: .success, nombre: .result.name, errores: .errors}'
+          curl -sS -H "Authorization: Bearer $T" "https://api.cloudflare.com/client/v4/accounts/$A/workers/subdomain" | jq -c '{subdominio_workers: .result.subdomain, errores: .errors}'
+          curl -sS -H "Authorization: Bearer $T" "https://api.cloudflare.com/client/v4/accounts" | jq -c '[.result[]? | {cuenta: .name, id_empieza: .id[0:6]}]'
       - name: Publicar en Cloudflare
         id: cf
         uses: cloudflare/wrangler-action@v3
@@ -23,6 +33,7 @@ jobs:
           accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           workingDirectory: servidor
           command: deploy
+          wranglerVersion: '4.158.0'
       - name: Guardar la dirección del servidor
         env:
           URL: ${{ steps.cf.outputs.deployment-url }}
