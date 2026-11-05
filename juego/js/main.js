@@ -363,7 +363,7 @@
       start: cfg => { fromOrig = true; if (orig.st.logo != null && typeof opt.logo !== 'string') opt.logo = orig.st.logo; if (orig.st.char != null && orig.st.char !== opt.char) { opt.char = orig.st.char; delete opt.head; delete opt.body; } tourMode = cfg.tourn; opt.rivals = cfg.rivals; opt.diff = cfg.diff; opt.players = cfg.players; save();
         if (audio) { audio.stopNarration(); } crazyPick = 'normal'; startRace(cfg.level, cfg.veh, cfg.team, 0, cfg.players); },
     });
-    await orig.init();
+    await orig.init(); if (orig.wantOpen) { orig.wantOpen = false; if (!orig.on) { state = 'origmenu'; orig.open(); } }
     if (opt.menu !== 'moderno') { state = 'origmenu'; orig.open(); }
   }
   addEventListener('keydown', e => { if (e.code === 'F2' && state === 'menu' && !(orig && orig.on) && !(BRR.DosGame && BRR.DosGame.on)) { e.preventDefault(); e.stopImmediatePropagation(); setTimeout(() => dosOpen(), 0); } });   // F2: el juego original de verdad (la misma pulsación no debe llegar a nada más)
@@ -3475,7 +3475,8 @@
       el.hidden = false; el.querySelector('button').onclick = () => { el.hidden = true; }; setTimeout(() => { el.hidden = true; }, 20000);
     };
     addEventListener('error', e => report(e.message, e.error && e.error.stack));
-    addEventListener('unhandledrejection', e => report(e.reason && (e.reason.message || e.reason), e.reason && e.reason.stack)); }
+    const netErr = m => /Failed to fetch|NetworkError|Load failed|network error|ERR_INTERNET|aborted/i.test(String(m || ''));   /* sin conexión: no es un fallo del juego (aviso #17) */
+    addEventListener('unhandledrejection', e => { const m = e.reason && (e.reason.message || e.reason); if (netErr(m)) return; report(m, e.reason && e.reason.stack); }); }
   // instalable como app (solo en la versión web; abriendo el archivo directamente no se puede)
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });

@@ -185,6 +185,7 @@
       if (e.key && e.key.length === 1) { const k = this.S.keys.find(k => k.sc === LETTER_SC[e.key.toLowerCase()]); if (k) this.press(k.id); }
     }
     move(dir) {
+      if (!this.boxes) return;   /* aviso #18/#20: mando antes de que haya botones */
       const bs = this.boxes.map((b, i) => ({ b, i })).filter(o => o.b.w > 4 && !this.boxOff(o.b));
       if (this.onArrow && this.onArrow(dir)) return;
       if (!this.kbFocus || this.focus < 0) { this.kbFocus = true; this.focus = bs.length ? bs[0].i : -1; return; }
@@ -215,6 +216,7 @@
       this.focus = -1; this.kbFocus = false;
     }
     async open() {
+      if (!this.root) { this.wantOpen = true; return; }   /* aviso #16/#19: pulsado mientras aún se carga; se abre al terminar */
       this.on = true; this.root.hidden = false; this.loop();
       if (this.h.audio) { this.h.audio.init(); this.h.audio.playTrack(2); }
       await this.conf();
