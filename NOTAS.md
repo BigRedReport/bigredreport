@@ -7,6 +7,10 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.116**
+- **Servidor oficial siempre encendido:** en el menú online aparece arriba del todo la sala **Servidor oficial**, abierta las 24 horas para hasta 12 jugadores: carreras normales con 5 bots y, al acabar cada una, votación del siguiente circuito. Se entra y se sale cuando se quiera; si el que la lleva se va, el mando pasa a otro jugador sin cortar la carrera. Las partidas propias se siguen creando como siempre.
+- **Circuitos de agua:** las pasarelas bajas suben (con postes más largos hasta el agua) para que el aerodeslizador pase por debajo en USA y los demás circuitos de agua; y las pasarelas de las laderas que flotaban ya tienen sus postes.
+
 **Novedades de la 0.115.4**
 - **Arreglados los fallos enviados automáticamente:** el menú clásico se colgaba si se abría (o se cambiaba el estilo de menú) antes de terminar de cargar en móviles lentos, y al moverse con el mando antes de que salieran sus botones. Los cortes de conexión ya no se avisan como fallos.
 

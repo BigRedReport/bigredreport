@@ -1752,7 +1752,7 @@
   function specLeave() { netRace = null; netWait = false; $('specbar').hidden = true; $('phuds').style.visibility = ''; state = 'menu'; }
   const R3 = a => a.map(x => Math.round(x * 1000) / 1000);
   function netFrame(dt) {
-    netT += dt; if (netT < 0.05) return; netT = 0;
+    netT += dt; if (netT < (BRR_net.room && BRR_net.room.info && BRR_net.room.info.hz ? 1 / BRR_net.room.info.hz : 0.05)) return; netT = 0;   // sala oficial: 12 por segundo (el plan gratuito del servidor cuenta los mensajes)
     const h = humans[0], c = h.car;
     if (netRace.role === 'spec') return;   // espectador: no tiene coche en la carrera
     BRR_net.game({ k: 's', p: R3(c.p), q: R3(c.q), v: R3(c.v), st: +c.steerAng.toFixed(3), n: c.nitroT > 0 ? 1 : 0, sc: +h.race.score().toFixed(3), f: h.race.finishT, lap: h.race.lap });
@@ -1868,7 +1868,7 @@
     if (!BRR_net.connected) { $('n_status').textContent = 'Conectando…';
       try { await BRR_net.connect(opt.netUrl && /^wss?:/.test(opt.netUrl) ? opt.netUrl : null, opt.netName || 'Piloto'); $('n_status').textContent = BRR_net.mode === 'server' ? 'Conectado al servidor ' + opt.netUrl : 'Conectado. Tu nombre: ' + (opt.netName || 'Piloto'); }
       catch (e) { $('n_status').textContent = e.message; } }
-    BRR_net.list(); clearInterval(listT); listT = setInterval(() => { if ((view === 'online' || view === 'lan') && state === 'menu') BRR_net.list(); else clearInterval(listT); }, 4000);
+    officialStatus(); BRR_net.list(); clearInterval(listT); listT = setInterval(() => { if ((view === 'online' || view === 'lan') && state === 'menu') BRR_net.list(); else clearInterval(listT); }, 4000);
     netRenderRoom();
   }
   $('n_conn').onclick = async () => { opt.netUrl = $('n_url').value.trim(); save(); if (BRR_net.room) BRR_net.leave(); BRR_net.use(/^wss?:/.test(opt.netUrl) ? 'server' : 'p2p');
@@ -1879,8 +1879,23 @@
   const sigHTML = ms => { if (ms == null) return '<span class="sig" title="Midiendo señal…">📶 …</span>'; const n = ms < 120 ? 4 : ms < 250 ? 3 : ms < 500 ? 2 : 1;
     return `<span class="sig s${n}" title="Señal: ${ms} ms">${'▮'.repeat(n)}${'▯'.repeat(4 - n)} ${ms} ms</span>`; };
   BRR_net.on('pong', m => { if (!m.id) return; roomPing.set(m.id, { ms: m.ms, at: Date.now() }); const el = document.querySelector(`#n_list [data-sig="${CSS.escape(m.id)}"]`); if (el) el.innerHTML = sigHTML(m.ms); });
+  // ---------- servidor oficial (Cloudflare): sala permanente para 12 con bots y votación; su dirección la deja GitHub en datos/servidor.json ----------
+  let official = null, officialAt = 0;
+  async function officialStatus() {
+    if (Date.now() - officialAt < 3500) return official; officialAt = Date.now();
+    try { if (!official || !official.url) { const r = await fetch('https://bigredreport.github.io/bigredreport/datos/servidor.json', { cache: 'no-cache' }); const j = r.ok ? await r.json() : null; if (!j || !/^wss?:\/\//.test(j.url || '')) return official = null; official = { url: j.url, http: j.http }; }
+      const r = await fetch(official.http, { cache: 'no-store' }); const j = r.ok ? await r.json() : null; official.st = j && j.official; official.ok = !!official.st; } catch (e) { if (official) official.ok = false; }
+    renderOfficial(); return official; }
+  function renderOfficial() { const el = $('n_official'); if (!el) return; const o = official; el.hidden = !(o && o.ok) || !!BRR_net.room; if (el.hidden) return; const st = o.st;
+    el.innerHTML = `<div class="rrow off"><span><b>🌐 Servidor oficial</b> · ${esc(tLabel((st.info || {}).level))}<br><small>🎮 <span>Carreras con bots y votación del siguiente circuito</span> · 👥 ${st.players}/${st.max} <span>jugadores</span>${st.state === 'racing' ? ' · <span>en carrera</span>' : ''}</small></span><button class="main" id="n_offjoin">Unirse</button></div>`;
+    $('n_offjoin').onclick = officialJoin; }
+  async function officialJoin() { const o = await officialStatus(); if (!o || !o.ok) { $('n_status').textContent = 'El servidor oficial no responde ahora mismo.'; return; }
+    if (BRR_net.room) BRR_net.leave(); $('n_status').textContent = 'Conectando con el servidor oficial…';
+    try { BRR_net.use('server'); if (!(BRR_net.lanUrl === o.url && BRR_net.connected)) await BRR_net.connect(o.url, opt.netName || 'Piloto'); BRR_net.lanUrl = o.url; BRR_net.join('OFICIAL', '', myData()); }
+    catch (e) { $('n_status').textContent = 'El servidor oficial no responde ahora mismo.'; BRR_net.lanUrl = null; BRR_net.use('p2p'); } }
   BRR_net.on('list', m => {
-    const L = m.rooms || [];
+    officialStatus();
+    const L = (m.rooms || []).filter(r => !r.official);
     for (const r of L) { const q = roomPing.get(r.id); if (!q || Date.now() - q.at > 8000) BRR_net.ping(r.id); }
     const modeOf = info => { const cz = info.crazy && info.crazy !== 'normal' && CRAZY_NAME[info.crazy]; return '<span>' + (MODE_N[info.mode] || '') + '</span>' + (cz ? ' · <b>' + cz + '</b>' : ''); };
     $('n_list').innerHTML = L.length ? L.map(r => `<div class="rrow"><span><b>${esc(r.name)}</b> · ${esc(r.host)} · ${esc(tLabel((r.info || {}).level))}<br><small>🎮 ${modeOf(r.info || {})} · 👥 ${r.players}/${r.max} <span>jugadores</span>${r.pass ? ' · 🔒' : ''}${r.state === 'racing' ? ' · <span>en carrera</span>' : ''} · <span data-sig="${esc(r.id)}">${sigHTML((roomPing.get(r.id) || {}).ms)}</span></small></span><button data-id="${r.id}" data-pass="${r.pass ? 1 : ''}">Unirse</button></div>`).join('') : 'No hay partidas públicas ahora mismo. ¡Crea una!';
@@ -2234,6 +2249,7 @@
   BRR_net.on('closed', m => { $('n_status').textContent = m.why || 'La partida se ha cerrado.'; netRenderRoom(); });
   let lastLevel = null, lastFree = false;
   function netRenderRoom() {
+    renderOfficial();
     { const lv = BRR_net.room && BRR_net.room.info && BRR_net.room.info.level; if (lv && String(lv).includes('~') && !BRR_net.isHost) ensureTrack(lv); }   // circuito propio del anfitrión: se descarga ya en la sala
     const r = BRR_net.room; $('n_room').hidden = !r; $('pane_online').classList.toggle('inroom', !!r); if (!r) return;
     if (r.state === 'racing' && !netRace && !BRR_net.isHost) $('n_modeinfo').textContent = 'Hay una carrera en curso: entrarás en la siguiente.';

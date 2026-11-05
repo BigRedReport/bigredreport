@@ -226,6 +226,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 #dosgame .dg_touch b.on{background:rgba(226,59,59,.55)}
 #dosgame .dg_pad b[data-k=up]{left:70px;bottom:136px}#dosgame .dg_pad b[data-k=down]{left:70px;bottom:20px}#dosgame .dg_pad b[data-k=left]{left:10px;bottom:78px}#dosgame .dg_pad b[data-k=right]{left:130px;bottom:78px}
 #dosgame .dg_btns b[data-k=enter]{right:16px;bottom:78px}#dosgame .dg_btns b[data-k=esc]{right:16px;bottom:150px}#dosgame .dg_btns b[data-k=ctrl]{right:84px;bottom:40px}#dosgame .dg_btns b[data-k=alt]{right:84px;bottom:112px}
+#n_official .rrow.off{border:1px solid #e23b3b;background:rgba(226,59,59,.12);border-radius:6px;margin-bottom:6px}
 </style><link rel="manifest" href="manifest.webmanifest"><meta name="theme-color" content="#e23b3b"><link rel="icon" href="icon-192.png">
 </head><body>
 <canvas id="c"></canvas><div id="err"></div>
@@ -382,7 +383,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="main" id="n_newbtn">Crear partida</button>
         <div class="grid3" style="margin-top:8px"><input id="n_code" class="inp" placeholder="Código de la partida" maxlength="8"><input id="n_pass" class="inp" placeholder="Contraseña (si tiene)"><button id="n_join">Unirse</button></div>
         <h3 style="margin-top:14px">Partidas públicas <small><button id="n_refresh">↻ Actualizar</button></small></h3>
-        <div id="n_list" class="small">—</div>
+        <div id="n_official" hidden></div><div id="n_list" class="small">—</div>
         <details style="margin-top:12px"><summary class="small">Servidor dedicado (avanzado)</summary>
           <p class="small">Si alguien tiene en marcha <b>server/iniciar-servidor</b> (Node.js), escribe su dirección. Déjalo vacío para jugar sin servidor.</p>
           <div class="grid2"><input id="n_url" class="inp" placeholder="ws://IP:7777 (vacío = sin servidor)"><button id="n_conn">Conectar</button></div>

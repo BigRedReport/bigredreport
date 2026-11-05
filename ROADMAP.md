@@ -209,4 +209,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] IA nueva (conductas mezcladas, expertos en GP), drift B y tándem, coches nuevos, llantas, objetos del editor, salida lanzada y logros (0.113)
 - [x] Modo Fórmula 1 y campeonato con todas las carreras (0.114)
 - [x] Juego original de 1995 en emulador (F2), drift recto, Indianapolis y circuitos GP decorados con puente en Suzuka (0.115)
+- [x] Servidor oficial siempre encendido (12 jugadores, bots y votación) (0.116)
 - [ ] Ideas: modo Go-Kart, modo fútbol (tipo Rocket League)

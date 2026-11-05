@@ -1,0 +1,38 @@
+# Publica el servidor oficial en Cloudflare cuando cambia la carpeta servidor/ (o a mano desde Actions).
+# Necesita los secretos CLOUDFLARE_API_TOKEN y CLOUDFLARE_ACCOUNT_ID. Al acabar guarda su dirección en
+# datos/servidor.json, que es donde el juego la busca.
+name: Servidor oficial
+on:
+  push:
+    branches: [main]
+    paths: ['servidor/**', '.github/workflows/servidor.yml']
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: servidor
+jobs:
+  publicar:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Publicar en Cloudflare
+        id: cf
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          workingDirectory: servidor
+          command: deploy
+      - name: Guardar la dirección del servidor
+        env:
+          URL: ${{ steps.cf.outputs.deployment-url }}
+        run: |
+          if [ -z "$URL" ]; then echo "Cloudflare no ha devuelto la dirección"; exit 1; fi
+          WSS=$(echo "$URL" | sed 's#^https://#wss://#')
+          curl -fsS "$URL" > /tmp/estado.json && cat /tmp/estado.json
+          mkdir -p datos
+          printf '{"url":"%s","http":"%s","t":%s}\n' "$WSS" "$URL" "$(date +%s)" > datos/servidor.json
+          git config user.name "github-actions"; git config user.email "github-actions@users.noreply.github.com"
+          git add datos/servidor.json
+          git diff --cached --quiet || git commit -m "Dirección del servidor oficial"
+          git pull --rebase -q && git push -q

@@ -17,7 +17,7 @@
         ws.onmessage = ev => {
           let m; try { m = JSON.parse(ev.data); } catch (e) { return; }
           if (m.t === 'hello') { clearTimeout(to); this.id = m.id; ok(m); }
-          if (m.t === 'room') { this.room = m.room; this.members = m.members; }
+          if (m.t === 'room') { const was = this.isHost, prev = this.members; this.room = m.room; this.members = m.members; if (!was && prev.length && this.isHost) setTimeout(() => this.emit('becamehost', { prevMembers: prev }), 0); }   // sala oficial: el mando pasa al siguiente
           if (m.t === 'pong') { if (typeof m.ts !== 'number') return; m = { t: 'pong', id: m.id, ms: Math.max(1, Date.now() - m.ts) }; }
           if (m.t === 'closed') { this.room = null; this.members = []; }
           this.emit(m.t, m);

@@ -226,7 +226,7 @@
     // No se tocan puentes, tubos, nubes ni lo que se apoya en otro objeto. Los carteles y vallas siguen la pendiente.
     const KEEP_UP = /CLOUD|SKY|BRIDG(?!END)|BRIJ|TUBE|ROOF|PLAT|BIRD|BALLOON|BLIMP|AIRSHIP|ZEPP|PLANE|KITE|WIRE|CABLE|START|CHECKP|SUN$|STAR|RAINBOW|FX$/;
     const THIN = /FENCE|BILBORD|BILLB|BOARD|SIGN|BANNER|WALL|BARR|RAIL|HOARD/;
-    const drop = new Map(), drape = new Set(), objB = [], pillarsAt = [];
+    const drop = new Map(), drape = new Set(), objB = [], pillarsAt = [], lift = new Map();
     // en otros planetas (MOON1-3: Marte, Venus, Luna) las construcciones y señales flotan a propósito: no se bajan al suelo
     const offWorld = /^MOON/i.test(level);
     if (!window.BRR_NOGROUND) {
@@ -240,6 +240,12 @@
         const foot = G.filter(g => g[1] < lo + 0.3).map(g => g[1] - groundAt(g[0] / S, -g[2] / S));
         B.push({ i, name, lo, hi, x0: Math.min(...xs), x1: Math.max(...xs), z0: Math.min(...zs), z1: Math.max(...zs), minC: Math.min(...foot), maxC: Math.max(...foot), sup: null });
       }
+      // circuitos de agua: las pasarelas y puentes bajos se suben para que quepa el aerodeslizador por debajo (la lancha ya cabía);
+      // cada pasarela entera (tramos que se tocan) sube a la misma altura, con pilares más largos hasta el agua
+      if (/^WATER/i.test(level) && !window.BRR_NOLIFT) { const BR = B.filter(o => /BRIDG|BRIJ|PLAT|WALKW/.test(o.name)), grp = BR.map((_, k) => k), fnd = k => grp[k] === k ? k : (grp[k] = fnd(grp[k]));
+        for (let a = 0; a < BR.length; a++) for (let b = a + 1; b < BR.length; b++) { const A = BR[a], Q = BR[b]; if (A.x0 < Q.x1 + 0.4 && Q.x0 < A.x1 + 0.4 && A.z0 < Q.z1 + 0.4 && Q.z0 < A.z1 + 0.4) grp[fnd(a)] = fnd(b); }
+        const need = new Map(); BR.forEach((o, k) => { const g = groundAt((o.x0 + o.x1) / 2 / S, -(o.z0 + o.z1) / 2 / S), c = o.lo - g, r = fnd(k); if (c > 0.6 && c < 3.4) need.set(r, Math.max(need.get(r) || 0, 3.4 - c)); });   /* el hueco más bajo de cada pasarela */
+        BR.forEach((o, k) => { const L = need.get(fnd(k)); if (L > 0.05) lift.set(o.i, Math.min(3, L)); });   /* toda la pasarela sube lo mismo (conserva su forma; los pilares, más largos) */ }
       // ¿se apoya en otro objeto? (su parte de arriba está justo debajo y se solapan en planta)
       const over = (a, b) => a.x0 < b.x1 - 0.05 && b.x0 < a.x1 - 0.05 && a.z0 < b.z1 - 0.05 && b.z0 < a.z1 - 0.05;
       B.sort((a, b) => a.lo - b.lo);
@@ -270,6 +276,7 @@
       if (env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(name) && farFromCourse(ox, oz)) { const lift = -oy * S - groundAt(ox, oz); if (lift > 3) oy += lift / S; }   // icebergs del ártico
       const k = 2 * Math.PI / 65536, R = BRR.rot(dv.getInt16(i + 13, true) * k, dv.getUint16(i + 15, true) * k, dv.getInt16(i + 17, true) * k);
       const dGL = drop.get(i) || 0, dr = drape.has(i); if (dGL && !dr) oy += dGL / S;
+      if (lift.has(i)) oy -= lift.get(i) / S;   // pasarela subida (circuitos de agua)
       if (cls === 4 || cls === 5 || cls === 10 || SOFT.test(name)) {   // derribable: instancia aparte
         props.push({ name, cls, o: BRR.toGL(ox, oy, oz), R: [[R[0][0], -R[0][1], -R[0][2]], [-R[1][0], R[1][1], R[1][2]], [-R[2][0], R[2][1], R[2][2]]], r: Math.max(0.4, m.radius * S * 0.5) });
         continue;
@@ -333,7 +340,7 @@
           // dos tramos de puente seguidos: un solo pilar en la junta (no dos juntos)
           if (pillarsAt.some(q => Math.abs(q[0] - px) < 1.8 && Math.abs(q[1] - pz) < 1.8)) continue; pillarsAt.push([px, pz]);
           // ya hay un poste o un pilar del original debajo de esa esquina: no se pone otro al lado
-          if (objB.some(o => o.i !== i && !/BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(o.name) && o.x0 < px + 2.2 && o.x1 > px - 2.2 && o.z0 < pz + 2.2 && o.z1 > pz - 2.2 && o.lo < g + 2 && o.hi > top - 2.5)) continue;
+          if (objB.some(o => o.i !== i && !/BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(o.name) && o.x0 < px + 2.2 && o.x1 > px - 2.2 && o.z0 < pz + 2.2 && o.z1 > pz - 2.2 && o.lo < g + 2 && o.hi > top - 0.4)) continue;   /* solo si ese poste llega de verdad a la pasarela (si no, flotaba) */
           const C = [[px - w, pz - w], [px + w, pz - w], [px + w, pz + w], [px - w, pz + w]];
           for (let k = 0; k < 4; k++) { const a2 = C[k], b2 = C[(k + 1) % 4], A = [a2[0], top, a2[1]], B = [b2[0], top, b2[1]], Cq = [b2[0], g - 0.3, b2[1]], D = [a2[0], g - 0.3, a2[1]];
             for (const t of [[A, B, Cq], [A, Cq, D]]) { col.add(t[0], t[1], t[2], name); for (const order of [[0, 1, 2], [0, 2, 1]]) for (const j of order) { gC.pos.push(...t[j]); gC.col.push(...cc); gC.lay.push(1); } } } } }

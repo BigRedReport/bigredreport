@@ -1,0 +1,14 @@
+# Servidor oficial de Big Red Report (Cloudflare Workers, plan gratuito)
+name = "bigredreport-servidor"
+main = "worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+
+[[durable_objects.bindings]]
+name = "LOBBY"
+class_name = "Lobby"
+
+# plan gratuito: Durable Objects con almacenamiento SQLite
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Lobby"]
