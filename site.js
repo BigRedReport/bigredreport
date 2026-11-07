@@ -138,7 +138,7 @@
     const M = rows[cur], R = M ? [...M.values()].sort((a, b) => a.lap - b.lap) : null, tb = $('lb_t').tBodies[0];
     if (!R || !R.length) { tb.innerHTML = '<tr><td colspan="5" class="empty">' + (!ready && !snapDone ? 'Cargando…' : 'Aún no hay tiempos en este circuito. ¡Sé el primero!' + (ready ? '' : ' (sin conexión con el buzón en directo; reintentando…)')) + '</td></tr>'; return; }
     const f = t => { const m = Math.floor(t / 60), s = t - m * 60; return m + ':' + (s < 10 ? '0' : '') + s.toFixed(2); };
-    tb.innerHTML = R.slice(0, 50).map((r, i) => `<tr><td>${i + 1}</td><td>${esc(r.name || '?')}</td><td>${esc(VEH[r.veh] || r.veh || '')}</td><td>${f(+r.lap)}</td><td>${r.t ? new Date(r.t).toLocaleDateString('es-ES') : ''}</td></tr>`).join('');
+    tb.innerHTML = R.slice(0, 3).map((r, i) => `<tr><td>${['🥇', '🥈', '🥉'][i]}</td><td>${esc(r.name || '?')}</td><td>${esc(VEH[r.veh] || r.veh || '')}</td><td>${f(+r.lap)}</td><td>${r.t ? new Date(r.t).toLocaleDateString('es-ES') : ''}</td></tr>`).join('');
   }
   $('lb_lv').onchange = () => { cur = $('lb_lv').value; draw(); if (ready) sub(cur); };
   cur = $('lb_lv').value; draw(); connect();
