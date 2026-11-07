@@ -304,7 +304,7 @@
       this.p = [x, y - low + 0.35, z]; this.v = [0, 0, 0]; this.w = [0, 0, 0]; this.q = BRR.Q.fromYaw(yaw);
       this.steerAng = 0; this.upsideTime = 0; this.nitroT = 0;
     }
-    steerLock() { const def = this.def, spd = Math.abs(this.speed()) / SPEED_K, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spd - s1) / (s2 - s1))); return (a1 + (a2 - a1) * tt) / 0x280 * 0.55; }
+    steerLock() { const def = this.def, spd = Math.abs(this.speed()) / SPEED_K, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spd - s1) / (s2 - s1))); return (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (this.kartMode ? 1.2 / (1 + (this.speed() / 30) ** 2) + 0.1 : 1); }
     get topSpeed() { if (this._top) return this._top; if (this.K.fly) return this._top = 48; const r = this.def.gearF; let v = r[r.length - 1][0]; for (const x of r) if (x[1] <= 0) { v = x[0]; break; } return this._top = Math.min(60, v * SPEED_K) * (this.gpMode ? GPV : 1); }
     get wheelBase() { const z = this.W.map(w => w.c[2]); return Math.max(1.5, Math.max(...z) - Math.min(...z)); }
     fireNitro() { if (this.gpMode || this.nitroT > 0 || !(this.nitros > 0 || this.nitroInf)) return false; if (!this.nitroInf) this.nitros--; this.nitroT = 2.6; return true; }
@@ -323,7 +323,7 @@
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
       const DR = this.driftMode, DB = DR && this.driftB ? (this.dB || (this.dB = { on: false, lat: 1, side: 1, charge: 0, offT: 0, cT: 0, exit: 0 })) : null;   // drift B (arcade): ver más abajo   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
-      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1) * (F1 ? 1 / (1 + (vf / 38) ** 2) : 1);   // más giro para contravolante; el F1, mucho menos a alta velocidad (si no, se va con el mínimo toque)
+      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1) * (F1 ? 1 / (1 + (vf / 38) ** 2) : 1) * (this.kartMode ? 1.2 / (1 + (vf / 30) ** 2) + 0.1 : 1);   // más giro para contravolante; el F1, mucho menos a alta velocidad (si no, se va con el mínimo toque)
       this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * (F1 ? 10 / (1 + Math.max(0, vf) / 30) : 10));
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
       if (this.gpMode && this.grounded && this.def.name === 'F1' && inp.throttle > 0.1 && V.dot(this.v, fwd) > -0.5) { const tp = this.topSpeed, vf0 = V.dot(this.v, fwd); if (vf0 < tp * 0.98) F = V.madd(F, fwd, this.m * 7.5 * inp.throttle * Math.max(0.15, 1 - vf0 / tp)); }   // F1: tracción de monoplaza (0-100 en ~2,4 s)
@@ -359,7 +359,7 @@
         const vLong = V.dot(vc, fw), vLat = V.dot(vc, lat); let Flong0 = 0;
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
-        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (F1 ? 1.32 : GP ? 1.15 : 1);   // GP: neumáticos de carreras (F1: aún más)
+        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (F1 ? 1.32 : GP ? 1.15 : 1) * (this.kartMode ? (w.steer ? 1.3 : 1.24 * (braking && Math.abs(inp.steer) > 0.3 && vf > 12 ? 0.9 : 1)) : 1);   // GP: neumáticos de carreras (F1: aún más) · kart: mucho agarre, y la trasera se suelta un poco si entras frenando y girando
         if (DR && !DB && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, this.dOn ? 0.62 : 0.55);   // freno de mano: tirón para cruzarlo (sin frenar)
           else { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
             mu *= 1 - 0.5 * ps; if (this.dOn && throttle > 0.3) mu *= 0.6; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando
@@ -380,7 +380,7 @@
         // derrape visible (marcas, humo, chirrido): de lado solo si la rueda resbala de verdad (>~1 m/s), no por el tope de agarre
         // en una curva normal (a los coches pequeños les pasaba siempre); de frente (frenazo o acelerón), según el exceso de fuerza
         { const raw = tot > lim ? 1 - lim / tot : 0; w.slip = !raw ? 0 : Math.abs(Flong) > Math.abs(Flat) ? raw * 0.7 : Math.min(raw, Math.max(0, (Math.abs(vLat) - 0.9) / 2.5)); }
-        if (tot > lim) { Flat *= lim / tot; Flong *= lim / tot; }
+        if (tot > lim) { if (this.kartMode && !w.steer) { const fl = Math.sign(Flat) * Math.min(Math.abs(Flat), lim * (vf > 9 ? 0.9 : 1)), rest = Math.sqrt(Math.max(0, lim * lim - fl * fl)) * lk; Flat = fl; Flong = Math.max(-rest, Math.min(rest, Flong)); } else { Flat *= lim / tot; Flong *= lim / tot; } }   /* kart: la trasera agarra de lado antes que traccionar (no hace trompos al acelerar); al entrar muy rápido resbala un poco (pequeño derrape lateral) */
         // suspensión en el punto real; tracción/agarre aplicados cerca de la altura del centro de masas
         // (truco arcade para que no vuelque en cada curva, como en el original)
         const Fsus = V.mul(up, Fs), Ftire = V.add(V.mul(fw, Flong), V.mul(lat, Flat));
@@ -409,6 +409,7 @@
         DB.exit = Math.max(0, DB.exit - dt); DB.lat = DB.on ? 0.012 : DB.exit > 0 ? 1 - DB.exit / 0.6 * 0.9 : 1;   // al salir, las gomas vuelven a agarrar poco a poco (sin latigazo)
         }
       if (DR && grounded && this.drAssist) F = V.madd(F, this.drAssist, this.m);   // ayudas del modo drift (seguir en la pista, imán del tándem): las pone el juego
+      if (this.kartMode && grounded) { const ab = Math.abs(beta), wy = V.dot(this.w, up); if (ab > 0.1) T = V.madd(T, up, -wy * this.I[1] * 4.5 * Math.min(1, (ab - 0.1) * 5)); }   // kart: el derrape es corto y se recoge solo
       if (DR && !DB && grounded) { const ab = Math.abs(beta), hv = Math.hypot(this.v[0], this.v[2]), wy = V.dot(this.w, up);
         const fh = V.norm([fwd[0], 0, fwd[2]]), rh = V.norm([right[0], 0, right[2]]), sa = this.steerAng, wd = V.norm(V.add(V.mul(fh, Math.cos(sa)), V.mul(rh, Math.sin(sa))));
         const hbOn = inp.handbrake || this.dHold > 0;

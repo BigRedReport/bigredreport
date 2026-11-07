@@ -7,6 +7,12 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118**
+- **Nuevo modo Karting** (en Un jugador): carrera suelta o **campeonato propio** en cuatro karts de verdad con sus **trazados reales**: **Los Alcázares** (Go-Karts Mar Menor), **Benidorm**, **Orihuela** y **La Manga**. Pista estrecha, pianos, barreras de plástico rojas y blancas, muros de neumáticos, caseta de control y palmeras.
+- **Física propia del go-kart en este modo:** mucho agarre y punta de unos 85 km/h; si entras muy rápido o frenando y girando, la trasera hace un pequeño derrape lateral y se recoge sola; ya no hace trompos al acelerar en la salida de las curvas. En el modo «crazy kart» se conduce como siempre.
+- **IA de los karts:** no se sale del asfalto ni recorta por el césped de las horquillas, y frena a tiempo para las curvas cerradas.
+- **Editor:** tipo de circuito «Karting» y objetos nuevos (muro de neumáticos, barrera de plástico y caseta de control).
+
 **Novedades de la 0.117**
 - **Coches rehechos con muchos más polígonos:** carrocerías redondeadas (sin aristas entre tramos) y **pilares finos** en todas las ventanillas (A, B y C, también detrás), con el cristal lateral hasta el parabrisas. **Zeta 35** con sus faros alargados en las esquinas del morro (sin las "tomas" del capó), **Bávaro 30** con la doble parrilla de riñón y marcos cromados.
 - **Nuevo coche: Mínimo 50** (utilitario británico de los 2000): corto, ruedas en las esquinas, techo blanco "flotante" con pilares negros, faros redondos sobre el capó y rejilla hexagonal cromada. Sale como coche principal en los circuitos donde está el Mini.

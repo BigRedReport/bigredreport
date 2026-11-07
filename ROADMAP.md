@@ -210,4 +210,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Modo Fórmula 1 y campeonato con todas las carreras (0.114)
 - [x] Juego original de 1995 en emulador (F2), drift recto, Indianapolis y circuitos GP decorados con puente en Suzuka (0.115)
 - [x] Servidor oficial siempre encendido (12 jugadores, bots y votación) (0.116)
-- [ ] Ideas: modo Go-Kart, modo fútbol (tipo Rocket League)
+- [x] Modo Karting (0.118): física propia del kart y cuatro karts reales (Los Alcázares, Benidorm, Orihuela y La Manga) con campeonato
+- [ ] Ideas: modo fútbol (tipo Rocket League); Karting online

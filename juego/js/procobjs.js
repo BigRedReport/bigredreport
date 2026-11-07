@@ -141,6 +141,26 @@
       K.tri(top, [top[0] + c * 4.2 - s2 * 0.7, 7.2, top[2] + s2 * 4.2 + c * 0.7], [top[0] + c * 4.2 + s2 * 0.7, 7.2, top[2] + s2 * 4.2 - c * 0.7], leaf, false);
       K.tri([top[0] + c * 4.2 - s2 * 0.7, 7.2, top[2] + s2 * 4.2 + c * 0.7], [top[0] + c * 5.4, 6, top[2] + s2 * 5.4], [top[0] + c * 4.2 + s2 * 0.7, 7.2, top[2] + s2 * 4.2 - c * 0.7], leaf, false); }
     return K; }
+  // karting: muro de neumáticos (2,4 m; pilas de 2 ruedas, alguna pintada), barrera de plástico roja y blanca (2 m) y la caseta de control
+  function neumat() {
+    const K = kit(), blk = [0.09, 0.09, 0.1], cols = [blk, blk, [0.85, 0.12, 0.1], blk, blk, [0.92, 0.92, 0.92]], r = 0.36, h = 0.26;
+    for (let i = 0; i < 4; i++) for (let j = 0; j < 2; j++) { const x = -0.9 + i * 0.6, y = j * h, c = cols[(i * 2 + j) % 6];
+      cyl(K, x, 0, r, r, y, y + h, 6, c, false, j === 1 ? [0.05, 0.05, 0.05] : null, null); }
+    K.box(-1.2, 0.18, 0.3, 1.2, 0.42, 0.34, [0.15, 0.15, 0.17], false);   // la cinta que las une
+    for (const [a, b, c] of [[[-1.2, 0, 0], [1.2, 0, 0], [1.2, 1, 0]], [[-1.2, 0, 0], [1.2, 1, 0], [-1.2, 1, 0]]]) K.tris.push([a, b, c]);   // pared para el choque
+    return K; }
+  function barrera() {
+    const K = kit(), red = [0.85, 0.12, 0.1], white = [0.93, 0.93, 0.93];
+    K.box(-1, 0, -0.25, 0, 0.8, 0.25, red, false, [0.92, 0.2, 0.15]); K.box(0, 0, -0.25, 1, 0.8, 0.25, white, false, [0.98, 0.98, 0.98]);
+    for (const [a, b, c] of [[[-1, 0, 0], [1, 0, 0], [1, 0.9, 0]], [[-1, 0, 0], [1, 0.9, 0], [-1, 0.9, 0]]]) K.tris.push([a, b, c]);
+    return K; }
+  function caseta() {
+    const K = kit(), wall = [0.92, 0.9, 0.85], glass = [0.2, 0.32, 0.45], roof = [0.75, 0.15, 0.12], dark = [0.3, 0.3, 0.32];
+    K.box(-6, 0, -3, 6, 3, 3, wall, true, wall);   // planta baja
+    K.box(-3.5, 3, -2.5, 3.5, 5.6, 2.5, glass, true, glass); K.box(-4, 5.6, -3, 4, 5.9, 3, roof, false, roof, roof);   // cabina de cronometraje
+    K.box(-6.3, 3, -3.3, 6.3, 3.2, 3.6, dark, false); for (const x of [-5, -1.8, 1.8, 5]) K.box(x - 0.6, 0.9, 3.01, x + 0.6, 2.1, 3.05, glass, false);
+    K.box(-0.06, 5.9, -0.06, 0.06, 8, 0.06, dark, false); K.box(0.06, 7.2, -0.02, 1.4, 8, 0.02, [0.95, 0.95, 0.95], false);   // mástil con bandera
+    return K; }
   const SMOKE = { HUMO_ROJO: [0.95, 0.15, 0.12], HUMO_AZUL: [0.2, 0.45, 1], HUMO_VERDE: [0.2, 0.85, 0.3], HUMO_AMAR: [1, 0.85, 0.15], HUMO_MORADO: [0.7, 0.25, 0.9], HUMO_BLANCO: [0.95, 0.95, 0.95] };
   // registro: etiqueta, huella en el editor (metros: x0, x1, z0, z1) y constructor
   BRR.PROC_OBJS = {
@@ -155,7 +175,10 @@
     PASARELA: { label: 'Pasarela sobre la pista', fp: [-15, 15, -2, 2], build: pasarela },
     ARBOL: { label: 'Árbol', fp: [-3.6, 3.6, -3.6, 3.6], build: arbol, merge: true },
     CIPRES: { label: 'Ciprés', fp: [-1.4, 1.4, -1.4, 1.4], build: cipres, merge: true },
-    PALMERA: { label: 'Palmera', fp: [-5.4, 5.4, -5.4, 5.4], build: palmera, merge: true } };
+    PALMERA: { label: 'Palmera', fp: [-5.4, 5.4, -5.4, 5.4], build: palmera, merge: true },
+    NEUMAT: { label: 'Muro de neumáticos (karting, 2,4 m)', fp: [-1.2, 1.2, -0.4, 0.4], build: neumat, merge: true },
+    BARRERA: { label: 'Barrera de plástico (karting, 2 m)', fp: [-1, 1, -0.25, 0.25], build: barrera, merge: true },
+    KCASETA: { label: 'Caseta de control (karting)', fp: [-6.3, 6.3, -3.3, 3.6], build: caseta } };
   const SMN = { HUMO_ROJO: 'rojo', HUMO_AZUL: 'azul', HUMO_VERDE: 'verde', HUMO_AMAR: 'amarillo', HUMO_MORADO: 'morado', HUMO_BLANCO: 'blanco' };
   for (const [k, c] of Object.entries(SMOKE)) BRR.PROC_OBJS[k] = { label: 'Humo ' + SMN[k], fp: [-0.4, 0.4, -0.4, 0.4], build: () => humo(c), smoke: c };
 })();

@@ -152,19 +152,23 @@
     // suavizado y remuestreo cada 3 m
     for (let it = 0; it < 10; it++) pts = pts.map((p, k) => { const a = pts[(k - 2 + pts.length) % pts.length], b = pts[(k + 2) % pts.length]; return [(a[0] + 2 * p[0] + b[0]) / 4, 0, (a[2] + 2 * p[2] + b[2]) / 4]; });    for (let it = 0; it < 10; it++) pts = pts.map((p, k) => { const a = pts[(k - 2 + pts.length) % pts.length], b = pts[(k + 2) % pts.length]; return [(a[0] + 2 * p[0] + b[0]) / 4, 0, (a[2] + 2 * p[2] + b[2]) / 4]; });
     // trazada de carreras: se tensa la línea (menos curvatura, recorta por dentro) sin salirse de la pista ni acercarse a paredes
-    { const ok = (x, z) => { const c = cell(x, z); return c >= 0 && dist[c] >= 3 && (mode === 'fly' || wet[c] || !landCost) && (mode !== 'fly' || dist[c] >= 3); };
+    { const narrow = lvl.roadDist && lvl.custom && lvl.custom.kind === 'kart' ? lvl.roadHalf - 1.8 : 0;   // karting: la trazada no sale del asfalto (la pista es estrecha y hay barreras al lado)
+      const ok = (x, z) => { const c = cell(x, z); return c >= 0 && dist[c] >= 3 && (mode === 'fly' || wet[c] || !landCost) && (mode !== 'fly' || dist[c] >= 3) && (!narrow || lvl.roadDist(x, z) <= narrow); };
       const n = pts.length;
       for (let it = 0; it < 80; it++) for (let k = 0; k < n; k++) {
         const a = pts[(k - 1 + n) % n], b = pts[(k + 1) % n], p = pts[k], tx = (a[0] + b[0]) / 2, tz = (a[2] + b[2]) / 2;
         const nx = p[0] + (tx - p[0]) * 0.5, nz = p[2] + (tz - p[2]) * 0.5;
         if (ok(nx, nz)) { p[0] = nx; p[2] = nz; }
-      } }
+      }
+      if (narrow) for (const p of pts) { const q = lvl.roadNear(p[0], p[2]); if (q.d > narrow && q.d < 1e8) { const f = narrow / q.d; p[0] = q.x + (p[0] - q.x) * f; p[2] = q.z + (p[2] - q.z) * f; } }   // karting: lo que quede fuera del asfalto (atajos por el césped), de vuelta a la pista
+    }
     const step = 3, res = []; { let carry = 0;
       for (let k = 0; k < pts.length; k++) { const a = pts[k], b = pts[(k + 1) % pts.length], L = Math.hypot(b[0] - a[0], b[2] - a[2]);
         let d = carry; while (d < L) { const f = d / L; res.push([a[0] + (b[0] - a[0]) * f, 0, a[2] + (b[2] - a[2]) * f]); d += step; } carry = d - L; } }
     const N = res.length;
     const out = res.map((p, k) => { const c = cell(p[0], p[2]), d = c >= 0 ? dist[c] : 5, pr = race.project(p);
-      return { p, w: 30, vh: lvl.courseV[pr.i] || 3000, roomL: Math.max(0, d - 2), roomR: Math.max(0, d - 2), s: pr.s }; });
+      const kr = lvl.roadDist && lvl.custom && lvl.custom.kind === 'kart' ? Math.max(0.6, lvl.roadHalf - 1.2 - lvl.roadDist(p[0], p[2])) : 99;   // karting: el hueco para adelantar, dentro del asfalto
+      return { p, w: 30, vh: lvl.courseV[pr.i] || 3000, roomL: Math.min(kr, Math.max(0, d - 2)), roomR: Math.min(kr, Math.max(0, d - 2)), s: pr.s }; });
     out.forEach((q2, k) => { const nx = out[(k + 1) % N].p; q2.t = V.norm([nx[0] - q2.p[0], 0, nx[2] - q2.p[2]]); });
     const cmask = new Uint8Array(W * H); for (let i = 0; i < W * H; i++) cmask[i] = corridor[i] === 1 && dist[i] < 3 ? 1 : 0;
     lvl.aiLine = lvl.aiLines[mode] = { mode, cache: { x0, z0, W, H, cmask }, pts: out, step, N, total: N * step, ms: Math.round(performance.now() - t0), dbg: { grid, dist, wet, W, H, x0, z0, fails }, corridorAt: (x, z) => { const c = cell(x, z); return c >= 0 && corridor[c] === 1 && dist[c] < 3; } };
@@ -178,7 +182,8 @@
     return best;
   };
   // caché en IndexedDB de la trazada (tarda unos segundos en calcularse la primera vez)
-  const AIV = 'v13';   // v13: suelo, objetos apoyados y lanchas sin montañas: las trazadas se recalculan
+  const AIV = 'v14';   // v14: trazadas de karting dentro del asfalto
+  // (antes) v13:   // v13: suelo, objetos apoyados y lanchas sin montañas: las trazadas se recalculan
   const aidb = () => new Promise((ok, ko) => { const r = indexedDB.open('brr_ai', 1); r.onupgradeneeded = () => r.result.createObjectStore('l'); r.onsuccess = () => ok(r.result); r.onerror = ko; });
   const rle = a => { const o = []; let v = a[0], n = 0; for (let i = 0; i < a.length; i++) { if (a[i] === v) n++; else { o.push(n); v = a[i]; n = 1; } } o.push(n); return { first: a[0], runs: o }; };
   const unrle = (r, len) => { const a = new Uint8Array(len); let v = r.first, i = 0; for (const n of r.runs) { if (v) a.fill(1, i, i + n); i += n; v ^= 1; } return a; };
@@ -202,7 +207,7 @@
   const SURF_MU = { asfalto: 1.0, tierra: 0.9, arena: 0.78, nieve: 0.7, agua: 0.6 };
   BRR.aiProfile = function (line, car, P) {
     const N = line.N, st = line.step, vtop = car.topSpeed * P.pace * (car.K.fly ? 1.1 : 1);
-    const mu = (car.K.fly ? 2.5 : car.K.boat ? 0.6 : car.K.thrust ? 0.55 : 1.0) * P.corner * (car.gpMode ? (car.def.name === 'F1' ? 1.6 : 1.32) : 1), out = new Float32Array(N);   // GP: gomas de carreras y apoyo aerodinámico
+    const mu = (car.K.fly ? 2.5 : car.K.boat ? 0.6 : car.K.thrust ? 0.55 : 1.0) * P.corner * (car.gpMode ? (car.def.name === 'F1' ? 1.6 : 1.32) : car.kartMode ? 1.0 : 1), out = new Float32Array(N);   // GP: gomas de carreras y apoyo aerodinámico
     for (let i = 0; i < N; i++) {
       const a = line.pts[(i - 5 + N) % N].t, b = line.pts[(i + 5) % N].t, ang = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[2] * b[2])));
       // agarre del suelo en ese punto (arena, nieve... agarran menos que el asfalto): la curva se toma más despacio
@@ -212,7 +217,7 @@
     // límite de la dirección: a más velocidad, menos ángulo de giro (como en el original); no se puede entrar a una curva
     // más rápido de lo que deja girar el volante a esa velocidad
     if (!car.K.fly && !car.K.yaw && car.def && car.def.steer) { const L = car.wheelBase, kmax = [], SK = BRR.SPEED_K || 1;
-      for (let v = 0; v <= 70; v++) { const def = car.def, sp = v / SK, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (sp - s1) / (s2 - s1))); kmax.push(Math.tan((a1 + (a2 - a1) * tt) / 0x280 * 0.55) / L); }
+      for (let v = 0; v <= 70; v++) { const def = car.def, sp = v / SK, [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (sp - s1) / (s2 - s1))); kmax.push(Math.tan((a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (car.kartMode ? 1.2 / (1 + (v / 30) ** 2) + 0.1 : 1)) / L); }   // kart de karting: su dirección cambia con la velocidad
       for (let i = 0; i < N; i++) { const a = line.pts[(i - 5 + N) % N].t, b = line.pts[(i + 5) % N].t, ang = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[2] * b[2]))), k = ang / (10 * st) * 1.25;
         let v = Math.min(70, Math.floor(out[i])); while (v > 7 && kmax[v] < k) v--; out[i] = Math.min(out[i], Math.max(7, v)); } }
     const brake = 6.5 * Math.min(1.2, P.corner) * (car.gpMode ? (car.def.name === 'F1' ? 3.4 : 2.4) : 1);   // en GP frenan mucho más fuerte (y el F1 más aún): la frenada empieza más tarde
