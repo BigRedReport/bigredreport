@@ -160,7 +160,7 @@
     const padT = () => { if ($('title').hidden) return; if (pads().some(g => g.buttons.some(b => b.pressed))) go1(); else requestAnimationFrame(padT); }; requestAnimationFrame(padT); }
 
   const LEVEL_NAMES = { CITY: 'Ciudad', DIRT: 'Tierra', MOON: 'Marte', WATER: 'Río', SNOW: 'Nieve', RUF: 'Desierto', RIG: 'Plataforma', CHOPPER: 'Helicóptero', TEST: 'Prueba' };
-  const VEH_NAMES = { PANDA: 'Panda 86', GT: 'GT Racer', KART: 'Go-kart', F1: 'Fórmula', GTS: 'GT Sprint', BAV30: 'Bávaro 30', ZETA35: 'Zeta 35', JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable',
+  const VEH_NAMES = { MINIMO: 'Mínimo 50', PANDA: 'Panda 86', GT: 'GT Racer', KART: 'Go-kart', F1: 'Fórmula', GTS: 'GT Sprint', BAV30: 'Bávaro 30', ZETA35: 'Zeta 35', JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable',
     PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
   // vehículos de cada circuito (líneas "car" del guion del nivel), como en el original
   const levelCars = {};
@@ -173,6 +173,7 @@
       const txt = BRR.text(A.get(t)).replace(/;[^\n]*/g, '');
       const L = [...txt.matchAll(/^\s*car\s+(\w+)/gm)].map(m => m[1].toUpperCase()).slice(0, 2).filter(n => n !== 'FEHELI' && files.has(n + '.VHC'));
       if (/^MOON/.test(id) && files.has('UFO.VHC') && !L.includes('UFO')) L.push('UFO');   // el ovni, también de serie en Marte, Venus y la Luna
+      if (L.includes('MINI') && !L.includes('MINIMO')) L.splice(L.indexOf('MINI') + 1, 0, 'MINIMO');   // donde sale el Mini del juego, también el Mínimo 50 (Mini R50) como otro principal
       return levelCars[id] = L;   // el original deja elegir los 2 primeros (el 3º es el helicóptero de cámara u oculto)
     } catch (e) { return levelCars[id] = []; }
   }
@@ -224,24 +225,37 @@
     // cabezas nuevas de mujer hechas con las del original cambiando colores: pelo rubio (los amarillos del rubio) · piel clara y melena castaña (sin el color del equipo)
     { b: 'WOMAN', h: 'HEAD5', r: { 47: 84 } }, { b: 'WOMAN', h: 'HEAD4', v: 1, r: {48: 146, 49: 146, 50: 146, 51: 146, 52: 146, 53: 146, 54: 156, 55: 156, 56: 156, 57: 156, 58: 156, 59: 156, 60: 166, 61: 166, 62: 166, 63: 166, 11: 241, 12: 242, 13: 243, 14: 244, 15: 245} },
     { b: 'BLOKE', h: 'HELMET' }];   // casco de piloto integral, hecho aquí con caras planas como las cabezas del original
-  // casco integral: del color del equipo, visera oscura, franja blanca por arriba y cuello negro (mismas medidas que las cabezas originales)
+  // casco integral (hecho aquí con caras planas, como las cabezas del original): del color del equipo, con más polígonos y detalles:
+  // visera oscura con reflejo y marco que sobresale, mentonera con rejillas, franjas por arriba, alerón trasero y cuello cerrado (sin agujeros)
   function helmetModel(team) {
-    const NL = 7, NJ = 12, rx = 6.8, ry = 8.6, rz = 7.6, cy = -3.4, verts = [], faces = [], T0 = 32 + 16 * team, thMax = Math.PI * 0.86;
+    const NL = 12, NJ = 22, rx = 6.8, ry = 8.6, rz = 7.8, cy = -3.4, verts = [], faces = [], T0 = 32 + 16 * team, thMax = Math.PI * 0.84;
+    const WHITE = 32, DARK = 47, VIS = 44;
     verts.push([0, cy - ry, 0]);   // coronilla
-    for (let i = 1; i <= NL; i++) { const th = i / NL * thMax; for (let j = 0; j < NJ; j++) { const ph = j / NJ * 2 * Math.PI; verts.push([rx * Math.sin(th) * Math.cos(ph), cy - ry * Math.cos(th), rz * Math.sin(th) * Math.sin(ph)]); } }
+    for (let i = 1; i <= NL; i++) { const th = i / NL * thMax; for (let j = 0; j < NJ; j++) { const ph = j / NJ * 2 * Math.PI, bulge = 1 + 0.05 * Math.max(0, Math.sin(ph)) * Math.sin(th);   // un poco más largo por delante (mentonera)
+      verts.push([rx * Math.sin(th) * Math.cos(ph), cy - ry * Math.cos(th), rz * bulge * Math.sin(th) * Math.sin(ph)]); } }
     const V = (i, j) => i === 0 ? 0 : 1 + (i - 1) * NJ + ((j % NJ) + NJ) % NJ;
+    const inVisor = (fz, y) => fz > 0.55 && y > -0.38 && y < 0.18;
     const colOf = idx => { let x = 0, y = 0, z = 0; for (const k of idx) { x += verts[k][0]; y += verts[k][1]; z += verts[k][2]; } const n = idx.length; x /= n * rx; y = (y / n - cy) / ry; z /= n * rz;
-      const lat = Math.hypot(x, z) || 1, fz = z / lat;   // fz: 1 = de frente
-      if (fz > 0.62 && y > -0.42 && y < 0.2) return 44;                 // visera
-      if (fz > 0.62 && y >= 0.2 && y < 0.45) return T0 + 9;              // mentonera
-      if (Math.abs(x / lat) < 0.27 && fz < 0.62 && y < 0.05) return 32;   // franja
+      const lat = Math.hypot(x, z) || 1, fz = z / lat, ax = Math.abs(x / lat);
+      if (inVisor(fz, y)) return fz > 0.8 && y < -0.2 && x > -0.1 && x < 0.25 ? WHITE : VIS;   // visera, con un reflejo claro arriba
+      if (fz > 0.55 && y >= 0.18 && y < 0.5) return fz > 0.85 && y > 0.26 && y < 0.42 && ax < 0.3 ? DARK : T0 + 9;   // mentonera con rejilla
+      if (ax < 0.08 && y < 0.12) return WHITE;   // franja central blanca
+      if (ax >= 0.08 && ax < 0.16 && y < 0.1 && fz < 0.55) return T0 + 9;   // filetes oscuros junto a la franja
+      if (ax > 0.9 && y > -0.2 && y < 0.15) return T0 + 9;   // pieza lateral (anclaje de la visera)
       return y < -0.55 ? T0 + 2 : y < 0.1 ? T0 + 4 : T0 + 7; };
     for (let j = 0; j < NJ; j++) { const idx = [0, V(1, j + 1), V(1, j)]; faces.push({ color: colOf(idx), idx, two: true }); }
-    for (let i = 1; i < NL; i++) for (let j = 0; j < NJ; j++) { const idx = [V(i, j), V(i, j + 1), V(i + 1, j + 1), V(i + 1, j)]; faces.push({ color: colOf(idx), idx, two: true }); }
-    faces.push({ color: 47, idx: Array.from({ length: NJ }, (_, j) => V(NL, j)), two: true });   // cuello
-    // filo de la visera: un listón fino que sobresale
-    const e0 = verts.length; for (let j = 0; j < NJ; j++) { const ph = j / NJ * 2 * Math.PI; if (Math.sin(ph) < 0.55) continue; const th = Math.acos(0.42) , r = 1.06; verts.push([rx * r * Math.sin(th) * Math.cos(ph), cy - ry * 0.42, rz * r * Math.sin(th) * Math.sin(ph)], [rx * Math.sin(th) * Math.cos(ph), cy - ry * 0.42 + 0.9, rz * Math.sin(th) * Math.sin(ph)]); }
-    for (let k = e0; k + 3 < verts.length; k += 2) faces.push({ color: 47, idx: [k, k + 2, k + 3, k + 1], two: true });
+    for (let i = 1; i < NL; i++) for (let j = 0; j < NJ; j++) { const a = V(i, j), b = V(i, j + 1), c = V(i + 1, j + 1), d = V(i + 1, j), col = colOf([a, b, c, d]);
+      faces.push({ color: col, idx: [a, b, c], two: true }, { color: col, idx: [a, c, d], two: true }); }   // en triángulos: nada de caras que no sean planas (desaparecían)
+    // cuello: anillo acolchado oscuro y tapa en abanico (cerrado, sin agujero)
+    const nc = verts.length; verts.push([0, cy - ry * Math.cos(thMax) + 0.6, 0]);
+    for (let j = 0; j < NJ; j++) faces.push({ color: DARK, idx: [nc, V(NL, j), V(NL, j + 1)], two: true });
+    // marco de la visera: un listón que sobresale todo alrededor del cristal
+    const ring = []; for (let j = 0; j < NJ; j++) { const ph = j / NJ * 2 * Math.PI; if (Math.sin(ph) > 0.5) ring.push(ph); }
+    const sh = (ph, y, r) => { const yn = y, th = Math.acos(Math.max(-1, Math.min(1, -yn))), b = 1 + 0.05 * Math.sin(ph) * Math.sin(th); return [rx * r * Math.sin(th) * Math.cos(ph), cy + ry * yn, rz * r * b * Math.sin(th) * Math.sin(ph)]; };
+    for (const yb of [-0.38, 0.18]) { const e0 = verts.length; for (const ph of ring) verts.push(sh(ph, yb - 0.03, 1.07), sh(ph, yb + 0.05, 1.07));
+      for (let k = e0; k + 3 < verts.length; k += 2) faces.push({ color: DARK, idx: [k, k + 2, k + 3], two: true }, { color: DARK, idx: [k, k + 3, k + 1], two: true }); }
+    for (const ph of [ring[0], ring[ring.length - 1]]) { const e0 = verts.length; verts.push(sh(ph, -0.38, 1.07), sh(ph, 0.18, 1.07), sh(ph - 0.12 * Math.sign(Math.cos(ph)), 0.18, 1.07), sh(ph - 0.12 * Math.sign(Math.cos(ph)), -0.38, 1.07));
+      faces.push({ color: DARK, idx: [e0, e0 + 1, e0 + 2], two: true }, { color: DARK, idx: [e0, e0 + 2, e0 + 3], two: true }); }
     return { radius: 12, boxes: [], verts, faces, texNames: [] }; }
   const headModel = (A, c, team) => c.h === 'HELMET' ? helmetModel(team | 0) : remapFaces(BRR.parse3DW(A.get(c.h + (c.v ? team : '') + '.3DW')), c.r);
   const remapFaces = (m, r) => r ? { ...m, faces: m.faces.map(f => f.color != null && !f.tex && r[f.color] != null ? { ...f, color: r[f.color] } : f) } : m;
@@ -962,10 +976,12 @@
       if (allRecs.length) { const Tn = rivals.find(r => r.replay) ? rivals.find(r => r.replay).replay.period : 0.24;
         const S = BRR.S, a = -lvl.start.yaw, gx = lvl.start.x / S, gz = -lvl.start.z / S, fw = [Math.sin(a), Math.cos(a)], rt = [Math.cos(a), -Math.sin(a)];
         for (const rec of allRecs) { const sl = lvl.gridSlots[rec.slot] || [0, 0, 0]; const L = BRR.replayLine(lvl, rec, gx + rt[0] * sl[0] + fw[0] * sl[1], gz + rt[1] * sl[0] + fw[1] * sl[1], (lvl.start.a16 || 0) + (sl[2] || 0), Tn); if (L) recLines.push(L); } }
+      // cada rival elige libremente entre los coches principales del circuito (en F1, kart y los modos locos, todos con el mismo)
+      const aiPool = (!crazyPick || crazyPick === 'normal' || crazyPick === 'gp') ? (await carsFor(level)).filter(n => BRR.CUSTOM_CARS && BRR.CUSTOM_CARS[n] ? files.has(BRR.CUSTOM_CARS[n].base + '.VHC') : files.has(n + '.VHC')) : [];
       for (let k = rivals.length; k < (net || rpLoad ? 0 : nR); k++) {
         $('load_msg').textContent = 'Cargando rivales… ' + (k + 1) + '/' + nR;
-        const lk = looks[k] || {}, pt = hexRGB(lk.paint);
-        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, veh, lvl, t, { paint: pt, glass: lk.gar ? garGlass(lk.gar) : null, logo: lk.logo != null ? await logoRGBAOf(lk.logo) : null }), c = new BRR.Car(d, lvl); if (lk.gar) garApply(c, lk.gar); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
+        const vk = aiPool.length ? aiPool[(Math.random() * aiPool.length) | 0] : veh, lk = vk === veh ? looks[k] || {} : { paint: (looks[k] || {}).paint }, pt = hexRGB(lk.paint);
+        const t = teams[(nPlayers + k) % 6], d = await BRR.loadVehicle(files, vk, lvl, t, { paint: pt, glass: lk.gar ? garGlass(lk.gar) : null, logo: lk.logo != null ? await logoRGBAOf(lk.logo) : null }), c = new BRR.Car(d, lvl); if (lk.gar) garApply(c, lk.gar); c.team = t; c.paintHex = lk.paint || null; c.teamName = lk.teamName || null; c.headDraw = await driverHead(t - 1, t, pt);
         const rr = new BRR.Race(lvl, laps || lvl.laps), ai = new BRR.AIDriver(c, rr, skill * (0.97 + 0.03 * Math.random()), lanes[k], profiles[k]);
         if (recLines.length) ai.line = recLines[k % recLines.length];
         rivals.push({ car: c, race: rr, ai, draw: R.upload(d.mesh), dd: lk.gar ? withRims(vehDraw(d), d, { ...lk.gar, paint: lk.paint }) : vehDraw(d), inp: null, hornType: lk.horn || null, lk });
@@ -1388,7 +1404,7 @@
   }
   // menú de vehículos (desde la pausa del modo libre): cuadrícula con la foto de cada uno; los del circuito, primero y marcados
   $('p_swap').onclick = async () => {
-    show('vehpick'); const cur = humans[0].car.def.name, own = await carsFor(lvl.name), all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')), list = own.filter(n => all.includes(n)).concat(all.filter(n => !own.includes(n)));
+    show('vehpick'); const cur = humans[0].car.def.name, own = await carsFor(lvl.name), all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')).concat(own.filter(n => BRR.CUSTOM_CARS && BRR.CUSTOM_CARS[n])), list = own.filter(n => all.includes(n)).concat(all.filter(n => !own.includes(n)));
     $('vp_grid').innerHTML = list.map(n => `<div class="pitem${n === cur ? ' on' : ''}" tabindex="0" data-v="${n}"><img alt=""><span>${esc(VEH_NAMES[n] || n)}</span>${own.includes(n) ? '<small>★ <span>De este circuito</span></small>' : ''}</div>`).join('');
     for (const el of $('vp_grid').querySelectorAll('.pitem')) el.onclick = async () => { el.style.opacity = 0.5; try { await swapVehicle(el.dataset.v); } finally { show('pause'); togglePause(); } };
     setTimeout(() => navFocusFirst($('vehpick')), 0);
@@ -1424,17 +1440,18 @@
   };
   // controles a gusto (Opciones → Controles): se guardan en opt.keys / opt.pad y se aplican encima de los de fábrica
   const KB_DEF = JSON.parse(JSON.stringify(KB));
-  const PAD_DEF = { throttle: [7, 0], brake: [6, 2], hb: [1], item: [5], nitro: [4], horn: [10, 11], reset: [3], cam: [8], ramp: [14], pipe: [15], jump: [12], climb: [12], dive: [13] };
+  const PAD_DEF = { throttle: [7, 0], brake: [6, 2], hb: [1], item: [5], nitro: [4], horn: [10], lookB: [11], reset: [3], cam: [8], ramp: [14], pipe: [15], jump: [12], climb: [12], dive: [13] };
   let PAD = { ...PAD_DEF };
   function applyBindings() {
     for (const L of Object.keys(KB_DEF)) for (const a of Object.keys(KB_DEF[L])) KB[L][a] = ((opt.keys || {})[L] || {})[a] || KB_DEF[L][a].slice();
     PAD = {}; for (const a of Object.keys(PAD_DEF)) PAD[a] = (opt.pad || {})[a] || PAD_DEF[a].slice();
+    if (!(opt.pad || {}).lookB && PAD.horn.includes(11)) PAD.horn = PAD.horn.filter(x => x !== 11);   // antes L3 y R3 eran la bocina: R3 pasa a mirar atrás
   }
   applyBindings();
   // pantalla de controles
   const K_ACT = [['up', 'Acelerar'], ['down', 'Frenar / marcha atrás'], ['left', 'Girar a la izquierda'], ['right', 'Girar a la derecha'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'],
     ['cam', 'Cámara'], ['reset', 'Recolocar'], ['ramp', 'Poner rampa (modo libre)'], ['pipe', 'Poner half pipe (modo libre)'], ['jump', 'Saltar (modo libre y modos extra)'], ['item', 'Usar objeto (kart)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)'], ['lookL', 'Mirar a la izquierda'], ['lookR', 'Mirar a la derecha'], ['lookB', 'Mirar atrás']];
-  const P_ACT = [['throttle', 'Acelerar'], ['brake', 'Frenar / marcha atrás'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'], ['reset', 'Recolocar'], ['cam', 'Cámara'], ['ramp', 'Poner rampa (modo libre)'], ['pipe', 'Poner half pipe (modo libre)'], ['jump', 'Saltar (modo libre y modos extra)'], ['item', 'Usar objeto (kart)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)']];
+  const P_ACT = [['throttle', 'Acelerar'], ['brake', 'Frenar / marcha atrás'], ['hb', 'Freno de mano'], ['nitro', 'Nitro'], ['horn', 'Bocina'], ['lookB', 'Mirar atrás'], ['reset', 'Recolocar'], ['cam', 'Cámara'], ['ramp', 'Poner rampa (modo libre)'], ['pipe', 'Poner half pipe (modo libre)'], ['jump', 'Saltar (modo libre y modos extra)'], ['item', 'Usar objeto (kart)'], ['climb', 'Subir (helicóptero)'], ['dive', 'Bajar (helicóptero)']];
   const PAD_N = ['A', 'B', 'X', 'Y', 'LB', 'RB', 'LT', 'RT', 'View', 'Menú', 'L3', 'R3', 'Cruceta ↑', 'Cruceta ↓', 'Cruceta ←', 'Cruceta →'];
   const keyName = c => !c ? '—' : c.startsWith('Key') ? c.slice(3) : c.startsWith('Digit') ? c.slice(5) : c.startsWith('Numpad') ? 'Num ' + c.slice(6) : ({ ArrowUp: '↑', ArrowDown: '↓', ArrowLeft: '←', ArrowRight: '→', Space: 'Espacio', ShiftLeft: 'Mayús izq.', ShiftRight: 'Mayús dcha.', ControlLeft: 'Ctrl izq.', ControlRight: 'Ctrl dcha.', AltLeft: 'Alt', AltRight: 'Alt Gr', Enter: 'Intro', Backspace: 'Retroceso', Backslash: '\\', PageUp: 'Re Pág', PageDown: 'Av Pág', Tab: 'Tab' }[c] || c);
   let kWait = null;
@@ -1462,7 +1479,7 @@
       const K = KB[ctl.kb], kbSteer = (any(K.right) ? 1 : 0) - (any(K.left) ? 1 : 0);
       h.steerKb += (kbSteer - h.steerKb) * Math.min(1, dt * (kbSteer ? 6 : 10)); inp.steer = h.steerKb;
       inp.throttle = any(K.up) ? 1 : 0; inp.brake = any(K.down) ? 1 : 0; inp.handbrake = any(K.hb); inp.pitchAir = inp.throttle - inp.brake;
-      if (any(K.lookL) || any(K.lookR)) inp.lookX = (any(K.lookR) ? 1 : 0) - (any(K.lookL) ? 1 : 0); if (any(K.lookB)) inp.lookX = 1;
+      if (any(K.lookL) || any(K.lookR)) inp.lookX = (any(K.lookR) ? 1 : 0) - (any(K.lookL) ? 1 : 0); if (any(K.lookB)) inp.lookBack = true;
       if (K.ramp && any(K.ramp)) inp.ramp = true; if (K.pipe && any(K.pipe)) inp.pipe = true; if (K.jump && any(K.jump)) inp.jump = true; if (K.item && any(K.item)) inp.item = true; if (any(K.nitro)) inp.nitro = true; if (K.horn && any(K.horn)) inp.horn = true; if (any(K.climb) || any(K.dive)) inp.climb = (any(K.climb) ? 1 : 0) - (any(K.dive) ? 1 : 0);
     }
     for (const gp of padsFor(ctl)) {
@@ -1475,7 +1492,7 @@
       inp.handbrake = inp.handbrake || bp(PAD.hb); inp.pitchAir = dz(gp.axes[1] || 0) * -1 || inp.pitchAir;
       inp.lookX = dz(gp.axes[2] || 0, 0.15) || inp.lookX; inp.lookY = dz(gp.axes[3] || 0, 0.15);   // stick derecho: mirar alrededor
       if (bp(PAD.nitro)) inp.nitro = true; if (bp(PAD.ramp)) inp.ramp = true; if (PAD.pipe && bp(PAD.pipe)) inp.pipe = true; if (PAD.jump && bp(PAD.jump)) inp.jump = true; if (PAD.item && bp(PAD.item)) inp.item = true;
-      if (bp(PAD.horn)) inp.horn = true;
+      if (bp(PAD.horn)) inp.horn = true; if (PAD.lookB && bp(PAD.lookB)) inp.lookBack = true;   // R3: cámara fija mirando atrás mientras se aprieta
       if (bp(PAD.climb) || bp(PAD.dive)) inp.climb = (bp(PAD.climb) ? 1 : 0) - (bp(PAD.dive) ? 1 : 0);
       const edge = i => pressed(i) && !prev[i];
       if (edge(9) && state === 'race' && performance.now() - pauseAt > 250) togglePause();
@@ -2389,7 +2406,9 @@
     if (window.BRR_CAMOVR && h.i === 0) { const o = window.BRR_CAMOVR(car); cam.pos = o.pos; cam.look = o.look; cam.up = [0, 1, 0]; return; }
     const Rm = car.R, fwd = BRR.mv(Rm, [0, 0, -1]), li = h.inp || {};
     const tY = (li.lookX || 0) * Math.PI, tP = -(li.lookY || 0) * 0.6, k = 1 - Math.exp(-dt * ((li.lookX || li.lookY) ? 7 : 4));
-    cam.lookYaw += (tY - cam.lookYaw) * k; cam.lookPitch += (tP - cam.lookPitch) * k;
+    if (li.lookBack) { cam.lookYaw = Math.PI; cam.lookPitch = 0; cam.back = true; }   // mirar atrás: cámara fija hacia atrás al momento, sin girar
+    else if (cam.back) { cam.lookYaw = 0; cam.lookPitch = 0; cam.back = false; }
+    else { cam.lookYaw += (tY - cam.lookYaw) * k; cam.lookPitch += (tP - cam.lookPitch) * k; }
     const mode = h.camMode || opt.cam;
     if (mode === 'capo' || mode === 'parachoques') {   // cabina (sitio de la cabeza) o parachoques (delante y abajo)
       const hd = car.def.head, b = car.def.box, e = V.add(car.p, BRR.mv(Rm, mode === 'capo' ? [hd[0], hd[1] + 0.25, hd[2]] : [b.c[0], b.c[1] - b.h[1] * 0.35, b.c[2] - b.h[2] - 0.15])); cam.pos = e;
@@ -3056,9 +3075,9 @@
     const T = (front && front.tracks || []).filter(t => !t.custom ? files.has(t.id + '.LEV') : t.builtin && t.kind === 'gp'); if (!T.length) return null;
     const t = T[Math.floor(rnd() * T.length)], all = BRR.VEHICLES.filter(n => files.has(n + '.VHC') && !/HELI|COPTER|UFO/.test(n)), own = t.kind === 'gp' ? ['GT'] : (t.cars || []).filter(n => all.includes(n));
     const veh = own.length ? own[Math.floor(rnd() * own.length)] : 'JEEP'; rnd();
-    const g = t.kind === 'gp' ? gpTracks('gp').find(x => gpLv(x) === t.id) : null, laps = g ? Math.min(3, Math.max(1, g.laps || 2)) : 3;   // 1 a 3 vueltas según lo largo que sea
+    const g = t.kind === 'gp' ? gpTracks('gp').find(x => gpLv(x) === t.id) : null, laps = g ? Math.min(2, Math.max(1, g.laps || 2)) : 1 + (k % 2);   // 1 o 2 vueltas (en los normales, una semana 1 y la siguiente 2; igual para todos)
     const H = ['dia', 'manana', 'tarde', 'noche', 'original'], C = ['despejado', 'despejado', 'nublado', 'niebla', 'lluvia', 'nieve'];
-    return { k, id: 'RETOT' + k, level: t.id, track: t, veh, hora: H[Math.floor(rnd() * H.length)], clima: /SNOW/.test(t.id) ? 'nieve' : C[Math.floor(rnd() * C.length)], laps, ends: MON + (k + 1) * W };   // cuenta el tiempo total de la carrera
+    return { k, id: 'RETOL' + k,   /* clasificación nueva desde que son a 1-2 vueltas (no se mezclan con las de 3) */ level: t.id, track: t, veh, hora: H[Math.floor(rnd() * H.length)], clima: /SNOW/.test(t.id) ? 'nieve' : C[Math.floor(rnd() * C.length)], laps, ends: MON + (k + 1) * W };   // cuenta el tiempo total de la carrera
   }
   const HORA_N = { original: 'Original', manana: 'Amanecer', dia: 'Mediodía', tarde: 'Atardecer', noche: 'Noche' }, CLIMA_N = { despejado: 'Despejado', nublado: 'Nublado', niebla: 'Niebla', lluvia: 'Lluvia', nieve: 'Nieve' };
   async function retoOpen() {
@@ -3386,7 +3405,8 @@
     else if (photo) { photoFrame(dt); }
     else if (state === 'replay' && rp) { rpFrame(dt); }
     else if (state === 'race' || state === 'results') {
-      for (const h of humans) { const inp = readInput(h, dt); if (freeMode && inp.ramp && !h.rampPrev && h.race.phase === 'race') placeRamp(h); h.rampPrev = !!inp.ramp; if (freeMode && inp.pipe && !h.pipePrev && h.race.phase === 'race') placePipe(h); h.pipePrev = !!inp.pipe; if ((freeMode || crazyJump() || kart) && h.race.phase === 'race') jumpCharge(h, !!inp.jump); h.jumpPrev = !!inp.jump; if (kart && h.race.phase === 'race' && ((inp.item && !h.kjPrev) || (inp.ramp && !h.krPrev))) kUse(h.car); h.kjPrev = !!inp.item; h.krPrev = !!inp.ramp; /* kart: objeto con R1 (o E/X), salto como en los modos libres */ if (freeMode) stuntFrame(h, dt); if (driftMode) driftFrame(h, dt); if (inp.nitro && !h.nPrev && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
+      for (const h of humans) { const inp = readInput(h, dt); if (freeMode && inp.ramp && !h.rampPrev && h.race.phase === 'race') placeRamp(h); h.rampPrev = !!inp.ramp; if (freeMode && inp.pipe && !h.pipePrev && h.race.phase === 'race') placePipe(h); h.pipePrev = !!inp.pipe; if ((freeMode || crazyJump() || kart) && h.race.phase === 'race') jumpCharge(h, !!inp.jump); h.jumpPrev = !!inp.jump; if (kart && h.race.phase === 'race' && ((inp.item && !h.kjPrev) || (inp.ramp && !h.krPrev))) kUse(h.car); h.kjPrev = !!inp.item; h.krPrev = !!inp.ramp; /* kart: objeto con R1 (o E/X), salto como en los modos libres */ if (freeMode) stuntFrame(h, dt); if (driftMode) driftFrame(h, dt); if (inp.nitro && !h.nPrev && !h.car.nitroInf && h.race.phase === 'race' && h.car.fireNitro()) { nitroFx(h.car); h.usedNitro = true; if (h.i === 0) say(['NITRO', 'TURBO', 'BOOST'], 0.3, false); } h.nPrev = inp.nitro; }
+      for (const h of humans) { const c = h.car; if (c.nitroInf && h.inp && h.inp.nitro && h.race.phase !== 'countdown') { if (!(c.nitroT > 0)) nitroFx(c); c.nitroT = Math.max(c.nitroT || 0, 0.3); } }   // modo libre: nitro sin fin mientras se aprieta el botón
       for (const r of rivals) if (r.inp && r.inp.nitro && r.car.fireNitro()) nitroFx(r.car);
       const ps = Math.max(...humans.map(h => h.race.score())), tA = performance.now();
       for (const r of rivals) if (r.ai && !r.car.out) { r.inp = roamMode() ? roamControl(r, dt) : r.ai.control(dt, allCars, null); if (!roamMode()) crazyChase(r); if (r.car.kSpin > 0) { r.inp.throttle = 0; r.inp.nitro = false; } }   // ritmo: lo pone el pelotón (packFrame)

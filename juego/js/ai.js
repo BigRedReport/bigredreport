@@ -251,7 +251,7 @@
     // others: los demás coches (para adelantar o embestir); player: el coche del jugador (rubber banding)
     control(dt, others = [], playerScore = null) {
       const car = this.car, race = this.race, inp = { steer: 0, throttle: 0, brake: 0, handbrake: false, pitchAir: 0 };
-      if (car.gpMode) { if (!this.gpSet) { this.gpSet = true; this.P = { ...BRR.AI_PROFILES.experto, name: '', mistake: 0.15, defend: 0.5 }; this.vprof = null; this.skill = Math.min(1.08, this.skill + 0.05); } }   // Grand Prix: todos expertos
+      if (car.gpMode) { if (!this.gpSet) { this.gpSet = true; this.P = { ...BRR.AI_PROFILES.experto, name: '', mistake: 0.15, defend: 0.5, pace: BRR.AI_PROFILES.experto.pace * (0.975 + Math.random() * 0.05), overtake: 0.6 + Math.random() * 0.4 };   /* cada uno con su ritmo: unos más rápidos que otros */ this.vprof = null; this.skill = Math.min(1.08, this.skill + 0.05); } }   // Grand Prix: todos expertos
       else if (race.phase === 'race') { this.moodT -= dt; if (this.moodT <= 0) {   // cambia de «momento»: casi siempre conducir bien; a ratos atacar o defender
           const b = this.base, r = Math.random(); this.mood = r < 0.22 + b.aggro * 0.2 ? 'ataque' : r < 0.45 ? 'defensa' : null; this.moodT = this.mood ? 5 + Math.random() * 9 : 10 + Math.random() * 30;
           this.P = this.mood === 'ataque' ? { ...b, aggro: Math.min(1, b.aggro + 0.5), overtake: 1, corner: b.corner * 1.03, mistake: b.mistake * 1.6 } : this.mood === 'defensa' ? { ...b, defend: 1, overtake: b.overtake * 0.6 } : { ...b }; } }
@@ -281,22 +281,21 @@
       const clean = race.t < 6;
       if (this.startLane == null) { const d0 = V.sub(car.p, here.p); this.startLane = Math.max(-0.9, Math.min(0.9, (d0[0] * -here.t[2] + d0[2] * here.t[0]) / Math.max(1.5, half))); this.lane = this.startLane; }
       if (clean) { const k = Math.max(0, (race.t - 3.5) / 2.5); lane = this.startLane * (1 - k) + lane * k; }
-      // tráfico: adelantar al de delante o, si es agresivo, ir a por él
-      let blockSpeed = null;
+      // tráfico: al tener a alguien delante, decidir por dónde adelantar y mantenerlo unos segundos (antes se decidía cada fotograma y nunca pasaba);
+      // rebufo: siguiendo de cerca se va algo más rápido (así se le da caza); solo se frena si está justo delante en la misma línea y muy cerca
+      let blockSpeed = null; this.passT = Math.max(0, (this.passT || 0) - dt); this.draft = false;
       for (const o of others) {
         if (o === car) continue;
-        const d = V.sub(o.p, car.p), ahead = V.dot(d, here.t), side = d[0] * -here.t[2] + d[2] * here.t[0];
-        if (ahead > 0 && ahead < 14 + v * 0.6 && Math.abs(side) < 3.2) {
-          if (clean) { if (ahead < 9 && Math.abs(side) < 2.4) blockSpeed = Math.max(0, V.dot(o.v, here.t) - 0.5); continue; }   // en la salida: levantar el pie, no embestir
-          if (car.gpMode) {   // Grand Prix: carreras limpias, sin toques; adelanta por donde hay hueco y si no, espera detrás
-            const vo = V.dot(o.v, here.t), myS = this.lane * Math.max(1, half), room = side > myS ? -1 : 1;
-            if (vo < v - 1.5 && Math.random() < dt * 2) this.passSide = room; if (this.passSide) lane = this.passSide * 0.6;
-            if (ahead < 6 + v * 0.35 && Math.abs(side) < 2.4) blockSpeed = Math.max(0, vo - 1.5); continue; }
-          if (P.aggro > 0.6 && o.isPlayer && Math.random() < P.aggro * dt * 3) lane = (side / Math.max(1, half)) * 0.9;   // ir a por el jugador
-          else if (Math.random() < P.overtake) lane = (side > 0 ? -1 : 1) * 0.55;          // abrirse para adelantar
-          else blockSpeed = Math.max(0, V.dot(o.v, here.t) - 1);                             // quedarse detrás
-        }
+        const d = V.sub(o.p, car.p), ahead = V.dot(d, here.t), side = d[0] * -here.t[2] + d[2] * here.t[0], vo = V.dot(o.v, here.t);
+        if (ahead > 3 && ahead < 26 && Math.abs(side) < 2.6) this.draft = true;
+        if (!(ahead > 0 && ahead < 14 + v * 0.6 && Math.abs(side) < 3.4)) continue;
+        if (clean) { if (ahead < 9 && Math.abs(side) < 2.4) blockSpeed = Math.max(0, vo - 0.5); continue; }   // en la salida: levantar el pie, no embestir
+        if (!car.gpMode && P.aggro > 0.6 && o.isPlayer && Math.random() < P.aggro * dt * 3) { lane = (side / Math.max(1, half)) * 0.9; continue; }   // ir a por el jugador
+        if (this.passT <= 0 && Math.random() < dt * (0.8 + 2.5 * P.overtake)) {   // decidir el adelantamiento: por el lado libre o, si va justo delante, por el interior de la próxima curva
+          this.passSide = Math.abs(side) > 1.3 ? -Math.sign(side) : (turnSign || (Math.random() < 0.5 ? -1 : 1)); this.passT = 3 + Math.random() * 2.5; }
+        if (ahead < 4 + v * 0.28 && Math.abs(side) < 1.9) blockSpeed = Math.max(0, vo - (car.gpMode ? 0.6 : 0.4));   // justo delante y encima: no comérselo
       }
+      if (this.passT > 0 && !clean) lane = Math.max(-0.85, Math.min(0.85, this.passSide * 0.75));
       if (car.gpMode) { for (const o of others) { if (o === car) continue; const d = V.sub(o.p, car.p), ah = V.dot(d, here.t), sd = d[0] * -here.t[2] + d[2] * here.t[0]; if (Math.abs(ah) < 5.5 && Math.abs(sd) < 3.2) lane = Math.max(-0.9, Math.min(0.9, this.lane - Math.sign(sd || 1) * 0.35)); }   // rueda con rueda: dejar sitio
         if (Math.random() < dt * 0.3) this.passSide = 0; }
       if (!car.gpMode && (P.defend || 0) > 0.3) for (const o of others) { if (o === car) continue; const d = V.sub(o.p, car.p), ah = V.dot(d, here.t), sd = d[0] * -here.t[2] + d[2] * here.t[0];
@@ -343,7 +342,7 @@
       if (this.mistake && this.mistakeT <= 0) this.mistake = null;
       // velocidad objetivo: el perfil en este punto y un poco por delante (reacción), con rubber banding
       const i0 = Math.floor(s / line.step), N = line.N; let vp = 1e9; for (let k = 0; k <= 3; k++) vp = Math.min(vp, this.vprof[(i0 + k) % N]);
-      let vt = vp * this.skill * this.rubber;
+      let vt = vp * this.skill * this.rubber * (P.pace || 1) / BRR.AI_PROFILES.experto.pace * (this.draft && race.t > 6 ? 1.035 : 1);   // ritmo propio y rebufo
       // muy desviado (cruzado o mirando hacia atrás): frenar de verdad para poder girar; si no hay manera, maniobra
       const ae = Math.abs(err);
       if (ae > 0.45 && v > 8) vt = Math.min(vt, Math.max(6, v * (1.3 - ae)));   // no consigue seguir la curva: levantar y frenar ya

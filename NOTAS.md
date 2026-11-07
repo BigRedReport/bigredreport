@@ -7,6 +7,16 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.117**
+- **Coches rehechos con muchos más polígonos:** carrocerías redondeadas (sin aristas entre tramos) y **pilares finos** en todas las ventanillas (A, B y C, también detrás), con el cristal lateral hasta el parabrisas. **Zeta 35** con sus faros alargados en las esquinas del morro (sin las "tomas" del capó), **Bávaro 30** con la doble parrilla de riñón y marcos cromados.
+- **Nuevo coche: Mínimo 50** (utilitario británico de los 2000): corto, ruedas en las esquinas, techo blanco "flotante" con pilares negros, faros redondos sobre el capó y rejilla hexagonal cromada. Sale como coche principal en los circuitos donde está el Mini.
+- **IA:** cada rival elige su coche entre los principales del circuito (ya no copia el tuyo). **Adelantamientos de verdad:** el que decide adelantar mantiene el lado unos segundos, hay rebufo y cada piloto tiene su propio ritmo; en el Grand Prix ya no frenan solo porque frene el de delante.
+- **Casco de piloto rehecho:** más polígonos, visera con reflejo y marco, mentonera con rejilla, franjas y cuello cerrado (ya no se ve ningún trozo invisible).
+- **Mando:** L3 es la bocina y **R3 mira atrás** (cámara fija hacia atrás mientras se aprieta).
+- **Retos semanales a 1 o 2 vueltas** (con clasificación nueva).
+- **Drift:** derrapando con gas ya no se queda clavado a ~48 km/h.
+- **Modo libre:** el nitro funciona todo el tiempo que se tenga apretado el botón.
+
 **Novedades de la 0.116**
 - **Servidor oficial siempre encendido:** en el menú online aparece arriba del todo la sala **Servidor oficial**, abierta las 24 horas para hasta 12 jugadores: carreras normales con 5 bots y, al acabar cada una, votación del siguiente circuito. Se entra y se sale cuando se quiera; si el que la lleva se va, el mando pasa a otro jugador sin cortar la carrera. Las partidas propias se siguen creando como siempre.
 - **Circuitos de agua:** las pasarelas bajas suben (con postes más largos hasta el agua) para que el aerodeslizador pase por debajo en USA y los demás circuitos de agua; y las pasarelas de las laderas que flotaban ya tienen sus postes.

@@ -418,6 +418,7 @@
         if (!(this.dOn && inp.handbrake)) this.hbA = null;
         if (!this.dOn) this.dDir = null;
         if (this.dOn && hv > 4) {
+          if (throttle > 0.3) { const u = [this.v[0] / hv, 0, this.v[2] / hv], dec = F[0] * u[0] + F[2] * u[2]; if (dec < 0) F = V.madd(F, u, -dec * 0.7 * Math.min(1, (this.dRamp || 0) * 1.5));   /* con gas, las gomas de lado no frenan el derrape (se quedaba clavado a ~48 km/h) */ }
           // el ángulo lo decide el gas (más gas = más de lado), el contravolante lo cierra y girar hacia dentro lo abre; sin gas se va enderezando.
           // La trayectoria NO va hacia donde apunta el morro: sigue casi recta y gira despacio hacia la curva (más si giras hacia dentro, menos con contravolante)
           const sg = Math.sign(beta) || 1, cs = Math.max(0, inp.steer * sg), into = Math.max(0, -inp.steer * sg);
@@ -433,7 +434,7 @@
           const ang = sg * rate * dt, ca = Math.cos(ang), sn = Math.sin(ang), d0 = this.dDir; this.dDir = [d0[0] * ca + d0[2] * sn, 0, -d0[0] * sn + d0[2] * ca];   // giro alrededor del eje vertical hacia el lado del morro
           this.dLock = 0.9 * rp * this.dSpd;
           if (inp.handbrake) { this.hbV = Math.max(0, this.hbV - 1.2 * dt); if (hv < this.hbV) F = V.madd(F, V.mul(vH, 1 / hv), this.m * Math.min(6, (this.hbV - hv) * 3)); }   // sin acelerar: solo no deja que se pare (pierde ~1 m/s cada segundo)
-          else if (throttle > 0.1 && hv < this.topSpeed * 0.88) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.5 * throttle);   // con gas empuja en el sentido de la marcha (estira el derrape)
+          else if (throttle > 0.1 && hv < this.topSpeed * 0.88) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.5 * throttle * Math.max(0.1, 1 - hv / (this.topSpeed * 0.7)));   /* empuja menos cuanto más rápido (el derrape no acelera sin fin) */   // con gas empuja en el sentido de la marcha (estira el derrape)
           else if (throttle <= 0.1) F = V.madd(F, V.mul(vH, 1 / hv), -this.m * 2.5);   // sin gas pierde velocidad
         }
         if (throttle < 0.1 && vf > 1) F = V.madd(F, fh, -this.m * 9.81 * 0.05 * Math.min(1, vf / 4));   // sin gas retiene un poco (no de golpe)
