@@ -159,6 +159,7 @@
     $('title').onclick = go1; addEventListener('keydown', e => { if (!$('title').hidden && !e.repeat) go1(); });
     const padT = () => { if ($('title').hidden) return; if (pads().some(g => g.buttons.some(b => b.pressed))) go1(); else requestAnimationFrame(padT); }; requestAnimationFrame(padT); }
 
+  let ttF1 = false;   // contrarreloj: circuito del GP elegido en el recuadro de Fórmula 1
   const LEVEL_NAMES = { CITY: 'Ciudad', DIRT: 'Tierra', MOON: 'Marte', WATER: 'Río', SNOW: 'Nieve', RUF: 'Desierto', RIG: 'Plataforma', CHOPPER: 'Helicóptero', TEST: 'Prueba' };
   const VEH_NAMES = { MINIMO: 'Mínimo 50', PANDA: 'Panda 86', GT: 'GT Racer', KART: 'Go-kart', F1: 'Fórmula', GTS: 'GT Sprint', BAV30: 'Bávaro 30', ZETA35: 'Zeta 35', JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable',
     PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
@@ -173,12 +174,12 @@
       const txt = BRR.text(A.get(t)).replace(/;[^\n]*/g, '');
       const L = [...txt.matchAll(/^\s*car\s+(\w+)/gm)].map(m => m[1].toUpperCase()).slice(0, 2).filter(n => n !== 'FEHELI' && files.has(n + '.VHC'));
       if (/^MOON/.test(id) && files.has('UFO.VHC') && !L.includes('UFO')) L.push('UFO');   // el ovni, también de serie en Marte, Venus y la Luna
-      if (L.includes('MINI') && !L.includes('MINIMO')) L.splice(L.indexOf('MINI') + 1, 0, 'MINIMO');   // donde sale el Mini del juego, también el Mínimo 50 (Mini R50) como otro principal
+      // (Mínimo 50 retirado de momento: no convence)  if (L.includes('MINI') && !L.includes('MINIMO')) L.splice(L.indexOf('MINI') + 1, 0, 'MINIMO');   // donde sale el Mini del juego, también el Mínimo 50 (Mini R50) como otro principal
       return levelCars[id] = L;   // el original deja elegir los 2 primeros (el 3º es el helicóptero de cámara u oculto)
     } catch (e) { return levelCars[id] = []; }
   }
   async function fillVehicles() {
-    const id = $('m_level').value, own = qmode === 'f1' && files.has('MINI.VHC') ? ['F1'] : qmode === 'kart' && files.has('MINI.VHC') ? ['KART'] : await carsFor(id), vs = $('m_veh'), keep = vs.value || opt.vehicle; vs.innerHTML = '';
+    const id = $('m_level').value, own = (qmode === 'f1' || (qmode === 'tt' && ttF1 && isGPLevel(id))) && files.has('MINI.VHC') ? ['F1'] : qmode === 'tt' && isKartLevel(id) && files.has('MINI.VHC') ? ['KART'] : qmode === 'kart' && files.has('MINI.VHC') ? ['KART'] : await carsFor(id), vs = $('m_veh'), keep = vs.value || opt.vehicle; vs.innerHTML = '';
     const add = (par, n) => { const o = document.createElement('option'); o.value = n; o.textContent = VEH_NAMES[n] || n; par.appendChild(o); };
     // solo los vehículos del circuito (como en el original)
     // solo los del circuito, salvo en el modo libre (cualquier vehículo en cualquier circuito)
@@ -400,7 +401,7 @@
   function selectTrack(id, narrate) {
     const t = front.tracks.find(x => x.id === id); if (!t) return;
     $('m_level').value = id; if (qmode === 'gp' || qmode === 'f1') opt.gpLevel = id; else if (qmode === 'drift') opt.driftLevel = id; else if (qmode === 'kart') opt.kartLevel = id; else opt.level = id; save(); fillVehicles();
-    for (const c of document.querySelectorAll('#tracks .tcard, #tracks_gp .tcard, #tracks_c .tcard')) c.classList.toggle('on', c.dataset.id === id);
+    for (const c of document.querySelectorAll('#tracks .tcard, #tracks_gp .tcard, #tracks_f1 .tcard, #tracks_k .tcard, #tracks_c .tcard')) c.classList.toggle('on', c.dataset.id === id && (!!c.closest('#tracks_f1') === ttF1 || !c.closest('#tracks_f1, #tracks_gp')));
     $('d_img').src = t.view || ''; $('d_place').textContent = ''; $('d_name').textContent = t.place || t.id; if (t.custom) $('d_name').setAttribute('data-notr', ''); else $('d_name').removeAttribute('data-notr');   // solo el país (sin el nombre interno del mapa)
     $('d_diff').textContent = DIFF[t.diff] || ''; $('d_diff').className = 'diff d' + t.diff;
     $('d_desc').textContent = (t.comment ? t.comment + '\n' : '') + (t.desc || '') + (t.laps ? `\n${t.laps} vueltas.` : '');
@@ -618,7 +619,7 @@
     ['mapa', '🛠️', 'Arquitecto', 'Crea un circuito en el editor'], ['publica', '🌐', 'A la comunidad', 'Publica un circuito en la comunidad'], ['voto', '👍', 'Crítico', 'Vota un circuito de la comunidad'],
     ['reto', '⭐', 'Retado', 'Termina un reto semanal'],
     ['gp_corre', '🏎️', 'Gran turismo', 'Termina una carrera del Grand Prix'], ['gp_podio', '🥉', 'Al podio', 'Acaba entre los tres primeros en el Grand Prix'], ['gp_gana', '🏆', 'Victoria en el GP', 'Gana una carrera del Grand Prix'],
-    ['gp_campeon', '👑', 'Campeón del Grand Prix', 'Gana el campeonato del Grand Prix'], ['gp_todos', '🗺️', 'Gira mundial', 'Corre en todos los circuitos del Grand Prix'],
+    ['gp_campeon', '👑', 'Campeón del Grand Prix', 'Gana el campeonato del Grand Prix'], ['fin_mundo', '🪧', 'El fin del mundo', 'Encuentra el cartel de «The end of the world» escondido en Italia'], ['gp_todos', '🗺️', 'Gira mundial', 'Corre en todos los circuitos del Grand Prix'],
     ['drift_10k', '💨', 'De lado', 'Consigue 10.000 puntos de drift en una sesión'], ['drift_100k', '🔥', 'Rey del drift', 'Consigue 100.000 puntos de drift en una sesión'], ['drift_combo', '🌀', 'Combo largo', 'Encadena un derrape de 5.000 puntos'],
     ['t_llantas', '🛞', 'Llantas nuevas', 'Cambia las llantas en el garaje'], ['t_neon', '🌈', 'Luces de neón', 'Ponle neones a un coche'], ['t_cristal', '🕶️', 'Lunas tintadas', 'Cambia los cristales de un coche'],
     ['t_claxon', '📣', 'Bocina propia', 'Cambia el claxon'], ['t_color', '🎨', 'A tu gusto', 'Pinta tu coche de un color propio'],
@@ -1147,7 +1148,7 @@
       const skV = S2.skidT > 0.35 ? Math.min(0.6, (slip - 0.32) * 1.8) * Math.min(1, (S2.skidT - 0.35) * 4) * Math.min(1, spd / 10) : 0;
       const dB = c.driftMode && spd > 5 ? Math.min(0.6, Math.max(0, Math.abs(c.beta || 0) - 0.15) * 1.4) * Math.min(1, spd / 12) : 0;   // drift: suena mientras va de lado
       if (S2.skidNew) { const v = Math.max(skV, dB); S2.skidNew.set(paused || surf !== 'asfalto' ? 0 : v * mix * 1.1, 0.9 + Math.min(0.3, spd / 120)); }
-      for (const [k, l] of Object.entries(S2.skidL || {})) l && l.set(paused || k !== surf || (S2.skidNew && k === 'asfalto') ? 0 : skV * mix, 1);
+      for (const [k, l] of Object.entries(S2.skidL || {})) l && l.set(paused || k !== surf || k === 'agua' || c.K.boat || c.K.floats || (S2.skidNew && k === 'asfalto') ? 0 : skV * mix, 1);   // en el agua no hay derrape (el sonido de agua era una voz del juego)
       // rodadura sobre el suelo (grava, arena, nieve...): suave y solo con velocidad; no debe sonar a derrape
       for (const [k, l] of Object.entries(S2.groundL || {})) l && l.set(paused || k !== surf ? 0 : Math.min(0.22, Math.max(0, spd - 4) / 90) * (c.K.fly ? 0 : 1) * mix, 0.8 + Math.min(0.5, spd / 60));
       if (paused) continue;
@@ -2155,11 +2156,12 @@
     if (!front) return; cur = cur || $('m_level').value; const M = qmode === 'gp' || qmode === 'f1' ? 'gp' : qmode === 'drift' ? 'drift' : qmode === 'kart' ? 'kart' : null;
     const badge = t => t.custom && !t.builtin ? '<span class="cbadge">' + (t.desc.startsWith('Tu') ? '🛠' : '🌐') + '</span>' : '';
     // orden: los originales; debajo el recuadro de Grand Prix; debajo los propios y descargados (en Grand Prix y drift, solo los suyos: los de serie arriba y los propios debajo)
+    const TT = qmode === 'tt', F1T = TT ? front.tracks.filter(t => t.kind === 'gp') : [], KT = TT ? front.tracks.filter(t => t.kind === 'kart' && t.builtin) : [];   // contrarreloj: también los recuadros de Fórmula 1 (los circuitos del GP con el fórmula) y de karting
     const main = front.tracks.filter(t => M ? t.kind === M && (!t.custom || t.builtin) : !t.custom), GPT = M ? [] : front.tracks.filter(t => t.kind === 'gp'), CUS = front.tracks.filter(t => t.custom && !t.builtin && (M ? t.kind === M : t.kind !== 'gp' && t.kind !== 'drift' && t.kind !== 'kart'));
-    $('tracks').innerHTML = main.map(t => card(t, badge(t))).join(''); $('tracks_gp').innerHTML = GPT.map(t => card(t, badge(t))).join(''); $('tracks_gpw').hidden = !GPT.length;
+    $('tracks').innerHTML = main.map(t => card(t, badge(t))).join(''); $('tracks_gp').innerHTML = GPT.map(t => card(t, badge(t))).join(''); $('tracks_gpw').hidden = !GPT.length; $('tracks_f1').innerHTML = F1T.map(t => card(t, '')).join(''); $('tracks_f1w').hidden = !F1T.length; $('tracks_k').innerHTML = KT.map(t => card(t, '')).join(''); $('tracks_kw').hidden = !KT.length;
     $('tracks_c').innerHTML = CUS.map(t => card(t, badge(t))).join(''); $('tracks_cw').hidden = !CUS.length;
-    for (const c of document.querySelectorAll('#tracks .tcard, #tracks_gp .tcard, #tracks_c .tcard')) { c.tabIndex = 0; c.onclick = () => { menuBeep(); selectTrack(c.dataset.id, true); if (qmode === 'gp' || qmode === 'f1' || qmode === 'kart') gpChampRender(); }; }
-    const ok = id => main.some(t => t.id === id) || GPT.some(t => t.id === id) || CUS.some(t => t.id === id), last = M === 'gp' ? opt.gpLevel : M === 'drift' ? opt.driftLevel : M === 'kart' ? opt.kartLevel : opt.level;
+    for (const c of document.querySelectorAll('#tracks .tcard, #tracks_gp .tcard, #tracks_f1 .tcard, #tracks_k .tcard, #tracks_c .tcard')) { c.tabIndex = 0; c.onclick = () => { menuBeep(); ttF1 = !!c.closest('#tracks_f1'); selectTrack(c.dataset.id, true); if (qmode === 'gp' || qmode === 'f1' || qmode === 'kart') gpChampRender(); }; }
+    const ok = id => main.some(t => t.id === id) || GPT.some(t => t.id === id) || KT.some(t => t.id === id) || CUS.some(t => t.id === id), last = M === 'gp' ? opt.gpLevel : M === 'drift' ? opt.driftLevel : M === 'kart' ? opt.kartLevel : opt.level;
     const pick = ok(cur) ? cur : ok(last) ? last : main[0] && main[0].id; if (pick) selectTrack(pick, false);
   }
   let cmTab = 'com', cmCache = null;
@@ -3176,7 +3178,7 @@
         setTimeout(() => requestAnimationFrame(step), 40); }; step(); }
   }
   function garRender() {
-    const all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')).concat(Object.keys(BRR.CUSTOM_CARS || {}).filter(n => files.has(BRR.CUSTOM_CARS[n].base + '.VHC'))); if (!all.includes(garSel)) garSel = all.includes(opt.vehicle) ? opt.vehicle : all[0];
+    const all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')).concat(Object.keys(BRR.CUSTOM_CARS || {}).filter(n => n !== 'MINIMO' && files.has(BRR.CUSTOM_CARS[n].base + '.VHC')));   // (Mínimo 50 retirado de momento) if (!all.includes(garSel)) garSel = all.includes(opt.vehicle) ? opt.vehicle : all[0];
     if ($('gr_vsel').options.length !== all.length) $('gr_vsel').innerHTML = all.map(n => `<option value="${n}">${esc(VEH_NAMES[n] || n)}</option>`).join(''); $('gr_vsel').value = garSel;
     $('gr_rim').value = RIM_STYLES[GC().rim] ? GC().rim : 'orig'; $('gr_rimsize').value = String(GC().rimSize || 17); $('gr_rimcol').value = GC().rimCol || 'plata'; $('gr_rimsize').hidden = $('gr_rimcol').hidden = $('gr_rim').value === 'orig'; rimPreview();
     $('gr_lights').value = GC().lightCol || 'normal'; setTimeout(garPreview, 0);
@@ -3305,8 +3307,14 @@
   function flyingStart() {
     if (!ttMode || netRace || humans.length !== 1) return; const h = humans[0], rc = h.race, c = h.car; if (rc.phase !== 'countdown') { h.fly = null; return; }
     if (!h.fly) { const g0 = rc.gates.find(g => g.num === 0); if (!g0 || g0.s == null || c.K.fly || c.K.boat) return; { const line = BRR.buildAILine(lvl, rc, BRR.aiMode(c)); h.fly = { line, sL: BRR.aiProject(line, g0.c, null).i * line.step, v: Math.min(c.gpMode ? 34 : 24, c.topSpeed * 0.72) }; } }
-    const F = h.fly, sp = F.sL - 1.5 - F.v * Math.max(0, rc.cd), a = BRR.aiAt(F.line, sp), yaw = Math.atan2(-a.t[0], -a.t[2]);
-    c.reset(a.p[0], a.p[2], yaw, c.p[1]); c.v = [a.t[0] * F.v, 0, a.t[2] * F.v]; rc.prev = c.p.slice(); }
+    const F = h.fly, back = 1.5 + F.v * Math.max(0, rc.cd), sp = F.sL - back, a = BRR.aiAt(F.line, sp);
+    if (!F.dir) { const g0 = rc.gates.find(g => g.num === 0), t0 = BRR.aiAt(F.line, F.sL).t; const SB = (lvl.banners || []).map(b => [b, Math.hypot(b.c[0] - g0.c[0], b.c[2] - g0.c[2])]).filter(q => q[1] < 60).sort((a, b) => a[1] - b[1]).map(q => q[0])[0] || null;   /* si la pancarta de salida no está en el control 0 (CITY3), se sale por la pancarta */
+      let d = SB ? [SB.ax[2], 0, -SB.ax[0]] : [g0.az[0], 0, g0.az[2]]; const l = Math.hypot(d[0], d[2]) || 1; d = [d[0] / l, 0, d[2] / l]; if (d[0] * t0[0] + d[2] * t0[2] < 0) d = [-d[0], 0, -d[2]]; F.dir = d; F.c = SB ? [SB.c[0], g0.c[1], SB.c[2]] : g0.c; if (SB) F.sL = BRR.aiProject(F.line, SB.c, null).i * F.line.step;
+      /* recta todo lo larga que deje libre lo que hay detrás de la meta (edificios, laderas): hasta 70 m */ let L = 70; for (const h0 of [1, 2.2]) { const o = [F.c[0], lvl.terrain(F.c[0], F.c[2]) + h0, F.c[2]], hit = BRR.raycast(lvl, o, [-d[0], 0, -d[2]], 75); if (hit) L = Math.min(L, hit.t - 6); } F.L = Math.max(25, L); }
+    // los últimos ~45 m, en línea recta hacia la meta y perpendicular a ella (la trazada de la IA podía venir de una curva y el coche salía torcido)
+    const k = Math.max(0, Math.min(1, (back - F.L) / 20)), q = [F.c[0] - F.dir[0] * back, 0, F.c[2] - F.dir[2] * back], px = q[0] + (a.p[0] - q[0]) * k, pz = q[2] + (a.p[2] - q[2]) * k;
+    let tx = F.dir[0] + (a.t[0] - F.dir[0]) * k, tz = F.dir[2] + (a.t[2] - F.dir[2]) * k; { const l = Math.hypot(tx, tz) || 1; tx /= l; tz /= l; }
+    c.reset(px, pz, Math.atan2(-tx, -tz), c.p[1]); c.v = [tx * F.v, 0, tz * F.v]; rc.prev = c.p.slice(); }
   function roamControl(r, dt) {
     if (r.race.phase === 'countdown' || humans[0].race.phase === 'countdown') return { steer: 0, throttle: 0, brake: 0, handbrake: true, pitchAir: 0 };   // quietos hasta el GO
     const c = r.car, inp = { steer: 0, throttle: 1, brake: 0, handbrake: false, pitchAir: 0 }, fw = c.forward(), sp = Math.abs(c.speed()), S = r.roam || (r.roam = { wander: Math.random() * 6.28, stuck: 0, rev: 0 });
@@ -3472,6 +3480,10 @@
           if (!c.isPlayer && audio && audio.ctx && snd.bangs && camDist(c.p) < 90) { const b = snd.bangs[Math.random() * snd.bangs.length | 0]; if (b) audio.play(b, { vol: Math.min(0.8, c.lastHit / 14) * (1 - camDist(c.p) / 90), pos: c.p }); } }
         if (!c.isPlayer) c.lastHit = 0; }
       fx.density = +opt.parts || 1; fx.update(dt); for (const c of allCars) c.decoA = (c.decoA || 0) + dt;
+      if (lvl.signs && lvl.signs.length) for (const h of humans) if (!h.cpu && lvl.signs.some(q => Math.hypot(q[0] - h.car.p[0], q[2] - h.car.p[2]) < 14)) achUnlock('fin_mundo');   // logro secreto: acercarse al cartel del fin del mundo (CITY4)
+      if (lvl.lamps && lvl.lamps.length && humans[0]) {   // semáforos de salida: rojo con el 3, ámbar con el 2, verde con el 1 (y un momento tras la salida), como en el original
+        const rc = humans[0].race, k = rc.phase === 'countdown' ? (rc.cd > 2 ? 'r' : rc.cd > 1 ? 'y' : 'g') : rc.phase === 'race' && rc.t < 2 ? 'g' : null;
+        if (k) { const C = { r: [1, 0.12, 0.08], y: [1, 0.7, 0.1], g: [0.2, 1, 0.3] }[k]; for (const L of lvl.lamps) if (L.k === k) for (const sg of [1, -1]) { const q = V.madd(L.p, L.n, 0.12 * sg); fx.glow(q, [...C, 1], L.r * 2.6); fx.glow(q, [Math.min(1, C[0] + 0.5), Math.min(1, C[1] + 0.5), Math.min(1, C[2] + 0.5), 1], L.r * 1.1); } } }
     } else for (const h of humans) readInput(h, 0);
     if (netRace) puppets(dt);
     soundFrame(dt); for (const h of humans) h.car.lastHit = 0; hornFrame(dt); if (state === 'race') for (const h of humans) rumble(h, dt);
@@ -3556,5 +3568,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, get bridges() { return trackBridges; }, get driftNet() { return driftNet ? { t: driftNet.t, over: driftNet.over, sc: [...driftNet.sc.values()] } : null; }, get dstate() { return [state, humans[0] && humans[0].race.phase, netWait]; }, driftEndNow: () => { if (driftNet) { BRR_net.game({ k: 'dend' }); driftEnd(); } }, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), endRace: () => { for (const h of humans) h.done = true; showResults(); }, get gpCh() { return opt.gpCh; }, get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, set tt(v) { ttMode = !!v; }, get bridges() { return trackBridges; }, get driftNet() { return driftNet ? { t: driftNet.t, over: driftNet.over, sc: [...driftNet.sc.values()] } : null; }, get dstate() { return [state, humans[0] && humans[0].race.phase, netWait]; }, driftEndNow: () => { if (driftNet) { BRR_net.game({ k: 'dend' }); driftEnd(); } }, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), endRace: () => { for (const h of humans) h.done = true; showResults(); }, get gpCh() { return opt.gpCh; }, get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

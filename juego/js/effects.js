@@ -109,7 +109,7 @@ void main(){ float a=vcol.a;
         const key = id + ':' + i;
         if (!w.contact) { this.last.delete(key); return; }
         const wc = V.add(c.p, BRR.mv(R, [w.c[0], w.c[1] + 0.3 - w.len - w.radius + 0.03, w.c[2]]));
-        const s = this.lvl.surface(wc[0], wc[2]), slip = w.slip || 0;
+        const s0 = this.lvl.surface(wc[0], wc[2]), s = w.surface && w.surface !== s0.type ? { ...s0, type: w.surface } : s0, slip = w.slip || 0;   // sobre un puente u objeto manda la rueda (no el agua o la tierra de debajo)
         // polvo / agua / nieve
         if (s.type !== 'asfalto' && sp > 3) {
           const rate = (s.type === 'agua' ? 0.55 : 0.3) * Math.min(1, sp / 18) + slip * 0.35 * Math.min(1, sp / 15);   // poco polvo al arrancar
@@ -135,7 +135,7 @@ void main(){ float a=vcol.a;
           if (sm > 0 && Math.random() < sm * dt * 22) this.puff([wc[0], wc[1] + 0.15, wc[2]], [-fw[0] * sp * 0.25, 0.35, -fw[2] * sp * 0.25], [0.86, 0.86, 0.88, 0.22 + sm * 0.2], 0.45, 2.2 + Math.random() * 1.5, 4.2, 1, 0.5, 'smoke');
         }
         // marcas: derrape en cualquier superficie; en tierra/nieve siempre (rastro)
-        const leave = slip > (c.kartMode ? 0.16 : 0.3) ? 1 : (s.type === 'tierra' || s.type === 'nieve' || s.type === 'arena') && sp > 2 ? 0.55 : 0;
+        const leave = c.K.boat || c.K.floats || s.type === 'agua' ? 0 : slip > (c.kartMode ? 0.16 : 0.3) ? 1 :   /* en el agua (y las lanchas) no quedan marcas */ (s.type === 'tierra' || s.type === 'nieve' || s.type === 'arena') && sp > 2 ? 0.55 : 0;
         const prev = this.last.get(key);
         if (leave && prev && V.len(V.sub(wc, prev.p)) > 0.25) {
           const d = V.sub(wc, prev.p), side = V.mul(V.norm([-d[2], 0, d[0]]), Math.min(0.28, w.radius * 0.45));

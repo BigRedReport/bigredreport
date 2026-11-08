@@ -123,7 +123,8 @@
     const pal = BRR.pal6(colp.subarray(0, 768));
     // ártico: la nieve de la paleta es lila; se lleva hacia blanco azulado
     if (env === 'SNOW') for (let i = 0; i < 256; i++) { const r = pal[i * 3], g = pal[i * 3 + 1], b = pal[i * 3 + 2];
-      if (b > r + 25 && b > g + 18 && b > 120) { const l = 0.3 * r + 0.59 * g + 0.11 * b, t = 0.7; pal[i * 3] = r + (l * 1.08 - r) * t; pal[i * 3 + 1] = g + (l * 1.12 - g) * t; pal[i * 3 + 2] = Math.min(255, b + (l * 1.22 - b) * t); } }
+      if (b > r + 25 && b > g + 18 && b > 120) { const l = 0.3 * r + 0.59 * g + 0.11 * b, t = 0.7; pal[i * 3] = r + (l * 1.08 - r) * t; pal[i * 3 + 1] = g + (l * 1.12 - g) * t; pal[i * 3 + 2] = Math.min(255, b + (l * 1.22 - b) * t); }
+      { const r2 = pal[i * 3], g2 = pal[i * 3 + 1], b2 = pal[i * 3 + 2]; if (b2 > g2 + 10 && r2 > g2 * 0.97) pal[i * 3] = Math.round(g2 * 0.94); if (b2 > g2 + 45) { pal[i * 3] = Math.round(Math.min(pal[i * 3], g2 * 0.72)); pal[i * 3 + 1] = Math.round(Math.min(255, g2 * 1.08)); } } }   // sin tono lila: el hielo, el agua y las sombras de la nieve, azulados (antes salían morados)
     const srcs = [L, E, ...extra];
     const XT = files.extra || null;   // circuitos del editor: objetos de otros circuitos (ya leídos y con los colores pasados a esta paleta)
     const find = n => { n = n.toUpperCase(); if (XT && XT.has(n)) return XT.get(n); for (const s of srcs) if (s.has(n)) return s.get(n); return null; };
@@ -146,6 +147,14 @@
         atlas[o] = pal[c * 3]; atlas[o + 1] = pal[c * 3 + 1]; atlas[o + 2] = pal[c * 3 + 2]; atlas[o + 3] = palA && c >= palA[1] && c <= palA[2] ? 200 + c - palA[1] : 255;   // colores animados del original (alfa = índice)
       }
     }
+    // ciudades con la calzada de color negro liso (CITY3): una baldosa de asfalto propia en un hueco libre del atlas
+    let ASPH = -1; if (env === 'CITY') { const used = new Set(); for (let i = 0; i < 65536; i++) used.add(T[512 + C[i]]); for (let t = 191; t >= 0 && ASPH < 0; t--) if (!used.has(t)) ASPH = t; }   // (una baldosa que no use ninguna casilla)
+    if (ASPH >= 0) { const cx = (ASPH % 16) * 48, cy = (ASPH / 16 | 0) * 48; let sd = 12345; const rnd = () => (sd = (sd * 1103515245 + 12345) & 0x7fffffff) / 0x7fffffff;
+      const base = new Float32Array(32 * 32); for (let i = 0; i < 1024; i++) base[i] = rnd();
+      const at = (x, y) => base[((y + 32) % 32) * 32 + (x + 32) % 32];
+      for (let y = 0; y < 48; y++) for (let x = 0; x < 48; x++) { const X = (x - 8 + 32) % 32, Y = (y - 8 + 32) % 32;
+        const n = (at(X, Y) * 2 + at(X + 1, Y) + at(X, Y + 1) + at(X - 1, Y) + at(X, Y - 1)) / 6, streak = at(X, Y * 7 % 32) > 0.93 ? -14 : 0, v = 24 + (n - 0.5) * 16 + streak * 0.5, o = ((cy + y) * AW + cx + x) * 4;
+        atlas[o] = v; atlas[o + 1] = v + 2; atlas[o + 2] = v + 1; atlas[o + 3] = 255; } }
     // texturas suavizadas: el suelo se escala ×2 con Scale2x (redondea los dientes de sierra de los bordes del césped y la arena)
     if (BRR.texHD && BRR.scale2xRGBA) { const up = BRR.scale2xRGBA(atlas, AW, AH); mbT.textures.set('TERRENO', { w: AW * 2, h: AH * 2, data: up, terrain: true }); }
     else mbT.textures.set('TERRENO', { w: AW, h: AH, data: atlas, terrain: true });
@@ -194,13 +203,15 @@
       let code = C[z * 256 + x], tile = T[512 + code];
       if (isHole(z * 256 + x)) continue;   // boca del túnel: sin terreno
       // casilla sin baldosa del color "transparente" (magenta) del original: toma la de la casilla vecina más cercana
-      if ((tile === 255 || (tile / 48 | 0) >= pages.length) && magCell(T[code])) { let best = null;
+      if ((tile === 255 || (tile / 48 | 0) >= pages.length) && (magCell(T[code]) || tunnel[z * 256 + x])) { let best = null;   /* (también el trozo de colina entre dos bocas de túnel) */
         for (let r = 1; r <= 3 && !best; r++) for (let dz = -r; dz <= r && !best; dz++) for (let dx = -r; dx <= r; dx++) { const X = x + dx, Z = z + dz; if (X < 0 || Z < 0 || X > 255 || Z > 255) continue;
           const c2 = C[Z * 256 + X], t2 = T[512 + c2]; if ((t2 !== 255 && (t2 / 48 | 0) < pages.length) || !magCell(T[c2])) { best = c2; break; } }
         if (best != null) { code = best; tile = T[512 + code]; } }
       const P = [corner(x, z), corner(x + 1, z), corner(x + 1, z + 1), corner(x, z + 1)], Nn = BRR.flatGround ? [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]] : [vnorm(x, z), vnorm(x + 1, z), vnorm(x + 1, z + 1), vnorm(x, z + 1)];   // bloques originales: normal de cada cara (se ven las «placas»)
       const order = [0, 1, 2, 0, 2, 3];   // sentido antihorario visto desde arriba
-      if (tile === 255 || (tile / 48 | 0) >= pages.length) {
+      if (tunnel[z * 256 + x]) { const g = mbT.group('COLOR'); g.nrm = g.nrm || []; for (const k of [0, 2, 1, 0, 3, 2]) { g.pos.push(...P[k]); g.nrm.push(0, -1, 0); g.lay.push(0); g.col.push(0.05, 0.05, 0.055); } }   // túnel: la colina vista desde abajo es el techo oscuro (antes se veía el cielo a través)
+      if (ASPH >= 0 && (tile === 255 || (tile / 48 | 0) >= pages.length) && !tunnel[z * 256 + x] && pal[T[code] * 3] + pal[T[code] * 3 + 1] + pal[T[code] * 3 + 2] < 45 && Math.max(pal[T[code] * 3], pal[T[code] * 3 + 1], pal[T[code] * 3 + 2]) - Math.min(pal[T[code] * 3], pal[T[code] * 3 + 1], pal[T[code] * 3 + 2]) < 8) tile = ASPH;   // calzada negra lisa → asfalto
+      if (tile !== ASPH && (tile === 255 || (tile / 48 | 0) >= pages.length)) {
         const g = mbT.group('COLOR'), c = T[code];
         g.nrm = g.nrm || []; for (const k of order) { g.pos.push(...P[k]); g.nrm.push(...Nn[k]); g.lay.push(0); g.col.push(pal[c * 3] / 255, pal[c * 3 + 1] / 255, pal[c * 3 + 2] / 255); }
       } else {
@@ -217,18 +228,19 @@
     const dat = find(mapn + '.DAT'), dv = new DataView(dat.buffer, dat.byteOffset, dat.byteLength);
     const findTM = n => find(n + '.TM');
     const cseRaw = []; { const cs = find(mapn + '.CSE'); if (cs) { const v = new DataView(cs.buffer, cs.byteOffset, cs.byteLength); for (let j = 0; j + 16 <= cs.length; j += 16) cseRaw.push([v.getInt32(j, true), v.getInt32(j + 4, true)]); } }
+    const courseDist = (x, z) => { let m = 1e9; for (let j = 0; j < cseRaw.length; j++) { const a = cseRaw[j], b = cseRaw[(j + 1) % cseRaw.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * vx + (z - a[1]) * vz) / (vx * vx + vz * vz || 1))); m = Math.min(m, Math.hypot(a[0] + vx * t - x, a[1] + vz * t - z)); } return m * S; };   // metros hasta la línea del recorrido
     const farFromCourse = (x, z) => { for (let j = 0; j < cseRaw.length; j++) { const a = cseRaw[j], b = cseRaw[(j + 1) % cseRaw.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * vx + (z - a[1]) * vz) / (vx * vx + vz * vz || 1))); if (Math.hypot(a[0] + vx * t - x, a[1] + vz * t - z) < 40 / S) return false; } return cseRaw.length > 0; };
     const groundAt = (x, z) => { const fx = x / CELL, fz = z / CELL, ix = Math.max(0, Math.min(254, Math.floor(fx))), iz = Math.max(0, Math.min(254, Math.floor(fz))), u = fx - ix, v = fz - iz, h = (a, b) => hgt[b * 256 + a]; return (h(ix, iz) * (1 - u) + h(ix + 1, iz) * u) * (1 - v) + (h(ix, iz + 1) * (1 - u) + h(ix + 1, iz + 1) * u) * v; };
-    let startCP = null; for (let i = 0; i + 22 <= dat.length; i += 22) if (names[dat[i]] === 'CHECKP' && (dat[i + 19] & 0x7f) === 0) { startCP = [dv.getInt32(i + 1, true), dv.getInt32(i + 9, true)]; break; }
-    let nobj = 0, tGrey = -1, decalN = 0; const checkpoints = [], props = [], posts = [];
+    const banners = []; let startCP = null, bldN = 0; for (let i = 0; i + 22 <= dat.length; i += 22) if (names[dat[i]] === 'CHECKP' && (dat[i + 19] & 0x7f) === 0) { startCP = [dv.getInt32(i + 1, true), dv.getInt32(i + 9, true)]; break; }
+    let nobj = 0, tGrey = -1, decalN = 0; const checkpoints = [], props = [], posts = [], lamps = [], signs = [];
     for (let i = 0; i + 22 <= dat.length; i += 22) if (/POST|S_LIGHT/.test(names[dat[i]] || '')) posts.push([dv.getInt32(i + 1, true), dv.getInt32(i + 5, true), dv.getInt32(i + 9, true), /S_LIGHT/.test(names[dat[i]])]);
     // objetos que flotan sobre el terreno (en el original casi no se notaba): se bajan al suelo, y lo que está encima (copas, tejados) baja con ellos.
     // No se tocan puentes, tubos, nubes ni lo que se apoya en otro objeto. Los carteles y vallas siguen la pendiente.
-    const KEEP_UP = /CLOUD|SKY|BRIDG(?!END)|BRIJ|TUBE|ROOF|PLAT|BIRD|BALLOON|BLIMP|AIRSHIP|ZEPP|PLANE|KITE|WIRE|CABLE|START|CHECKP|SUN$|STAR|RAINBOW|FX$/;
+    const KEEP_UP = /UFO|SAUCER|SATEL|CLOUD|SKY|BRIDG(?!END)|BRIJ|TUBE|ROOF|PLAT|PAGODA2|TORII|BIRD|BALLOON|BLIMP|AIRSHIP|ZEPP|PLANE|KITE|WIRE|CABLE|START|CHECKP|SUN$|STAR|RAINBOW|FX$/;
     const THIN = /FENCE|BILBORD|BILLB|BOARD|SIGN|BANNER|WALL|BARR|RAIL|HOARD/;
     const drop = new Map(), drape = new Set(), objB = [], pillarsAt = [], lift = new Map();
     // en otros planetas (MOON1-3: Marte, Venus, Luna) las construcciones y señales flotan a propósito: no se bajan al suelo
-    const offWorld = /^MOON/i.test(level);
+    const offWorld = false;   // (antes en Marte, Venus y la Luna se dejaba todo flotando; ahora se asienta igual que en la Tierra: lo que vuela de verdad está muy alto o en KEEP_UP)
     if (!window.BRR_NOGROUND) {
       const B = objB;
       for (let i = 0; i + 22 <= dat.length; i += 22) {
@@ -249,16 +261,17 @@
       // ¿se apoya en otro objeto? (su parte de arriba está justo debajo y se solapan en planta)
       const over = (a, b) => a.x0 < b.x1 - 0.05 && b.x0 < a.x1 - 0.05 && a.z0 < b.z1 - 0.05 && b.z0 < a.z1 - 0.05;
       B.sort((a, b) => a.lo - b.lo);
-      for (const a of B) { let best = null; for (const b of B) { if (b === a || b.lo >= a.lo) continue; if (b.hi >= a.lo - 0.7 && b.hi <= a.lo + 1.2 && over(a, b) && (!best || b.hi > best.hi)) best = b; } a.sup = best; }
+      const BLDG = /OFFICE|BLOCK|BUILD|FLAT|HOUSE|HOTEL|TOWER|SHOP|STORE|ROOF/;   // pisos de edificio colocados encima de otro con un hueco (CITY1: oficinas en el aire): se apoyan en el de abajo
+      for (const a of B) { let best = null, gap = 0; for (const b of B) { if (b === a || b.lo >= a.lo) continue; const tol = BLDG.test(a.name) && BLDG.test(b.name) ? 7 : 0.7; if (b.hi >= a.lo - tol && b.hi <= a.lo + 1.2 && over(a, b) && (!best || b.hi > best.hi)) best = b; } if (best && best.hi < a.lo - 0.7) gap = a.lo - best.hi; a.sup = best; a.gap = gap; }
       for (const a of B) {   // en orden de abajo arriba: lo de encima hereda la bajada de lo de abajo
         let d = 0;
-        if (a.sup) d = drop.get(a.sup.i) || 0;
+        if (a.sup) d = (drop.get(a.sup.i) || 0) + (a.gap || 0);
         else if (!offWorld && !KEEP_UP.test(a.name) && a.maxC < -0.8 && a.minC > -9 && a.hi - a.lo < 14 && !/TUNN|HOLE|PIT|WATER|SEA|POOL|ROAD|TRACK|RAMP|JUMP/.test(a.name)) d = a.maxC + 0.25;   // enterrado (piedras, pinos, señales): se sube hasta asomar
         else if (!offWorld && !KEEP_UP.test(a.name) && a.minC > 0.12 && a.minC < 10) { d = a.minC + 0.06; if (THIN.test(a.name) || (Math.min(a.x1 - a.x0, a.z1 - a.z0) < 1.6 && Math.max(a.x1 - a.x0, a.z1 - a.z0) > 2.5 && a.hi - a.lo < 8)) drape.add(a.i); }
-        if (d) drop.set(a.i, d);
+        if (d && !(env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(a.name) && !a.sup)) drop.set(a.i, d);   /* montañas de hielo hechas de piezas (rocas + arco): se quedan juntas como en el original; bajar una sola rompía la montaña */
       }
     }
-    const tunnelGrey = () => { if (tGrey < 0) { let best = 1e9; for (let c = 1; c < 256; c++) { const d = (pal[c * 3] - 92) ** 2 + (pal[c * 3 + 1] - 90) ** 2 + (pal[c * 3 + 2] - 86) ** 2; if (d < best) { best = d; tGrey = c; } } } return tGrey; };
+    const tunnelGrey = () => { if (tGrey < 0) { let best = 1e9; for (let c = 1; c < 256; c++) { const d = (pal[c * 3] - 38) ** 2 + (pal[c * 3 + 1] - 37) ** 2 + (pal[c * 3 + 2] - 36) ** 2;   /* suelo del túnel: asfalto oscuro */ if (d < best) { best = d; tGrey = c; } } } return tGrey; };
     for (let i = 0; i + 22 <= dat.length; i += 22) {
       const name = names[dat[i]]; if (!name) continue;
       if (name === 'CHECKP') {   // puerta de control: byte19 = número (+0x80 último), byte21 = índice del recorrido hacia el siguiente
@@ -275,8 +288,12 @@
       // decorado lejano que flota sobre el terreno (icebergs del ártico...): se apoya en el suelo
       if (env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(name) && farFromCourse(ox, oz)) { const lift = -oy * S - groundAt(ox, oz); if (lift > 3) oy += lift / S; }   // icebergs del ártico
       const k = 2 * Math.PI / 65536, R = BRR.rot(dv.getInt16(i + 13, true) * k, dv.getUint16(i + 15, true) * k, dv.getInt16(i + 17, true) * k);
-      const dGL = drop.get(i) || 0, dr = drape.has(i); if (dGL && !dr) oy += dGL / S;
+      const dGL = drop.get(i) || 0, dr = drape.has(i); if (dGL && !dr && !(dGL > 0 && /^ST_POST|^CHECKP/.test(name))) oy += dGL / S;   /* los postes de las pancartas no bajan enteros (se quedaban cortos y no llegaban al cartel): solo se alargan los pies hasta el suelo */
       if (lift.has(i)) oy -= lift.get(i) / S;   // pasarela subida (circuitos de agua)
+      if (name === 'START') { const pm = getModel('ST_POSTS'), bm = m; if (pm) { const pTop = Math.min(...pm.verts.filter(Boolean).map(v => v[1])), bTop = Math.min(...bm.verts.filter(Boolean).map(v => v[1]));
+        let best = null; for (const q of posts) { if (q[3]) continue; const d = Math.hypot(q[0] - ox, q[2] - oz); if (d > 300 && d < 2600 && (best === null || q[1] + pTop < best)) best = q[1] + pTop; }
+        if (best !== null && oy + bTop - best > 64) oy = best - bTop; } }   // pancarta en el suelo con los postes altos (CITY3): sube hasta lo alto de los postes
+      if (name === 'START') banners.push({ c: BRR.toGL(ox, oy, oz), ax: [R[0][0], -R[1][0], -R[2][0]] });   // pancartas de salida/control (la salida lanzada de la contrarreloj pasa por la más cercana al control 0)
       if (cls === 4 || cls === 5 || cls === 10 || SOFT.test(name)) {   // derribable: instancia aparte
         props.push({ name, cls, o: BRR.toGL(ox, oy, oz), R: [[R[0][0], -R[0][1], -R[0][2]], [-R[1][0], R[1][1], R[1][2]], [-R[2][0], R[2][1], R[2][2]]], r: Math.max(0.4, m.radius * S * 0.5) });
         continue;
@@ -296,8 +313,8 @@
         if (xl !== null && xr !== null && hm > 0) { const cx = (xl + xr) / 2, sx = Math.max(1, ((xr - xl) / 2 - (lightL && lightR ? -130 : 4)) / hm);   /* entre semáforos: hasta dentro de las torres */ /* se estira hasta los postes, pero nunca se encoge (RIG3) */ xfm = v => xf([cx + v[0] * sx, v[1], v[2]]); } }
       if (decal) { const ys = m.verts.filter(Boolean).map(v => v[1]), flat = ys.length && Math.max(...ys) - Math.min(...ys) < 24;
         decalN++; const lift = 0.02;   // pegadas al suelo (antes flotaban hasta 25 cm); el orden de pintado del original va por capas de profundidad (decLay)
-        if (flat && Math.abs(-oy * S - groundAt(ox, oz)) < 2.5) xfm = v => { const g = xf(v), wx = ox + R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2];
-          g[1] = groundAt(wx, wz) + lift; return g; }; }
+        const g0 = groundAt(ox, oz); if (flat && Math.abs(-oy * S - g0) < 2.5) xfm = v => { const g = xf(v), wx = ox + R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2];
+          const gy = groundAt(wx, wz); g[1] = (gy > g0 + 1.2 ? g0 + 0.3 : gy) + lift; return g; }; }   // si una esquina cae en una ladera no sube por ella (la meta a cuadros se inclinaba y tapaba el semáforo): se queda a ras y la colina la tapa
       // postes finos y altos (los de las pancartas de salida y control) que en el original quedan colgando: se alargan hasta el suelo
       if (!decal) { const Vs = m.verts.filter(Boolean), ex = a => Math.max(...Vs.map(v => Math.abs(v[a])));
         const ymax = Math.max(...Vs.map(v => v[1])), ymin = Math.min(...Vs.map(v => v[1]));
@@ -305,10 +322,17 @@
         if (Vs.length && ((ex(0) <= 20 && ex(2) <= 20) || gateP) && ymax - ymin >= 100) {
           const gap = -(oy + ymax) * S - groundAt(ox, oz);   // >0: el pie queda por encima del suelo (metros)
           if (gap > 0.05 && gap < (gateP ? 25 : 12)) { const base = xfm; xfm = v => { const g = base(v); if (v[1] >= ymax - 1) { const wx = ox + R[0][0] * v[0] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][2] * v[2]; g[1] = groundAt(wx, wz) - 0.1; } return g; }; } } }
+      // otros planetas: nudos de tubos, plataformas, cabezas de puente y balizas colgando en el aire (les faltaba la base): sus pies bajan hasta el suelo
+      if (env === 'MOON' && !decal && /NODE|PLAT|PLA3|BRIDGEN|BEACON|TOWER|POD|POLE/.test(name)) { const Vs = m.verts.filter(Boolean), ymax = Math.max(...Vs.map(v => v[1])), ymid = (ymax + Math.min(...Vs.map(v => v[1]))) / 2, wall = /BRIDGEN/.test(name); const base = xfm, gw = v => groundAt(ox + R[0][0] * v[0] + R[0][2] * v[2], oz + R[2][0] * v[0] + R[2][2] * v[2]), gMin = Math.min(...Vs.filter(v => v[1] >= ymax - 8).map(gw), ...(wall ? [-1, 0, 1].flatMap(a => [-1, 0, 1].map(b => groundAt(ox + a * 6 / S, oz + b * 6 / S))) : []));   /* cabezas de puente: hasta el fondo del hueco que tienen al lado (la pista) */   /* el pie llega al punto más bajo del suelo bajo él (en ladera quedaba un hueco por el lado de abajo) */   /* cabezas de puente (rombos): la mitad de abajo baja entera, como un muro hasta el suelo */
+        xfm = v => { const g = base(v); if (v[1] >= ymax - 8 || (wall && v[1] > ymid + 2)) { if (g[1] - gMin > 0.3 && g[1] - gMin < 30) g[1] = gMin - 0.1; } return g; }; }
+      // bloques de edificios que se solapan en las esquinas (CITY4): sus fachadas coincidían en el mismo plano y parpadeaban; cada uno se encoge un poquito distinto
+      if (!decal && /^(BLOCK|BIGBUIL|OFFICE|BUILD)/.test(name)) { const d = (0.004 + 0.007 * (bldN++ % 4)) / S, base = xfm; xfm = v => base([v[0] - Math.sign(v[0]) * d, v[1], v[2] - Math.sign(v[2]) * d]); }
       let mm = m;
       // fallo heredado del original: todas las pancartas de control ponen START; solo la de salida lo lleva, las demás usan la franja lisa de la textura
       if (name === 'START' && startCP && Math.hypot(ox - startCP[0], oz - startCP[1]) > 3000) mm = { ...m, faces: m.faces.map(f => { if (f.tex !== 'START' || !f.uv || f.uv.length < 3) return f; const v0 = Math.min(...f.uv.map(q => q[1])), v1 = Math.max(...f.uv.map(q => q[1]));
         /* la textura tiene franjas de 32 px: START, START, BRS y la lisa (96-127) */ const sh = v1 <= 32.5 ? 96 : v0 >= 31.5 && v1 <= 64.5 ? 64 : 0; return sh ? { ...f, uv: f.uv.map(q => [q[0], q[1] + sh]) } : f; }) };
+      if (env === 'MOON' && /POD/.test(name)) mm = { ...mm, faces: mm.faces.map(f => ({ ...f, two: true })) };   // base lunar: caras que faltaban vistas desde abajo
+      if (env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(name)) mm = { ...mm, faces: mm.faces.map(f => ({ ...f, two: true })) };   // piezas de las montañas de hielo: de doble cara (por debajo se veían huecos invisibles)
       if (/ROOF|CANOP|AWN|SHELTER|TENT/.test(name)) { mm = { ...m, faces: m.faces.map(f => ({ ...f, two: true })) };
         // tejados a los que les falta la plancha (solo traen los cantos, como BAY_ROOF de Inglaterra): se cierra entre los dos cantos laterales
         const Vv = m.verts, side = m.faces.filter(f => !f.tex && f.idx.length === 4 && f.idx.every(k => Vv[k]) && f.idx.every(k => Vv[k][0] === Vv[f.idx[0]][0]));
@@ -319,24 +343,36 @@
           const big = mm.faces.some(f => f.idx.length >= 3 && f.idx.every(k => Vv[k]) && span(f, 0) > xa && span(f, 2) > zspan * 0.5);
           if (big) continue;
           for (const pr of [top, bot]) { const i0 = a.idx[pr[0]], i1 = a.idx[pr[1]]; mm.faces.push({ color: a.color, idx: [i0, i1, find(Vv[i1]), find(Vv[i0])], two: true }); } } }   // tejados: de una sola cara en el original (desde arriba se veían transparentes)
+      if (/BRIDG|BRIJ/.test(name) && !/TUNN/.test(name)) { let g = -1, best = 1e9; for (let c = 1; c < 256; c++) { const d = (pal[c * 3] - 46) ** 2 + (pal[c * 3 + 1] - 45) ** 2 + (pal[c * 3 + 2] - 44) ** 2; if (d < best) { best = d; g = c; } }   // puentes: el negro puro del tablero (se veía un agujero) pasa a asfalto oscuro
+        mm = { ...mm, faces: mm.faces.map(f => !f.tex && f.color != null && pal[f.color * 3] + pal[f.color * 3 + 1] + pal[f.color * 3 + 2] < 6 ? { ...f, color: g } : f) }; }
       if (/TUNN/.test(name)) {   // túneles: el original los pintaba negros y tapados por la colina (sin z-buffer); aquí gris oscuro,
         // visibles desde dentro (doble cara) y sin asomar por encima de la colina
         mm = { ...m, faces: m.faces.map(f => f.tex ? f : { ...f, two: true, color: tunnelGrey() }) };
         xfm = v => { const g = xf(v), wx = ox + R[0][0] * v[0] + R[0][1] * v[1] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][1] * v[1] + R[2][2] * v[2];
           g[1] = Math.min(g[1], groundAt(wx, wz) - 0.05); return g; };
       }
-      if (window.BRR_OBJDBG && !decal) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1])), foot = G.filter(g => g[1] < lo + 0.3).map(g => g[1] - groundAt(g[0] / S, -g[2] / S));
+      if (window.BRR_OBJDBG && (!decal || name === 'START')) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1])), foot = G.filter(g => g[1] < lo + 0.3).map(g => g[1] - groundAt(g[0] / S, -g[2] / S));
         const xs = G.map(g => g[0]), zs = G.map(g => g[2]); window.BRR_OBJDBG.push({ gy: groundAt(ox, oz), lo, name, cls, x: ox, z: oz, minC: Math.min(...foot), maxC: Math.max(...foot), w: Math.max(...xs) - Math.min(...xs), d: Math.max(...zs) - Math.min(...zs), h: Math.max(...G.map(g => g[1])) - lo }); }
-      mb.addModel(mm, xfm, findTM, solid ? (a, b, c) => col.add(a, b, c, name) : null, decal ? 3 + (decalN % 8) * 2 : 1);
+      if (name === 'BSIGN' && /^CITY4/i.test(level)) signs.push(BRR.toGL(ox, oy, oz));   // el cartel de «The end of the world» (logro)
+      if (/S_LIGHT/.test(name)) {   // semáforo de salida: las bombillas se apagan (más oscuras) y se guardan para encenderlas con la cuenta atrás
+        const kind = c => { const r = pal[c * 3], g = pal[c * 3 + 1], b = pal[c * 3 + 2]; if (r + g + b < 90) return null; if (r > g * 1.7 && r > b * 1.7) return 'r'; if (g > r * 1.3 && g > b * 1.3) return 'g'; if (r > b * 1.7 && g > b * 1.5) return 'y'; return null; };
+        const dim = new Map(), dimOf = c => { if (dim.has(c)) return dim.get(c); let best = c, bd = 1e9; for (let d = 1; d < 256; d++) { const e = (pal[d * 3] - pal[c * 3] * 0.32) ** 2 + (pal[d * 3 + 1] - pal[c * 3 + 1] * 0.32) ** 2 + (pal[d * 3 + 2] - pal[c * 3 + 2] * 0.32) ** 2; if (e < bd) { bd = e; best = d; } } dim.set(c, best); return best; };
+        const lens = mm.faces.filter(f => f.idx.length >= 6 && !f.tex), ys = [...new Set(lens.map(f => Math.round(f.idx.reduce((t, i) => t + mm.verts[i][1], 0) / f.idx.length)))].sort((a, b) => a - b);   // las lentes (caras de 6+ lados) por filas: arriba roja, luego ámbar, abajo verde
+        const rowK = f => { if (f.idx.length < 6 || f.tex || ys.length !== 3) return null; const y = Math.round(f.idx.reduce((t, i) => t + mm.verts[i][1], 0) / f.idx.length); return ['r', 'y', 'g'][ys.indexOf(y)] || null; };
+        mm = { ...mm, faces: mm.faces.map(f => { const k = rowK(f) || (ys.length !== 3 && !f.tex && f.color != null ? kind(f.color) : null); if (!k || f.idx.length < 3) return f;
+          const G = f.idx.map(i => xfm(mm.verts[i])).filter(Boolean); if (G.length < 3) return f; const V = BRR.V, c = [0, 1, 2].map(a => G.reduce((s2, g) => s2 + g[a], 0) / G.length), n = V.norm(V.cross(V.sub(G[1], G[0]), V.sub(G[2], G[0])));
+          const ext = Math.max(...G.map(g => V.len(V.sub(g, c)))); lamps.push({ p: c, n, k, r: Math.max(0.12, Math.min(0.5, ext)) }); return { ...f, color: dimOf(f.color) }; }) }; }
+      mb.addModel(mm, xfm, findTM, solid ? (a, b, c) => { if (/BRIJ|BRIDG/.test(name)) { const V = BRR.V, u = V.sub(b, a), w = V.sub(c, a), n = V.norm(V.cross(u, w)), ny = Math.abs(n[1]), hs = Math.max(a[1], b[1], c[1]) - Math.min(a[1], b[1], c[1]); if (ny > 0.25 && ny < 0.85 && hs > 3) return; if (/^NEWBRIJ/.test(name) && Math.abs(n[0] * R[0][2] - n[1] * R[1][2] - n[2] * R[2][2]) > 0.7) return; }   /* sus tapas de las bocas (celosía pintada en una caja) tampoco son pared */ col.add(a, b, c, name); } : null,   /* puentes de celosía (RUF3): la cara inclinada de la boca (invisible) era una pared que no dejaba entrar */ decal ? 3 + (decalN % 8) * 2 : 1);
       nobj++;
       // puentes y pasarelas que flotan: pilares en las esquinas hasta el suelo o el agua (sin paredes: las lanchas pasan por debajo)
-      if (solid && !decal && !offWorld && /BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(name)) { const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1]));
+      if (solid && !decal && !offWorld && env !== 'MOON' && /BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(name) && !/^VBRIDGE/.test(name)) {   /* (VBRIDGE: pórtico por encima de la pista, no lleva pilares) */ const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1]));
         const xs = G.map(g => g[0]), zs = G.map(g => g[2]), x0 = Math.min(...xs), x1 = Math.max(...xs), z0 = Math.min(...zs), z1 = Math.max(...zs);
         let cc = [0.35, 0.3, 0.26]; const f0 = mm.faces.find(f => !f.tex && f.color != null); if (f0) cc = [pal[f0.color * 3] / 255 * 0.8, pal[f0.color * 3 + 1] / 255 * 0.8, pal[f0.color * 3 + 2] / 255 * 0.8];
         const gC = mb.group('COLOR'), w = 0.22, inset = 0.35;
         for (const [px, pz] of [[x0 + inset, z0 + inset], [x1 - inset, z0 + inset], [x0 + inset, z1 - inset], [x1 - inset, z1 - inset]]) {
           const g = groundAt(px / S, -pz / S), top = Math.min(...G.filter(q => Math.abs(q[0] - px) < 1.2 && Math.abs(q[2] - pz) < 1.2).map(q => q[1]).concat([lo + 0.5]));
           if (top - g < 0.3 || top - g > 14) continue;
+          if (top - g > 3.2 && courseDist(px / S, -pz / S) < 7) continue;   // puente por encima de la carretera (pórticos, pasarelas): sin pilares en mitad del paso
           // dos tramos de puente seguidos: un solo pilar en la junta (no dos juntos)
           if (pillarsAt.some(q => Math.abs(q[0] - px) < 1.8 && Math.abs(q[1] - pz) < 1.8)) continue; pillarsAt.push([px, pz]);
           // ya hay un poste o un pilar del original debajo de esa esquina: no se pone otro al lado
@@ -394,7 +430,7 @@
       return [Math.sin(A) * Math.cos(Ev), Math.sin(Ev), -Math.cos(A) * Math.cos(Ev)];
     }
     const lvl = {
-      name: level, palAnim: palA, fixcams, env, pal, mesh: mb, terrainMesh: mbT, collider: col, sun: sunDir(), hgt, sky: SKY[env] || SKY.CITY, nobj,
+      name: level, lamps, signs, banners, palAnim: palA, fixcams, env, pal, mesh: mb, terrainMesh: mbT, collider: col, sun: sunDir(), hgt, sky: SKY[env] || SKY.CITY, nobj,
       checkpoints, props, course, courseW, courseV, gridSlots, laps: lapsM ? +lapsM[1] : 3, nitros: nitM ? +nitM[1] : 3, startPos: [gx * S, 0, -gz * S],
       start: { x: gx * S, z: -gz * S, yaw: -ga, a16: parseInt(g[3], 16) }, find, getModel, srcs, script,
       size: 256 * CELL * S,
@@ -405,11 +441,11 @@
     lvl.surface = function (x, z) {
       const ix = Math.floor(x / CS), iz = Math.floor(-z / CS); if (ix < 0 || iz < 0 || ix > 255 || iz > 255) return { type: 'asfalto', col: [.5, .5, .5] };
       const code = C[iz * 256 + ix], tile = T[512 + code];
-      if (tile < tileSurf.length) return tileSurf[tile];
+      if (tile < tileSurf.length) { const q = tileSurf[tile]; if (q.type === 'agua' && env !== 'WATER' && Math.hypot(x - lvl.start.x, z - lvl.start.z) < 45) return { ...q, type: 'asfalto' }; return q; }   /* la bandera de cuadros de la salida no es agua (CITY2 salpicaba) */
       const c = T[code]; const rgb = [pal[c * 3] / 255, pal[c * 3 + 1] / 255, pal[c * 3 + 2] / 255];
       // casillas de color lila bajo las marcas pintadas (línea de meta, parrilla): suelo neutro, sin polvo rosa
       if (env !== 'MOON' && rgb[0] > rgb[1] * 1.35 + 0.04 && rgb[2] > rgb[1] * 1.35 + 0.04) return LILAC;
-      return { type: classify(...rgb), col: rgb };
+      const ty = classify(...rgb); return { type: ty === 'agua' && env !== 'WATER' && Math.hypot(x - lvl.start.x, z - lvl.start.z) < 45 ? 'asfalto' : ty, col: rgb };
     };
     // circuitos de agua: el río son las baldosas que hay bajo los controles (y las que comparten sus colores)
     if (env === 'WATER' && checkpoints.length) {

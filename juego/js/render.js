@@ -49,7 +49,7 @@ void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
   if(mode==0){ float l=.66+.34*abs(dot(n,normalize(vec3(.4,.85,.3)))); rgb=c.rgb*l;
     float f=clamp((d-far*.55)/(far*.45),0.,1.); o=vec4(mix(rgb,fogc,f),1.); return; }
   // agua: olas que se mueven, brillo del sol y reflejo del cielo
-  if(vwat>0.5){ vec2 q=wp.xz; float t=time;
+  if(vwat>0.5 && c.b-c.r>0.06 && c.b>c.g*0.72){ vec2 q=wp.xz; float t=time;   /* solo en los píxeles con color de agua (las baldosas de la orilla tienen arena y hierba que no deben ondular) */
     vec3 nw=normalize(vec3(sin(q.x*.55+t*1.6)*.07+sin((q.x+q.y)*1.3-t*2.3)*.04, 1., cos(q.y*.6+t*1.3)*.07+sin((q.x-q.y)*1.1+t*1.9)*.04));
     vec3 Vd=normalize(cam-wp); float fres=pow(1.-max(dot(nw,Vd),0.),3.), sp=pow(max(dot(reflect(-L,nw),Vd),0.),70.);
     c.rgb*=0.9+0.1*sin(q.x*.9+q.y*.7+t*2.);

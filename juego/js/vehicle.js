@@ -69,7 +69,10 @@
     out.length = 0; const n = [0, 1, 0];
     const h = lvl.terrain(s[0], s[2], n), dist = (s[1] - h) * n[1];
     const inTun = lvl.tunnel && lvl.tunnel(s[0], s[2]) && (s[1] < h - 0.4 || lvl.hole(s[0], s[2]));
-    if (dist < r && !inTun) out.push({ n: n.slice(), depth: r - dist, p: V.madd(s, n, -dist) });
+    if (dist < r && !inTun) { const pc = V.madd(s, n, -dist);
+      // ladera muy empinada justo al lado (borde de un barranco, RUF3 a la salida del puente): el plano de la ladera se prolonga
+      // por encima del borde y daba un muro invisible; si el punto de contacto queda en el aire, no hay contacto
+      if (!(s[1] - h > r && lvl.terrain(pc[0], pc[2]) < pc[1] - 0.15)) out.push({ n: n.slice(), depth: r - dist, p: pc }); }
     const C = lvl.collider; C.query(s[0] - r, s[2] - r, s[0] + r, s[2] + r, tmpList);
     for (const i of tmpList) {
       if (skip && skip(C.tags[i])) continue;

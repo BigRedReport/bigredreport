@@ -7,6 +7,18 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.3** (repaso mapa a mapa)
+- **Contrarreloj:** la salida lanzada sale recta en todos los mapas (RIG3, RUF2, SNOW2, SNOW3, MOON1, CITY3...), y en CITY3 pasa por la pancarta de salida. En el selector hay ahora recuadros de **Fórmula 1** (circuitos del GP con el fórmula) y **Karting**.
+- **Semáforos de salida:** se encienden en rojo, amarillo y verde con el 3, 2, 1, como en el original.
+- **Pancartas:** los postes de las pancartas de control llegan hasta el cartel; en CITY3 la pancarta ya no toca el suelo.
+- **Francia (RUF3):** ya se puede cruzar el puente (había paredes invisibles) y su suelo ya no es negro. **España (RIG4):** suelo del puente gris y sin salpicaduras de agua.
+- **Agua:** el efecto de agua ya no se sale sobre la arena y la hierba de las orillas (China, India); la bandera de salida de CITY2 ya no salpica; las lanchas no dejan marcas en el agua ni suena la voz al derrapar en ella.
+- **Túneles:** techo oscuro y sin texturas blancas ni cielo (Irlanda, Méjico).
+- **Objetos:** la meta a cuadros ya no se inclina (Chile, Ártico); trozos de edificio de CITY1 apoyados; la viga de las puertas rojas de Japón arriba; montañas de hielo del Ártico y Escocia enteras; en Marte, Venus y la Luna los edificios, bases y torres ya no flotan, con sus pies hasta el suelo (y sin los palos bajo el puente de Venus).
+- **Ciudades:** CITY3 con asfalto en vez de calzada negra; ya no parpadean las fachadas de Italia.
+- **Logro secreto:** «El fin del mundo», escondido en Italia.
+- Quitado de momento el Mínimo 50.
+
 **Novedades de la 0.118.2**
 - **Chat general en el menú principal:** debajo de las novedades; todos los jugadores escriben y lo ven los demás (y quien entra ve los últimos mensajes). Solo texto, palabrotas tapadas y clic en un nombre para silenciarlo.
 - **IA del karting más humana:** van al límite, frenan tarde y a fondo, derrapan, dejan marcas y se equivocan; ya no parecen ir sobre raíles.
