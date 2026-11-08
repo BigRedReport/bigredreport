@@ -257,12 +257,15 @@
     control(dt, others = [], playerScore = null) {
       const car = this.car, race = this.race, inp = { steer: 0, throttle: 0, brake: 0, handbrake: false, pitchAir: 0 };
       if (car.gpMode) { if (!this.gpSet) { this.gpSet = true; this.P = { ...BRR.AI_PROFILES.experto, name: '', mistake: 0.15, defend: 0.5, pace: BRR.AI_PROFILES.experto.pace * (0.975 + Math.random() * 0.05), overtake: 0.6 + Math.random() * 0.4 };   /* cada uno con su ritmo: unos más rápidos que otros */ this.vprof = null; this.skill = Math.min(1.08, this.skill + 0.05); } }   // Grand Prix: todos expertos
-      else if (race.phase === 'race') { this.moodT -= dt; if (this.moodT <= 0) {   // cambia de «momento»: casi siempre conducir bien; a ratos atacar o defender
+      else if (car.kartMode && !this.kartSet) { this.kartSet = true; const r = Math.random;   // karting: pilotos de carne y hueso: cada uno con su manera de trazar, se pasan de frenada a veces y derrapan
+        this.base = this.P = { ...this.P, corner: (this.P.corner || 1) * (0.97 + r() * 0.08), cut: 0.15 + r() * 0.5, mistake: Math.max(1, this.P.mistake || 0), overtake: 0.75 + r() * 0.25, laneJitter: 0.18 + r() * 0.2, wobble: Math.max(0.04, this.P.wobble || 0) };
+        this.kA = 0.07 + r() * 0.08; this.kPh = [r() * 7, r() * 7]; this.kLap = 0; this.vprof = null; }
+      if (race.phase === 'race' && !car.gpMode) { this.moodT -= dt; if (this.moodT <= 0) {   // cambia de «momento»: casi siempre conducir bien; a ratos atacar o defender
           const b = this.base, r = Math.random(); this.mood = r < 0.22 + b.aggro * 0.2 ? 'ataque' : r < 0.45 ? 'defensa' : null; this.moodT = this.mood ? 5 + Math.random() * 9 : 10 + Math.random() * 30;
           this.P = this.mood === 'ataque' ? { ...b, aggro: Math.min(1, b.aggro + 0.5), overtake: 1, corner: b.corner * 1.03, mistake: b.mistake * 1.6 } : this.mood === 'defensa' ? { ...b, defend: 1, overtake: b.overtake * 0.6 } : { ...b }; } }
       const P = this.P;
       if (race.phase === 'countdown') { inp.handbrake = true; this.startLane = null; return inp; }
-      if (race.phase === 'finished') { inp.brake = 0.5; return inp; }
+      if (race.phase === 'finished') { const sp = car.speed(); inp.brake = sp > 1.2 ? 0.5 : 0; inp.throttle = 0; inp.handbrake = sp <= 1.2; return inp; }   // al acabar: frena hasta pararse (el freno con el coche parado era marcha atrás)
       const line = this.line || (this.line = BRR.buildAILine(car.lvl, race, BRR.aiMode(car)));
       let pj = BRR.aiProject(line, car.p, this.li); if (pj.d > 900) pj = BRR.aiProject(line, car.p, null); this.li = pj.i;
       const v = Math.max(0, car.speed()), s = pj.i * line.step;
@@ -347,7 +350,9 @@
       if (this.mistake && this.mistakeT <= 0) this.mistake = null;
       // velocidad objetivo: el perfil en este punto y un poco por delante (reacción), con rubber banding
       const i0 = Math.floor(s / line.step), N = line.N; let vp = 1e9; for (let k = 0; k <= 3; k++) vp = Math.min(vp, this.vprof[(i0 + k) % N]);
-      let vt = vp * this.skill * this.rubber * (P.pace || 1) / BRR.AI_PROFILES.experto.pace * (this.draft && race.t > 6 ? 1.035 : 1);   // ritmo propio y rebufo
+      let vt = vp * this.skill * this.rubber * (P.pace || 1) / BRR.AI_PROFILES.experto.pace * (this.draft && race.t > 6 ? 1.035 : 1);
+      if (car.kartMode && this.kA) { if (race.lap !== this.kLap) { this.kLap = race.lap; this.kPh = [Math.random() * 7, Math.random() * 7]; }   // karting: en unas curvas entra pasado (y derrapa), en otras se queda corto; cambia cada vuelta
+        vt *= 1 + this.kA * (0.6 * Math.sin(s / 37 + this.kPh[0]) + 0.4 * Math.sin(s / 91 + this.kPh[1])); }   // ritmo propio y rebufo
       // muy desviado (cruzado o mirando hacia atrás): frenar de verdad para poder girar; si no hay manera, maniobra
       const ae = Math.abs(err);
       if (ae > 0.45 && v > 8) vt = Math.min(vt, Math.max(6, v * (1.3 - ae)));   // no consigue seguir la curva: levantar y frenar ya

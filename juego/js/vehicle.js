@@ -332,7 +332,7 @@
       const throttle = inp.throttle, brake = inp.brake; this.thr = throttle;
       // marcha: adelante, freno o atrás
       let drive = 0;
-      if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m * (GP ? GPF : 1);
+      if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m * (GP ? GPF : 1) * (this.kartMode ? 1.3 : 1);   // karting: sale más fuerte de las curvas
       // F1: tracción y empuje de un monoplaza (0-100 en unos 2,5 s; adaptado a la escala del juego, punta ~260 km/h)
       // nitro: empuje extra y supera la velocidad máxima
       if (this.nitroT > 0) { this.nitroT -= dt; drive = Math.max(drive, curve(def.gearF, Math.max(0, spdScript) * 0.7) / 600 * 7.5 * this.m) + 0.38 * 9.81 * this.m; }
@@ -349,7 +349,7 @@
         if (!hit) { w.prevLen = w.len = L0; w.load = 0; w.spin += (w.spinRate || 0) * dt; continue; }
         grounded++;
         const len = Math.max(0, hit.t - w.radius), dl = (len - w.prevLen) / dt; w.prevLen = w.len = len;
-        const kw = (w.k || this.k) * (F1 ? 7 : 1), cw = (w.cd || this.c) * (F1 ? 3 : 1); /* F1: suspensión muy dura (con tanto apoyo el fondo tocaba el suelo) */ let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
+        const kw = (w.k || this.k) * (F1 ? 7 : this.kartMode ? 5 : 1), cw = (w.cd || this.c) * (F1 ? 3 : this.kartMode ? 2.6 : 1);   /* kart: sin muelles (chasis rígido), casi no balancea */ /* F1: suspensión muy dura (con tanto apoyo el fondo tocaba el suelo) */ let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
         Fs = Math.max(0, Fs); w.load = Fs;
         const n = hit.n, cp = V.madd(top, down, hit.t), r = V.sub(cp, this.p);
         const vc = V.add(this.v, V.cross(this.w, r));
@@ -409,7 +409,8 @@
         DB.exit = Math.max(0, DB.exit - dt); DB.lat = DB.on ? 0.012 : DB.exit > 0 ? 1 - DB.exit / 0.6 * 0.9 : 1;   // al salir, las gomas vuelven a agarrar poco a poco (sin latigazo)
         }
       if (DR && grounded && this.drAssist) F = V.madd(F, this.drAssist, this.m);   // ayudas del modo drift (seguir en la pista, imán del tándem): las pone el juego
-      if (this.kartMode && grounded) { const ab = Math.abs(beta), wy = V.dot(this.w, up); if (ab > 0.1) T = V.madd(T, up, -wy * this.I[1] * 4.5 * Math.min(1, (ab - 0.1) * 5)); }   // kart: el derrape es corto y se recoge solo
+      if (this.kartMode && grounded) { { const wr = V.dot(this.w, fwd); T = V.madd(T, fwd, -wr * this.I[2] * 6); }   // kart: amortigua el balanceo lateral (no se mece de lado a lado en las rectas)
+        const ab = Math.abs(beta), wy = V.dot(this.w, up); if (ab > 0.1) T = V.madd(T, up, -wy * this.I[1] * 4.5 * Math.min(1, (ab - 0.1) * 5)); }   // kart: el derrape es corto y se recoge solo
       if (DR && !DB && grounded) { const ab = Math.abs(beta), hv = Math.hypot(this.v[0], this.v[2]), wy = V.dot(this.w, up);
         const fh = V.norm([fwd[0], 0, fwd[2]]), rh = V.norm([right[0], 0, right[2]]), sa = this.steerAng, wd = V.norm(V.add(V.mul(fh, Math.cos(sa)), V.mul(rh, Math.sin(sa))));
         const hbOn = inp.handbrake || this.dHold > 0;
@@ -435,7 +436,7 @@
           const ang = sg * rate * dt, ca = Math.cos(ang), sn = Math.sin(ang), d0 = this.dDir; this.dDir = [d0[0] * ca + d0[2] * sn, 0, -d0[0] * sn + d0[2] * ca];   // giro alrededor del eje vertical hacia el lado del morro
           this.dLock = 0.9 * rp * this.dSpd;
           if (inp.handbrake) { this.hbV = Math.max(0, this.hbV - 1.2 * dt); if (hv < this.hbV) F = V.madd(F, V.mul(vH, 1 / hv), this.m * Math.min(6, (this.hbV - hv) * 3)); }   // sin acelerar: solo no deja que se pare (pierde ~1 m/s cada segundo)
-          else if (throttle > 0.1 && hv < this.topSpeed * 0.88) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.5 * throttle * Math.max(0.1, 1 - hv / (this.topSpeed * 0.7)));   /* empuja menos cuanto más rápido (el derrape no acelera sin fin) */   // con gas empuja en el sentido de la marcha (estira el derrape)
+          else if (throttle > 0.1 && hv < this.topSpeed * 0.97) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.6 * throttle * Math.min(1, 3 * (1 - hv / (this.topSpeed * 0.97))));   /* con gas el derrape sigue ganando velocidad hasta casi la punta del coche (sin tope a media velocidad) */   // con gas empuja en el sentido de la marcha (estira el derrape)
           else if (throttle <= 0.1) F = V.madd(F, V.mul(vH, 1 / hv), -this.m * 2.5);   // sin gas pierde velocidad
         }
         if (throttle < 0.1 && vf > 1) F = V.madd(F, fh, -this.m * 9.81 * 0.05 * Math.min(1, vf / 4));   // sin gas retiene un poco (no de golpe)

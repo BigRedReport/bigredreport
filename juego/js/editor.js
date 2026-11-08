@@ -142,7 +142,7 @@
     const keep = re => (B.script.match(re) || [''])[0];
     const st = S[Math.max(0, S.length - 7)];   // la parrilla empieza 14 m antes de la línea de salida
     const ga = ((Math.round(Math.atan2(st.tx, st.tz) / (2 * Math.PI) * 65536) % 65536) + 65536) % 65536, lat = Math.round(half * CELL * 0.45);
-    const slots = []; for (let k = 0; k < 12; k++) slots.push(`${k % 2 ? -lat : lat},${-(160 + k * 300)},&0`);
+    const slots = [], l3 = Math.round(half * CELL * 0.58), rowD = T.kind === 'kart' ? 270 : 420; for (let k = 0; k < 12; k++) { const c = k % 3, r = k / 3 | 0; slots.push(`${[l3, 0, -l3][c]},${-(160 + r * rowD + c * 70)},&0`); }   // parrilla de 3 en 3 (4 filas para 12): no se sale de la pista
     const cams = []; for (let s = 40; s < S.total; s += 140) { let i = 0; while (i < S.length - 1 && S[i].s < s) i++; const p = S[i], sg = (i / 7 | 0) % 2 ? 1 : -1, cx = p.x + p.tz * (half + 3) * sg, cz = p.z - p.tx * (half + 3) * sg; cams.push(`fixcam ${hex(cx * CELL)},${hex(-(5 + Math.random() * 4) / BRR.S)},${hex(cz * CELL)}`); }
     const script = [`; circuito hecho con el editor: ${String(T.name || '').replace(/[\r\n]/g, ' ')}`, 'map MAP', keep(/^\s*texes.*$/m), keep(/^\s*speed.*$/m), keep(/^\s*palanim.*$/m), keep(/^light.*$/m),
       `grid ${hex(st.x * CELL)},${hex(st.z * CELL)},${hex(ga)},`, '        -956,0,&2000,', '        444,0,-&2000,', ...slots.map((q, i) => '        ' + q + (i < slots.length - 1 ? ',' : '')),

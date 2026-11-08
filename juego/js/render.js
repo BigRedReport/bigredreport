@@ -202,7 +202,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
       const c = V.add(center, V.add(V.mul(s, snap(cx) - cx), V.mul(u, snap(cy) - cy)));
       const view = BRR.M4.lookAt(V.madd(c, L, 400), c, up), proj = BRR.M4.ortho(-h, h, -h, h, 100, 700);
       this.LVP = BRR.M4.mul(proj, view);
-      gl.bindFramebuffer(gl.FRAMEBUFFER, this.smFbo); gl.viewport(0, 0, size, size); gl.clear(gl.DEPTH_BUFFER_BIT);
+      gl.bindFramebuffer(gl.FRAMEBUFFER, this.smFbo); gl.disable(gl.SCISSOR_TEST); gl.viewport(0, 0, size, size); gl.clear(gl.DEPTH_BUFFER_BIT);   // sin el recorte de la vista anterior (pantalla partida: el mapa de sombras del jugador 2+ se quedaba a medio borrar)
       gl.enable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.enable(gl.POLYGON_OFFSET_FILL); gl.polygonOffset(1.5, 3);
       gl.useProgram(this.dpr); gl.uniformMatrix4fv(this.DU.LVP, false, this.LVP); gl.uniform1i(this.DU.T, 0);
     }

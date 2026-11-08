@@ -74,6 +74,47 @@
           s1.playbackRate.setTargetAtTime(r * 0.62, t, 0.07); s2.playbackRate.setTargetAtTime(r, t, 0.07); lp.frequency.setTargetAtTime(900 + 3200 * thr + 1500 * x, t, 0.1); lfo.frequency.setTargetAtTime(5 + 9 * x, t, 0.2); },
         stop: () => { for (const n of [s1, s2, lfo]) try { n.stop(); } catch (e) { } } };
     }
+    // motor de dos tiempos (go-kart) sintetizado: zumbido rasposo y agudo, con explosiones a la frecuencia del cigüeñal y algo de ruido de escape
+    twoStroke(bus = 'engine', pos = null) {
+      if (!this.ctx) return null; const c = this.ctx;
+      if (!this._nz) { const n = c.sampleRate * 1.5 | 0, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; this._nz = b; }
+      const o1 = c.createOscillator(), o2 = c.createOscillator(), o3 = c.createOscillator(); o1.type = 'sawtooth'; o2.type = 'square'; o3.type = 'sawtooth';
+      const g1 = c.createGain(), g2 = c.createGain(), g3 = c.createGain(); g1.gain.value = 0.55; g2.gain.value = 0.25; g3.gain.value = 0.18;
+      const nz = c.createBufferSource(); nz.buffer = this._nz; nz.loop = true; const nbp = c.createBiquadFilter(); nbp.type = 'bandpass'; nbp.frequency.value = 2200; nbp.Q.value = 0.9;
+      const am = c.createGain(); am.gain.value = 0; const amO = c.createOscillator(); amO.type = 'square'; const amG = c.createGain(); amG.gain.value = 0.5; amO.connect(amG); amG.connect(am.gain);   // el ruido "pedorrea" a la frecuencia de las explosiones
+      const ws = c.createWaveShaper(), cur = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; cur[i] = Math.tanh(x * 3.2) * 0.9; } ws.curve = cur;
+      const mix = c.createGain(); mix.gain.value = 0.5; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 3000; lp.Q.value = 2.2; const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 70;
+      const out = c.createGain(); out.gain.value = 0;
+      o1.connect(g1); o2.connect(g2); o3.connect(g3); g1.connect(mix); g2.connect(mix); g3.connect(mix); nz.connect(nbp); nbp.connect(am); am.connect(mix); mix.connect(ws); ws.connect(lp); lp.connect(hp); hp.connect(out);
+      let pn = null; if (pos && this.spatial) { pn = this.panner(pos); out.connect(pn); pn.connect(this.bus(bus)); } else out.connect(this.bus(bus));
+      const jit = c.createOscillator(), jg = c.createGain(); jit.frequency.value = 11; jg.gain.value = 1.5; jit.connect(jg); for (const o of [o1, o2, o3, amO]) jg.connect(o.frequency);   // irregularidad del dos tiempos
+      for (const n of [o1, o2, o3, amO, jit]) n.start(); nz.start();
+      return { set: (v, r, x) => { const t = c.currentTime, thr = Array.isArray(x) ? 0.8 : (x ?? 0.5), k = Math.max(0, Math.min(1, (r - 0.8) / 1.1)), f = 38 + 175 * k;   // ralentí ~2.300 rpm, arriba ~13.000
+          out.gain.setTargetAtTime(v * 0.75, t, 0.05); o1.frequency.setTargetAtTime(f, t, 0.04); o2.frequency.setTargetAtTime(f * 2.01, t, 0.04); o3.frequency.setTargetAtTime(f * 3.02, t, 0.04); amO.frequency.setTargetAtTime(f, t, 0.04);
+          am.gain.setTargetAtTime(0.25 + 0.5 * thr, t, 0.05); lp.frequency.setTargetAtTime(1200 + 3600 * thr + 1500 * k, t, 0.06); jg.gain.setTargetAtTime(1 + 4 * (1 - thr), t, 0.1);
+          if (pn && Array.isArray(x)) this.movePanner(pn, x); },
+        stop: () => { for (const n of [o1, o2, o3, amO, jit, nz]) try { n.stop(); } catch (e) { } } };
+    }
+    // derrape de neumático "de verdad" (Grand Prix, F1, karting y drift): chirrido tonal que cambia solo de tono y de fuerza + soplido de goma; cada uno distinto
+    skid(bus = 'sfx') {
+      if (!this.ctx) return null; const c = this.ctx;
+      if (!this._nz) { const n = c.sampleRate * 1.5 | 0, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0); for (let i = 0; i < n; i++) d[i] = Math.random() * 2 - 1; this._nz = b; }
+      const base = 720 + Math.random() * 380, nz = c.createBufferSource(); nz.buffer = this._nz; nz.loop = true; nz.playbackRate.value = 0.9 + Math.random() * 0.2;
+      const b1 = c.createBiquadFilter(), b2 = c.createBiquadFilter(), b3 = c.createBiquadFilter(), hiss = c.createBiquadFilter(); b1.type = b2.type = b3.type = 'bandpass'; b1.Q.value = 28; b2.Q.value = 22; b3.Q.value = 16; hiss.type = 'highpass'; hiss.frequency.value = 2500;
+      b1.frequency.value = base; b2.frequency.value = base * 2.03; b3.frequency.value = base * 3.1;
+      const s1 = c.createOscillator(); s1.type = 'triangle'; s1.frequency.value = base; const sg = c.createGain(); sg.gain.value = 0;
+      const gb1 = c.createGain(), gb2 = c.createGain(), gb3 = c.createGain(), gh = c.createGain(); gb1.gain.value = 9; gb2.gain.value = 5; gb3.gain.value = 3; gh.gain.value = 0.18;
+      const out = c.createGain(); out.gain.value = 0;
+      nz.connect(b1); nz.connect(b2); nz.connect(b3); nz.connect(hiss); b1.connect(gb1); b2.connect(gb2); b3.connect(gb3); hiss.connect(gh); s1.connect(sg);
+      for (const g of [gb1, gb2, gb3, gh, sg]) g.connect(out); out.connect(this.bus(bus)); nz.start(); s1.start();
+      let nextT = 0, lastV = 0;
+      return { set: (v, rate = 1) => { const t = c.currentTime;
+          if (t > nextT) { nextT = t + 0.08 + Math.random() * 0.25; const f = base * rate * (0.88 + Math.random() * 0.24);   // el tono va cambiando (la goma "canta" distinto según agarra)
+            for (const [b, m] of [[b1, 1], [b2, 2.03], [b3, 3.1]]) b.frequency.setTargetAtTime(f * m, t, 0.06); s1.frequency.setTargetAtTime(f, t, 0.05);
+            sg.gain.setTargetAtTime(v * (0.02 + Math.random() * 0.05), t, 0.05); gh.gain.setTargetAtTime(0.12 + Math.random() * 0.12, t, 0.08); }
+          const wob = v > 0.02 ? 0.75 + Math.random() * 0.5 : 1; out.gain.setTargetAtTime(v * 0.9 * wob, t, v > lastV ? 0.04 : 0.09); lastV = v; },
+        stop: () => { for (const n of [nz, s1]) try { n.stop(); } catch (e) { } } };
+    }
     // ambiente: viento según la velocidad (ruido filtrado), en su propio canal
     ambient() {
       if (!this.ctx || this.amb) return this.amb; const c = this.ctx, n = c.sampleRate * 2, b = c.createBuffer(1, n, c.sampleRate), d = b.getChannelData(0);

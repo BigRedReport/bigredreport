@@ -7,6 +7,15 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.1**
+- **Karting online:** nuevo modo 🛞 Karting al crear partida (uno o varios karts seguidos, con puntos). Todos en go-kart, sin nitro y con las vueltas de cada circuito.
+- **Karts:** casi sin balanceo en las rectas (chasis rígido), más aceleración, parrilla de 3 en 3 (cabe con 12) y la IA ya no da marcha atrás al cruzar la meta. La IA del karting es más humana: se pasa en algunas curvas, derrapa y adelanta más.
+- **Sonido:** motor de dos tiempos para el go-kart y un derrape nuevo, más real y con variaciones, en Grand Prix, Fórmula 1, Karting y Drift (en los modos normales sigue el original).
+- **Drift:** sin tope de velocidad al derrapar acelerando (se quedaba en unos 56 km/h) y mucho más humo de las ruedas traseras.
+- **Pantalla partida:** arregladas las sombras fuera de sitio de los jugadores 2, 3 y 4.
+- **Online:** las carreras online de Grand Prix y Fórmula 1 ya usan las vueltas del circuito (salían con 99).
+- **Nuevas descargas:** programa para **Mac** (chip de Apple e Intel) y para **Linux ARM64** (Raspberry Pi 4/5 y otros equipos ARM).
+
 **Novedades de la 0.118**
 - **Nuevo modo Karting** (en Un jugador): carrera suelta o **campeonato propio** en cuatro karts de verdad con sus **trazados reales**: **Los Alcázares** (Go-Karts Mar Menor), **Benidorm**, **Orihuela** y **La Manga**. Pista estrecha, pianos, barreras de plástico rojas y blancas, muros de neumáticos, caseta de control y palmeras.
 - **Física propia del go-kart en este modo:** mucho agarre y punta de unos 85 km/h; si entras muy rápido o frenando y girando, la trasera hace un pequeño derrape lateral y se recoge sola; ya no hace trompos al acelerar en la salida de las curvas. En el modo «crazy kart» se conduce como siempre.

@@ -130,6 +130,8 @@ void main(){ float a=vcol.a;
         } else {
           // asfalto: humo de neumático al derrapar o al patinar las ruedas al arrancar (quemar rueda)
           const burn = (c.thr || 0) > 0.8 && sp > 0.3 && sp < 9 && !c.K.fly ? (9 - sp) / 9 * 0.7 : 0, sm = Math.max(slip > 0.4 && sp > 7 ? (slip - 0.4) * 2 : 0, burn);
+          const dr = c.driftMode && !w.steer && sp > 5 && Math.abs(c.beta || 0) > 0.18 ? Math.min(1.6, 0.7 + Math.abs(c.beta)) : 0;   // modo drift: las ruedas de atrás echan mucho humo mientras va de lado
+          if (dr && Math.random() < dr * dt * 40) this.puff([wc[0], wc[1] + 0.2, wc[2]], [-fw[0] * sp * 0.15 + (Math.random() - .5) * 1.5, 0.5 + Math.random() * 0.5, -fw[2] * sp * 0.15 + (Math.random() - .5) * 1.5], [0.9, 0.9, 0.92, 0.3 + dr * 0.15], 0.7, 3 + Math.random() * 2, 5.5, 1, 0.45, 'smoke');
           if (sm > 0 && Math.random() < sm * dt * 22) this.puff([wc[0], wc[1] + 0.15, wc[2]], [-fw[0] * sp * 0.25, 0.35, -fw[2] * sp * 0.25], [0.86, 0.86, 0.88, 0.22 + sm * 0.2], 0.45, 2.2 + Math.random() * 1.5, 4.2, 1, 0.5, 'smoke');
         }
         // marcas: derrape en cualquier superficie; en tierra/nieve siempre (rastro)
