@@ -62,7 +62,7 @@ function findGame() {
   const os = require('os'), H = os.homedir(), roots = [];
   if (process.platform === 'win32') { for (const d of 'CDEFGHIJ') roots.push(d + ':\\'); roots.push(H); }
   else { roots.push(H, path.join(H, 'Games'), path.join(H, 'Juegos'), path.join(H, 'Downloads'), path.join(H, 'Descargas'), path.join(H, 'Desktop'), path.join(H, 'Escritorio'));
-    for (const m of ['/run/media', '/media', '/mnt']) { try { for (const u of fs.readdirSync(m)) { const p = path.join(m, u); roots.push(p); try { for (const v of fs.readdirSync(p)) roots.push(path.join(p, v)); } catch (e) { } } } catch (e) { } } }
+    for (const m of ['/run/media', '/media', '/mnt', '/Volumes']) { try { for (const u of fs.readdirSync(m)) { const p = path.join(m, u); roots.push(p); try { for (const v of fs.readdirSync(p)) roots.push(path.join(p, v)); } catch (e) { } } } catch (e) { } } }
   const skip = /^(\.|node_modules$|proc$|sys$|Windows$|Program Files|ProgramData$|AppData$|steamapps$|compatdata$|shadercache$)/i, seen = new Set(), t0 = Date.now();
   const q = roots.filter(r => { try { return fs.statSync(r).isDirectory(); } catch (e) { return false; } }).map(r => [r, 0]);
   while (q.length && Date.now() - t0 < 6000) { const [d, k] = q.shift(); if (seen.has(d)) continue; seen.add(d);
@@ -102,7 +102,7 @@ async function latest() {
   const r = await fetch(process.env.BRR_UPD_API || 'https://api.github.com/repos/' + REPO + '/releases/latest', { headers: { Accept: 'application/vnd.github+json', 'User-Agent': 'BigRedReport' } });   // BRR_UPD_API: solo para probar
   if (!r.ok) throw new Error('GitHub ' + r.status); const j = await r.json();
   const asset = n => (j.assets || []).find(a => a.name === n);
-  return { ver: String(j.tag_name || '').replace(/^v/, ''), url: j.html_url, game: asset('BigRedRacing_port.zip'), app: asset(process.platform === 'win32' ? 'BigRedReport-Windows.zip' : 'BigRedReport-Linux.tar.gz') };
+  return { ver: String(j.tag_name || '').replace(/^v/, ''), url: j.html_url, game: asset('BigRedRacing_port.zip'), app: process.platform === 'darwin' ? null : asset(process.platform === 'win32' ? 'BigRedReport-Windows.zip' : process.arch === 'arm64' ? 'BigRedReport-Linux-ARM64.tar.gz' : 'BigRedReport-Linux.tar.gz') };   // Mac: el juego se actualiza solo; el programa, bajándolo de la web
 }
 // descomprime un .zip (sin programas externos): directorio central + inflate
 function unzip(buf, dest) {
@@ -121,7 +121,7 @@ ipcMain.handle('upd:check', async () => {
   const cur = process.env.BRR_FAKE_VER || verOf(gameDir()), appVer = process.env.BRR_FAKE_VER || app.getVersion();   // BRR_FAKE_VER: solo para probar el actualizador
   let failed = null; try { failed = fs.readFileSync(path.join(app.getPath('userData'), 'actualizacion-fallida.txt'), 'utf8').trim(); } catch (x) { }
   try { const L = await latest(), retried = !!(cfg.updTry && cfg.updTry.ver === L.ver && Date.now() - cfg.updTry.t < 30 * 60000);
-    return { ok: true, ver: L.ver, cur, appVer, game: newer(L.ver, cur) && !!L.game, app: newer(L.ver, appVer) && !!L.app, pending: newer(L.ver, appVer) && !L.app, appUrl: L.app ? L.app.browser_download_url : L.url, url: L.url, retried: retried && newer(L.ver, appVer), failed }; }
+    return { ok: true, ver: L.ver, cur, appVer, game: newer(L.ver, cur) && !!L.game, app: newer(L.ver, appVer) && !!L.app, pending: newer(L.ver, appVer) && !L.app && process.platform !== 'darwin', appUrl: L.app ? L.app.browser_download_url : L.url, url: L.url, retried: retried && newer(L.ver, appVer), failed }; }
   catch (e) { return { ok: false, cur, appVer, err: String(e.message || e) }; }
 });
 // descarga con progreso (para la barra del lanzador)

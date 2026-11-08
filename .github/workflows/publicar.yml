@@ -33,10 +33,20 @@ jobs:
         include:
           - os: windows-latest
             platform: win32
+            arch: x64
             asset: BigRedReport-Windows.zip
           - os: ubuntu-latest
             platform: linux
+            arch: x64
             asset: BigRedReport-Linux.tar.gz
+          - os: ubuntu-latest
+            platform: linux
+            arch: arm64
+            asset: BigRedReport-Linux-ARM64.tar.gz
+          - os: macos-latest
+            platform: darwin
+            arch: universal
+            asset: BigRedReport-Mac.zip
     runs-on: ${{ matrix.os }}
     defaults:
       run:
@@ -55,11 +65,15 @@ jobs:
         working-directory: escritorio
         run: |
           ICON=""; if [ "${{ matrix.platform }}" = "win32" ]; then ICON="--icon=icon.ico"; fi
-          npx electron-packager . BigRedReport --platform=${{ matrix.platform }} --arch=x64 --out=dist --overwrite --asar $ICON \
-            --ignore="^/dist" --ignore="^/icon.ico" --ignore="^/LEEME.txt" --ignore="^/BigRedReport.sh" --ignore="^/instalar-steamdeck.sh" --ignore="^/LEEME-SteamDeck.txt" \
+          if [ "${{ matrix.platform }}" = "darwin" ]; then   # icono del Mac (.icns) a partir del PNG del juego
+            mkdir -p icon.iconset; for s in 16 32 64 128 256 512; do sips -z $s $s game/icon-512.png --out icon.iconset/icon_${s}x${s}.png >/dev/null; done
+            cp icon.iconset/icon_32x32.png icon.iconset/icon_16x16@2x.png; cp icon.iconset/icon_256x256.png icon.iconset/icon_128x128@2x.png; cp icon.iconset/icon_512x512.png icon.iconset/icon_256x256@2x.png
+            iconutil -c icns icon.iconset -o icon.icns && rm -rf icon.iconset && ICON="--icon=icon.icns"; fi
+          npx electron-packager . BigRedReport --platform=${{ matrix.platform }} --arch=${{ matrix.arch }} --out=dist --overwrite --asar $ICON \
+            --ignore="^/dist" --ignore="^/icon.ico" --ignore="^/icon.icns" --ignore="^/LEEME-Mac.txt" --ignore="^/LEEME.txt" --ignore="^/BigRedReport.sh" --ignore="^/instalar-steamdeck.sh" --ignore="^/LEEME-SteamDeck.txt" \
             --app-copyright="Port de fans · Big Red Racing es de sus respectivos dueños"
-          D="dist/BigRedReport-${{ matrix.platform }}-x64"
-          cp LEEME.txt "$D/"
+          D="dist/BigRedReport-${{ matrix.platform }}-${{ matrix.arch }}"
+          if [ "${{ matrix.platform }}" = "darwin" ]; then cp LEEME-Mac.txt "$D/LEEME.txt"; else cp LEEME.txt "$D/"; fi
           if [ "${{ matrix.platform }}" = "linux" ]; then cp BigRedReport.sh "$D/" && chmod +x "$D/BigRedReport.sh" "$D/BigRedReport"; fi
           mv "$D" dist/BigRedReport
       - name: Empaquetar (Windows)
@@ -67,11 +81,16 @@ jobs:
         working-directory: escritorio/dist
         shell: pwsh
         run: Compress-Archive -Path BigRedReport -DestinationPath ${{ matrix.asset }}
+      - name: Empaquetar (Mac)
+        if: matrix.platform == 'darwin'
+        working-directory: escritorio/dist
+        run: ditto -c -k --sequesterRsrc --keepParent BigRedReport ${{ matrix.asset }}
       - name: Empaquetar (Linux)
         if: matrix.platform == 'linux'
         working-directory: escritorio/dist
         run: |
           tar -czf ${{ matrix.asset }} BigRedReport
+          [ "${{ matrix.arch }}" = "x64" ] || exit 0
           # Steam Deck: el mismo programa de Linux + instalador (menú y Steam) + icono + instrucciones
           cp ../instalar-steamdeck.sh ../LEEME-SteamDeck.txt ../game/icon-512.png BigRedReport/ && chmod +x BigRedReport/instalar-steamdeck.sh
           tar -czf BigRedReport-SteamDeck.tar.gz BigRedReport
@@ -80,7 +99,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "v$(tr -d ' \r\n' < VERSION)" "escritorio/dist/${{ matrix.asset }}" --clobber
       - name: Subir la de Steam Deck
-        if: matrix.platform == 'linux'
+        if: matrix.platform == 'linux' && matrix.arch == 'x64'
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: gh release upload "v$(tr -d ' \r\n' < VERSION)" escritorio/dist/BigRedReport-SteamDeck.tar.gz --clobber

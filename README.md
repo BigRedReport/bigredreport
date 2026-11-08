@@ -11,7 +11,7 @@ A fan-made port of **Big Red Racing** (Big Red Software, 1995) for modern comput
 🌐 **Website:** https://bigredreport.github.io/bigredreport/
 
 - ▶️ **Play in your browser:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html (installable as an app)
-- 🪟 **Windows:** [BigRedReport-Windows.zip](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip) · 🐧 **Linux:** [BigRedReport-Linux.tar.gz](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz)
+- 🪟 **Windows:** [BigRedReport-Windows.zip](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip) · 🐧 **Linux:** [BigRedReport-Linux.tar.gz](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz) · 🍎 **Mac:** [BigRedReport-Mac.zip](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Mac.zip) · 🍓 **Linux ARM64** (Raspberry Pi…): [BigRedReport-Linux-ARM64.tar.gz](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux-ARM64.tar.gz)
 - ⬇️ **All downloads:** [latest release](https://github.com/BigRedReport/bigredreport/releases/latest)
 - 🗺️ **Roadmap:** [ROADMAP.md](ROADMAP.md)
 - 🐞 **Bug reports:** the *Issues* tab (use the “Report a bug” template) or the form on the website

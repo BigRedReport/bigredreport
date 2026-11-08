@@ -11,7 +11,7 @@ Port de fans de **Big Red Racing** (Big Red Software, 1995) para ordenadores mod
 🌐 **Web:** https://bigredreport.github.io/bigredreport/
 
 - ▶️ **Jugar en el navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html (se puede instalar como aplicación)
-- 🪟 **Windows:** [BigRedReport-Windows.zip](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip) · 🐧 **Linux:** [BigRedReport-Linux.tar.gz](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz)
+- 🪟 **Windows:** [BigRedReport-Windows.zip](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip) · 🐧 **Linux:** [BigRedReport-Linux.tar.gz](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz) · 🍎 **Mac:** [BigRedReport-Mac.zip](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Mac.zip) · 🍓 **Linux ARM64** (Raspberry Pi…): [BigRedReport-Linux-ARM64.tar.gz](https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux-ARM64.tar.gz)
 - ⬇️ **Todas las descargas:** [última versión (Releases)](https://github.com/BigRedReport/bigredreport/releases/latest)
 - 🗺️ **Hoja de ruta:** [ROADMAP.md](ROADMAP.md)
 - 🐞 **Fallos:** pestaña *Issues* (plantilla «Reportar un fallo») o el formulario de la web

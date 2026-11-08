@@ -1,0 +1,18 @@
+Big Red Report (Mac)
+====================
+
+1. Descomprime el zip y arrastra la carpeta BigRedReport a Aplicaciones (o donde quieras).
+2. La primera vez: clic derecho (o Control + clic) sobre BigRedReport.app > Abrir > Abrir.
+   El Mac avisa de que es de un "desarrollador no identificado" porque el programa no está firmado con Apple
+   (es un port de fans gratuito). Solo hay que hacerlo una vez.
+   Si dice que "está dañado": abre Terminal y escribe
+       xattr -cr /Applications/BigRedReport/BigRedReport.app
+   (cambia la ruta si lo pusiste en otro sitio) y vuelve a abrirlo.
+3. En el lanzador pulsa "Elegir carpeta..." y elige la carpeta de tu copia de Big Red Racing
+   (la que contiene BIGRED, y la imagen del CD IMAGE.img si quieres la música original).
+4. Pulsa JUGAR.
+
+Funciona en los Mac con chip de Apple (M1, M2...) y en los de Intel.
+El juego se actualiza solo; para una versión nueva del programa, descárgala de la web.
+El programa lee los archivos de tu copia y no incluye ni distribuye datos del juego.
+Web: https://bigredreport.github.io/bigredreport/
