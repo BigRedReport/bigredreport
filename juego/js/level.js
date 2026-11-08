@@ -49,7 +49,7 @@
         let g, uv = null, rgb = null;
         if (f.alt && !this.condOnly && f.alt.uv.length === f.idx.length) f = { ...f, tex: f.alt.tex || f.tex, uv: f.alt.uv };   // textura del "si" (piloto apagado)
         if (f.tex) {
-          if (!this.textures.has(f.tex)) { const tm = findTM(f.tex); this.textures.set(f.tex, tm ? BRR.tmRGBA(tm, pal) : null); }
+          if (!this.textures.has(f.tex)) { const tm = findTM(f.tex); const rgba = tm ? BRR.tmRGBA(tm, pal) : null; this.textures.set(f.tex, rgba && BRR.texHD && BRR.texUp && this.hd ? BRR.texUp(rgba, 256, 192) : rgba); }   // objetos del circuito: también nítidos
           if (!this.textures.get(f.tex) || f.uv.length !== idx.length) continue;
           g = this.group('tex:' + f.tex); uv = f.uv;
         } else if (BRR.isKey(pal, f.color) && !this.keepKey) {   // caras del color "de recorte" del original (magenta): no se pintan, pero siguen chocando
@@ -135,7 +135,7 @@
     const H = find(mapn + '.MPH'), C = find(mapn + '.MPC'), T = find(mapn + '.CHT');
     const mt = script.match(/^\s*texes\s+(\w+?)(\d)\s+(\d+)/m);
     const pages = []; for (let k = 0; k < +mt[3]; k++) pages.push(find(`${mt[1]}${+mt[2] + k}.TM`));
-    const mb = new BRR.MeshBuilder(pal), mbT = new BRR.MeshBuilder(pal);   // objetos / terreno
+    const mb = new BRR.MeshBuilder(pal), mbT = new BRR.MeshBuilder(pal); mb.hd = true;   // objetos / terreno
     // atlas del terreno: cada baldosa de 32x32 con 8 px de borde replicado (evita mezclar baldosas al hacer mipmaps)
     // "palanim velocidad,primero,último": colores de la paleta que el original hace rotar (agua, luces)
     const pam = script.match(/^\s*palanim\s+(\d+)\s*,\s*(\d+)\s*,\s*(\d+)/m), palA = pam ? [+pam[1], +pam[2], Math.min(+pam[3], +pam[2] + 15)] : null;
@@ -156,7 +156,7 @@
         const n = (at(X, Y) * 2 + at(X + 1, Y) + at(X, Y + 1) + at(X - 1, Y) + at(X, Y - 1)) / 6, streak = at(X, Y * 7 % 32) > 0.93 ? -14 : 0, v = 24 + (n - 0.5) * 16 + streak * 0.5, o = ((cy + y) * AW + cx + x) * 4;
         atlas[o] = v; atlas[o + 1] = v + 2; atlas[o + 2] = v + 1; atlas[o + 3] = 255; } }
     // texturas suavizadas: el suelo se escala ×2 con Scale2x (redondea los dientes de sierra de los bordes del césped y la arena)
-    if (BRR.texHD && BRR.scale2xRGBA) { const up = BRR.scale2xRGBA(atlas, AW, AH); mbT.textures.set('TERRENO', { w: AW * 2, h: AH * 2, data: up, terrain: true }); }
+    if (BRR.texHD && BRR.texUp) { const up = BRR.texUp(atlas, AW, AH); mbT.textures.set('TERRENO', { w: up.w, h: up.h, data: up.data, terrain: true }); }
     else mbT.textures.set('TERRENO', { w: AW, h: AH, data: atlas, terrain: true });
     // tipo de superficie por baldosa según su color medio (asfalto, tierra, arena, nieve, agua)
     const classify = (r, g, b) => {

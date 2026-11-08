@@ -11,7 +11,7 @@
       this.lvl = lvl; this.R = R; this.models = new Map(); this.list = []; this.grid = new Map();
       for (const p of lvl.props) {
         if (!this.models.has(p.name)) {
-          const m = lvl.getModel(p.name), mb = new BRR.MeshBuilder(lvl.pal);
+          const m = lvl.getModel(p.name), mb = new BRR.MeshBuilder(lvl.pal); mb.hd = true;
           mb.addModel(m, v => BRR.toGL(v[0], v[1], v[2]), n => lvl.find(n + '.TM'));
           this.models.set(p.name, R.upload(mb));
           // animales (ovejas...): como en el original, al pisarlos quedan aplastados y rojos

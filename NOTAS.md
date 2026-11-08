@@ -7,6 +7,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.4**
+- **Texturas nítidas HD:** los suelos y todos los objetos de los circuitos originales se escalan ×4 al cargar (×2 en Android) con los bordes limpios; mismo dibujo de tu copia, sin subir nada original.
+- **Relieve y detalle:** cada textura saca volumen de su propio brillo (ventanas y puertas hundidas, asfalto de piedrecitas) y el suelo lleva grano fino de cerca. Opción «Relieve y detalle» en Opciones.
+- **Resplandor (bloom):** luces, semáforos, sol y brillos se derraman un poco (Suave, Fuerte o No); la nieve no se empaña.
+- **Vuelve el Mínimo 50,** rehecho desde un modelo 3D detallado: techo blanco, pilares negros, faros redondos, pasos de rueda negros, pilotos verticales y llantas de aleación. Mismo tamaño, ruedas y físicas que el Mini del juego; sale como coche principal donde están el Mini y el Mini descapotable.
+- **CITY3** queda solo para el modo libre (fuera de carrera rápida, contrarreloj, retos, online y clasificaciones).
+
 **Novedades de la 0.118.3** (repaso mapa a mapa)
 - **Contrarreloj:** la salida lanzada sale recta en todos los mapas (RIG3, RUF2, SNOW2, SNOW3, MOON1, CITY3...), y en CITY3 pasa por la pancarta de salida. En el selector hay ahora recuadros de **Fórmula 1** (circuitos del GP con el fórmula) y **Karting**.
 - **Semáforos de salida:** se encienden en rojo, amarillo y verde con el 3, 2, 1, como en el original.

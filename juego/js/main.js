@@ -6,7 +6,7 @@
   try { R = new BRR.Renderer(canvas); } catch (e) { $('err').textContent = e.message; return; }
 
   // ---------- opciones ----------
-  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, modeMusic: 'propia', modeVol: 80, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudstyle: 'moderno', touch: 'auto', aiPack: 'no', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, cabin: true, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', fxs: 'original', engSnd: 'mejorado', gloss: 'si', ssao: 'si', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
+  const DEF = { autoRes: true, scale: 100, fov: 70, far: 1500, filter: 'smooth', cam: 'cerca', fps: false, vehicle: 'JEEP', level: 'CITY1', team: 1, laps: 0, vsfx: 80, vmusic: 60, vvoice: 100, vmaster: 100, vengine: 80, vui: 70, vamb: 60, modeMusic: 'propia', modeVol: 80, msrc: 'cd', aa: '1', parts: '1', fpslim: '0', hudw: 'full', hudstyle: 'moderno', touch: 'auto', aiPack: 'no', hudsc: 100, speedo: 'dig', hmini: true, hpos: true, htimes: true, hnitro: true, hmsg: true, hnames: false, cabin: true, hhelp: true, spatial: true, rumble: '1', cb: 'no', uiz: '100', assist: '0', rivLook: 'aleatorio', damage: '1', ground: 'suave', fxs: 'original', engSnd: 'mejorado', gloss: 'si', ssao: 'si', relief: 'si', bloom: 'si', hora: 'original', clima: 'despejado', clouds: 'nuevas', menuImg: 'hd', autopause: true, menu: 'moderno', horn: 'normal', rivals: 5, diff: 2, light: 'moderna', shadows: 2, players: 1, origAI: true };
   let opt = { ...DEF };
   // perfiles: cada uno guarda sus ajustes, récords, campeonato y estadísticas aparte (claves con @perfil)
   let PROF = ''; try { PROF = localStorage.getItem('brr_profile') || ''; } catch (e) { }
@@ -36,13 +36,13 @@
     for (const k of ['vsfx', 'vmusic', 'vvoice', 'vmaster', 'vengine', 'vui', 'vamb']) { const el = $('o_' + k); el.value = opt[k]; const sv = () => { const v = $('o_' + k + '_v'); if (v) v.textContent = opt[k] + '%'; }; sv(); el.oninput = () => { opt[k] = +el.value; sv(); applyVol(); save(); }; }
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
     { const el = $('o_lang'); el.innerHTML = Object.entries(BRR.LANGS).map(([k, n]) => `<option value="${k}">${n}</option>`).join(''); el.value = BRR.lang(); el.onchange = () => BRR.setLang(el.value); }
-    for (const k of ['ssao', 'gloss', 'engSnd', 'fxs', 'aa', 'parts', 'fpslim', 'hudw', 'hudstyle', 'aiPack', 'touch', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'clouds', 'modeMusic']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ssao') R.ssao = opt.ssao === 'no' ? 0 : 1; if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    for (const k of ['ssao', 'relief', 'bloom', 'gloss', 'engSnd', 'fxs', 'aa', 'parts', 'fpslim', 'hudw', 'hudstyle', 'aiPack', 'touch', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'clouds', 'modeMusic']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ssao') R.ssao = opt.ssao === 'no' ? 0 : 1; if (k === 'relief') R.relief = opt.relief === 'no' ? 0 : 1; if (k === 'bloom') R.bloom = opt.bloom === 'no' ? 0 : opt.bloom === 'fuerte' ? 1.6 : 0.9; if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
     { const el = $('o_modeVol'); el.value = opt.modeVol ?? 80; const sv = () => $('o_modeVol_v').textContent = (opt.modeVol ?? 80) + '%'; sv(); el.oninput = () => { opt.modeVol = +el.value; sv(); save(); if (audio && audio.stream) { audio.streamK = opt.modeVol / 100; audio.setVolumes({}); } }; }
     $('o_modeMusic').addEventListener('change', () => { if (!audio || !(state === 'race' || state === 'pause') || !modeKind(curLevelId)) return; audio.stopMusic(); if (!modeMusic(curLevelId)) audio.playMusic(Math.abs([...String(curLevelId)].reduce((a, c) => a * 31 + c.charCodeAt(0), 0))); });   // se cambia al momento, también en pausa
     for (const k of ['cabin', 'hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
-    R.fxaa = opt.aa === '1'; R.ssao = opt.ssao === 'no' ? 0 : 1;
+    R.fxaa = opt.aa === '1'; R.ssao = opt.ssao === 'no' ? 0 : 1; R.relief = opt.relief === 'no' ? 0 : 1; R.bloom = opt.bloom === 'no' ? 0 : opt.bloom === 'fuerte' ? 1.6 : 0.9;
     for (const k of ['filter', 'cam']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; if (k === 'filter') { R.setFilterAll(opt.filter); BRR.texHD = opt.filter !== 'nearest'; } if (k === 'cam') for (const h of humans) { h.camMode = null; h.cam.init = h.cam.posInit = false; } save(); }; }
     $('o_light').value = opt.light; $('o_light').onchange = () => { opt.light = $('o_light').value; R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0); save(); };
     $('o_shadows').value = opt.shadows; $('o_shadows').onchange = () => { opt.shadows = +$('o_shadows').value; R.setShadows(R.mode ? opt.shadows : 0); save(); };
@@ -50,7 +50,7 @@
     $('o_origai').value = opt.origAI !== false ? '1' : '0'; $('o_origai').onchange = () => { opt.origAI = $('o_origai').value === '1'; save(); };
     $('o_auto').checked = opt.autoRes !== false; $('o_auto').onchange = () => { opt.autoRes = $('o_auto').checked; dyn = 1; resize(); save(); };
     // modo clásico: todo como se veía en 1995 (y vuelta a como lo tenías)
-    const CLASSIC = { ssao: 'no', light: 'original', scale: 50, filter: 'nearest', far: 700, aa: '0', gloss: 'no', clouds: 'originales', ground: 'original', shadows: 0, fxs: 'original', hora: 'original', clima: 'despejado', engSnd: 'original', cabin: true, autoRes: false, hudstyle: 'original' };
+    const CLASSIC = { ssao: 'no', relief: 'no', bloom: 'no', light: 'original', scale: 50, filter: 'nearest', far: 700, aa: '0', gloss: 'no', clouds: 'originales', ground: 'original', shadows: 0, fxs: 'original', hora: 'original', clima: 'despejado', engSnd: 'original', cabin: true, autoRes: false, hudstyle: 'original' };
     const clUI = () => { $('o_classic').textContent = opt.classicPrev ? 'Volver a mis ajustes' : 'Verlo como en 1995'; };
     $('o_classic').onclick = () => { if (opt.classicPrev) { Object.assign(opt, opt.classicPrev); opt.classicPrev = null; } else { const prev = {}; for (const k in CLASSIC) prev[k] = opt[k]; opt.classicPrev = prev; Object.assign(opt, CLASSIC); }
       save(); location.reload(); };
@@ -160,6 +160,7 @@
     const padT = () => { if ($('title').hidden) return; if (pads().some(g => g.buttons.some(b => b.pressed))) go1(); else requestAnimationFrame(padT); }; requestAnimationFrame(padT); }
 
   let ttF1 = false;   // contrarreloj: circuito del GP elegido en el recuadro de Fórmula 1
+  const FREE_ONLY = new Set(['CITY3']);   // circuitos solo para el modo libre (fuera de carrera rápida, contrarreloj, retos, online y clasificaciones)
   const LEVEL_NAMES = { CITY: 'Ciudad', DIRT: 'Tierra', MOON: 'Marte', WATER: 'Río', SNOW: 'Nieve', RUF: 'Desierto', RIG: 'Plataforma', CHOPPER: 'Helicóptero', TEST: 'Prueba' };
   const VEH_NAMES = { MINIMO: 'Mínimo 50', PANDA: 'Panda 86', GT: 'GT Racer', KART: 'Go-kart', F1: 'Fórmula', GTS: 'GT Sprint', BAV30: 'Bávaro 30', ZETA35: 'Zeta 35', JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable',
     PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
@@ -174,7 +175,7 @@
       const txt = BRR.text(A.get(t)).replace(/;[^\n]*/g, '');
       const L = [...txt.matchAll(/^\s*car\s+(\w+)/gm)].map(m => m[1].toUpperCase()).slice(0, 2).filter(n => n !== 'FEHELI' && files.has(n + '.VHC'));
       if (/^MOON/.test(id) && files.has('UFO.VHC') && !L.includes('UFO')) L.push('UFO');   // el ovni, también de serie en Marte, Venus y la Luna
-      // (Mínimo 50 retirado de momento: no convence)  if (L.includes('MINI') && !L.includes('MINIMO')) L.splice(L.indexOf('MINI') + 1, 0, 'MINIMO');   // donde sale el Mini del juego, también el Mínimo 50 (Mini R50) como otro principal
+      { const m = L.findIndex(n => n === 'MINI' || n === 'CABMINI'); if (m >= 0 && !L.includes('MINIMO') && files.has('MINI.VHC')) L.splice(m + 1, 0, 'MINIMO'); }   // donde sale el Mini del juego, también el Mínimo 50 (Mini R50) como otro principal
       return levelCars[id] = L;   // el original deja elegir los 2 primeros (el 3º es el helicóptero de cámara u oculto)
     } catch (e) { return levelCars[id] = []; }
   }
@@ -772,6 +773,7 @@
     $('d_lbt').innerHTML = rows.length ? rows.slice(0, 10).map(tr).join('') + (extra.length ? '<tr><td class="small">…</td><td></td></tr>' + extra.map(([r, i]) => tr(r, i)).join('') : '') : '<tr><td class="small">Aún no hay tiempos. ¡Sé el primero!</td></tr>';
   }
   async function lbSubmit(id, veh, lap, total) {
+    if (FREE_ONLY.has(id)) return;
     const row = { name: opt.netName || 'Piloto', veh, lap, total, team: opt.team, t: Date.now() }; lbAddLocal(id, row);
     try { await BRR.cloud.lbPut(id, row); } catch (e) { }
     if (opt.netUrl && /^wss?:/.test(opt.netUrl) && BRR_net.connected && BRR_net.mode === 'server') BRR_net.send({ t: 'lbput', level: id, row });
@@ -838,7 +840,7 @@
     if (edge(9) && state === 'pause' && performance.now() - pauseAt > 250) togglePause();
     if (edge(2) && state === 'menu' && view === 'home') go('options');
     if (state === 'menu' && VIEWS[view] && VIEWS[view].pane === 'quick' && (edge(4) || edge(5)) && front) {   // LB/RB: circuito anterior/siguiente (la bola gira)
-      const T = front.tracks, i = T.findIndex(t => t.id === $('m_level').value), n = T[(i + (edge(5) ? 1 : -1) + T.length) % T.length]; sfx('BEEP3'); selectTrack(n.id, false);
+      const T = front.tracks.filter(t => qmode === 'free' || !FREE_ONLY.has(t.id)), i = T.findIndex(t => t.id === $('m_level').value), n = T[(i + (edge(5) ? 1 : -1) + T.length) % T.length]; sfx('BEEP3'); selectTrack(n.id, false);
       const c = document.querySelector(`#tracks .tcard[data-id="${n.id}"]`); if (c) navFocus(c); }
     navPrev = btn;
   }
@@ -1251,7 +1253,7 @@
       if (ttMode && h.newLap) achUnlock('record'); if (netRace) { achUnlock('online'); if (win) achUnlock('onlinewin'); }
       if (humans.length >= 2) achUnlock('fiesta'); if (opt.paint && myTeamName()) achUnlock('estilo');
       const S = statsGet(); if ((S.races || 0) >= 50) achUnlock('veterano'); if ((S.km || 0) >= 100) achUnlock('km100');
-      statsAdd(S2 => { S2.tracks = S2.tracks || {}; if (!lvl.custom) S2.tracks[lvl.name] = 1; if (front && front.tracks && Object.keys(S2.tracks).length >= front.tracks.filter(t => !t.custom).length) achUnlock('turista'); }); }
+      statsAdd(S2 => { S2.tracks = S2.tracks || {}; if (!lvl.custom) S2.tracks[lvl.name] = 1; if (front && front.tracks && Object.keys(S2.tracks).filter(k => !FREE_ONLY.has(k)).length >= front.tracks.filter(t => !t.custom && !FREE_ONLY.has(t.id)).length) achUnlock('turista'); }); }
     if (audio) { const v = snd.pickVoice && (pickV('FINISH') || pickV('GAMEOVER')); if (v) audio.voice(v, true); }
     // resultados cuando han llegado todos los jugadores (o 45 s después del primero)
     if (humans.every(x => x.done) && rivals.filter(r => r.remote && !r.isAI).every(r => r.fin != null)) setTimeout(showResults, 1500);
@@ -1889,7 +1891,7 @@
   // ---------- lobby online ----------
   // circuitos para el online: cada modo con los suyos (Grand Prix solo los de GP, drift solo los de drift, el resto sin ninguno de esos)
   const kindOfT = t => t ? t.kind || 'normal' : 'normal', kindOfRoom = info => info && (info.crazy === 'gp' || info.crazy === 'f1') ? 'gp' : info && info.crazy === 'drift' ? 'drift' : info && info.crazy === 'kartgp' ? 'kart' : 'normal';
-  function netTracks(k) { const L = front ? front.tracks : []; return k ? L.filter(t => kindOfT(t) === k) : L; }
+  function netTracks(k) { const L = front ? front.tracks.filter(t => !FREE_ONLY.has(t.id)) : []; return k ? L.filter(t => kindOfT(t) === k) : L; }
   const esc = t => String(t).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
   const myLogo = () => myLogoData() || (typeof opt.logo === 'number' ? opt.logo : null);
   const myData = () => ({ gar: garMine($('n_veh').value || opt.vehicle), team: +$('n_team').value, veh: $('n_veh').value, ready: $('n_ready').checked, logo: myLogo(), char: opt.char || 0, head: myHead(), body: myBody(), skin: mySkin() >= 0 ? mySkin() : null, paint: opt.paint || null, teamName: myTeamName() || null });
@@ -2157,7 +2159,7 @@
     const badge = t => t.custom && !t.builtin ? '<span class="cbadge">' + (t.desc.startsWith('Tu') ? '🛠' : '🌐') + '</span>' : '';
     // orden: los originales; debajo el recuadro de Grand Prix; debajo los propios y descargados (en Grand Prix y drift, solo los suyos: los de serie arriba y los propios debajo)
     const TT = qmode === 'tt', F1T = TT ? front.tracks.filter(t => t.kind === 'gp') : [], KT = TT ? front.tracks.filter(t => t.kind === 'kart' && t.builtin) : [];   // contrarreloj: también los recuadros de Fórmula 1 (los circuitos del GP con el fórmula) y de karting
-    const main = front.tracks.filter(t => M ? t.kind === M && (!t.custom || t.builtin) : !t.custom), GPT = M ? [] : front.tracks.filter(t => t.kind === 'gp'), CUS = front.tracks.filter(t => t.custom && !t.builtin && (M ? t.kind === M : t.kind !== 'gp' && t.kind !== 'drift' && t.kind !== 'kart'));
+    const main = front.tracks.filter(t => M ? t.kind === M && (!t.custom || t.builtin) : !t.custom && (qmode === 'free' || !FREE_ONLY.has(t.id))), GPT = M ? [] : front.tracks.filter(t => t.kind === 'gp'), CUS = front.tracks.filter(t => t.custom && !t.builtin && (M ? t.kind === M : t.kind !== 'gp' && t.kind !== 'drift' && t.kind !== 'kart'));
     $('tracks').innerHTML = main.map(t => card(t, badge(t))).join(''); $('tracks_gp').innerHTML = GPT.map(t => card(t, badge(t))).join(''); $('tracks_gpw').hidden = !GPT.length; $('tracks_f1').innerHTML = F1T.map(t => card(t, '')).join(''); $('tracks_f1w').hidden = !F1T.length; $('tracks_k').innerHTML = KT.map(t => card(t, '')).join(''); $('tracks_kw').hidden = !KT.length;
     $('tracks_c').innerHTML = CUS.map(t => card(t, badge(t))).join(''); $('tracks_cw').hidden = !CUS.length;
     for (const c of document.querySelectorAll('#tracks .tcard, #tracks_gp .tcard, #tracks_f1 .tcard, #tracks_k .tcard, #tracks_c .tcard')) { c.tabIndex = 0; c.onclick = () => { menuBeep(); ttF1 = !!c.closest('#tracks_f1'); selectTrack(c.dataset.id, true); if (qmode === 'gp' || qmode === 'f1' || qmode === 'kart') gpChampRender(); }; }
@@ -3114,7 +3116,8 @@
     let x = (k * 2654435761) >>> 0; const rnd = () => { x ^= x << 13; x >>>= 0; x ^= x >>> 17; x ^= x << 5; x >>>= 0; return x / 4294967296; };
     // circuitos originales y los del Grand Prix; el vehículo, uno de los permitidos en ese circuito (en el GP, el GT Racer)
     const T = (front && front.tracks || []).filter(t => !t.custom ? files.has(t.id + '.LEV') : t.builtin && t.kind === 'gp'); if (!T.length) return null;
-    const t = T[Math.floor(rnd() * T.length)], all = BRR.VEHICLES.filter(n => files.has(n + '.VHC') && !/HELI|COPTER|UFO/.test(n)), own = t.kind === 'gp' ? ['GT'] : (t.cars || []).filter(n => all.includes(n));
+    let t = T[Math.floor(rnd() * T.length)]; while (FREE_ONLY.has(t.id)) t = T[Math.floor(rnd() * T.length)];   // (CITY3 solo en el modo libre)
+    const all = BRR.VEHICLES.filter(n => files.has(n + '.VHC') && !/HELI|COPTER|UFO/.test(n)), own = t.kind === 'gp' ? ['GT'] : (t.cars || []).filter(n => all.includes(n));
     const veh = own.length ? own[Math.floor(rnd() * own.length)] : 'JEEP'; rnd();
     const g = t.kind === 'gp' ? gpTracks('gp').find(x => gpLv(x) === t.id) : null, laps = g ? Math.min(2, Math.max(1, g.laps || 2)) : 1 + (k % 2);   // 1 o 2 vueltas (en los normales, una semana 1 y la siguiente 2; igual para todos)
     const H = ['dia', 'manana', 'tarde', 'noche', 'original'], C = ['despejado', 'despejado', 'nublado', 'niebla', 'lluvia', 'nieve'];
@@ -3178,7 +3181,7 @@
         setTimeout(() => requestAnimationFrame(step), 40); }; step(); }
   }
   function garRender() {
-    const all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')).concat(Object.keys(BRR.CUSTOM_CARS || {}).filter(n => n !== 'MINIMO' && files.has(BRR.CUSTOM_CARS[n].base + '.VHC')));   // (Mínimo 50 retirado de momento) if (!all.includes(garSel)) garSel = all.includes(opt.vehicle) ? opt.vehicle : all[0];
+    const all = BRR.VEHICLES.filter(n => files.has(n + '.VHC')).concat(Object.keys(BRR.CUSTOM_CARS || {}).filter(n => files.has(BRR.CUSTOM_CARS[n].base + '.VHC'))); if (!all.includes(garSel)) garSel = all.includes(opt.vehicle) ? opt.vehicle : all[0];
     if ($('gr_vsel').options.length !== all.length) $('gr_vsel').innerHTML = all.map(n => `<option value="${n}">${esc(VEH_NAMES[n] || n)}</option>`).join(''); $('gr_vsel').value = garSel;
     $('gr_rim').value = RIM_STYLES[GC().rim] ? GC().rim : 'orig'; $('gr_rimsize').value = String(GC().rimSize || 17); $('gr_rimcol').value = GC().rimCol || 'plata'; $('gr_rimsize').hidden = $('gr_rimcol').hidden = $('gr_rim').value === 'orig'; rimPreview();
     $('gr_lights').value = GC().lightCol || 'normal'; setTimeout(garPreview, 0);
@@ -3568,5 +3571,5 @@
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
   $('o_install').onclick = async () => { if (!installEv) return; installEv.prompt(); try { await installEv.userChoice; } catch (e) { } installEv = null; $('o_install').hidden = true; };
-  window.BRR_DEBUG = { achUnlock, set tt(v) { ttMode = !!v; }, get bridges() { return trackBridges; }, get driftNet() { return driftNet ? { t: driftNet.t, over: driftNet.over, sc: [...driftNet.sc.values()] } : null; }, get dstate() { return [state, humans[0] && humans[0].race.phase, netWait]; }, driftEndNow: () => { if (driftNet) { BRR_net.game({ k: 'dend' }); driftEnd(); } }, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), endRace: () => { for (const h of humans) h.done = true; showResults(); }, get gpCh() { return opt.gpCh; }, get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
+  window.BRR_DEBUG = { achUnlock, R, set tt(v) { ttMode = !!v; }, get bridges() { return trackBridges; }, get driftNet() { return driftNet ? { t: driftNet.t, over: driftNet.over, sc: [...driftNet.sc.values()] } : null; }, get dstate() { return [state, humans[0] && humans[0].race.phase, netWait]; }, driftEndNow: () => { if (driftNet) { BRR_net.game({ k: 'dend' }); driftEnd(); } }, get photo() { return photo; }, get front() { return front; }, customRefresh: () => customRefresh(), get opt() { return opt; }, flash: (h, t, s2) => flash(h, t, s2), rpSave, rpList, rpWatch, rpExport, rpImport, toMenu: () => toMenu(), endRace: () => { for (const h of humans) h.done = true; showResults(); }, get gpCh() { return opt.gpCh; }, get R() { return R; }, rpOpen: () => rpOpen(), get rp() { return rp; }, get rpRec() { return rpRec; }, get ghost() { return ghosts.find(g => g.mine) || ghosts[0] || null; }, get ghosts() { return ghosts; }, ghostLap: t => ghostLap(humans[0], t), restart: () => restart(), set tt(v) { ttMode = v; }, get crazy() { return crazy; }, get kart() { return kart; }, set crazyPick(v) { crazyPick = v; }, get order() { return order; }, get keys() { return keys; }, get dbg() { return { state, netWait, photo: !!photo, ph: humans[0] && humans[0].race.phase }; }, get KB() { return KB; }, set free(v) { freeMode = v; }, get rampOf() { return humans[0] && humans[0].ramp; }, get rivals() { return rivals; }, get humans() { return humans; }, get race() { return race; }, get audio() { return audio; }, R, startRace, useFiles, get car() { return car; }, get lvl() { return lvl; }, get files() { return files; }, get orig() { return orig; }, net: BRR_net, get props() { return props; } };
 })();

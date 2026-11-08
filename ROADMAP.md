@@ -214,4 +214,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Karting online (0.118.1) · versiones para Mac y Linux ARM64
 - [x] Chat general en el menú (0.118.2)
 - [x] Repaso mapa a mapa de los circuitos originales; F1 y Karting en la contrarreloj (0.118.3)
+- [x] Texturas HD con relieve, resplandor (bloom) y el Mínimo 50 rehecho (0.118.4)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

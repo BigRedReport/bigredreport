@@ -27,6 +27,25 @@
     return dst;
   }
   BRR.scale2xRGBA = (u8, w, h) => new Uint8Array(scale2x(new Uint32Array(u8.buffer, u8.byteOffset, w * h), w, h).buffer);
+  // texturas nítidas (×4, ×2 en Android): Scale2x, un suavizado que respeta los bordes (filtro bilateral: solo mezcla colores parecidos,
+  // quita la escalera sin emborronar el dibujo) y otro Scale2x. Mismo dibujo del original, con bordes limpios a más resolución
+  function bilateral(u8, w, h) {
+    const o = new Uint8Array(u8.length), K = 1 / (2 * 11 * 11), LUT = bilateral.L || (bilateral.L = Float32Array.from({ length: 12200 }, (_, q) => Math.exp(-q * 16 * K)));
+    for (let y = 0; y < h; y++) for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4, r0 = u8[i], g0 = u8[i + 1], b0 = u8[i + 2], a0 = u8[i + 3] > 127; let R = 0, G = 0, B = 0, S = 0;
+      for (let dy = -1; dy <= 1; dy++) { const yy = y + dy < 0 ? 0 : y + dy >= h ? h - 1 : y + dy;
+        for (let dx = -1; dx <= 1; dx++) { const xx = x + dx < 0 ? 0 : x + dx >= w ? w - 1 : x + dx, j = (yy * w + xx) * 4; if ((u8[j + 3] > 127) !== a0) continue;
+          const dr = u8[j] - r0, dg = u8[j + 1] - g0, db = u8[j + 2] - b0, wgt = LUT[(dr * dr + dg * dg + db * db) >> 4] * (dx || dy ? (dx && dy ? 0.35 : 0.6) : 3);
+          R += u8[j] * wgt; G += u8[j + 1] * wgt; B += u8[j + 2] * wgt; S += wgt; } }
+      o[i] = R / S + .5; o[i + 1] = G / S + .5; o[i + 2] = B / S + .5; o[i + 3] = u8[i + 3]; }
+    return o;
+  }
+  BRR.texUp = function (u8, w, h) {
+    const lite = /Android|iPhone|iPad/i.test(navigator.userAgent) || (BRR.maxTex && BRR.maxTex < w * 4);
+    let d = BRR.scale2xRGBA(u8, w, h); w *= 2; h *= 2; d = bilateral(d, w, h);
+    if (!lite) { d = BRR.scale2xRGBA(d, w, h); w *= 2; h *= 2; }
+    return { data: d, w, h };
+  };
   BRR.upscaleURL = function (c) {
     try {
       const w = c.width, h = c.height, src = new Uint32Array(c.getContext('2d').getImageData(0, 0, w, h).data.buffer.slice(0));

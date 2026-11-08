@@ -320,54 +320,143 @@
     return { ...d, gearF, name: 'ZETA35', vname: 'ZETA35', mesh: B.mb, brake: B.brake, wheels: W, box: { c: [0, 0.06, 0], h: [0.94, 0.5, 2.1] }, interior: null, logoSlot: false,
       brakeSpots: [[-0.6, 0.69 + G, zr], [0.6, 0.69 + G, zr]], nitro: [0.26, 0.27 + G, zr], decoParts: [], headPos: null };
   }
-  // ---------- Mínimo 50: utilitario británico de los 2000. Corto, ancho y con las ruedas en las esquinas; capó corto con los faros redondos encima,
-  //            parabrisas inclinado, techo corto blanco que parece flotar (pilares negros finos), portón casi vertical, pasos de rueda de plástico negro ----------
+  // ---------- Mínimo 50 (utilitario británico de 2001), hecho de cero con las medidas, ruedas y físicas del Mini del juego ----------
+  //  Silueta de «caja» con las ruedas en las esquinas: capó corto que baja al morro, faros redondos grandes en las esquinas del capó,
+  //  parabrisas inclinado, techo blanco plano que parece flotar (todos los pilares negros), luna trasera casi vertical, pasos de rueda
+  //  y faldones de plástico negro, cintura con moldura cromada, pilotos verticales en las esquinas del portón y llantas de aleación plateadas
+  function alloy(pal, r, hw) {
+    const mb = new BRR.MeshBuilder(pal), g = mb.group('COLOR'), N = 24, T = (a, b, c, k) => { for (const v of [a, b, c, a, c, b]) { g.pos.push(...v); g.col.push(...k); g.lay.push(0); } };
+    const P = (x, rr, a) => [x, Math.cos(a) * rr, Math.sin(a) * rr], Q = (a, b, c, d, k) => { T(a, b, c, k); T(a, c, d, k); };
+    const TYRE = [0.06, 0.06, 0.065], WALL = [0.1, 0.1, 0.11], LIP = [0.86, 0.87, 0.89], SIL = [0.72, 0.74, 0.77], DARK = [0.08, 0.08, 0.09], HUB = [0.55, 0.56, 0.6];
+    const rr = r * 0.68, rh = r * 0.2;
+    for (let i = 0; i < N; i++) { const a0 = i / N * 6.2832, a1 = (i + 1) / N * 6.2832;
+      Q(P(-hw, r, a0), P(hw, r, a0), P(hw, r, a1), P(-hw, r, a1), TYRE);
+      for (const x of [-hw, hw]) { const s = Math.sign(x);
+        Q(P(x, r, a0), P(x * 1.02, r * 0.86, a0), P(x * 1.02, r * 0.86, a1), P(x, r, a1), WALL);   // flanco redondeado
+        Q(P(x * 1.02, r * 0.86, a0), P(x, rr, a0), P(x, rr, a1), P(x * 1.02, r * 0.86, a1), WALL);
+        Q(P(x * 1.03, rr, a0), P(x * 1.03, rr * 0.9, a0), P(x * 1.03, rr * 0.9, a1), P(x * 1.03, rr, a1), LIP);   // borde de la llanta
+        Q(P(x * 0.9, rr * 0.9, a0), P(x * 0.9, rh, a0), P(x * 0.9, rh, a1), P(x * 0.9, rr * 0.9, a1), DARK);   // fondo oscuro entre radios
+        Q(P(x * 1.06, rh, a0), P(x * 1.07, 0, a0), P(x * 1.07, 0, a1), P(x * 1.06, rh, a1), HUB); } }
+    // cinco radios dobles en estrella, que se ensanchan hacia el borde
+    for (let k = 0; k < 5; k++) for (const off of [-0.17, 0.17]) { const a = k / 5 * 6.2832 + off;
+      for (const x of [-hw, hw]) { const xx = x * 1.04, w0 = 0.05, w1 = 0.11;
+        Q(P(xx, rh, a - w0), P(xx, rr * 0.92, a - w1), P(xx, rr * 0.92, a + w1), P(xx, rh, a + w0), SIL);
+        Q(P(xx, rr * 0.92, a - w1), P(x * 0.9, rr * 0.9, a - w1), P(x * 0.9, rr * 0.9, a + w1), P(xx, rr * 0.92, a + w1), SIL.map(v => v * 0.7)); } }
+    for (const x of [-hw, hw]) for (let k = 0; k < 5; k++) { const a = (k + 0.5) / 5 * 6.2832, c = P(x * 1.075, rh * 0.55, a); Q([c[0], c[1] - 0.008, c[2] - 0.008], [c[0], c[1] + 0.008, c[2] - 0.008], [c[0], c[1] + 0.008, c[2] + 0.008], [c[0], c[1] - 0.008, c[2] + 0.008], DARK); }   // tuercas
+    return mb;
+  }
+  const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm3 = a => { const l = Math.hypot(...a) || 1; return a.map(v => v / l); };
+  // Mínimo 50 con la malla de minimo_data.js (modelo 3D ajustado al tamaño y a las ruedas del Mini del juego)
+  function unpackMesh(o) { const b = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer; return { V: new Int16Array(b(o.v)), F: new Uint16Array(b(o.f)), C: new Uint8Array(b(o.c)), sc: o.sc }; }
+  function meshCar(pal, o, colOf, brakeCats, one) {
+    const { V, F, C, sc } = unpackMesh(o), mb = new BRR.MeshBuilder(pal), g = mb.group('COLOR'), brake = new BRR.MeshBuilder(pal), gb = brake.group('COLOR');
+    const vx = i => [V[i * 3] / sc, V[i * 3 + 1] / sc, V[i * 3 + 2] / sc];
+    for (let t = 0; t < C.length; t++) { const a = vx(F[t * 3]), b2 = vx(F[t * 3 + 1]), c = vx(F[t * 3 + 2]), col = colOf(C[t]);
+      const L = one ? [a, b2, c] : [a, b2, c, a, c, b2];   // one: la malla ya viene con las caras hacia fuera (una sola cara)
+      for (const v of L) { g.pos.push(v[0], v[1], v[2]); g.col.push(...col); g.lay.push(0); }
+      if (brakeCats && brakeCats.has(C[t])) for (const v of L) { gb.pos.push(v[0], v[1], v[2]); gb.col.push(1, 0.16, 0.1); gb.lay.push(0); } }
+    return { mb, brake };
+  }
   function minimo(d, P, gl) {
-    const G = -0.62, BLACK = [0.05, 0.05, 0.06], LENS = [0.88, 0.9, 0.92], CHR = [0.8, 0.81, 0.84], RED = [0.82, 0.06, 0.05], AMB = [0.95, 0.55, 0.1], WHITE = [0.94, 0.94, 0.92];
+    const M = BRR.MINIMO_MESH; if (!M) return minimoOld(d, P, gl);
+    const COL = [P, [0.93, 0.93, 0.91], gl || [0.06, 0.08, 0.1], [0.05, 0.05, 0.055], [0.8, 0.81, 0.84], [0.6, 0.66, 0.74], [0.88, 0.08, 0.06], [0.95, 0.55, 0.12], [0.03, 0.03, 0.035], [0.92, 0.92, 0.88], [0.08, 0.08, 0.09]];
+    const body = meshCar(d.mesh.pal, M.body, k => COL[k] || P, new Set([6]), true);
+    const WCOL = [P, P, P, [0.05, 0.05, 0.055], [0.62, 0.64, 0.68], P, P, P, [0.1, 0.1, 0.11]];
+    const wm = d.wheels.map(w => meshCar(d.mesh.pal, M.wheel, k => WCOL[k] || [0.7, 0.7, 0.72]).mb);
+    // la rueda viene con la cara de fuera hacia +x: en el lado izquierdo se da la vuelta
+    d.wheels.forEach((w, i) => { if (w.c[0] < 0) for (const [, gg] of wm[i].groups) for (let k = 0; k < gg.pos.length; k += 3) gg.pos[k] = -gg.pos[k]; });
+    return { ...d, name: 'MINIMO', vname: 'MINIMO', mesh: body.mb, brake: body.brake, wheelMeshes: wm, interior: null, logoSlot: false,   // ruedas (posición y radio), caja de choque, motor y marchas: las del Mini
+      brakeSpots: [[-0.55, -0.05, 1.42], [0.55, -0.05, 1.42]], nitro: [0.2, -0.5, 1.45], decoParts: [], headPos: null };
+  }
+  function minimoOld(d, P, gl) {
+    const G = Math.min(...d.wheels.map(w => w.c[1] - w.radius));   // el suelo bajo las ruedas del Mini del juego
+    const BLACK = [0.045, 0.045, 0.05], TRIM = [0.1, 0.1, 0.11], LENS = [0.86, 0.89, 0.92], CHR = [0.82, 0.83, 0.86], RED = [0.7, 0.05, 0.05], AMB = [0.95, 0.55, 0.12], WHITE = [0.93, 0.93, 0.91];
+    const SEAM = P.map(v => v * 0.45), GLASS = gl || [0.07, 0.1, 0.12];
     const K = [
-      { z: -1.8, w: 0.8, lo: 0.22, belt: 0.38, sh: 0.5, wt: 0.7, top: 0.52, k: 'bumper' },
-      { z: -1.72, w: 0.84, lo: 0.2, belt: 0.5, sh: 0.66, wt: 0.76, top: 0.7, bul: 0.02, crown: 0.03, k: 'hood' },
-      { z: -1.3, w: 0.86, lo: 0.18, belt: 0.63, sh: 0.8, wt: 0.78, top: 0.83, bul: 0.03, crown: 0.04, k: 'hood' },
-      { z: -0.86, w: 0.86, lo: 0.18, belt: 0.71, sh: 0.88, wt: 0.8, top: 0.89, bul: 0.03, crown: 0.03, k: 'wind' },
-      { z: -0.4, w: 0.86, lo: 0.18, belt: 0.75, sh: 0.92, wt: 0.78, top: 1.28, bul: 0.03, rnd: 0.006, crown: 0.025, k: 'roof' },
-      { z: 1.26, w: 0.86, lo: 0.18, belt: 0.77, sh: 0.94, wt: 0.78, top: 1.28, bul: 0.03, rnd: 0.006, crown: 0.025, k: 'roof' },
-      { z: 1.4, w: 0.86, lo: 0.19, belt: 0.77, sh: 0.94, wt: 0.78, top: 1.26, bul: 0.028, crown: 0.022, k: 'hatch', sg: false },
-      { z: 1.6, w: 0.85, lo: 0.21, belt: 0.74, sh: 0.92, wt: 0.78, top: 0.96, bul: 0.02, crown: 0.012, k: 'tail' },
-      { z: 1.67, w: 0.84, lo: 0.23, belt: 0.64, sh: 0.74, wt: 0.76, top: 0.72, k: 'bumper' },
-      { z: 1.8, w: 0.8, lo: 0.26, belt: 0.5, sh: 0.6, wt: 0.72, top: 0.6, k: 'end' }];
-    const archZ = [-1.2, 1.2], AR = 0.37;
-    const B = body2(d, G, K, archZ, AR, P, { LOW: BLACK, GLASS: gl || [0.08, 0.11, 0.15], archLo: 0.27, archH: 0.32, flare: 0.03, floor: 0.29, roof: WHITE, pillar: BLACK, shelf: 0.8 });
-    const { quad, tri, g, gb } = B, z0 = -1.805, zr = 1.805;
+      { z: -1.656, w: 0.639, lo: 0.194, belt: 0.352, sh: 0.44, wt: 0.552, top: 0.466, k: 'bumper' },
+      { z: -1.606, w: 0.701, lo: 0.176, belt: 0.493, sh: 0.581, wt: 0.604, top: 0.616, bul: 0.0053, crown: 0.0132, k: 'hood' },
+      { z: -1.408, w: 0.727, lo: 0.167, belt: 0.598, sh: 0.686, wt: 0.631, top: 0.695, bul: 0.0088, rnd: 0.0044, crown: 0.0176, k: 'hood' },
+      { z: -1.077, w: 0.74, lo: 0.167, belt: 0.686, sh: 0.757, wt: 0.622, top: 0.748, bul: 0.0096, crown: 0.0176, k: 'hood' },
+      { z: -0.846, w: 0.74, lo: 0.167, belt: 0.722, sh: 0.783, wt: 0.596, top: 0.783, bul: 0.0096, crown: 0.0132, k: 'wind' },
+      { z: -0.284, w: 0.74, lo: 0.167, belt: 0.739, sh: 0.792, wt: 0.556, top: 1.223, bul: 0.0096, rnd: 0.0018, crown: 0.0176, k: 'roof' },
+      { z: 1.022, w: 0.74, lo: 0.167, belt: 0.774, sh: 0.827, wt: 0.556, top: 1.232, bul: 0.0096, rnd: 0.0018, crown: 0.0176, k: 'roof' },
+      { z: 1.137, w: 0.736, lo: 0.176, belt: 0.774, sh: 0.827, wt: 0.547, top: 1.197, bul: 0.0088, crown: 0.0158, sg: false, k: 'hatch' },
+      { z: 1.237, w: 0.727, lo: 0.185, belt: 0.757, sh: 0.81, wt: 0.53, top: 0.88, bul: 0.0066, crown: 0.0088, k: 'tail' },
+      { z: 1.294, w: 0.71, lo: 0.211, belt: 0.546, sh: 0.634, wt: 0.517, top: 0.581, k: 'bumper' },
+      { z: 1.344, w: 0.648, lo: 0.264, belt: 0.44, sh: 0.51, wt: 0.482, top: 0.51, k: 'end' }];
+    const fw = d.wheels.find(w => w.c[2] < 0), rw = d.wheels.find(w => w.c[2] > 0), archZ = [fw.c[2], rw.c[2]], AR = fw.radius + 0.085, archTop = fw.radius * 2 + 0.085;
+    const B = body2(d, G, K, archZ, AR, P, { LOW: BLACK, GLASS, archLo: 0.2, archH: archTop - 0.2, flare: 0.028, floor: 0.2, roof: WHITE, pillar: BLACK, shelf: 0.72, cap: P });
+    const { quad, tri, g, gb, lerpAt } = B, z0 = -1.656, zr = 1.344;
+    // disco en cualquier orientación (faros): centro, normal hacia fuera, radio; e = cuánto se adelanta
+    const disc3 = (c, n, r, col, e = 0, k = 16) => { const N = norm3(n), U = norm3(cross3(N, [0, 1, 0])), Vv = cross3(U, N), C0 = c.map((v, i) => v + N[i] * e);
+      for (let j = 0; j < k; j++) { const a0 = j / k * 6.2832, a1 = (j + 1) / k * 6.2832, p0 = C0.map((v, i) => v + (U[i] * Math.cos(a0) + Vv[i] * Math.sin(a0)) * r), p1 = C0.map((v, i) => v + (U[i] * Math.cos(a1) + Vv[i] * Math.sin(a1)) * r); tri(g, C0, p0, p1, col); tri(g, C0, p1, p0, col); } };
+    // arco de cada paso de rueda (el mismo que recorta la carrocería): y del borde de abajo en z
+    const archY = (zc, z) => { const u = (z - zc) / AR, s = lerpAt(z); return Math.abs(u) >= 1 ? s.lo : Math.max(s.lo, Math.min(s.belt - 0.1, s.lo + (archTop - s.lo) * Math.sqrt(1 - u * u))); };
     for (const sx of [-1, 1]) {
-      // pilares negros finos: A (junto al parabrisas), B y C; marco negro por arriba de los cristales y moldura cromada por abajo
-      B.edgePost(-0.86, -0.4, BLACK, sx, 0.05); B.sidePost(0.36, BLACK, sx, 0.08); B.sidePost(1.02, BLACK, sx, 0.07);
-      B.glassLine(-0.86, 1.4, BLACK, sx, 6, 0.07); B.glassLine(-0.84, 1.4, CHR, sx, 4, 0.035);
-      // faro redondo grande encima del capó, con aro cromado, cristal y reflector; intermitente ámbar en la aleta
-      const oval = (zc, uc, lz, du) => [z => uc - du * Math.sqrt(Math.max(0, 1 - ((z - zc) / lz) ** 2)), z => uc + du * Math.sqrt(Math.max(0, 1 - ((z - zc) / lz) ** 2))];
-      for (const [lz, du, col, e] of [[0.16, 0.55, CHR, 0.012], [0.135, 0.46, LENS, 0.02], [0.06, 0.2, [0.7, 0.72, 0.75], 0.028]]) { const [u0, u1] = oval(-1.56, 6.55, lz, du); B.patch(-1.56 - lz, -1.56 + lz, u0, u1, col, sx, e, g, 10, 4); }
-      B.patch(-1.5, -1.4, 3.4, 3.9, AMB, sx, 0.016, g, 2, 2);
-      // pasos de rueda y faldón de plástico negro, siguiendo el arco
-      for (const zc of archZ) B.patch(zc - AR - 0.06, zc + AR + 0.06, 0, 1.35, BLACK, sx, 0.022, g, 16, 2);
-      // pilotos traseros verticales en las esquinas (con marcha atrás blanca)
-      B.patch(1.5, 1.66, 3.0, 4.6, RED, sx, 0.016, g, 3, 3); B.patch(1.5, 1.66, 3.0, 4.6, [1, 0.15, 0.1], sx, 0.02, gb, 3, 3); B.patch(1.56, 1.62, 3.3, 3.7, [0.95, 0.95, 0.95], sx, 0.024, g, 1, 1);
-      // espejos blancos como el techo y tirador cromado
-      quad([sx * 0.87, 0.95, -0.76], [sx * 1.0, 0.96, -0.74], [sx * 1.0, 1.05, -0.7], [sx * 0.87, 1.05, -0.72], WHITE);
-      B.patch(0.12, 0.28, 3.55, 3.75, CHR, sx, 0.016, g, 1, 1); }
-    // rejilla hexagonal: marco cromado, interior negro con malla y barra horizontal; toma inferior y antinieblas redondos
-    const hx = [[-0.3, 0.5], [0.3, 0.5], [0.36, 0.42], [0.3, 0.34], [-0.3, 0.34], [-0.36, 0.42]];
-    for (const [sc, col, e] of [[1.1, CHR, 0.004], [1, BLACK, 0.008]]) { const c = [0, 0.42, z0 - e]; for (let k = 0; k < 6; k++) { const a = [hx[k][0] * sc, 0.42 + (hx[k][1] - 0.42) * sc, z0 - e], b = [hx[(k + 1) % 6][0] * sc, 0.42 + (hx[(k + 1) % 6][1] - 0.42) * sc, z0 - e]; tri(g, c, a, b, col); tri(g, c, b, a, col); } }
-    for (let x = -0.27; x <= 0.27; x += 0.06) quad([x - 0.006, 0.35, z0 - 0.011], [x + 0.006, 0.35, z0 - 0.011], [x + 0.006, 0.49, z0 - 0.011], [x - 0.006, 0.49, z0 - 0.011], [0.25, 0.25, 0.27]);
-    quad([-0.33, 0.41, z0 - 0.014], [0.33, 0.41, z0 - 0.014], [0.33, 0.432, z0 - 0.014], [-0.33, 0.432, z0 - 0.014], CHR);
-    quad([-0.46, 0.23, z0 - 0.004], [0.46, 0.23, z0 - 0.004], [0.46, 0.3, z0 - 0.004], [-0.46, 0.3, z0 - 0.004], BLACK);
-    for (const sx of [-1, 1]) { disc(B, sx * 0.6, 0.27, z0 - 0.006, 0.045, CHR, 10); disc(B, sx * 0.6, 0.27, z0 - 0.009, 0.033, LENS, 10); }
-    // portón: matrícula, tirador cromado y alerón pequeño sobre la luna
-    quad([-0.2, 0.47, zr + 0.003], [0.2, 0.47, zr + 0.003], [0.2, 0.57, zr + 0.003], [-0.2, 0.57, zr + 0.003], [0.92, 0.92, 0.88]);
-    quad([-0.22, 0.76, 1.632], [0.22, 0.76, 1.632], [0.22, 0.785, 1.628], [-0.22, 0.785, 1.628], CHR);
-    quad([-0.68, 1.3, 1.3], [0.68, 1.3, 1.3], [0.68, 1.27, 1.47], [-0.68, 1.27, 1.47], BLACK);
-    const W = d.wheels.map(w => ({ ...w, c: [Math.sign(w.c[0]) * 0.72, w.c[1], w.c[2] < 0 ? archZ[0] : archZ[1]] }));
-    const gearF = d.gearF.map(r => [r[0] * 1.25, r[1] * 1.45, ...r.slice(2)]);
-    return { ...d, gearF, name: 'MINIMO', vname: 'MINIMO', mesh: B.mb, brake: B.brake, wheels: W, box: { c: [0, 0.12, 0], h: [0.88, 0.58, 1.8] }, interior: null, logoSlot: false,
-      brakeSpots: [[-0.66, 0.6 + G, 1.7], [0.66, 0.6 + G, 1.7]], nitro: [0.3, 0.26 + G, zr], decoParts: [], headPos: null };
+      // pilares negros (A, B y C) y marco negro de los cristales: el techo blanco queda «flotando»
+      B.edgePost(-0.846, -0.284, BLACK, sx, 0.06); B.sidePost(0.12, BLACK, sx, 0.09); B.sidePost(0.86, BLACK, sx, 0.06);
+      B.glassLine(-0.84, 1.137, BLACK, sx, 6, 0.06);
+      B.glassLine(-0.82, 1.15, CHR, sx, 4, 0.03);   // moldura cromada de la cintura
+      // juntas de la puerta (delante y detrás), tirador cromado y tapa de gasolina (derecha)
+      B.patch(-0.6, -0.592, 0.6, 4, SEAM, sx, 0.011, g, 1, 4); B.patch(0.42, 0.428, 0.6, 4, SEAM, sx, 0.011, g, 1, 4);
+      B.patch(0.24, 0.36, 3.45, 3.62, CHR, sx, 0.015, g, 1, 1);
+      if (sx > 0) B.patch(0.62, 0.74, 3.2, 3.62, P.map(v => v * 0.8), sx, 0.013, g, 2, 2);
+      // intermitente lateral ámbar en la aleta delantera
+      B.patch(-0.98, -0.92, 2.9, 3.15, AMB, sx, 0.014, g, 1, 1);
+      // faros: redondos y grandes, en la esquina del capó (aro cromado, cristal claro, reflector y bombilla)
+      { const n = [sx * 0.42, 0.3, -1], c = [sx * 0.505, 0.545, -1.648]; for (const [r, col, e] of [[0.104, CHR, 0], [0.09, LENS, 0.006], [0.05, [0.6, 0.62, 0.66], 0.012], [0.022, [1, 1, 0.94], 0.016]]) disc3(c, n, r, col, e, 20);
+        // la carcasa del faro: un «tubo» corto que sale del capó (como el original, el faro asoma por delante)
+        const nn = Math.hypot(...n), N = n.map(v => v / nn), U = norm3(cross3(N, [0, 1, 0])), Vv = cross3(U, N);
+        for (let k = 0; k < 20; k++) { const a0 = k / 20 * 6.2832, a1 = (k + 1) / 20 * 6.2832, P0 = [0, 1, 2].map(i => c[i] + (U[i] * Math.cos(a0) + Vv[i] * Math.sin(a0)) * 0.104), P1 = [0, 1, 2].map(i => c[i] + (U[i] * Math.cos(a1) + Vv[i] * Math.sin(a1)) * 0.104);
+          quad(P0, P1, P1.map((v, i) => v - N[i] * 0.06), P0.map((v, i) => v - N[i] * 0.06), P); } }
+      // pasos de rueda de plástico negro: banda que sigue el arco, un poco salida
+      for (const zc of archZ) { const n = 16;
+        for (let i = 0; i < n; i++) { const a0 = Math.PI * i / n, a1 = Math.PI * (i + 1) / n, za = zc - Math.cos(a0) * (AR + 0.005), zb = zc - Math.cos(a1) * (AR + 0.005);
+          const ya = archY(zc, za), yb = archY(zc, zb), na = [-Math.cos(a0), Math.sin(a0)], nb = [-Math.cos(a1), Math.sin(a1)], ww = 0.075;
+          const fl = z => { const u = (z - zc) / AR; return Math.abs(u) < 1 ? Math.sqrt(1 - u * u) * 0.028 : 0; }, xa = (lerpAt(za).w + fl(za) + 0.045) * sx, xb = (lerpAt(zb).w + fl(zb) + 0.045) * sx, xo = sx * 0.004;
+          quad([xa + xo, ya, za], [xb + xo, yb, zb], [xb + xo, yb + nb[1] * ww, zb + nb[0] * ww], [xa + xo, ya + na[1] * ww, za + na[0] * ww], BLACK);
+          quad([xa - sx * 0.09, ya, za], [xb - sx * 0.09, yb, zb], [xb + xo, yb, zb], [xa + xo, ya, za], BLACK);
+          quad([xa + xo, ya + na[1] * ww, za + na[0] * ww], [xb + xo, yb + nb[1] * ww, zb + nb[0] * ww], [xb - sx * 0.03, yb + nb[1] * (ww + 0.01), zb + nb[0] * (ww + 0.01)], [xa - sx * 0.03, ya + na[1] * (ww + 0.01), za + na[0] * (ww + 0.01)], BLACK); } }
+      // faldón negro entre las ruedas y por debajo de los paragolpes
+      B.patch(archZ[0] + AR - 0.02, archZ[1] - AR + 0.02, 0, 0.95, BLACK, sx, 0.03, g, 6, 2); B.patch(z0 + 0.02, archZ[0] - AR + 0.02, 0, 0.6, BLACK, sx, 0.02, g, 3, 2); B.patch(archZ[1] + AR - 0.02, zr - 0.03, 0, 0.6, BLACK, sx, 0.02, g, 3, 2);
+      B.patch(-0.27, 1.13, 5.86, 6.3, WHITE, sx, 0.016, g, 14, 2);   // canto blanco del techo
+      // pilotos traseros: verticales, en las esquinas del portón, con marco cromado (y el brillo de freno)
+      const tx0 = 0.47, tx1 = 0.635, ty0 = 0.5, ty1 = 0.8, ze = zr - 0.002;
+      quad([sx * (tx0 - 0.012), ty0 - 0.012, ze], [sx * (tx1 + 0.008), ty0 - 0.012, ze], [sx * (tx1 + 0.008), ty1 + 0.012, ze], [sx * (tx0 - 0.012), ty1 + 0.012, ze], CHR);
+      quad([sx * tx0, ty0, ze + 0.004], [sx * tx1, ty0, ze + 0.004], [sx * (tx1 - 0.01), ty1, ze + 0.004], [sx * (tx0 + 0.02), ty1, ze + 0.004], RED);
+      quad([sx * tx0, ty0, ze + 0.008], [sx * tx1, ty0, ze + 0.008], [sx * (tx1 - 0.01), ty1, ze + 0.008], [sx * (tx0 + 0.02), ty1, ze + 0.008], [1, 0.16, 0.1], gb);
+      quad([sx * (tx0 + 0.03), 0.6, ze + 0.006], [sx * (tx1 - 0.03), 0.6, ze + 0.006], [sx * (tx1 - 0.03), 0.64, ze + 0.006], [sx * (tx0 + 0.03), 0.64, ze + 0.006], [0.92, 0.92, 0.9]);   // marcha atrás
+      // espejos blancos como el techo, con el soporte negro
+      const mz = -0.74, my = 0.84;
+      quad([sx * 0.74, my, mz], [sx * 0.82, my, mz + 0.02], [sx * 0.82, my + 0.04, mz + 0.02], [sx * 0.74, my + 0.04, mz], BLACK);
+      quad([sx * 0.8, my - 0.04, mz - 0.03], [sx * 0.93, my - 0.035, mz], [sx * 0.93, my + 0.08, mz], [sx * 0.8, my + 0.085, mz - 0.03], WHITE);
+      quad([sx * 0.8, my - 0.04, mz + 0.05], [sx * 0.93, my - 0.035, mz + 0.04], [sx * 0.93, my + 0.08, mz + 0.04], [sx * 0.8, my + 0.085, mz + 0.05], BLACK);
+      quad([sx * 0.8, my - 0.04, mz - 0.03], [sx * 0.93, my - 0.035, mz], [sx * 0.93, my - 0.035, mz + 0.04], [sx * 0.8, my - 0.04, mz + 0.05], WHITE);
+      quad([sx * 0.8, my + 0.085, mz - 0.03], [sx * 0.93, my + 0.08, mz], [sx * 0.93, my + 0.08, mz + 0.04], [sx * 0.8, my + 0.085, mz + 0.05], WHITE);
+      quad([sx * 0.93, my - 0.035, mz], [sx * 0.93, my + 0.08, mz], [sx * 0.93, my + 0.08, mz + 0.04], [sx * 0.93, my - 0.035, mz + 0.04], WHITE); }
+    // morro: rejilla de arriba (marco cromado en arco y lamas horizontales), barra cromada, toma de abajo con malla, antinieblas e intermitentes redondos, matrícula
+    const fz = z0 - 0.003;
+    const grill = (x0, x1, y0, y1, col, e, arc) => { const n = 10; for (let i = 0; i < n; i++) { const xa = x0 + (x1 - x0) * i / n, xb = x0 + (x1 - x0) * (i + 1) / n, ca = arc * (1 - ((xa / x1) ** 2)), cb = arc * (1 - ((xb / x1) ** 2)); quad([xa, y0, fz - e], [xb, y0, fz - e], [xb, y1 + cb, fz - e], [xa, y1 + ca, fz - e], col); } };
+    grill(-0.29, 0.29, 0.345, 0.44, CHR, 0.002, 0.03); grill(-0.265, 0.265, 0.36, 0.425, BLACK, 0.005, 0.026);
+    for (let y = 0.37; y < 0.45; y += 0.016) quad([-0.25, y, fz - 0.008], [0.25, y, fz - 0.008], [0.25, y + 0.006, fz - 0.008], [-0.25, y + 0.006, fz - 0.008], CHR.map(v => v * 0.85));
+    quad([-0.3, 0.315, fz - 0.004], [0.3, 0.315, fz - 0.004], [0.3, 0.333, fz - 0.004], [-0.3, 0.333, fz - 0.004], CHR);
+    quad([-0.36, 0.205, fz - 0.003], [0.36, 0.205, fz - 0.003], [0.32, 0.29, fz - 0.003], [-0.32, 0.29, fz - 0.003], BLACK);
+    for (let x = -0.34; x < 0.34; x += 0.04) quad([x, 0.215, fz - 0.006], [x + 0.008, 0.215, fz - 0.006], [x + 0.008, 0.28, fz - 0.006], [x, 0.28, fz - 0.006], TRIM);
+    quad([-0.17, 0.25, fz - 0.009], [0.17, 0.25, fz - 0.009], [0.17, 0.3, fz - 0.009], [-0.17, 0.3, fz - 0.009], [0.93, 0.93, 0.9]);
+    for (const sx of [-1, 1]) { disc(B, sx * 0.47, 0.26, fz - 0.004, 0.042, CHR, 12); disc(B, sx * 0.47, 0.26, fz - 0.007, 0.032, LENS, 12); disc(B, sx * 0.44, 0.36, fz - 0.004, 0.03, AMB, 12); }
+    // portón: hueco de la matrícula con moldura cromada, barra cromada en el paragolpes, faldón negro, limpiaparabrisas y escapes dobles
+    const re = zr + 0.003;
+    quad([-0.25, 0.43, re], [0.25, 0.43, re], [0.25, 0.58, re], [-0.25, 0.58, re], CHR); quad([-0.23, 0.44, re + 0.003], [0.23, 0.44, re + 0.003], [0.23, 0.57, re + 0.003], [-0.23, 0.57, re + 0.003], [0.93, 0.93, 0.9]);
+    quad([-0.5, 0.36, re], [0.5, 0.36, re], [0.5, 0.385, re], [-0.5, 0.385, re], CHR);
+    quad([-0.6, 0.27, re - 0.001], [0.6, 0.27, re - 0.001], [0.6, 0.34, re - 0.001], [-0.6, 0.34, re - 0.001], BLACK);
+    quad([-0.012, 0.88, 1.245], [0.24, 0.9, 1.24], [0.24, 0.915, 1.235], [-0.012, 0.895, 1.24], BLACK);
+    for (const x of [0.16, 0.24]) disc(B, x, 0.25, re + 0.004, 0.032, [0.4, 0.4, 0.42], 10);
+    // antena atrás del techo y tercera luz de freno
+    quad([-0.008, 1.24, 0.95], [0.008, 1.24, 0.95], [0.008, 1.55, 1.12], [-0.008, 1.55, 1.12], BLACK);
+    quad([-0.1, 1.215, 1.15], [0.1, 1.215, 1.15], [0.1, 1.205, 1.16], [-0.1, 1.205, 1.16], [1, 0.16, 0.1], gb);
+    const M = d.wheels.map(w => alloy(d.mesh.pal, w.radius, 0.08));
+    return { ...d, name: 'MINIMO', vname: 'MINIMO', mesh: B.mb, brake: B.brake, wheelMeshes: M, interior: null, logoSlot: false,   // ruedas, caja de choque, motor y marchas: las del Mini
+      brakeSpots: [[-0.58, 0.68 + G, zr + 0.01], [0.58, 0.68 + G, zr + 0.01]], nitro: [0.2, 0.25 + G, zr], decoParts: [], headPos: null };
   }
   // ---------- GT de carreras ----------
   function gt(d, P, name, gl, variant) {
