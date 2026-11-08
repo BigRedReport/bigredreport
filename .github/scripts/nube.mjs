@@ -22,7 +22,8 @@ function collect([host, port], filters, ms = 9000) {
         if (buf.length < i + n) break; const h = buf[0], body = buf.subarray(i, i + n); buf = buf.subarray(i + n); const type = h >> 4;
         if (type === 2) { let id = 1; for (const f of filters) s.write(pkt(0x82, Buffer.concat([Buffer.from([0, id++]), str(f), Buffer.from([0])]))); setTimeout(end, ms); }
         else if (type === 3) { const tl = (body[0] << 8) | body[1], topic = body.subarray(2, 2 + tl).toString(); let o = 2 + tl; if ((h >> 1) & 3) o += 2; const p = body.subarray(o).toString(); if (p) got.set(topic, p); } } });
-    s.on('error', () => end()); s.on('timeout', () => { s.destroy(); end(); });
+    s.on('error', () => end()); s.on('close', () => end()); s.on('timeout', () => { s.destroy(); end(); });
+    setTimeout(() => { if (!done) { try { s.destroy(); } catch (e) { } end(); } }, ms + 6000);   // un buzón que corta la conexión sin error (o no contesta) no deja la tarea colgada
   });
 }
 const pubRetained = (s, topic, payload) => { try { s.write(pkt(0x31, Buffer.concat([str(topic), Buffer.from(payload)]))); } catch (e) { } };
