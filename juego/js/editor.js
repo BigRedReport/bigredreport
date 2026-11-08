@@ -345,6 +345,8 @@
         <h3 style="margin:14px 0 6px">Nuevo circuito</h3><div class="edrow"><span>Tema</span><select id="ed_theme"></select><button id="ed_new" class="main">Crear</button></div>
         <div class="grid2" style="margin-top:12px"><button id="ed_imp">📂 Importar archivo…</button><button id="ed_hclose">Cerrar</button></div><input type="file" id="ed_file" accept=".brrtrack,application/json" hidden></div></div>`;
     document.body.appendChild(host); cv = $('ed_cv'); cx2 = cv.getContext('2d');
+    { const NEED = /^ed_(w|surf|scale|coverfile|decor|close|rev|clear|flatall|delsel|odel|kind|name|place|laps|nitros|kerbs|bridge)$/;   // sin circuito abierto (en la pantalla de inicio del editor) estos controles no hacen nada
+      for (const ev of ['input', 'change', 'click']) host.addEventListener(ev, e => { const t = e.target; if (!T && t && NEED.test(t.id || '')) e.stopPropagation(); }, true); }
     addEventListener('resize', () => { if (!host.hidden) resize(); });
     for (const b of host.querySelectorAll('[data-tool]')) b.onclick = () => setTool(b.dataset.tool);
     for (const b of host.querySelectorAll('[data-m]')) b.onclick = () => { brush.mode = b.dataset.m; for (const x of host.querySelectorAll('[data-m]')) x.classList.toggle('on', x === b); };

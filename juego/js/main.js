@@ -634,6 +634,39 @@
         out.push(`<div class="nv"><b>${esc(m[1])}</b> · <span>${esc(tit ? tit.replace(/:$/, '') : txt.length > 90 ? txt.slice(0, 88) + '…' : txt)}</span></div>`); }
       if (!out.length) return; el.innerHTML = '<h4>📰 Novedades</h4>' + out.join('') + '<a href="https://github.com/BigRedReport/bigredreport/blob/main/NOTAS.md" target="_blank" rel="noopener">Ver todas las novedades</a>'; el.setAttribute('data-notr', ''); el.hidden = false; } catch (e) { } }
   setTimeout(loadNews, 2500);
+  // ---------- chat general (menú principal) ----------
+  // por los buzones públicos de siempre (sin servidor propio). Sin HTML (solo texto), 200 letras, un mensaje cada 3 s,
+  // palabrotas tapadas con asteriscos y «silenciar» a quien moleste (clic en su nombre). Solo se guardan las últimas 24 horas.
+  (function chatInit() {
+    const log = $('hc_log'), inp = $('hc_in'), box = $('h_chat'); if (!log || !BRR.cloud || !BRR.cloud.chatSend) return;
+    const seen = new Set(), msgs = [], MUTE_K = 'brr_chatmute'; let mute = []; try { mute = JSON.parse(localStorage.getItem(MUTE_K)) || []; } catch (e) { }
+    const BAD = /\b(put[ao]s?|cabr[oó]n(es)?|gilipollas|maric[oó]n(es)?|hijo ?de ?puta|subnormal|mierda|cojones|co[nñ]o|polla|zorra|fuck(ing|er)?|shit|bitch|cunt|nigg(er|a)s?|fag(got)?s?|asshole|dick|whore|retard(ed)?)\b/gi;
+    const clean = t => String(t).replace(/[\u0000-\u001f‪-‮]/g, ' ').replace(BAD, w => w[0] + '*'.repeat(Math.max(2, w.length - 1)));
+    const ok = m => m && typeof m.mid === 'string' && typeof m.text === 'string' && typeof m.t === 'number' && m.text.trim() && m.text.length <= 200 && Date.now() - m.t < 86400000 && m.t - Date.now() < 300000;
+    const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
+    function render() { const atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 30; log.textContent = '';
+      const L = msgs.filter(m => !mute.includes(m.pid)).slice(-80); if (!L.length) { const d = document.createElement('div'); d.className = 'sys'; d.textContent = BRR.t ? BRR.t('Todavía no hay mensajes. ¡Saluda!') : 'Todavía no hay mensajes. ¡Saluda!'; log.appendChild(d); }
+      for (const m of L) { const d = document.createElement('div'); d.className = 'cm' + (m.pid === BRR.cloud.id ? ' me' : ''); const tm = document.createElement('time'); tm.textContent = hhmm(m.t);
+        const b = document.createElement('b'); b.textContent = clean(m.name || 'Piloto').slice(0, 20) + ': '; b.title = m.pid === BRR.cloud.id ? '' : (BRR.t ? BRR.t('Clic: silenciar a este jugador') : 'Clic: silenciar a este jugador');
+        if (m.pid !== BRR.cloud.id) b.onclick = () => { if (!confirm((BRR.t ? BRR.t('¿Silenciar a este jugador? Dejarás de ver sus mensajes.') : '¿Silenciar a este jugador? Dejarás de ver sus mensajes.') + '\n\n' + (m.name || 'Piloto'))) return; mute.push(m.pid); try { localStorage.setItem(MUTE_K, JSON.stringify(mute.slice(-200))); } catch (e) { } render(); };
+        const sp = document.createElement('span'); sp.textContent = clean(m.text); d.append(tm, b, sp); log.appendChild(d); }
+      if (atEnd) log.scrollTop = log.scrollHeight; }
+    function add(m) { if (!ok(m) || seen.has(m.mid)) return false; seen.add(m.mid); msgs.push(m); msgs.sort((a, b) => a.t - b.t); if (msgs.length > 200) msgs.splice(0, msgs.length - 200); return true; }
+    const st = n => { $('hc_st').textContent = n ? '' : (BRR.t ? BRR.t('(conectando…)') : '(conectando…)'); };
+    let started = false; const start = () => { if (started) return; started = true; st(0);
+      BRR.cloud.chatHistory().then(r => { r.rows.forEach(add); render(); }).catch(() => render());
+      BRR.cloud.chatListen(m => { if (add(m)) render(); }, st); };
+    setTimeout(start, 3000);
+    try { if (localStorage.getItem('brr_chatmin') === '1') box.classList.add('min'); } catch (e) { }
+    $('hc_min').onclick = () => { box.classList.toggle('min'); try { localStorage.setItem('brr_chatmin', box.classList.contains('min') ? '1' : '0'); } catch (e) { } };
+    for (const ev of ['keydown', 'keyup', 'keypress']) inp.addEventListener(ev, e => e.stopPropagation());   // escribir no mueve el menú ni toca la bocina
+    let last = 0, lastTxt = '';
+    $('hc_form').onsubmit = e => { e.preventDefault(); const t = inp.value.trim().slice(0, 200); if (!t) return;
+      if (Date.now() - last < 3000 || t === lastTxt) { inp.classList.add('err'); setTimeout(() => inp.classList.remove('err'), 400); return; }
+      last = Date.now(); lastTxt = t; inp.value = ''; const name = (opt.netName || '').trim() || ('Piloto ' + BRR.cloud.id.slice(0, 4)), mid = Math.random().toString(36).slice(2, 10);
+      BRR.cloud.chatSend(name, t, mid).then(n => { if (!n) { const d = document.createElement('div'); d.className = 'sys'; d.textContent = BRR.t ? BRR.t('Sin conexión: no se ha podido enviar.') : 'Sin conexión: no se ha podido enviar.'; log.appendChild(d); } });
+      add({ mid, pid: BRR.cloud.id, name, text: t, t: last }); render(); };
+  })();
   const achIco = i => i && i.img ? `<img src="${i.img}" alt="">` : i;
   const achGet = () => { try { return JSON.parse(ST.get('brr_ach')) || {}; } catch (e) { return {}; } };
   const achQ = []; let achShowing = false;
@@ -910,6 +943,7 @@
       trackFences = buildMerged(trackMerge); trackMerge = [];
       // pórticos de los controles en los circuitos propios (la pancarta de salida queda solo en la meta)
       if (cT) for (const g of lvl.checkpoints || []) { if (g.num === 0) continue; const M = [[g.ax[0], 0, g.az[0]], [0, 1, 0], [g.ax[2], 0, g.az[2]]], y = lvl.terrain(g.c[0], g.c[2]);
+        { const hw = (cT.w || 14) / 2, px = hw + 1, onRoad = sx => lvl.roadDist && lvl.roadDist(g.c[0] + g.ax[0] * px * sx, g.c[2] + g.ax[2] * px * sx) < hw + 0.9; if (onRoad(1) || onRoad(-1)) continue; }   // un poste que caería sobre otro tramo de pista (tramos juntos, curvas cerradas): ese pórtico no se pone
         trackProcs.push({ n: 'GANTRY', w: cT.w || 14, p: [g.c[0], y - 0.05, g.c[2]], R: M, up: gantryMesh(cT.w || 14).up }); }
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
       R.setEnvironment(lvl.sun, lvl.sky); { const at = makeAtmos(level, lvl.sun, lvl.sky); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
@@ -1699,8 +1733,8 @@
     // daño (v0.70): los roces y los toques de lado quitan poco pero algo (rozar una pared un rato, un 1-2 % por segundo);
     // un golpe a ~30 km/h ≈ 1 %, a ~70 km/h ≈ 4 %, a ~110 km/h ≈ 8 %; como mucho un 15 % por golpe
     const hit = c.lastHit || 0, tnow = performance.now(); c.dmgScr = c.dmgScr || 0;   // desde ~10 km/h ya se nota (≈0,4 %)
-    if (hit > 1.2 && hit !== c.dmgHit && (hit > 4 || tnow - c.dmgScr > 200)) { c.dmg += Math.min(15, (0.25 + Math.pow(hit - 1.2, 1.3) * 0.1) * k); if (hit <= 4) c.dmgScr = tnow; } c.dmgHit = hit;   // roces: como mucho 5 veces por segundo
-    if ((c.landEv || 0) > 14) c.dmg += Math.min(10, (c.landEv - 14) * 0.5 * k); c.landEv = 0;
+    if (hit > 1.2 && hit !== c.dmgHit && (hit > 4 || tnow - c.dmgScr > 200)) { c.dmg += Math.min(20, (0.25 + Math.pow(hit - 1.2, 1.3) * 0.1) * k * 1.35);   /* daños un 35 % más altos */ if (hit <= 4) c.dmgScr = tnow; } c.dmgHit = hit;   // roces: como mucho 5 veces por segundo
+    if ((c.landEv || 0) > 14) c.dmg += Math.min(13, (c.landEv - 14) * 0.5 * k * 1.35); c.landEv = 0;
     const R = c.R;
     for (const lv of [80, 90, 95]) if (c.dmg >= lv && Math.random() < dt * (lv === 80 ? 6 : lv === 90 ? 10 : 16)) { const q = c.def.dmgFx && c.def.dmgFx[lv] || [0, 0.4, 0];
       fx.puff(V.add(c.p, BRR.mv(R, q)), [c.v[0] * 0.5, 1.4, c.v[2] * 0.5], lv < 95 ? [0.55, 0.55, 0.58, 0.35] : [0.15, 0.15, 0.15, 0.5], 0.35, 1.8, 2.6, 1, 0.4); }
@@ -2574,7 +2608,7 @@
     for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = !!c.spec; c.outN = 0; c.vmul = 1; c.bombLeft = BOMB_T; c.cop = false; c.robber = false; }
     crazyId++; crazy = null; kart = null; driftMode = mode === 'drift'; for (const h of humans) { h.car.driftMode = driftMode; h.drift = null; }
     for (const h of humans) h.car.driftB = driftMode && opt.driftPhys === 'B';   // física del drift: A (la de siempre) o B (arcade)
-    gpMode = mode === 'gp' || mode === 'f1' || isGPLevel(curLevelId); const kartReal = mode === 'kartgp' || isKartLevel(curLevelId); for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.gpMode = gpMode; c._top = 0; if (gpMode) c.nitros = 0; c.kartMode = kartReal && c.def.name === 'KART'; if (kartReal) c.nitros = 0; if (c.kartMode) c.vmul = 0.82; }   // karting: punta de ~85 km/h (el «crazy kart» va como siempre)   // karting: física propia del kart (en el modo «crazy kart» se conduce como siempre)   // GP: sin nitros (es el «gran turismo» de Big Red Racing)   // Grand Prix: todos más rápidos (también la IA) driftNet = driftMode && netRace ? { sc: new Map(), t: 0, sendT: 0, over: false } : null;
+    gpMode = mode === 'gp' || mode === 'f1' || isGPLevel(curLevelId); const kartReal = mode === 'kartgp' || isKartLevel(curLevelId); for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.gpMode = gpMode; c._top = 0; if (gpMode) c.nitros = 0; c.kartMode = kartReal && c.def.name === 'KART'; if (kartReal) c.nitros = 0; if (c.kartMode) c.vmul = 0.82; }   // karting: punta de ~85 km/h, igual para todos   // karting: punta de ~85 km/h (el «crazy kart» va como siempre)   // karting: física propia del kart (en el modo «crazy kart» se conduce como siempre)   // GP: sin nitros (es el «gran turismo» de Big Red Racing)   // Grand Prix: todos más rápidos (también la IA) driftNet = driftMode && netRace ? { sc: new Map(), t: 0, sendT: 0, over: false } : null;
     if (driftMode || gpMode || mode === 'kartgp' || !CRAZY_NAME[mode] || humans.length + rivals.length < 2) return;
     // eliminación por controles según el tamaño del circuito: pequeño → cada vuelta; mediano → cada media vuelta; grande → cada ~1 km de controles
     const rc = humans[0].race, G = rc.maxNum + 1, L = rc.total;
@@ -3241,7 +3275,7 @@
     const v = c.hitV || 0, hr = c.hitR; c.hitV = 0; if (v < 3 || !hr || opt.damage === '0' || opt.dents === 'no') return;
     const D = drawOf(c); if (!D || camDist(c.p) > 140) return;
     const L = BRR.mtv(c.R, hr), b = c.def.box, cx = b.c[0], cy = b.c[1], cz = b.c[2];   // punto del golpe en coordenadas del coche
-    const dir = V.norm([cx - L[0], (cy - L[1]) * 0.3, cz - L[2]]), depth = Math.min(0.3, (v - 3) * 0.022) * (100 / Math.max(40, c.def.tough || 100)), rad = 0.8 + Math.min(0.6, v * 0.03);
+    const dir = V.norm([cx - L[0], (cy - L[1]) * 0.3, cz - L[2]]), depth = Math.min(0.34, (v - 3) * 0.027) * (100 / Math.max(40, c.def.tough || 100)), rad = 0.8 + Math.min(0.6, v * 0.03);
     // el punto de contacto sale en la superficie de la esfera de choque: se lleva al borde de la caja del coche
     const P = [Math.max(cx - b.h[0], Math.min(cx + b.h[0], L[0])), Math.max(cy - b.h[1], Math.min(cy + b.h[1], L[1])), Math.max(cz - b.h[2], Math.min(cz + b.h[2], L[2]))];
     const gl = R.gl, MAX = 0.45;

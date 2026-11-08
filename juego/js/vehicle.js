@@ -379,7 +379,7 @@
         const lk = GP && braking ? (F1 ? 2.7 : 1.7) : 1, lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong / lk);   // GP: frenos de carreras (la frenada agarra mucho más sin bloquear)
         // derrape visible (marcas, humo, chirrido): de lado solo si la rueda resbala de verdad (>~1 m/s), no por el tope de agarre
         // en una curva normal (a los coches pequeños les pasaba siempre); de frente (frenazo o acelerón), según el exceso de fuerza
-        { const raw = tot > lim ? 1 - lim / tot : 0; w.slip = !raw ? 0 : Math.abs(Flong) > Math.abs(Flat) ? raw * 0.7 : Math.min(raw, Math.max(0, (Math.abs(vLat) - 0.9) / 2.5)); }
+        { const raw = tot > lim ? 1 - lim / tot : 0; w.slip = !raw ? 0 : Math.abs(Flong) > Math.abs(Flat) ? raw * (this.gpMode || this.kartMode ? 0.3 : 0.7) :   /* GP, F1 y karting: patinar un poco al acelerar no es un derrape (ni marcas ni chirrido) */ Math.min(raw, Math.max(0, (Math.abs(vLat) - 0.9) / 2.5)); }
         if (tot > lim) { if (this.kartMode && !w.steer) { const fl = Math.sign(Flat) * Math.min(Math.abs(Flat), lim * (vf > 9 ? 0.9 : 1)), rest = Math.sqrt(Math.max(0, lim * lim - fl * fl)) * lk; Flat = fl; Flong = Math.max(-rest, Math.min(rest, Flong)); } else { Flat *= lim / tot; Flong *= lim / tot; } }   /* kart: la trasera agarra de lado antes que traccionar (no hace trompos al acelerar); al entrar muy rápido resbala un poco (pequeño derrape lateral) */
         // suspensión en el punto real; tracción/agarre aplicados cerca de la altura del centro de masas
         // (truco arcade para que no vuelque en cada curva, como en el original)

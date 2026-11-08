@@ -123,6 +123,15 @@
       for (const it of R.items) { const j = parse(it.p); if (j && j.brr === 'track' && (!best || (j.rev | 0) > (best.rev | 0))) best = j; }
       if (!best) try { const r = await fetch(SITE + 'datos/circuitos/' + id + '.json', { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); if (j && j.brr === 'track') best = j; } } catch (e) { }
       return best; },
+    // chat general del menú: cada mensaje va en directo (chat/live) y además retenido en una de 60 casillas que se van pisando (chat/h/N),
+    // así quien entra ve los últimos mensajes. Se publica en todos los buzones y se lee de todos (sin repetidos).
+    async chatSend(name, text, mid) { const m = { mid: mid || Math.random().toString(36).slice(2, 10), pid: ID, name: String(name || 'Piloto').slice(0, 20), text: String(text || '').slice(0, 200), t: Date.now() }; if (!m.text.trim()) return 0;
+      const j = JSON.stringify(m), slot = Math.floor(m.t / 1000) % 60; pubAll(T + 'chat/h/' + slot, j, true); return pubAll(T + 'chat/live', j, false); },
+    async chatHistory() { const R = await readAll(T + 'chat/h/#', 2500), out = []; for (const it of R.items) { const j = parse(it.p); if (j) out.push(j); } return { online: R.any > 0, rows: out }; },
+    chatListen(cb, status) {   // en directo, en todos los buzones (y se reconecta solo); status(n) = buzones conectados
+      let up = 0; const hook = u => conn(u).then(mq => { const c = pool.get(u); if (c) c.keep = true; up++; status && status(up); mq.sub(T + 'chat/live', (t, p) => { const j = parse(p); if (j) cb(j); });
+        const was = mq.onclose; mq.onclose = () => { was && was(); up = Math.max(0, up - 1); status && status(up); setTimeout(() => hook(u), 10000); }; }, () => setTimeout(() => hook(u), 30000));
+      BROKERS.forEach(hook); },
     // aviso de fallo automático (sin datos personales: mensaje, pila, versión, navegador y dónde ocurrió)
     async report(info) {
       const s = JSON.stringify(info); let h = 0; const key = String(info.msg || '') + String(info.stack || '').split('\n')[1];

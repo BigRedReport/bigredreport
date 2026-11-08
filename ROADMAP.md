@@ -212,4 +212,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Servidor oficial siempre encendido (12 jugadores, bots y votación) (0.116)
 - [x] Modo Karting (0.118): física propia del kart y cuatro karts reales (Los Alcázares, Benidorm, Orihuela y La Manga) con campeonato
 - [x] Karting online (0.118.1) · versiones para Mac y Linux ARM64
+- [x] Chat general en el menú (0.118.2)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

@@ -135,7 +135,7 @@ void main(){ float a=vcol.a;
           if (sm > 0 && Math.random() < sm * dt * 22) this.puff([wc[0], wc[1] + 0.15, wc[2]], [-fw[0] * sp * 0.25, 0.35, -fw[2] * sp * 0.25], [0.86, 0.86, 0.88, 0.22 + sm * 0.2], 0.45, 2.2 + Math.random() * 1.5, 4.2, 1, 0.5, 'smoke');
         }
         // marcas: derrape en cualquier superficie; en tierra/nieve siempre (rastro)
-        const leave = slip > 0.3 ? 1 : (s.type === 'tierra' || s.type === 'nieve' || s.type === 'arena') && sp > 2 ? 0.55 : 0;
+        const leave = slip > (c.kartMode ? 0.16 : 0.3) ? 1 : (s.type === 'tierra' || s.type === 'nieve' || s.type === 'arena') && sp > 2 ? 0.55 : 0;
         const prev = this.last.get(key);
         if (leave && prev && V.len(V.sub(wc, prev.p)) > 0.25) {
           const d = V.sub(wc, prev.p), side = V.mul(V.norm([-d[2], 0, d[0]]), Math.min(0.28, w.radius * 0.45));

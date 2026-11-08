@@ -207,7 +207,7 @@
   const SURF_MU = { asfalto: 1.0, tierra: 0.9, arena: 0.78, nieve: 0.7, agua: 0.6 };
   BRR.aiProfile = function (line, car, P) {
     const N = line.N, st = line.step, vtop = car.topSpeed * P.pace * (car.K.fly ? 1.1 : 1);
-    const mu = (car.K.fly ? 2.5 : car.K.boat ? 0.6 : car.K.thrust ? 0.55 : 1.0) * P.corner * (car.gpMode ? (car.def.name === 'F1' ? 1.6 : 1.32) : car.kartMode ? 1.0 : 1), out = new Float32Array(N);   // GP: gomas de carreras y apoyo aerodinámico
+    const mu = (car.K.fly ? 2.5 : car.K.boat ? 0.6 : car.K.thrust ? 0.55 : 1.0) * P.corner * (car.gpMode ? (car.def.name === 'F1' ? 1.6 : 1.32) : car.kartMode ? 1.45 : 1), out = new Float32Array(N);   // karting: al límite del agarre (derrapa un poco al entrar)   // GP: gomas de carreras y apoyo aerodinámico
     for (let i = 0; i < N; i++) {
       const a = line.pts[(i - 5 + N) % N].t, b = line.pts[(i + 5) % N].t, ang = Math.acos(Math.max(-1, Math.min(1, a[0] * b[0] + a[2] * b[2])));
       // agarre del suelo en ese punto (arena, nieve... agarran menos que el asfalto): la curva se toma más despacio
@@ -258,8 +258,8 @@
       const car = this.car, race = this.race, inp = { steer: 0, throttle: 0, brake: 0, handbrake: false, pitchAir: 0 };
       if (car.gpMode) { if (!this.gpSet) { this.gpSet = true; this.P = { ...BRR.AI_PROFILES.experto, name: '', mistake: 0.15, defend: 0.5, pace: BRR.AI_PROFILES.experto.pace * (0.975 + Math.random() * 0.05), overtake: 0.6 + Math.random() * 0.4 };   /* cada uno con su ritmo: unos más rápidos que otros */ this.vprof = null; this.skill = Math.min(1.08, this.skill + 0.05); } }   // Grand Prix: todos expertos
       else if (car.kartMode && !this.kartSet) { this.kartSet = true; const r = Math.random;   // karting: pilotos de carne y hueso: cada uno con su manera de trazar, se pasan de frenada a veces y derrapan
-        this.base = this.P = { ...this.P, corner: (this.P.corner || 1) * (0.97 + r() * 0.08), cut: 0.15 + r() * 0.5, mistake: Math.max(1, this.P.mistake || 0), overtake: 0.75 + r() * 0.25, laneJitter: 0.18 + r() * 0.2, wobble: Math.max(0.04, this.P.wobble || 0) };
-        this.kA = 0.07 + r() * 0.08; this.kPh = [r() * 7, r() * 7]; this.kLap = 0; this.vprof = null; }
+        this.base = this.P = { ...this.P, corner: (this.P.corner || 1) * (0.97 + r() * 0.08), cut: 0.15 + r() * 0.5, mistake: 2.5 + r() * 2, overtake: 0.75 + r() * 0.25, laneJitter: 0.18 + r() * 0.2, wobble: Math.max(0.04, this.P.wobble || 0) };
+        this.kA = 0.13 + r() * 0.1; this.kPh = [r() * 7, r() * 7]; this.kLap = 0; this.vprof = null; }
       if (race.phase === 'race' && !car.gpMode) { this.moodT -= dt; if (this.moodT <= 0) {   // cambia de «momento»: casi siempre conducir bien; a ratos atacar o defender
           const b = this.base, r = Math.random(); this.mood = r < 0.22 + b.aggro * 0.2 ? 'ataque' : r < 0.45 ? 'defensa' : null; this.moodT = this.mood ? 5 + Math.random() * 9 : 10 + Math.random() * 30;
           this.P = this.mood === 'ataque' ? { ...b, aggro: Math.min(1, b.aggro + 0.5), overtake: 1, corner: b.corner * 1.03, mistake: b.mistake * 1.6 } : this.mood === 'defensa' ? { ...b, defend: 1, overtake: b.overtake * 0.6 } : { ...b }; } }
@@ -366,9 +366,12 @@
       if (blockSpeed != null) vt = Math.min(vt, Math.max(8, blockSpeed));
       this.dbg = { err: +err.toFixed(2), vt: +vt.toFixed(1), lat: +latOff.toFixed(1), look: +look.toFixed(1), blk: blockSpeed, half: +half.toFixed(1) };
       // gas y freno progresivos (sin toquecitos): según lo que sobra de velocidad, filtrados para que la frenada sea continua
-      const dv = vt - v, thrT = dv > 0 ? Math.min(1, 0.4 + dv * 0.3) : dv > -1.2 ? 0.12 : 0, brkT = dv < -0.8 ? Math.min(1, (-dv - 0.8) / (car.gpMode ? 4 : 5) + (ae > 0.9 ? 0.3 : 0)) : 0;
+      const dv = vt - v, thrT = dv > 0 ? Math.min(1, 0.4 + dv * 0.3) : dv > -1.2 ? 0.12 : 0, brkT = car.kartMode ? (dv < -0.6 ? Math.min(1, 0.55 + (-dv - 0.6) / 1.5) : 0) : dv < -0.8 ? Math.min(1, (-dv - 0.8) / (car.gpMode ? 4 : 5) + (ae > 0.9 ? 0.3 : 0)) : 0;   // el kart frena tarde y a fondo
       this.brk = (this.brk || 0) + (brkT - (this.brk || 0)) * Math.min(1, dt * (brkT > (this.brk || 0) ? 9 : 5)); this.thr = (this.thr || 0) + (thrT - (this.thr || 0)) * Math.min(1, dt * 8);
       inp.brake = this.brk > 0.05 ? this.brk : 0; inp.throttle = inp.brake > 0.12 ? 0 : this.thr;
+      { const o = car.bumpBy, tn = performance.now() / 1000; if (o && tn - (car.bumpT || 0) < 0.7 && o.p) {   // tocando a otro coche: levanta y se aparta (no lo arrastra)
+        const d = V.sub(o.p, car.p), fw = car.forward(), ahead = V.dot(d, fw), side = d[0] * fw[2] - d[2] * fw[0];
+        if (ahead > -1.5) { inp.throttle *= ahead > 0.5 ? 0.25 : 0.55; const away = -Math.sign(side || 1) * 0.25; inp.steer = Math.max(-1, Math.min(1, inp.steer + away)); } } }
       // GP: a veces, en curvas cerradas, frena fuerte y da un toque de freno de mano para colocar el coche de lado (no en todas)
       if (car.gpMode && v > 14) { const ck = Math.floor(s / 40); if (this.hbCk !== ck) { this.hbCk = ck; this.hbGo = turn > 0.85 && Math.random() < 0.4; }
         if (this.hbGo && inp.brake > 0.45 && Math.abs(this.steerOut) > 0.25 && !(this.hbT > 0)) { this.hbT = 0.22; this.hbGo = false; } }
@@ -449,7 +452,8 @@
         const iA = A.kinematic ? 0 : 1 / A.m, iB = B.kinematic ? 0 : 1 / B.m, jj = -(soft ? 1 : 1.25) * vrel / (iA + iB);
         if (soft) { if (!A.kinematic) A.applyImpulse(V.mul(n, jj), [0, 0, 0], 0); if (!B.kinematic) B.applyImpulse(V.mul(n, -jj), [0, 0, 0], 0); continue; }
         const mid = V.mul(V.add(a.ctr, bb.ctr), 0.5);
-        if (!A.kinematic) A.applyImpulse(V.mul(n, jj), V.sub(mid, A.p), 0.2); if (!B.kinematic) B.applyImpulse(V.mul(n, -jj), V.sub(mid, B.p), 0.2);
+        const lev = c => c.kartMode ? 0.3 : 1;   // los karts (ligeros y cortos) no salen girando de cada toque
+        if (!A.kinematic) A.applyImpulse(V.mul(n, jj), V.mul(V.sub(mid, A.p), lev(A)), 0.2); if (!B.kinematic) B.applyImpulse(V.mul(n, -jj), V.mul(V.sub(mid, B.p), lev(B)), 0.2);
         // rozamiento lateral entre carrocerías (se frotan, no se pegan)
         const vt = V.sub(V.sub(A.v, B.v), V.mul(n, vrel)), vtl = V.len(vt); if (vtl > 0.1) { const jt = Math.min(0.15 * jj, vtl / (iA + iB) * 0.5); if (!A.kinematic) A.applyImpulse(V.mul(vt, -jt / vtl), [0, 0, 0], 0); if (!B.kinematic) B.applyImpulse(V.mul(vt, jt / vtl), [0, 0, 0], 0); }
         A.lastHit = Math.max(A.lastHit || 0, -vrel); B.lastHit = Math.max(B.lastHit || 0, -vrel);

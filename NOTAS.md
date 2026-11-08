@@ -7,6 +7,15 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.2**
+- **Chat general en el menú principal:** debajo de las novedades; todos los jugadores escriben y lo ven los demás (y quien entra ve los últimos mensajes). Solo texto, palabrotas tapadas y clic en un nombre para silenciarlo.
+- **IA del karting más humana:** van al límite, frenan tarde y a fondo, derrapan, dejan marcas y se equivocan; ya no parecen ir sobre raíles.
+- **Choques:** el rival que te toca levanta y se aparta en vez de arrastrarte; los karts ya no salen girando de cada toque.
+- **Daños un 35 % más altos** en todos los modos (y abolladuras algo más profundas).
+- **Grand Prix, F1 y karting:** patinar un poco al acelerar ya no deja marcas ni suena como un derrape.
+- **Circuitos estrechos:** se quitan los pórticos de control cuyos postes caían sobre otro tramo de pista.
+- **Editor:** arreglado un error al mover el ancho de la carretera sin circuito abierto.
+
 **Novedades de la 0.118.1**
 - **Karting online:** nuevo modo 🛞 Karting al crear partida (uno o varios karts seguidos, con puntos). Todos en go-kart, sin nitro y con las vueltas de cada circuito.
 - **Karts:** casi sin balanceo en las rectas (chasis rígido), más aceleración, parrilla de 3 en 3 (cabe con 12) y la IA ya no da marcha atrás al cruzar la meta. La IA del karting es más humana: se pasa en algunas curvas, derrapa y adelanta más.
