@@ -226,6 +226,7 @@
     return out;
   };
   BRR.aiAt = function (line, s) {
+    if (!Number.isFinite(s)) s = 0;   // (coche con la física rota: no tumbar la carrera)
     const N = line.N, f = ((s / line.step) % N + N) % N, i = Math.floor(f), u = f - i, a = line.pts[i], b = line.pts[(i + 1) % N];
     return { p: V.add(a.p, V.mul(V.sub(b.p, a.p), u)), t: V.norm(V.add(V.mul(a.t, 1 - u), V.mul(b.t, u))), w: a.w, vh: a.vh, roomL: Math.min(a.roomL, b.roomL), roomR: Math.min(a.roomR, b.roomR) };
   };

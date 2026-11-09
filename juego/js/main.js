@@ -3566,7 +3566,7 @@
     };
     addEventListener('error', e => report(e.message, e.error && e.error.stack));
     const netErr = m => /Failed to fetch|NetworkError|Load failed|network error|ERR_INTERNET|aborted/i.test(String(m || ''));   /* sin conexión: no es un fallo del juego (aviso #17) */
-    addEventListener('unhandledrejection', e => { const m = e.reason && (e.reason.message || e.reason); if (netErr(m)) return; report(m, e.reason && e.reason.stack); }); }
+    addEventListener('unhandledrejection', e => { if (typeof Event !== 'undefined' && e.reason instanceof Event) return;   /* fallo de conexión o de carga (chat, nube…): no es un fallo del juego (#23) */ const m = e.reason && (e.reason.message || e.reason); if (netErr(m)) return; report(m, e.reason && e.reason.stack); }); }
   // instalable como app (solo en la versión web; abriendo el archivo directamente no se puede)
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });

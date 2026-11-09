@@ -216,4 +216,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Repaso mapa a mapa de los circuitos originales; F1 y Karting en la contrarreloj (0.118.3)
 - [x] Texturas HD con relieve, resplandor (bloom) y el Mínimo 50 rehecho (0.118.4)
 - [x] Mínimo 50 con las ruedas del Mini y ventanas completas (0.118.5)
+- [x] Red de seguridad contra físicas rotas (#22, #24, #25) (0.118.6)
 - [ ] Ideas: modo fútbol (tipo Rocket League)
