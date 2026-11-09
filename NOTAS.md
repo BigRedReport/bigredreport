@@ -7,6 +7,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.7**
+- **Programa de escritorio:** funciona con la carpeta del juego en una unidad de red o detrás de un enlace simbólico (antes se saltaba esos archivos y había que copiar el juego).
+
 **Novedades de la 0.118.6**
 - **Estabilidad:** si la física de un coche se rompe (valores no válidos), vuelve a su última posición buena parado y la carrera sigue; antes colgaba la carrera en la IA de los rivales (#22, #24) o en el sonido (#25).
 - Los fallos de conexión del menú (chat, nube) ya no se envían como fallo del juego (#23).

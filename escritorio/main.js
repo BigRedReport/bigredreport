@@ -45,12 +45,15 @@ function startServer(force) {
 function stopServer() { if (server) { try { server.kill(); } catch (e) { } server = null; } }
 
 // lista de archivos de la carpeta del juego (rutas relativas como las del navegador)
+// tipo de una entrada: en unidades de red (SMB/NFS) el sistema a veces no lo dice y los enlaces simbólicos salen como «enlace»;
+// en esos casos se mira el destino con stat (que sigue los enlaces)
+function kind(dir, e) { if (e.isDirectory()) return 'd'; if (e.isFile()) return 'f'; try { const st = fs.statSync(path.join(dir, e.name)); return st.isDirectory() ? 'd' : st.isFile() ? 'f' : null; } catch (x) { return null; } }
 function walk(dir, base, out, depth = 0) {
   if (depth > 6) return out;
   for (const e of fs.readdirSync(dir, { withFileTypes: true })) {
-    const p = path.join(dir, e.name), rel = base + e.name;
-    if (e.isDirectory()) walk(p, rel + '/', out, depth + 1);
-    else if (e.isFile()) { try { out.push({ rel, size: fs.statSync(p).size }); } catch (x) { } }
+    const p = path.join(dir, e.name), rel = base + e.name, k = kind(dir, e);
+    if (k === 'd') walk(p, rel + '/', out, depth + 1);
+    else if (k === 'f') { try { out.push({ rel, size: fs.statSync(p).size }); } catch (x) { } }
   }
   return out;
 }
@@ -67,8 +70,8 @@ function findGame() {
   const q = roots.filter(r => { try { return fs.statSync(r).isDirectory(); } catch (e) { return false; } }).map(r => [r, 0]);
   while (q.length && Date.now() - t0 < 6000) { const [d, k] = q.shift(); if (seen.has(d)) continue; seen.add(d);
     let L; try { L = fs.readdirSync(d, { withFileTypes: true }); } catch (e) { continue; }
-    for (const e of L) if (e.isDirectory() && /^BIGRED$/i.test(e.name)) { const b = path.join(d, e.name); if (walk(b, e.name + '/', []).some(f => /\.LEV$/i.test(f.rel))) return L.length < 40 && L.some(f => /\.(cue|img|bin|iso)$/i.test(f.name)) ? d : b; }   // con la imagen del CD al lado: la carpeta de arriba (para la música)
-    if (k < 4) for (const e of L) if (e.isDirectory() && !skip.test(e.name)) q.push([path.join(d, e.name), k + 1]); }
+    for (const e of L) if (/^BIGRED$/i.test(e.name) && kind(d, e) === 'd') { const b = path.join(d, e.name); if (walk(b, e.name + '/', []).some(f => /\.LEV$/i.test(f.rel))) return L.length < 40 && L.some(f => /\.(cue|img|bin|iso)$/i.test(f.name)) ? d : b; }   // con la imagen del CD al lado: la carpeta de arriba (para la música)
+    if (k < 4) for (const e of L) if (!skip.test(e.name) && kind(d, e) === 'd') q.push([path.join(d, e.name), k + 1]); }
   return null;
 }
 ipcMain.handle('dir:find', () => { const d = findGame(); if (d) { cfg.dir = d; saveCfg(); } return d; });

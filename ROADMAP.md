@@ -217,4 +217,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Texturas HD con relieve, resplandor (bloom) y el Mínimo 50 rehecho (0.118.4)
 - [x] Mínimo 50 con las ruedas del Mini y ventanas completas (0.118.5)
 - [x] Red de seguridad contra físicas rotas (#22, #24, #25) (0.118.6)
+- [x] Escritorio: unidades de red y enlaces simbólicos (0.118.7)
 - [ ] Ideas: modo fútbol (tipo Rocket League)
