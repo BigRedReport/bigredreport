@@ -361,11 +361,8 @@
     const M = BRR.MINIMO_MESH; if (!M) return minimoOld(d, P, gl);
     const COL = [P, [0.93, 0.93, 0.91], gl || [0.06, 0.08, 0.1], [0.05, 0.05, 0.055], [0.8, 0.81, 0.84], [0.6, 0.66, 0.74], [0.88, 0.08, 0.06], [0.95, 0.55, 0.12], [0.03, 0.03, 0.035], [0.92, 0.92, 0.88], [0.08, 0.08, 0.09]];
     const body = meshCar(d.mesh.pal, M.body, k => COL[k] || P, new Set([6]), true);
-    const WCOL = [P, P, P, [0.05, 0.05, 0.055], [0.62, 0.64, 0.68], P, P, P, [0.1, 0.1, 0.11]];
-    const wm = d.wheels.map(w => meshCar(d.mesh.pal, M.wheel, k => WCOL[k] || [0.7, 0.7, 0.72]).mb);
-    // la rueda viene con la cara de fuera hacia +x: en el lado izquierdo se da la vuelta
-    d.wheels.forEach((w, i) => { if (w.c[0] < 0) for (const [, gg] of wm[i].groups) for (let k = 0; k < gg.pos.length; k += 3) gg.pos[k] = -gg.pos[k]; });
-    return { ...d, name: 'MINIMO', vname: 'MINIMO', mesh: body.mb, brake: body.brake, wheelMeshes: wm, interior: null, logoSlot: false,   // ruedas (posición y radio), caja de choque, motor y marchas: las del Mini
+    // ruedas: las del Mini del juego (las del modelo eran demasiado grandes)
+    return { ...d, name: 'MINIMO', vname: 'MINIMO', mesh: body.mb, brake: body.brake, interior: null, logoSlot: false,   // ruedas (posición y radio), caja de choque, motor y marchas: las del Mini
       brakeSpots: [[-0.55, -0.05, 1.42], [0.55, -0.05, 1.42]], nitro: [0.2, -0.5, 1.45], decoParts: [], headPos: null };
   }
   function minimoOld(d, P, gl) {

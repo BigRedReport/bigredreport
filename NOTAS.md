@@ -7,6 +7,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.5**
+- **Mínimo 50:** ruedas del Mini del juego (las del modelo eran demasiado grandes) y ventanillas y luna trasera completas hasta la cintura. Malla más ligera.
+
 **Novedades de la 0.118.4**
 - **Texturas nítidas HD:** los suelos y todos los objetos de los circuitos originales se escalan ×4 al cargar (×2 en Android) con los bordes limpios; mismo dibujo de tu copia, sin subir nada original.
 - **Relieve y detalle:** cada textura saca volumen de su propio brillo (ventanas y puertas hundidas, asfalto de piedrecitas) y el suelo lleva grano fino de cerca. Opción «Relieve y detalle» en Opciones.
