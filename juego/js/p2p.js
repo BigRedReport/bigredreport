@@ -81,7 +81,11 @@
       this.mq = new MQ(this.brokers); await this.mq.connect();
       this.mq.onclose = () => { this.emit('disconnect', {}); };
       this.mq.sub(T + 'sig/' + this.id, (t, p) => { try { this.onSig(JSON.parse(p)); } catch (e) { } });
-      this.mq.sub(T + 'rooms/+', (t, p) => { const code = t.split('/').pop(); if (!p) { this.rooms.delete(code); return; } try { const r = JSON.parse(p); r.seen = Date.now(); this.rooms.set(code, r); } catch (e) { } });
+      this.mq.sub(T + 'rooms/+', (t, p) => { const code = t.split('/').pop(); if (!p) { this.rooms.delete(code); return; } try { const j = JSON.parse(p); if (!j || typeof j !== 'object' || !/^[A-Za-z0-9]{3,16}$/.test(code)) return;
+        // el anuncio llega de un buzón público: solo campos con la forma esperada (sin esto, un anuncio trucado metía código en la lista de partidas)
+        const str = (v, n) => typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').slice(0, n) : '', prim = v => typeof v === 'number' || typeof v === 'boolean' ? v : typeof v === 'string' ? v.slice(0, 60) : Array.isArray(v) ? v.slice(0, 40).filter(x => typeof x === 'string' || typeof x === 'number').map(x => typeof x === 'string' ? x.slice(0, 60) : x) : undefined;
+        const info = {}; if (j.info && typeof j.info === 'object') for (const k of Object.keys(j.info).slice(0, 30)) { const v = prim(j.info[k]); if (v !== undefined && /^[a-zA-Z0-9_]{1,20}$/.test(k)) info[k] = v; }
+        this.rooms.set(code, { id: code, name: str(j.name, 30) || 'Partida', host: str(j.host, 20) || 'Piloto', players: Math.max(0, Math.min(99, j.players | 0)), max: Math.max(2, Math.min(12, j.max | 0 || 6)), state: j.state === 'racing' ? 'racing' : 'lobby', info, pass: !!j.pass, ts: +j.ts || 0, seen: Date.now() }); } catch (e) { } });
       this.emit('hello', { t: 'hello', id: this.id }); return { id: this.id };
     }
     list() { const now = Date.now(); this.emit('list', { t: 'list', rooms: [...this.rooms.values()].filter(r => now - r.ts < 30000 && r.id !== this.id) }); }

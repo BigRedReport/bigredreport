@@ -57,7 +57,7 @@ function walk(dir, base, out, depth = 0) {
   }
   return out;
 }
-const safe = rel => { const p = path.resolve(cfg.dir, '..', rel); if (!p.startsWith(path.resolve(cfg.dir, '..'))) throw new Error('ruta'); return p; };
+const safe = rel => { const root = path.resolve(cfg.dir), p = path.resolve(cfg.dir, '..', String(rel)); if (p !== root && !p.startsWith(root + path.sep)) throw new Error('ruta'); return p; };   // solo dentro de la carpeta del juego
 
 ipcMain.handle('cfg:get', () => ({ ...cfg, version: app.getVersion(), platform: process.platform, deck: DECK, gamemode: GAMEMODE }));
 // buscar la copia del juego sola (carpeta con BIGRED y circuitos .LEV): carpeta personal, Juegos, Descargas, tarjeta SD y USB (/run/media, /media, /mnt) y unidades de Windows
@@ -75,7 +75,10 @@ function findGame() {
   return null;
 }
 ipcMain.handle('dir:find', () => { const d = findGame(); if (d) { cfg.dir = d; saveCfg(); } return d; });
-ipcMain.handle('cfg:set', (e, c) => { const was = cfg.server, port = cfg.port; Object.assign(cfg, c || {}); saveCfg(); if (cfg.server !== was || cfg.port !== port) { stopServer(); startServer(); } return cfg; });
+ipcMain.handle('cfg:set', (e, c) => { const was = cfg.server, port = cfg.port;
+  // solo los ajustes del lanzador y con su tipo; la carpeta del juego solo se cambia con el selector de carpetas o la búsqueda (así una página no puede apuntarla a otra parte del disco)
+  const OK = { fullscreen: 'boolean', lang: 'string', noUpd: 'boolean', port: 'number', server: 'boolean', width: 'number', height: 'number' };
+  for (const k of Object.keys(c || {})) if (OK[k] && typeof c[k] === OK[k]) cfg[k] = k === 'lang' ? String(c[k]).slice(0, 5) : c[k]; saveCfg(); if (cfg.server !== was || cfg.port !== port) { stopServer(); startServer(); } return cfg; });
 ipcMain.handle('dir:pick', async () => {
   const r = await dialog.showOpenDialog(launcher || game, { title: 'Elige la carpeta del juego (la que contiene BIGRED, o la propia BIGRED)', properties: ['openDirectory'] });
   if (r.canceled || !r.filePaths[0]) return null; cfg.dir = r.filePaths[0]; saveCfg(); return cfg.dir;

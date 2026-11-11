@@ -7,6 +7,16 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.9**
+- **Rivales de GP, F1 y karting rehechos:** frenan más tarde y cada piloto en su punto, guardan una distancia de seguridad real (se acabaron los toques al final de recta), adelantan por donde cabe un coche y aguantan en paralelo, se dejan hueco rueda con rueda, esquivan a los coches parados y en la salida mantienen su fila hasta la primera frenada.
+  - **GP:** agresivos: apuran la frenada, se tiran al interior, se defienden y tienen rachas de ataque.
+  - **F1:** profesionales: precisos, casi sin errores, adelantan con rebufo, un solo movimiento para defender.
+  - **Karting:** a lo loco: frenan tardísimo, van pegados y se meten por cualquier hueco.
+- **Memoria de vídeo:** se libera al cambiar de circuito (antes cada carrera dejaba sus texturas ocupando memoria).
+- **Seguridad:** las listas de partidas online y de circuitos de la comunidad solo aceptan datos con la forma esperada; el programa de escritorio solo lee dentro de la carpeta del juego.
+- Nombres de países bien escritos («JAPÓN», «ÁRTICO») y traducidos; frase del editor traducida.
+- Si la física de un coche se rompe y se recupera, se manda un aviso con los datos para encontrar la causa.
+
 **Novedades de la 0.118.8**
 - Arreglado un fallo del sonido del motor que podía colgar la carrera (#26–#29).
 - La pantalla completa de la versión original en Android ya no da error donde no existe (#30).

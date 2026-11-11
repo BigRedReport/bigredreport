@@ -90,7 +90,7 @@
         const tx = A.get(t.id + '.TXT'); if (tx) { const s = BRR.text(tx).replace(/;[^\n]*/g, ''); t.cars = [...s.matchAll(/^\s*car\s+(\w+)/gm)].map(x => x[1].toUpperCase()).slice(0, 2).filter(n => n !== 'FEHELI' && files.has(n + '.VHC')); /* Mínimo 50 retirado de momento */   /* también el Mínimo 50 (Mini R50) donde sale el Mini */   // el original deja elegir los 2 primeros (el 3º es el helicóptero de cámara u oculto) if (/^MOON/.test(t.id) && files.has('UFO.VHC') && !t.cars.includes('UFO')) t.cars.push('UFO');   // y el ovni en los planetas
           t.laps = +((s.match(/^\s*laps\s+(\d+)/m) || [0, 3])[1]); }
       } catch (e) { }
-      t.place = F.str[t.glb] || ''; t.desc = F.str[t.vie] || '';
+      t.place = F.str[t.glb] || ''; { const q = t.place.replace(/[áéíóúñüàèìòùâêîôûäöç]/g, ''); if (q !== t.place && q === q.toUpperCase()) t.place = t.place.toUpperCase(); }   /* «JAPóN», «áRTICO»: el original no tenía mayúsculas acentuadas */ t.desc = F.str[t.vie] || '';
       t.diff = /^(F[áa]cil|Easy)/i.test(t.desc) ? 1 : /^(Mediano|Medium)/i.test(t.desc) ? 2 : /^(Duro|Hard)/i.test(t.desc) ? 3 : 2;
       t.desc = t.desc.replace(/^(F[áa]cil|Mediano|Duro|Easy|Medium|Hard)\s*-\s*/i, '');
     }

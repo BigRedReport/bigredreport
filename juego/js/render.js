@@ -185,17 +185,24 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
           tex = texs.get(name);
         }
         const vao = gl.createVertexArray(); gl.bindVertexArray(vao);
-        let pbuf = null; const put = (loc, arr, n) => { const b = gl.createBuffer(); if (loc === 0) pbuf = b; gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, n, gl.FLOAT, false, 0, 0); };
+        let pbuf = null; const bufs = [], put = (loc, arr, n) => { const b = gl.createBuffer(); bufs.push(b); if (loc === 0) pbuf = b; gl.bindBuffer(gl.ARRAY_BUFFER, b); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(arr), gl.STATIC_DRAW); gl.enableVertexAttribArray(loc); gl.vertexAttribPointer(loc, n, gl.FLOAT, false, 0, 0); };
         put(0, g.pos, 3);
         if (g.uv) put(1, g.uv, 2); else gl.vertexAttrib2f(1, 0, 0);
         if (g.col) put(2, g.col, 3); else gl.vertexAttrib3f(2, 1, 1, 1);
         if (g.lay && g.lay.length) put(3, g.lay, 1); else gl.vertexAttrib1f(3, 0);
         if (g.nrm && g.nrm.length === g.pos.length) put(4, g.nrm, 3);
-        out.push({ vao, n: g.pos.length / 3, tex, pbuf, base: g.pos, key });   // base/pbuf: para abollar la carrocería
+        out.push({ vao, n: g.pos.length / 3, tex, pbuf, bufs, base: g.pos, key });   // base/pbuf: para abollar la carrocería
       }
       gl.bindVertexArray(null);
       (this.allTex = this.allTex || []).push(...texs.values());
       return out;
+    }
+    // libera en la tarjeta gráfica lo que subió upload() (mallas y texturas del circuito anterior). Sin esto cada carrera dejaba
+    // sus texturas ocupando memoria de vídeo (unos 80 MB con las texturas HD) hasta que el navegador quisiera limpiarlas
+    free(up) {
+      const gl = this.gl; if (!up) return; const texs = new Set();
+      for (const m of up) { if (!m || m.freed) continue; m.freed = true; if (m.vao) gl.deleteVertexArray(m.vao); for (const b of m.bufs || []) gl.deleteBuffer(b); if (m.tex) texs.add(m.tex); m.vao = null; m.bufs = null; m.pbuf = null; m.base = null; m.n = 0; }
+      for (const t of texs) { gl.deleteTexture(t); if (this.allTex) { const i = this.allTex.indexOf(t); if (i >= 0) this.allTex.splice(i, 1); } }
     }
     setFilter(t) {
       const gl = this.gl; gl.bindTexture(gl.TEXTURE_2D, t);
@@ -219,7 +226,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
     }
     drawDepth(batches, W) {
       const gl = this.gl; gl.uniformMatrix4fv(this.DU.W, false, W || BRR.M4.I);
-      for (const b of batches) { gl.uniform1i(this.DU.useTex, b.tex ? 1 : 0); if (b.tex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, b.tex); } gl.bindVertexArray(b.vao); gl.drawArrays(gl.TRIANGLES, 0, b.n); }
+      for (const b of batches) { if (!b.vao) continue; gl.uniform1i(this.DU.useTex, b.tex ? 1 : 0); if (b.tex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, b.tex); } gl.bindVertexArray(b.vao); gl.drawArrays(gl.TRIANGLES, 0, b.n); }
     }
     shadowEnd() { const gl = this.gl; gl.disable(gl.POLYGON_OFFSET_FILL); gl.bindFramebuffer(gl.FRAMEBUFFER, this.target || null); }
     // posproceso de toda la imagen: antialiasing FXAA, exposición y desenfoque por profundidad (modo foto)
@@ -340,6 +347,7 @@ void main(){ if(bright==1){ vec3 c=vec3(0.); for(int i=-1;i<=2;i+=2) for(int j=-
     draw(batches, W) {
       const gl = this.gl; gl.uniformMatrix4fv(this.U.W, false, W || BRR.M4.I);
       for (const b of batches) {
+        if (!b.vao) continue;   // (malla ya liberada)
         gl.uniform1i(this.U.useTex, b.tex ? 1 : 0);
         if (b.tex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, b.tex); }
         gl.bindVertexArray(b.vao); gl.drawArrays(gl.TRIANGLES, 0, b.n);

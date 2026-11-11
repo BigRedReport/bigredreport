@@ -543,9 +543,12 @@
   // se vuelve al último estado bueno con el coche parado en vez de dejar que el fallo se propague
   { const step0 = BRR.Car.prototype.step, fin = a => a.every(Number.isFinite), ok = c => fin(c.p) && fin(c.v) && fin(c.w) && fin(c.q);
     BRR.Car.prototype.step = function (dt, inp) {
-      if (ok(this)) this._good = { p: this.p.slice(), q: this.q.slice() };
+      if (ok(this)) this._good = { p: this.p.slice(), q: this.q.slice(), v: this.v.slice(), w: this.w.slice() };
       step0.call(this, dt, inp);
-      if (!ok(this)) { const g = this._good; if (g) { this.p = g.p.slice(); this.q = g.q.slice(); } this.v = [0, 0, 0]; this.w = [0, 0, 0];
+      if (!ok(this)) { try { const g0 = this._good || {}, r1 = a => a ? a.map(x => +(+x).toFixed(2)).join(',') : '?';   // diagnóstico (una vez): qué se rompió y cómo iba el coche justo antes, para dar con la causa
+          if (BRR.onPhysBreak) BRR.onPhysBreak({ car: this.def && this.def.name, bad: ['p', 'v', 'w', 'q'].filter(k => !fin(this[k])).join('+'), v: r1(g0.v), w: r1(g0.w), p: r1(g0.p), q: r1(g0.q), dt,
+            inp: inp ? [inp.throttle, inp.brake, inp.steer, inp.handbrake ? 1 : 0, inp.nitro ? 1 : 0].map(x => +(+x || 0).toFixed(2)).join(',') : '', modo: (this.gpMode ? 'gp ' : '') + (this.kartMode ? 'kart ' : '') + (this.driftMode ? 'drift ' : '') + (this.dOn ? 'derrapando' : ''),
+            ruedas: (this.W || []).map(w => (w.contact ? 1 : 0) + ':' + (w.surface || '')).join(' ') }); } catch (x) { } const g = this._good; if (g) { this.p = g.p.slice(); this.q = g.q.slice(); } this.v = [0, 0, 0]; this.w = [0, 0, 0];
         for (const w of this.W || []) for (const k in w) if (typeof w[k] === 'number' && !Number.isFinite(w[k])) w[k] = 0; }
     }; }
 })();

@@ -110,7 +110,17 @@
       const [R, bk] = await Promise.all([readAll(T + 'trki/#', 3500), fetch(SITE + 'datos/circuitos.json', { cache: 'no-cache' }).then(r => r.ok ? r.json() : {}).catch(() => ({}))]), by = new Map();
       for (const j of Object.values(bk || {})) if (j && typeof j.id === 'string' && typeof j.name === 'string' && j.t > 0) by.set(j.id, j);   // copia de seguridad de la web (por si los buzones han perdido alguno)
       for (const it of R.items) { const j = parse(it.p); if (!j || typeof j.id !== 'string' || typeof j.name !== 'string' || !(j.t > 0)) continue; const o = by.get(j.id); if (!o || j.t > o.t) by.set(j.id, j); }
-      return { online: R.any > 0 || by.size > 0, rows: [...by.values()].filter(j => !j.del).sort((a, b) => b.t - a.t), dels: [...by.values()].filter(j => j.del).map(j => j.id) };
+      // las fichas llegan de buzones públicos (cualquiera puede escribir en ellos): solo se aceptan campos con la forma esperada.
+      // Sin esto, una ficha con la portada o la longitud trucadas metía código en la página de la comunidad
+      const str = (v, n) => typeof v === 'string' ? v.replace(/[\u0000-\u001f]/g, ' ').slice(0, n) : '';
+      const clean = j => { if (!/^[a-z0-9\-_]{3,40}$/i.test(j.id)) return null; const o = { id: j.id, name: str(j.name, 60), author: str(j.author, 30), t: +j.t || 0, base: /^[A-Z0-9]{2,10}$/.test(j.base) ? j.base : 'CITY1', len: Math.max(0, Math.min(1e6, Math.round(+j.len) || 0)), desc: str(j.desc, 200) };
+        if (j.del) o.del = 1; if (j.kind === 'gp' || j.kind === 'drift' || j.kind === 'kart') o.kind = j.kind; if (typeof j.pid === 'string' && /^[a-z0-9]{4,12}$/.test(j.pid)) o.pid = j.pid;
+        if (typeof j.c === 'string' && j.c.length < 300000 && /^data:image\/jpeg;base64,[A-Za-z0-9+\/=]+$/.test(j.c)) o.c = j.c;
+        if (Array.isArray(j.path)) o.path = j.path.slice(0, 400).filter(q => Array.isArray(q) && Number.isFinite(q[0]) && Number.isFinite(q[1])).map(q => [q[0], q[1]]);
+        for (const k of ['laps', 'rev', 'size']) if (Number.isFinite(j[k])) o[k] = j[k];
+        return o; };
+      const all = [...by.values()].map(clean).filter(Boolean);
+      return { online: R.any > 0 || by.size > 0, rows: all.filter(j => !j.del).sort((a, b) => b.t - a.t), dels: all.filter(j => j.del).map(j => j.id) };
     },
     // votos de los circuitos de la comunidad: cada piloto deja el suyo retenido en vote/CIRCUITO/ID (1 arriba, -1 abajo, 0 quitado)
     async voteSet(id, v) { if (!/^[a-z0-9\-_]{3,40}$/i.test(id)) return 0; v = v > 0 ? 1 : v < 0 ? -1 : 0; return pubAll(T + 'vote/' + id + '/' + ID, JSON.stringify({ v, t: Date.now() }), true); },

@@ -948,6 +948,7 @@
       if (cT) for (const g of lvl.checkpoints || []) { if (g.num === 0) continue; const M = [[g.ax[0], 0, g.az[0]], [0, 1, 0], [g.ax[2], 0, g.az[2]]], y = lvl.terrain(g.c[0], g.c[2]);
         { const hw = (cT.w || 14) / 2, px = hw + 1, onRoad = sx => lvl.roadDist && lvl.roadDist(g.c[0] + g.ax[0] * px * sx, g.c[2] + g.ax[2] * px * sx) < hw + 0.9; if (onRoad(1) || onRoad(-1)) continue; }   // un poste que caería sobre otro tramo de pista (tramos juntos, curvas cerradas): ese pórtico no se pone
         trackProcs.push({ n: 'GANTRY', w: cT.w || 14, p: [g.c[0], y - 0.05, g.c[2]], R: M, up: gantryMesh(cT.w || 14).up }); }
+      R.free(statics); R.free(terrainB); if (props && props.models) for (const m of props.models.values()) R.free(m);   // fuera de la tarjeta gráfica el circuito anterior
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
       R.setEnvironment(lvl.sun, lvl.sky); { const at = makeAtmos(level, lvl.sun, lvl.sky); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
       // jugadores humanos: el equipo elegido para J1 y los siguientes colores para los demás
@@ -1265,7 +1266,7 @@
     clearTimeout(finishTimer); finishTimer = null; if (state !== 'race' && state !== 'results') return;
     updatePositions(0);
     const multi = humans.length > 1, h0 = humans[0], rec = getRec(h0), bestLap = h0.race.lapTimes.length ? Math.min(...h0.race.lapTimes) : null;
-    const who = o => o.h ? (multi ? 'Jugador ' + (o.h.i + 1) : 'Tú') : o.name && !o.isAI ? o.name + ' <small style="color:var(--mut)">(online)</small>' : teamLabel(o.car);   // sin el tipo de piloto de la IA
+    const who = o => o.h ? (multi ? 'Jugador ' + (o.h.i + 1) : 'Tú') : o.name && !o.isAI ? esc(o.name) + ' <small style="color:var(--mut)">(online)</small>' : teamLabel(o.car);   // sin el tipo de piloto de la IA
     const posRows = (rivals.length || multi) ? `<tr class="hdr"><td colspan="2">Clasificación</td></tr>` + order.map((o, i) => `<tr${o.h ? ' class="me"' : ''}><td>${headImg(o.car.team, 26)}${i + 1}. ${who(o)}</td><td>${crazyR() ? (crazy.loser && crazy.loser.car === o.car ? '💣 ¡bum!' : o.car.cop ? '🚨 poli' : o.car.robber && o.car.out ? '💰 pillado' : o.car.robber ? '💰 caco libre' : o.car.zombie ? '🧟 zombi' : o.car.out ? 'eliminado' : 'superviviente') : o.race.finishT != null ? fmt(o.race.finishT) : 'en carrera'}</td></tr>`).join('') : '';
     const laps = multi || crazyR() ? '' : `<tr class="hdr"><td colspan="2">Tus vueltas</td></tr>` + h0.race.lapTimes.map((t, i) => `<tr${t === bestLap ? ' class="best"' : ''}><td>Vuelta ${i + 1}</td><td>${fmt(t)}</td></tr>`).join('') + `<tr class="tot"><td>Total</td><td>${fmt(h0.total)}</td></tr>`;
     $('r_list').innerHTML = posRows + laps;
@@ -3565,6 +3566,8 @@
       el.hidden = false; el.querySelector('button').onclick = () => { el.hidden = true; }; setTimeout(() => { el.hidden = true; }, 20000);
     };
     addEventListener('error', e => report(e.message, e.error && e.error.stack));
+    // la física de un coche se rompió y se recuperó sola: no se molesta al jugador, pero se manda el dato (una vez) para encontrar la causa
+    { let once = false; BRR.onPhysBreak = info => { if (once) return; once = true; try { if (BRR.cloud) BRR.cloud.report({ msg: 'Física recuperada: ' + info.car + ' (' + info.bad + ')', stack: JSON.stringify(info), ver: BRR.VERSION || '?', where: netRace ? 'Online' : humans.length > 1 ? 'Pantalla partida' : 'En carrera', track: lvl ? lvl.name + (car ? ' · ' + car.def.name : '') : '', ua: navigator.userAgent.slice(0, 160), lang: BRR.lang ? BRR.lang() : '' }); } catch (x) { } }; }
     const netErr = m => /Failed to fetch|NetworkError|Load failed|network error|ERR_INTERNET|aborted/i.test(String(m || ''));   /* sin conexión: no es un fallo del juego (aviso #17) */
     addEventListener('unhandledrejection', e => { if (typeof Event !== 'undefined' && e.reason instanceof Event) return;   /* fallo de conexión o de carga (chat, nube…): no es un fallo del juego (#23) */ const m = e.reason && (e.reason.message || e.reason); if (netErr(m)) return; report(m, e.reason && e.reason.stack); }); }
   // instalable como app (solo en la versión web; abriendo el archivo directamente no se puede)
