@@ -49,9 +49,11 @@
   function render() {
     const list = bugs.filter(b => filter === 'all' || (filter === 'pend' && b.st === 'pend') || (filter === 'open' && (b.st === 'acc' || b.st === 'inv')) || (filter === 'fix' && b.st === 'fix') || (filter === 'rej' && (b.st === 'rej' || b.st === 'dup')));
     if (!list.length) { $('board').innerHTML = '<div class="empty">' + (bugs.length ? 'No hay fallos con este estado.' : 'Aún no hay fallos enviados. Usa el formulario para mandar el primero.') + '</div>'; return; }
-    $('board').innerHTML = list.map(b => `<article class="bug ${ST[b.st][1]}"><div class="t"><b><a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.title)}</a></b><span class="pill">${ST[b.st][0]}</span></div>
-      <div class="meta">#${b.n} · ${esc(b.donde || '')}${b.circuito ? ' · ' + esc(b.circuito) : ''} · ${fmt(b.created)} · ${esc(b.user)}${b.comments ? ' · ' + b.comments + ' comentarios' : ''}</div>
-      <p>${esc((b.desc || '').slice(0, 400))}${(b.desc || '').length > 400 ? '…' : ''}</p></article>`).join('');
+    const MAX = 6, q = { all: '', pend: '+is:open+-label:aceptado+-label:investigando', open: '+label:aceptado,investigando', fix: '+label:arreglado', rej: '+label:descartado,duplicado' }[filter] || '';
+    const more = `<a class="cta" href="https://github.com/${REPO}/issues?q=is:issue+-label:comentarios${q}" target="_blank" rel="noopener">Ver ${list.length > MAX ? 'los ' + list.length + ' fallos' : 'todos los fallos'} en GitHub</a>`;
+    $('board').innerHTML = list.slice(0, MAX).map(b => `<article class="bug ${ST[b.st][1]}"><div class="t"><b><a href="${esc(b.url)}" target="_blank" rel="noopener">${esc(b.title)}</a></b><span class="pill">${ST[b.st][0]}</span></div>
+      <div class="meta">${['#' + b.n, esc(b.donde || ''), esc(b.circuito || ''), fmt(b.created), esc(b.user), b.comments ? b.comments + ' comentarios' : ''].filter(Boolean).join(' · ')}</div>
+      <p>${esc((b.desc || '').replace(/```[\s\S]*?(```|$)/g, ' ').replace(/[#*_>-]+/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 180))}${(b.desc || '').length > 180 ? '…' : ''}</p></article>`).join('') + `<div class="more">${more}</div>`;   // solo los últimos; el resto, en GitHub
   }
   fetch('https://api.github.com/repos/' + REPO + '/issues?state=all&per_page=100', { headers: { Accept: 'application/vnd.github+json' } })
     .then(r => { if (!r.ok) throw new Error(r.status); return r.json(); })
