@@ -218,4 +218,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Mínimo 50 con las ruedas del Mini y ventanas completas (0.118.5)
 - [x] Red de seguridad contra físicas rotas (#22, #24, #25) (0.118.6)
 - [x] Escritorio: unidades de red y enlaces simbólicos (0.118.7)
+- [x] Arreglo urgente del sonido y pantalla completa en Android (#26–#30) (0.118.8)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

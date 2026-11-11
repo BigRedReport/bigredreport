@@ -80,7 +80,7 @@
       const sel = root.querySelector('.dg_f'); sel.value = o.filter || 'pixel'; const applyF = () => { scr.className = 'dg_scr f_' + sel.value; }; applyF();
       sel.onchange = () => { applyF(); if (o.setFilter) o.setFilter(sel.value); cv.focus(); };
       root.querySelector('.dg_x').onclick = () => this.close();
-      root.querySelector('.dg_fs').onclick = () => { try { document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen(); } catch (e) { } };
+      root.querySelector('.dg_fs').onclick = () => { try { const r = document.fullscreenElement ? document.exitFullscreen() : root.requestFullscreen && root.requestFullscreen(); if (r && r.catch) r.catch(() => { }); } catch (e) { } };   // (en Android la pantalla completa no existe: la promesa fallaba sin capturar, #30)
       root.querySelector('.dg_touch').hidden = !('ontouchstart' in window || navigator.maxTouchPoints > 0);
       this.onKey = e => { if (e.code === 'F2') { e.preventDefault(); e.stopImmediatePropagation(); this.close(); } };
       addEventListener('keydown', this.onKey, true);
@@ -127,7 +127,7 @@
     close() {
       if (!this.on) return; this.on = false; cancelAnimationFrame(this.raf);
       removeEventListener('keydown', this.onKey, true); removeEventListener('resize', this.onResize);
-      try { if (document.fullscreenElement) document.exitFullscreen(); } catch (e) { }
+      try { if (document.fullscreenElement) { const r = document.exitFullscreen(); if (r && r.catch) r.catch(() => { }); } } catch (e) { }
       try { if (this.ci) this.ci.exit(); } catch (e) { }
       this.ci = null; if (this.root) this.root.remove(); this.root = null;
       if (this.o && this.o.onExit) this.o.onExit();

@@ -61,7 +61,7 @@
       const b = await this.buf(rel); if (!b) return null;
       const s = this.ctx.createBufferSource(), g = this.ctx.createGain(); s.buffer = b; s.loop = true; g.gain.value = vol;
       s.connect(g); let p = null; if (pos) { p = this.panner(pos); g.connect(p); p.connect(this.bus(bus)); } else g.connect(this.bus(bus)); s.start();
-      return { set: (v, r, at) => { const t = this.ctx.currentTime; if (Number.isFinite(v)) g.gain.setTargetAtTime(v, t, 0.05); if (r && Number.isFinite(r)) s.playbackRate.setTargetAtTime(r, t, 0.05); if (at && !at.every(Number.isFinite)) at = null; if (p && at) this.movePanner(p, at); }, stop: () => { try { s.stop(); } catch (e) { } } };
+      return { set: (v, r, at) => { const t = this.ctx.currentTime; if (Number.isFinite(v)) g.gain.setTargetAtTime(v, t, 0.05); if (r && Number.isFinite(r)) s.playbackRate.setTargetAtTime(r, t, 0.05); if (at && at.every && !at.every(Number.isFinite)) at = null; if (p && at) this.movePanner(p, at); }, stop: () => { try { s.stop(); } catch (e) { } } };
     }
     // motor con dos capas de la misma muestra: una grave (a media velocidad, filtrada) que manda a bajas vueltas y la normal arriba,
     // un filtro que se abre al acelerar (al soltar suena ahogado) y una leve vibración; así los cambios de régimen suenan suaves
