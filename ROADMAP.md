@@ -220,4 +220,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Escritorio: unidades de red y enlaces simbólicos (0.118.7)
 - [x] Arreglo urgente del sonido y pantalla completa en Android (#26–#30) (0.118.8)
 - [x] IA de carreras por modo (GP agresivo, F1 profesional, karting a lo loco), memoria de vídeo y seguridad (0.118.9)
+- [x] Drift con embrague y cambio de lado suave; rivales sin frenadas en cadena (0.118.10)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

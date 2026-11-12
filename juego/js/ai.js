@@ -264,8 +264,8 @@
       if (car.gpMode) { if (!this.gpSet) { this.gpSet = true; const E = BRR.AI_PROFILES.experto, r = (a, b) => a + Math.random() * (b - a), F1 = car.def.name === 'F1';
           this.P = F1 ? { ...E, name: '', mistake: 0.08, defend: r(0.35, 0.65), pace: E.pace * r(0.98, 1.02), overtake: r(0.6, 0.9), aggro: 0.1, cut: r(0.5, 0.65), wobble: 0.01, laneJitter: 0.03, brakeK: r(1.0, 1.06) }
                       : { ...E, name: '', mistake: r(0.5, 1.4), defend: r(0.4, 1), pace: E.pace * r(0.975, 1.025), overtake: r(0.75, 1), aggro: r(0.3, 0.8), cut: r(0.4, 0.65), wobble: 0.03, laneJitter: 0.12, brakeK: r(0.98, 1.14) };
-          this.S = F1 ? { draft: 1.06, gap: 1.25, rate: 2.0, dive: 0.25, diveK: 1.02, room: 1.1, defHold: 4, defMove: 0.35, stagger: 0.2, moods: false, flick: 0 }
-                      : { draft: 1.05, gap: 0.85, rate: 2.5, dive: 0.75, diveK: 1.045, room: 0.6, defHold: 1.6, defMove: 0.5, stagger: 0.32, moods: true, flick: 0.3 };
+          this.S = F1 ? { draft: 1.06, gap: 1.25, rate: 2.0, dive: 0.25, diveK: 1.02, room: 1.1, defHold: 4, defMove: 0.35, stagger: 0.2, moods: false, flick: 0.15 }
+                      : { draft: 1.05, gap: 0.85, rate: 2.5, dive: 0.75, diveK: 1.045, room: 0.6, defHold: 1.6, defMove: 0.5, stagger: 0.32, moods: true, flick: 0.45 };
           this.base = { ...this.P }; this.kA = F1 ? 0.012 : 0.035; this.kPh = [Math.random() * 7, Math.random() * 7]; this.kLap = 0;
           this.vprof = null; this.skill = Math.min(1.08, this.skill + 0.05); } }
       else if (car.kartMode && !this.kartSet) { this.kartSet = true; const r = Math.random;   // karting: pilotos de carne y hueso: cada uno con su manera de trazar, se pasan de frenada a veces y derrapan
@@ -319,9 +319,8 @@
             if (Math.abs(ps) < want || ps * side < 0) { const sg = Math.sign(side || 1), off = myOff - sg * (want - (ps * side < 0 ? 0 : Math.abs(ps))), l2 = Math.max(-0.95, Math.min(0.95, off / roomOf(-sg)));   // separarse hasta dejar el hueco de su estilo
               sep = sep == null ? l2 : (sg > 0 ? Math.min(sep, l2) : Math.max(sep, l2)); } }
           if (ahead > 0 && ahead < 18 + v * 0.7 && Math.abs(side) < lap + 1.4 && (!tgt || ahead < tgt.ahead)) tgt = { o, ahead, side, vo, lap, cl };
-          // distancia de seguridad: la que hace falta para no comérselo si frena (más cuanto más rápido se le acerca)
-          if (ahead > 0 && Math.abs(side) < lap) { const need = hl * 2 + 0.9 + (clean ? 1.4 : S.gap) * (0.6 + Math.max(0, cl) * 0.4 + (cl > 0 ? (v * v - vo * vo) / (2 * bd * 0.6) * 0.75 : 0)) + (braking ? 1.2 : 0);
-            if (ahead < need) { const bs = Math.max(0, vo - (need - ahead) * 0.7 - 0.3); blockSpeed = blockSpeed == null ? bs : Math.min(blockSpeed, bs); } }
+          // (sin frenar por el de delante: si se topan por detrás, se topan; solo en la salida se levanta el pie para no embestir)
+          if (clean && ahead > 0 && ahead < hl * 2 + 4.5 && Math.abs(side) < lap) { const bs = Math.max(0, vo - 0.5); blockSpeed = blockSpeed == null ? bs : Math.min(blockSpeed, bs); }
           // defensa: al que viene por detrás más rápido se le tapa el hueco (F1: un solo movimiento; GP y karts: más sucio)
           if (!clean && ahead < -hl * 2 && ahead > -15 && Math.abs(side) < 4.5 && cl < -0.4 && this.defT <= 0 && this.passT <= 0 && !(tgt && tgt.ahead < hl * 2 + 8) && Math.random() < (P.defend || 0) * dt * 2.5) {
             this.defLane = Math.max(-0.85, Math.min(0.85, this.lane + Math.sign(side || (turnSign || 1)) * S.defMove)); this.defT = S.defHold; this.defMoveT = 1.3; }
@@ -428,14 +427,13 @@
       this.dbg = { err: +err.toFixed(2), vt: +vt.toFixed(1), lat: +latOff.toFixed(1), look: +look.toFixed(1), blk: blockSpeed, half: +half.toFixed(1) };
       // gas y freno progresivos (sin toquecitos): según lo que sobra de velocidad, filtrados para que la frenada sea continua
       const dv = vt - v, thrT = dv > 0 ? Math.min(1, 0.4 + dv * 0.3) : dv > -1.2 ? 0.12 : 0, brkT = car.kartMode ? (dv < -0.6 ? Math.min(1, 0.55 + (-dv - 0.6) / 1.5) : 0) : dv < -0.8 ? Math.min(1, (-dv - 0.8) / (car.gpMode ? 4 : 5) + (ae > 0.9 ? 0.3 : 0)) : 0;   // el kart frena tarde y a fondo
-      const brkB = S && blockSpeed != null && vt <= blockSpeed + 0.01 && dv < -0.4 ? Math.min(1, 0.25 + (-dv - 0.4) / 1.6) : 0;   // frenada por tráfico: decidida (no llegar tarde)
-      this.brk = (this.brk || 0) + (Math.max(brkT, brkB) - (this.brk || 0)) * Math.min(1, dt * (brkT > (this.brk || 0) ? 9 : 5)); this.thr = (this.thr || 0) + (thrT - (this.thr || 0)) * Math.min(1, dt * 8);
+            this.brk = (this.brk || 0) + (brkT - (this.brk || 0)) * Math.min(1, dt * (brkT > (this.brk || 0) ? 9 : 5)); this.thr = (this.thr || 0) + (thrT - (this.thr || 0)) * Math.min(1, dt * 8);
       inp.brake = this.brk > 0.05 ? this.brk : 0; inp.throttle = inp.brake > 0.12 ? 0 : this.thr;
       { const o = car.bumpBy, tn = performance.now() / 1000; if (o && tn - (car.bumpT || 0) < 0.7 && o.p) {   // tocando a otro coche: levanta y se aparta (no lo arrastra)
         const d = V.sub(o.p, car.p), fw = car.forward(), ahead = V.dot(d, fw), side = d[0] * fw[2] - d[2] * fw[0];
         if (ahead > -1.5) { inp.throttle *= ahead > 0.5 ? 0.25 : 0.55; const away = -Math.sign(side || 1) * 0.25; inp.steer = Math.max(-1, Math.min(1, inp.steer + away)); } } }
       // GP: a veces, en curvas cerradas, frena fuerte y da un toque de freno de mano para colocar el coche de lado (no en todas)
-      if (car.gpMode && v > 14) { const ck = Math.floor(s / 40); if (this.hbCk !== ck) { this.hbCk = ck; this.hbGo = turn > 0.85 && !this.traffic && race.t > 20 && Math.random() < (S ? S.flick : 0.4); }
+      if (car.gpMode && v > 14) { const ck = Math.floor(s / 40); if (this.hbCk !== ck) { this.hbCk = ck; this.hbGo = turn > 0.85 && race.t > 8 && Math.random() < (S ? S.flick : 0.4); }
         if (this.hbGo && inp.brake > 0.45 && Math.abs(this.steerOut) > 0.25 && !(this.hbT > 0)) { this.hbT = 0.22; this.hbGo = false; } }
       if (this.hbT > 0) { this.hbT -= dt; inp.handbrake = true; inp.brake = Math.max(inp.brake, 0.5); }
       // nitro en las rectas

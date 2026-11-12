@@ -344,7 +344,10 @@
       const vside = V.dot(this.v, right), beta = Math.atan2(vside, Math.max(0.5, Math.abs(vf))) * Math.sign(vf || 1), nRear = this.W.filter(w => !w.steer).length || 1;
       this.beta = beta;
       this.dLock = 0;
-      if (DR) { this.dHold = inp.handbrake ? 0.45 : Math.max(0, (this.dHold || 0) - dt); }   // el tirón del freno de mano dura un momento
+      if (DR) { this.dHold = inp.handbrake ? 0.45 : Math.max(0, (this.dHold || 0) - dt);
+        // el botón es un golpe de embrague: al pulsarlo las ruedas de atrás rompen a patinar un momento (sin frenar el coche)
+        if (inp.handbrake && !this.hbPrev) this.kickT = 0.55; this.hbPrev = !!inp.handbrake; this.kickT = Math.max(0, (this.kickT || 0) - dt);
+        this.dSlip = (this.dSlip || 0) + ((this.dHold > 0 ? 1 : 0) - (this.dSlip || 0)) * Math.min(1, dt * 9); }   /* dSlip: el agarre trasero se suelta y vuelve suave (sin tirón) */   // el tirón del freno de mano dura un momento
       for (const w of this.W) {
         const top = V.add(this.p, mv(R, [w.c[0], w.c[1] + 0.3, w.c[2]])), down = V.mul(up, -1);
         const hit = BRR.raycast(this.lvl, top, down, L0 + w.radius, this.ghost ? BRR.THIN : null);
@@ -363,8 +366,8 @@
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
         let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (F1 ? 1.32 : GP ? 1.15 : 1) * (this.kartMode ? (w.steer ? 1.3 : 1.24 * (braking && Math.abs(inp.steer) > 0.3 && vf > 12 ? 0.9 : 1)) : 1);   // GP: neumáticos de carreras (F1: aún más) · kart: mucho agarre, y la trasera se suelta un poco si entras frenando y girando
-        if (DR && !DB && !w.steer) { if (this.dHold > 0) mu = Math.min(mu, this.dOn ? 0.62 : 0.55);   // freno de mano: tirón para cruzarlo (sin frenar)
-          else { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
+        if (DR && !DB && !w.steer) { if ((this.dSlip || 0) > 0.02) mu += (Math.min(mu, this.dOn ? 0.62 : 0.55) - mu) * this.dSlip;   // golpe de embrague: la trasera patina (sin frenar)
+          if (!(this.dHold > 0)) { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
             mu *= 1 - 0.5 * ps; if (this.dOn && throttle > 0.3) mu *= 0.6; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando
         if (w.surface === 'agua' && !K.floats) Flong0 -= vLong * 120;   // el agua frena (salvo a lo que flota)
         let dmul = 1;
@@ -418,8 +421,9 @@
         const fh = V.norm([fwd[0], 0, fwd[2]]), rh = V.norm([right[0], 0, right[2]]), sa = this.steerAng, wd = V.norm(V.add(V.mul(fh, Math.cos(sa)), V.mul(rh, Math.sin(sa))));
         const hbOn = inp.handbrake || this.dHold > 0;
         // estado de derrape: entra al cruzarse (gas a fondo girando, o freno de mano) y sale al enderezarse
-        if (!this.dOn && ab > 0.2 && vf > 4) { this.dOn = true; this.dRamp = 0; } else if (this.dOn && ((ab < 0.07 && !inp.handbrake && !(Math.abs(inp.steer) > 0.5 && throttle > 0.3)) || vf < 2.5 || hv < 4)) this.dOn = false;   /* al cambiar de lado (volante a fondo con gas) el derrape sigue al pasar por recto */
-        this.dRamp = this.dOn ? Math.min(1, (this.dRamp || 0) + dt / 0.6) : 0; this.dSpd = Math.max(0, Math.min(1, (hv - 8) / 6)); const rp = this.dRamp * this.dRamp * (3 - 2 * this.dRamp);   /* dSpd: por debajo de ~50 km/h el derrape se va apagando: las gomas agarran y el coche sale con fuerza */   // entra suave: sin el último tirón al empezar el derrape
+        if (!this.dOn && ab > 0.2 && vf > 4) { this.dOn = true; this.dRamp = 0; } else if (this.dOn && ((ab < 0.07 && !inp.handbrake && !(this.dTr > 0) && !(Math.abs(inp.steer) > 0.5 && throttle > 0.3)) || vf < 2.5 || hv < 4)) this.dOn = false;
+        if (!this.dOn) this.dWy0 = wy; this.dTr = Math.max(0, (this.dTr || 0) - dt);   /* al cambiar de lado (volante a fondo con gas) el derrape sigue al pasar por recto */
+        this.dRamp = this.dOn ? Math.min(1, (this.dRamp || 0) + dt / 0.75) : 0; this.dSpd = Math.max(0, Math.min(1, (hv - 8) / 6)); const rp = this.dRamp * this.dRamp * (3 - 2 * this.dRamp);   /* dSpd: por debajo de ~50 km/h el derrape se va apagando: las gomas agarran y el coche sale con fuerza */   // entra suave: sin el último tirón al empezar el derrape
         if (!(this.dOn && inp.handbrake)) this.hbA = null;
         if (!this.dOn) this.dDir = null;
         if (this.dOn && hv > 4) {
@@ -427,23 +431,27 @@
           // el ángulo lo decide el gas (más gas = más de lado), el contravolante lo cierra y girar hacia dentro lo abre; sin gas se va enderezando.
           // La trayectoria NO va hacia donde apunta el morro: sigue casi recta y gira despacio hacia la curva (más si giras hacia dentro, menos con contravolante)
           const sg = Math.sign(beta) || 1, cs = Math.max(0, inp.steer * sg), into = Math.max(0, -inp.steer * sg);
-          let mag = throttle > 0.3 ? 0.28 + 0.42 * throttle + 0.3 * into - 0.32 * Math.min(cs, 0.6) - 1.6 * Math.max(0, cs - 0.6) : ab * 0.45; mag = Math.max(throttle > 0.3 ? -0.7 : 0.1, Math.min(0.9, mag));   /* contravolante a fondo: el coche cruza al otro lado (cambio de dirección del derrape) */
+          const kick = Math.min(1, (this.kickT || 0) / 0.3), thE = inp.handbrake || kick > 0 ? Math.max(throttle, 0.65) : throttle, A0 = 0.28 + 0.42 * thE + 0.3 * into + 0.22 * kick * (1 - cs);   // golpe de embrague: más ángulo un momento
+          let mag = thE > 0.3 ? A0 - (A0 + 0.5) * cs * cs : ab * 0.45 - 0.45 * cs * cs; mag = Math.max(thE > 0.3 ? -0.7 : -0.3, Math.min(0.95, mag));
+          if (mag < 0.05 && cs > 0.5) this.dTr = 0.7;   // cambio de lado en marcha: el derrape no se corta al pasar por recto   /* contravolante a fondo: el coche cruza al otro lado (cambio de dirección del derrape) */
           // freno de mano: mantiene el ángulo que lleva (el volante lo sigue ajustando un poco) y alarga el derrape sin acelerar
-          if (inp.handbrake) { if (this.hbA == null) { this.hbA = Math.max(0.2, ab); this.hbV = hv; } mag = Math.max(0.1, Math.min(1.0, this.hbA + 0.15 * into - 0.15 * cs)); }
+          if (inp.handbrake) { if (this.hbA == null) { this.hbA = Math.max(0.2, ab); this.hbV = hv; } if (cs < 0.5) mag = Math.max(mag, Math.min(1.0, this.hbA + 0.15 * into - 0.15 * cs)); }   /* (con contravolante a fondo también cambia de lado con el botón pulsado) */
           if (rp < 1) mag = ab + (mag - ab) * rp;   // al empezar, parte del ángulo que ya lleva
           mag *= this.dSpd;   // despacio se endereza solo
           const vH = [this.v[0], 0, this.v[2]], rate = Math.max(0.05, 0.32 + 0.45 * into - 0.3 * cs) * Math.min(1, hv / 10) * rp;
-          const wyT = Math.max(-2.2, Math.min(2.2, sg * rate + 3.2 * (sg * mag - beta))); T = V.madd(T, up, (wyT - wy) * this.I[1] * 7 * (0.6 + 0.4 * rp));   // la carrocería gira con la trayectoria y mantiene el ángulo
+          const sw = (sg * mag - beta) * sg < -0.35 ? 1 : 0, wMax = sw ? 3.4 : 1.5 + 0.7 * rp;   // sw: está cruzando al otro lado
+          let wyT = Math.max(-wMax, Math.min(wMax, sg * rate + (sw ? 4.6 : 3.2) * (sg * mag - beta))); if (rp < 1) wyT = (this.dWy0 || 0) * (1 - rp) + wyT * rp;   /* al empezar parte del giro que ya llevaba: sin parón ni tirón */
+          T = V.madd(T, up, (wyT - wy) * this.I[1] * 7 * (0.6 + 0.4 * rp));   // la carrocería gira con la trayectoria y mantiene el ángulo
           // dirección de la marcha guardada: gira solo lo que diga el derrape (si un golpe la cambia de verdad, parte de la nueva)
           const cd = [vH[0] / hv, 0, vH[2] / hv]; if (!this.dDir || this.dDir[0] * cd[0] + this.dDir[2] * cd[2] < 0.94) this.dDir = cd;
           const ang = sg * rate * dt, ca = Math.cos(ang), sn = Math.sin(ang), d0 = this.dDir; this.dDir = [d0[0] * ca + d0[2] * sn, 0, -d0[0] * sn + d0[2] * ca];   // giro alrededor del eje vertical hacia el lado del morro
           this.dLock = 0.9 * rp * this.dSpd;
-          if (inp.handbrake) { this.hbV = Math.max(0, this.hbV - 1.2 * dt); if (hv < this.hbV) F = V.madd(F, V.mul(vH, 1 / hv), this.m * Math.min(6, (this.hbV - hv) * 3)); }   // sin acelerar: solo no deja que se pare (pierde ~1 m/s cada segundo)
+          if (inp.handbrake) { this.hbV = Math.max(0, this.hbV - 0.5 * dt); if (hv < this.hbV) F = V.madd(F, V.mul(vH, 1 / hv), this.m * Math.min(6, (this.hbV - hv) * 3)); if (kick > 0) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 2.2 * kick); }   // sin acelerar: solo no deja que se pare (pierde ~1 m/s cada segundo)
           else if (throttle > 0.1 && hv < this.topSpeed * 0.97) F = V.madd(F, V.mul(vH, 1 / hv), this.m * 9.81 * 0.6 * throttle * Math.min(1, 3 * (1 - hv / (this.topSpeed * 0.97))));   /* con gas el derrape sigue ganando velocidad hasta casi la punta del coche (sin tope a media velocidad) */   // con gas empuja en el sentido de la marcha (estira el derrape)
           else if (throttle <= 0.1) F = V.madd(F, V.mul(vH, 1 / hv), -this.m * 2.5);   // sin gas pierde velocidad
         }
         if (throttle < 0.1 && vf > 1) F = V.madd(F, fh, -this.m * 9.81 * 0.05 * Math.min(1, vf / 4));   // sin gas retiene un poco (no de golpe)
-        if (hbOn && hv > 5 && !this.dOn) T = V.madd(T, up, -inp.steer * this.I[1] * 1.3 * Math.min(1, hv / 12));   // freno de mano + volante (solo para empezar): cruza un poco la trasera
+        if (hbOn && hv > 5 && !this.dOn) T = V.madd(T, up, -inp.steer * this.I[1] * 1.3 * Math.min(1, hv / 12) * (this.dSlip || 0));   // freno de mano + volante (solo para empezar): cruza un poco la trasera
         if (ab > 1.25 && hv > 4) { const sgn = Math.sign(wy * beta) > 0 ? 1 : 0.4; T = V.madd(T, up, -wy * this.I[1] * 6 * sgn); } }   // seguro: que no trompee
       if (!grounded) { this.air = (this.air || 0) + dt; this.fallV = Math.min(this.fallV || 0, this.v[1]); }
       else { if ((this.air || 0) > 0.35) { this.landed = Math.max(this.landed || 0, -(this.fallV || 0)); this.landEv = -(this.fallV || 0); } this.lastAir = this.air || 0; this.air = 0; this.fallV = 0; }
@@ -490,13 +498,16 @@
         T = V.add(T, [tw[0] * this.I[0] * k, tw[1] * this.I[1] * k, tw[2] * this.I[2] * k]);
       }
       // integración
+      if (!F.every(Number.isFinite)) this._nanAt = 'fuerzas'; else if (!T.every(Number.isFinite)) this._nanAt = 'par';   // diagnóstico: dónde nace un valor imposible
       this.v = V.madd(this.v, F, dt / this.m);
       if (this.dLock && this.dDir && grounded) { const h2 = Math.hypot(this.v[0], this.v[2]), k = this.dLock; this.v[0] += (this.dDir[0] * h2 - this.v[0]) * k; this.v[2] += (this.dDir[2] * h2 - this.v[2]) * k; }   // drift A: la trayectoria la lleva el derrape, no el morro
       const Tl = mtv(R, T), wl = mtv(R, this.w);
       for (let i = 0; i < 3; i++) wl[i] += Tl[i] / this.I[i] * dt;
       this.w = mv(R, wl); this.w = V.mul(this.w, 1 - (grounded ? 1.5 : 0.4) * dt);
       this.p = V.madd(this.p, this.v, dt); this.q = BRR.Q.integrate(this.q, this.w, dt);
+      if (!this._nanAt && !(Number.isFinite(this.p[0] + this.p[1] + this.p[2] + this.q[0] + this.q[1] + this.q[2] + this.q[3] + this.w[0] + this.w[1] + this.w[2]))) this._nanAt = 'integración';
       this.collide(dt);
+      if (!this._nanAt && !(Number.isFinite(this.v[0] + this.v[1] + this.v[2] + this.w[0] + this.w[1] + this.w[2] + this.p[0] + this.p[1] + this.p[2]))) this._nanAt = 'choque con el mapa (' + this.contacts.length + ' contactos)';
       // tras un golpe contra el suelo, que no salga girando como una peonza: limita cabeceo/alabeo (el giro en planta se respeta)
       { const up2 = this.R ? BRR.mv(this.R, [0, 1, 0]) : [0, 1, 0], wy = V.dot(this.w, up2), wt = V.madd(this.w, up2, -wy), L = V.len(wt), mx = this.K && this.K.fly ? 3 : 2.6;
         if (L > mx) this.w = V.madd(V.mul(wt, mx / L), up2, wy); }
@@ -544,9 +555,10 @@
   { const step0 = BRR.Car.prototype.step, fin = a => a.every(Number.isFinite), ok = c => fin(c.p) && fin(c.v) && fin(c.w) && fin(c.q);
     BRR.Car.prototype.step = function (dt, inp) {
       if (ok(this)) this._good = { p: this.p.slice(), q: this.q.slice(), v: this.v.slice(), w: this.w.slice() };
+      this._nanAt = ok(this) ? '' : 'fuera del paso (choque entre coches u objetos)';
       step0.call(this, dt, inp);
       if (!ok(this)) { try { const g0 = this._good || {}, r1 = a => a ? a.map(x => +(+x).toFixed(2)).join(',') : '?';   // diagnóstico (una vez): qué se rompió y cómo iba el coche justo antes, para dar con la causa
-          if (BRR.onPhysBreak) BRR.onPhysBreak({ car: this.def && this.def.name, bad: ['p', 'v', 'w', 'q'].filter(k => !fin(this[k])).join('+'), v: r1(g0.v), w: r1(g0.w), p: r1(g0.p), q: r1(g0.q), dt,
+          if (BRR.onPhysBreak) BRR.onPhysBreak({ car: this.def && this.def.name, bad: ['p', 'v', 'w', 'q'].filter(k => !fin(this[k])).join('+'), donde: this._nanAt || '?', v: r1(g0.v), w: r1(g0.w), p: r1(g0.p), q: r1(g0.q), dt,
             inp: inp ? [inp.throttle, inp.brake, inp.steer, inp.handbrake ? 1 : 0, inp.nitro ? 1 : 0].map(x => +(+x || 0).toFixed(2)).join(',') : '', modo: (this.gpMode ? 'gp ' : '') + (this.kartMode ? 'kart ' : '') + (this.driftMode ? 'drift ' : '') + (this.dOn ? 'derrapando' : ''),
             ruedas: (this.W || []).map(w => (w.contact ? 1 : 0) + ':' + (w.surface || '')).join(' ') }); } catch (x) { } const g = this._good; if (g) { this.p = g.p.slice(); this.q = g.q.slice(); } this.v = [0, 0, 0]; this.w = [0, 0, 0];
         for (const w of this.W || []) for (const k in w) if (typeof w[k] === 'number' && !Number.isFinite(w[k])) w[k] = 0; }

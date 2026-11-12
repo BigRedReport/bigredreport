@@ -7,6 +7,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.10**
+- **Drift (física A) más fácil de llevar:** el coche cambia de lado sin quedarse pillado (también con medio volante en el mando), el giro de entrada arranca suave desde lo que ya giraba el coche, y el botón hace de **embrague**: un toque suelta la trasera y da un empujón de motor en vez de frenar; mantenido aguanta el ángulo sin impedir el cambio de lado. El ángulo depende de gas y volante de forma continua.
+- **Rivales de GP, F1 y karting:** ya no frenan porque frene el de delante (se acabaron las frenadas en cadena y que se paren detrás de un coche parado); si se topan, se topan. En GP vuelven a cruzar el coche con el freno de mano en las curvas cerradas.
+- **Aviso de física recuperada:** ahora indica en qué parte del cálculo nace el fallo, para dar con la causa.
+
 **Novedades de la 0.118.9**
 - **Rivales de GP, F1 y karting rehechos:** frenan más tarde y cada piloto en su punto, guardan una distancia de seguridad real (se acabaron los toques al final de recta), adelantan por donde cabe un coche y aguantan en paralelo, se dejan hueco rueda con rueda, esquivan a los coches parados y en la salida mantienen su fila hasta la primera frenada.
   - **GP:** agresivos: apuran la frenada, se tiran al interior, se defienden y tienen rachas de ataque.
