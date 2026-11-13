@@ -112,6 +112,7 @@
   BRR.envOf = level => { level = String(level || ''); return level.includes('~') ? level.split('~')[0].replace(/\d+$/, '') : level.replace(/\d+$/, ''); };   // «CITY1~id»: circuito propio hecho con el editor sobre CITY1
   BRR.loadLevel = async function (files, level, progress = () => { }) {
     const env = BRR.envOf(level);
+    const CELL = 512 * (files.cellK || 1);   // casillas más grandes en los mapas que lo piden (el loop de Osaka mide 4,4 km de punta a punta)
     const L = await files.archive(level + '.LEV');
     const E = files.has(env + '.ENV') ? await files.archive(env + '.ENV') : new Map();
     const extra = [];

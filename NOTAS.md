@@ -7,6 +7,15 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.11**
+- **Modo nuevo: Kanjo Loop.** El loop de Osaka a tamaño real (10,3 km de vuelta, trazado de OpenStreetMap), siempre de noche: autopista elevada sobre pilares con muros, pantallas acústicas, farolas y pórticos, la ciudad alrededor con las ventanas encendidas y neones, y cuatro túneles con luz amarilla de sodio. Todo el decorado es propio.
+  - Se corre con el **Cívico** (coche nuevo) en **carrera, contrarreloj o libre**.
+  - **Tráfico** con tres densidades (poco, normal, mucho): turismos, furgonetas, taxis y camiones, cada uno en su carril. Al chocar salen despedidos de su sitio y luego vuelven a su carril; a ti te cuesta velocidad, tiempo y daños (en este modo los daños cuentan siempre).
+  - **Online:** nuevo modo al crear sala, con el mismo tráfico para todos y la densidad a elegir.
+  - Música propia del modo.
+- **Kart, fórmula y GT con modelos 3D nuevos** (con las ruedas del juego; la conducción no cambia). El Grand Prix se queda con un solo GT: el GT Sprint se retira.
+- **Mapas más grandes:** un circuito puede pedir un mapa de hasta 5 km de lado (lo usa el loop).
+
 **Novedades de la 0.118.10**
 - **Drift (física A) más fácil de llevar:** el coche cambia de lado sin quedarse pillado (también con medio volante en el mando), el giro de entrada arranca suave desde lo que ya giraba el coche, y el botón hace de **embrague**: un toque suelta la trasera y da un empujón de motor en vez de frenar; mantenido aguanta el ángulo sin impedir el cambio de lado. El ángulo depende de gas y volante de forma continua.
 - **Rivales de GP, F1 y karting:** ya no frenan porque frene el de delante (se acabaron las frenadas en cadena y que se paren detrás de un coche parado); si se topan, se topan. En GP vuelven a cruzar el coche con el freno de mano en las curvas cerradas.

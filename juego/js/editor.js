@@ -4,7 +4,7 @@
 // base que pone las texturas, la paleta y los objetos; la carretera se dibuja encima como una cinta suave.
 "use strict";
 (function () {
-  const BRR = window.BRR, N = 256, CELL = 512, CM = 8;   // 256×256 casillas de 8 m (512 unidades originales)
+  const BRR = window.BRR, N = 256; let CELL = 512, CM = 8; const setK = T => { const k = (T && T.cellK) || 1; CELL = 512 * k; CM = 8 * k; };   // 256×256 casillas de 8 m (512 unidades originales)
   const THEMES = ['CITY1', 'CITY2', 'CITY3', 'CITY4', 'DIRT1', 'DIRT2', 'DIRT3', 'SNOW1', 'SNOW2', 'SNOW3', 'RUF1', 'RUF2', 'RUF3', 'RIG1', 'RIG3', 'RIG4', 'MOON1', 'MOON2', 'MOON3'];
   const NOOBJ = /^(START\d?|ST_POSTS?|ST_POST2|CHECKP|S_GRID|S_LINES|S_LIGHTS|CLOUDS?|CLOUDSLO|SUNRISE|HUGPOSTS)$/;
   const SOFTN = /PLANT|PALM|CONE|GRASS|BUSH|SHRUB|FLOWER|WEED|REED|CACT|SHEEP|COW|CHICK/;
@@ -111,7 +111,8 @@
     return map; }
   const hex = v => (v < 0 ? '-&' : '&') + Math.abs(Math.round(v)).toString(16).toUpperCase();
   async function build(files, T) {
-    const B = await loadBase(files, T.base), P = prepare(T, B), { h, t, S, gates, half } = P;
+    setK(T); const B0 = await loadBase(files, T.base); if (T.gen && !T.genOk) { T.t.fill(T.groundTile ?? B0.groundTile); T.genOk = 1; }   // circuitos generados: suelo liso con la baldosa del tema
+    const B = B0, P = prepare(T, B), { h, t, S, gates, half } = P;
     if (S.length < 8) throw new Error('La carretera necesita al menos 3 puntos');
     const name = T.base + '~' + T.id, L = new Map();
     for (const [k, v] of B.L) if (!/\.REC$/i.test(k) && !/^MAP\.(MPH|MPC|CHT|DAT|SHL|CSE|GRP)$/i.test(k) && !/\.TXT$/i.test(k)) L.set(k, v);
@@ -149,7 +150,7 @@
       `laps ${Math.max(1, Math.min(20, T.laps | 0 || 3))}`, `nitros ${Math.max(0, Math.min(12, T.nitros | 0))},1200`, ...cams].join('\n');
     L.set(name + '.TXT', new TextEncoder().encode(script));
     const files2 = Object.create(files); files2.extra = extra; const lev = name + '.LEV';
-    files2.archive = async n => n === lev ? L : files.archive(n); files2.has = n => n === lev || files.has(n);
+    files2.archive = async n => n === lev ? L : files.archive(n); files2.has = n => n === lev || files.has(n); files2.cellK = T.cellK || 1;
     return { name, files2, P, B };
   }
   // cinta de la carretera (curva suave encima del terreno) y línea de salida a cuadros
@@ -179,6 +180,7 @@
   }
   BRR.loadCustomLevel = async function (files, T, progress) {
     const { name, files2, P, B } = await build(files, T); const lvl = await BRR.loadLevel(files2, name, progress);
+    if (T.kanjo && BRR.kanjo) BRR.kanjo.install(lvl, P, T, CM);   // el loop va sobre un tablero elevado: el "suelo" de la carretera es el tablero
     ribbon(lvl, P, B, T);
     // la carretera tiene su propio suelo (asfalto, tierra, arena o nieve), no el de la baldosa que queda debajo: polvo, agarre y sonidos
     if (P.best) { const st = T.surf || ED.defSurf(T.base), d = B.thumbs[T.roadTile ?? B.roadTile].getContext('2d').getImageData(0, 0, 32, 32).data; let r = 0, g = 0, b = 0; for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; }
@@ -324,7 +326,7 @@
       w: Math.max(8, Math.min(30, +j.w || 14)), objs: (j.objs || []).slice(0, 4000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), laps: j.laps | 0 || 3, nitros: j.nitros | 0, roadTile: j.roadTile | 0, rev: 0 };
     if (t.h.length !== 65536 || t.t.length !== 65536) throw new Error('Circuito incompleto'); await saveTrack(t); return t; }
 
-  ED.init = function (opts) {
+  ED.init = function (opts) { setK(null);
     host = document.createElement('div'); host.id = 'editor'; host.hidden = true; host.files = opts.files; host.play = opts.play; host.close = opts.close; host.author = opts.author || (() => 'Piloto'); host.view3d = opts.view3d; host.objThumb = opts.objThumb; host.exit = opts.exit;
     host.innerHTML = `<div class="edtop"><b>🛠 Editor de circuitos</b><input id="ed_name" maxlength="40" placeholder="Nombre del circuito"><span class="small">Tema: <b id="ed_base"></b></span><span class="small" id="ed_info"></span>
       <span style="flex:1"></span><button id="ed_undo" title="Deshacer (Ctrl+Z)">↶</button><button id="ed_redo" title="Rehacer (Ctrl+Y)">↷</button><button id="ed_fit" title="Ver todo">⤢</button><button id="ed_save">💾 Guardar</button><button id="ed_3d" title="Recorrerlo con la cámara libre">🧊 Ver en 3D</button><button id="ed_play" class="main">▶ Probar</button><button id="ed_pub">🌐 Publicar</button><button id="ed_my">📁 Mis circuitos</button><button id="ed_exit">✕ Salir</button></div>
@@ -444,10 +446,10 @@
   // ---------- circuitos de la comunidad: empaquetar (comprimido), publicar, descargar, activar ----------
   const z = async (u8, mode) => { const S = mode === 'c' ? new CompressionStream('deflate-raw') : new DecompressionStream('deflate-raw'); const w = S.writable.getWriter(); w.write(u8); w.close(); return new Uint8Array(await new Response(S.readable).arrayBuffer()); };
   ED.pack = async t => JSON.stringify({ v: 1, brr: 'track', id: t.gid || t.id, name: t.name, author: t.author || '', pid: t.pid || '', base: t.base, w: t.w, road: t.road.map(p => [+p[0].toFixed(2), +p[1].toFixed(2)]), objs: (t.objs || []).map(o => ({ n: o.n, ...(o.s ? { s: o.s } : {}), x: +o.x.toFixed(2), z: +o.z.toFixed(2), r: o.r | 0 })), laps: t.laps, nitros: t.nitros, roadTile: t.roadTile, surf: t.surf, ...(t.kerbs ? { kerbs: 1 } : {}), ...(t.bridge ? { bridge: 1 } : {}), ...(t.kind && t.kind !== 'normal' ? { kind: t.kind } : {}), ...(t.placeName ? { lon: t.lon, lat: t.lat, placeName: t.placeName } : {}), ...(t.desc ? { desc: t.desc } : {}), ...(t.cover ? { cover: t.cover } : {}), rev: t.rev || 0, hz: b64(await z(t.h, 'c')), tz: b64(await z(t.t, 'c')) });
-  ED.unpack = async (s, extra = {}) => { const j = typeof s === 'string' ? JSON.parse(s) : s; if (!j || j.brr !== 'track' || !j.hz || !j.tz || !Array.isArray(j.road)) throw new Error('No es un circuito de Big Red Report');
+  ED.unpack = async (s, extra = {}) => { const j = typeof s === 'string' ? JSON.parse(s) : s; if (!j || j.brr !== 'track' || (!(j.kanjo && (BRR.BUILTIN_TRACKS || []).includes(j)) && (!j.hz || !j.tz)) || !Array.isArray(j.road)) throw new Error('No es un circuito de Big Red Report');
     const t = { v: 1, id: String(j.id || '').replace(/[^a-z0-9\-_]/gi, '').slice(0, 40), name: String(j.name || 'Circuito').slice(0, 40), author: String(j.author || '').slice(0, 24), pid: String(j.pid || '').slice(0, 12), base: THEMES.includes(j.base) ? j.base : 'CITY1',
-      h: await z(unb64(j.hz), 'd'), t: await z(unb64(j.tz), 'd'), road: j.road.filter(p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])).slice(0, 200).map(p => [Math.max(2, Math.min(253, +p[0])), Math.max(2, Math.min(253, +p[1]))]), w: Math.max(8, Math.min(30, +j.w || 14)),
-      objs: (j.objs || []).slice(0, 4000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), ...(/^[A-Z]{3,8}\d$/.test(o.s || '') ? { s: o.s } : {}), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), surf: ['asfalto', 'tierra', 'arena', 'nieve'].includes(j.surf) ? j.surf : undefined, cover: typeof j.cover === 'string' && j.cover.length < 200000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(j.cover) ? j.cover : undefined, laps: Math.max(1, Math.min(20, j.laps | 0 || 3)), nitros: Math.max(0, Math.min(12, j.nitros | 0)), roadTile: j.roadTile | 0, rev: j.rev | 0, kerbs: !!j.kerbs, bridge: !!j.bridge, kind: ['gp', 'drift', 'kart'].includes(j.kind) ? j.kind : 'normal', ...(typeof j.placeName === 'string' && isFinite(j.lon) && isFinite(j.lat) ? { lon: +j.lon, lat: +j.lat, placeName: j.placeName.slice(0, 30) } : {}), ...(typeof j.desc === 'string' ? { desc: j.desc.slice(0, 80) } : {}), ...extra };
+      h: j.hz ? await z(unb64(j.hz), 'd') : new Uint8Array(65536).fill(48), t: j.tz ? await z(unb64(j.tz), 'd') : new Uint8Array(65536).fill(255), road: j.road.filter(p => Array.isArray(p) && isFinite(p[0]) && isFinite(p[1])).slice(0, j.kanjo ? 600 : 200).map(p => [Math.max(2, Math.min(253, +p[0])), Math.max(2, Math.min(253, +p[1]))]), w: Math.max(8, Math.min(30, +j.w || 14)),
+      objs: (j.objs || []).slice(0, 4000).map(o => ({ n: String(o.n || '').replace(/[^A-Z0-9_]/gi, '').slice(0, 12).toUpperCase(), ...(/^[A-Z]{3,8}\d$/.test(o.s || '') ? { s: o.s } : {}), x: +o.x || 0, z: +o.z || 0, r: +o.r || 0 })), surf: ['asfalto', 'tierra', 'arena', 'nieve'].includes(j.surf) ? j.surf : undefined, cover: typeof j.cover === 'string' && j.cover.length < 200000 && /^data:image\/jpeg;base64,[A-Za-z0-9+/=]+$/.test(j.cover) ? j.cover : undefined, laps: Math.max(1, Math.min(20, j.laps | 0 || 3)), nitros: Math.max(0, Math.min(12, j.nitros | 0)), roadTile: j.roadTile | 0, rev: j.rev | 0, kerbs: !!j.kerbs, bridge: !!j.bridge, kind: ['gp', 'drift', 'kart', 'kanjo'].includes(j.kind) ? j.kind : 'normal', ...(j.kanjo && !j.hz ? { kanjo: 1, cellK: Math.max(1, Math.min(4, +j.cellK || 1)), hs: j.hs, gen: 1 } : {}), ...(typeof j.placeName === 'string' && isFinite(j.lon) && isFinite(j.lat) ? { lon: +j.lon, lat: +j.lat, placeName: j.placeName.slice(0, 30) } : {}), ...(typeof j.desc === 'string' ? { desc: j.desc.slice(0, 80) } : {}), ...extra };
     if (!t.id || t.h.length !== 65536 || t.t.length !== 65536) throw new Error('Circuito incompleto'); return t; };
   ED.levelOf = t => t.base + '~' + t.id;
   const BI = new Map();   // circuitos que vienen con el juego (Redrock)

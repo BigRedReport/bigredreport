@@ -125,3 +125,10 @@ Online (sin instalar nada)
   en ese caso se puede usar un servidor dedicado (abajo).
 - Servidor dedicado (avanzado, opcional): server/iniciar-servidor.bat (necesita Node.js). En Online →
   "Servidor dedicado" escribe ws://IP:7777. También guarda las clasificaciones de contrareloj.
+
+CRÉDITOS
+- Kanjo Loop: trazado de la autopista circular de Osaka a partir de datos de OpenStreetMap
+  (© colaboradores de OpenStreetMap, licencia ODbL, openstreetmap.org/copyright).
+- Cívico: basado en el modelo "Honda Civic Hatchback 1995 Low Poly 3D Model" de KidBi-Gaming
+  (sketchfab.com), licencia Creative Commons Atribución 4.0 (CC BY 4.0). Adaptado: sin ruedas,
+  recoloreado y convertido al formato del juego.

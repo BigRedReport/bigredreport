@@ -378,7 +378,14 @@
         if (mid < L) { const l = ray(-0.45), r = ray(0.45); this.avoid = (r >= l ? 1 : -1) * (1 - mid / L); }
       }
       if (this.avoid) lane = Math.max(-0.9, Math.min(0.9, this.lane + this.avoid * 1.2));
-      this.lane += (lane - this.lane) * Math.min(1, dt * (this.avoid || this.sepT > 0 ? 4 : S ? S.rate : 1.6));
+      // tráfico (Kanjo Loop): coches lentos, cada uno en su carril. Se busca con tiempo el hueco libre más cercano y, si no lo hay, se levanta el pie
+      let traf = false; { const rx = -here.t[2], rz = here.t[0], my = (car.p[0] - here.p[0]) * rx + (car.p[2] - here.p[2]) * rz, B = [];
+        for (const o of others) { if (!o.traffic) continue; const dx = o.p[0] - car.p[0], dz = o.p[2] - car.p[2], ah = dx * here.t[0] + dz * here.t[2], cl = v - o.spd; if (ah > -3 && ah < 14 + Math.max(0, cl) * 2.4) B.push([ah, my + dx * rx + dz * rz, o.spd, cl]); }
+        if (B.length) { const hw2 = Math.max(3, half - 1.2), blocked = c => B.some(b => Math.abs(b[1] - c) < 2.7); let best = null, bd = 1e9;
+          for (let c = -hw2; c <= hw2 + 0.01; c += hw2 / 4) { if (blocked(c)) continue; const d = Math.abs(c - my) + Math.abs(c - this.lane * half) * 0.3; if (d < bd) { bd = d; best = c; } }
+          if (blocked(my) || blocked(this.lane * half)) { traf = true; if (best != null) lane = Math.max(-0.92, Math.min(0.92, best / half));
+            for (const b of B) if (Math.abs(b[1] - my) < 2.2 && b[0] > 0 && b[0] < 5 + Math.max(0, b[3]) * (best == null ? 1.6 : 0.55)) blockSpeed = blockSpeed == null ? b[2] : Math.min(blockSpeed, b[2]); } } }
+      this.lane += (lane - this.lane) * Math.min(1, dt * (traf ? 5 : this.avoid || this.sepT > 0 ? 4 : S ? S.rate : 1.6));
       // perfil de velocidad de la trazada (curvatura + frenada), una vez por coche
       if (!this.vprof) {
         // misma regla para todos: la velocidad sale de la física del coche en esa trazada (también en las trazadas de las grabaciones originales,

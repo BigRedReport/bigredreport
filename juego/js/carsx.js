@@ -6,7 +6,7 @@
 "use strict";
 (function () {
   const BRR = window.BRR;
-  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' } };
+  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' } };
   const orig = BRR.loadVehicle;
   BRR.loadVehicle = async function (files, name, lvl, team = 1, extra = {}) {
     const C = BRR.CUSTOM_CARS[String(name).toUpperCase()]; if (!C) return orig(files, name, lvl, team, extra);
@@ -14,6 +14,7 @@
     const paint = (extra.paint || [238, 238, 234]).map(v => v / 255);
     const gl = extra.glass ? extra.glass.map(v => v / 255 * 0.8) : null;   // cristales del garaje
     const NM = String(name).toUpperCase();
+    if (NM === 'CIVICO') return civico(d, (extra.paint || [215, 40, 30]).map(v => v / 255), gl);
     if (NM === 'GT') return gt(d, (extra.paint || [200, 30, 26]).map(v => v / 255), 'GT', gl);
     if (NM === 'GTS') return gt(d, (extra.paint || [30, 90, 200]).map(v => v / 255), 'GTS', gl, 'sprint');   // la variante del GT: mismo coche, otra carrocería
     if (NM === 'ZETA35') return zeta(d, (extra.paint || [235, 150, 30]).map(v => v / 255), gl);
@@ -121,6 +122,15 @@
     const M = W.map(w => wheel(d.mesh.pal, w.radius, (w.c[2] < 0 ? front : rear)[3], rimCol)); return { W, M, G: low }; }
   // ---------- go-kart: pequeño, bajito, sin carrocería; el piloto va sentado a la vista ----------
   function kart(d, P) {
+    if (BRR.KART_MESH) {   // kart con malla 3D (kart_data.js): chasis y carrocería del modelo, ruedas del juego
+      const { W, M, G } = placeWheels(d, [0.5, -0.52, 0.13, 0.07], [0.55, 0.5, 0.14, 0.1], [0.75, 0.76, 0.78]);
+      const COL = [P, [0.07, 0.07, 0.08], [0.09, 0.09, 0.11], [0.5, 0.51, 0.55], [0.78, 0.79, 0.82], [0.6, 0.61, 0.64], [0.33, 0.34, 0.36], [0.04, 0.04, 0.045]];
+      const o = BRR.KART_MESH.body, body = meshCar(d.mesh.pal, { ...o, yOff: G }, k => COL[k] || P, null, false);
+      const g = body.brake.group('COLOR'); for (const v of [[-0.2, 0.12, 0.826], [0.2, 0.12, 0.826], [0.2, 0.18, 0.826], [-0.2, 0.12, 0.826], [0.2, 0.18, 0.826], [-0.2, 0.18, 0.826]]) { g.pos.push(v[0], v[1] + G, v[2]); g.col.push(1, 0.15, 0.1); g.lay.push(0); }
+      const gearF = d.gearF.map(r => [r[0] * 1.15, r[1] * 1.5, ...r.slice(2)]);
+      return { ...d, gearF, name: 'KART', vname: 'KART', mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: M, box: { c: [0, G + 0.22, 0], h: [0.62, 0.22, 0.85] }, interior: null, logoSlot: false,
+        brakeSpots: [[-0.15, G + 0.15, 0.83], [0.15, G + 0.15, 0.83]], nitro: [0, G + 0.2, 0.86], decoParts: [], headPos: [0, G + 0.86, 0.1] };
+    }
     const { W, M, G } = placeWheels(d, [0.5, -0.52, 0.13, 0.07], [0.55, 0.5, 0.14, 0.1], [0.75, 0.76, 0.78]), K = kit3(d.mesh.pal, G);
     const TUBE = [0.55, 0.56, 0.6], BLK = [0.08, 0.08, 0.09], SEAT = [0.1, 0.1, 0.12], ENG = [0.35, 0.36, 0.38], NUM = [0.95, 0.95, 0.92];
     K.box(-0.32, 0.06, -0.62, 0.32, 0.09, 0.62, BLK);   // bandeja del suelo
@@ -141,6 +151,15 @@
   }
   // ---------- fórmula (estilo F1): morro largo, alerones, pontones, toma de aire sobre el piloto y ruedas grandes al aire ----------
   function f1(d, P) {
+    if (BRR.F1_MESH) {   // fórmula con malla 3D (f1mesh_data.js): carrocería del modelo, ruedas del juego
+      const { W, M, G } = placeWheels(d, [0.78, -1.45, 0.32, 0.15], [0.76, 1.32, 0.35, 0.2], [0.18, 0.18, 0.2]);
+      const COL = [P, [0.09, 0.09, 0.1], [0.94, 0.94, 0.92], [0.98, 0.82, 0.12], [0.03, 0.03, 0.035]];
+      const body = meshCar(d.mesh.pal, { ...BRR.F1_MESH.body, yOff: G }, k => COL[k] || P, null, true);
+      const g = body.brake.group('COLOR'); for (const v of [[-0.09, 0.3, 1.862], [0.09, 0.42, 1.862], [0.09, 0.3, 1.862], [-0.09, 0.3, 1.862], [-0.09, 0.42, 1.862], [0.09, 0.42, 1.862], [-0.09, 0.3, 1.862], [0.09, 0.3, 1.862], [0.09, 0.42, 1.862], [-0.09, 0.3, 1.862], [0.09, 0.42, 1.862], [-0.09, 0.42, 1.862]]) { g.pos.push(v[0], v[1] + G, v[2]); g.col.push(1, 0.15, 0.1); g.lay.push(0); }
+      const gearF = d.gearF.map(r => [r[0] * 2.0, r[1] * 2.4, ...r.slice(2)]);
+      return { ...d, gearF, name: 'F1', vname: 'F1', mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: M, box: { c: [0, G + 0.35, 0], h: [0.95, 0.3, 2.4] }, interior: null, logoSlot: false,
+        brakeSpots: [[0, G + 0.36, 1.87]], nitro: [0, G + 0.3, 1.9], decoParts: [], headPos: [0, G + 0.74, -0.2] };
+    }
     const { W, M, G } = placeWheels(d, [0.78, -1.45, 0.32, 0.15], [0.76, 1.32, 0.35, 0.2], [0.18, 0.18, 0.2]), K = kit3(d.mesh.pal, G);
     const CARB = [0.1, 0.1, 0.11], WHITE = [0.94, 0.94, 0.92], ACC = [0.98, 0.82, 0.12];
     K.loft(-2.45, [0.08, 0.12, 0.2], -1.2, [0.2, 0.1, 0.42], P, P);   // morro
@@ -350,7 +369,7 @@
   function unpackMesh(o) { const b = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer; return { V: new Int16Array(b(o.v)), F: new Uint16Array(b(o.f)), C: new Uint8Array(b(o.c)), sc: o.sc }; }
   function meshCar(pal, o, colOf, brakeCats, one) {
     const { V, F, C, sc } = unpackMesh(o), mb = new BRR.MeshBuilder(pal), g = mb.group('COLOR'), brake = new BRR.MeshBuilder(pal), gb = brake.group('COLOR');
-    const vx = i => [V[i * 3] / sc, V[i * 3 + 1] / sc, V[i * 3 + 2] / sc];
+    const yo = o.yOff || 0, vx = i => [V[i * 3] / sc, V[i * 3 + 1] / sc + yo, V[i * 3 + 2] / sc];
     for (let t = 0; t < C.length; t++) { const a = vx(F[t * 3]), b2 = vx(F[t * 3 + 1]), c = vx(F[t * 3 + 2]), col = colOf(C[t]);
       const L = one ? [a, b2, c] : [a, b2, c, a, c, b2];   // one: la malla ya viene con las caras hacia fuera (una sola cara)
       for (const v of L) { g.pos.push(v[0], v[1], v[2]); g.col.push(...col); g.lay.push(0); }
@@ -456,7 +475,27 @@
       brakeSpots: [[-0.58, 0.68 + G, zr + 0.01], [0.58, 0.68 + G, zr + 0.01]], nitro: [0.2, 0.25 + G, zr], decoParts: [], headPos: null };
   }
   // ---------- GT de carreras ----------
+  // ---------- Cívico (modo Kanjo Loop): compacto japonés de los 90. Malla 3D de civico_data.js (modelo de KidBi-Gaming, CC BY 4.0), ruedas del juego ----------
+  function civico(d, P, gl) {
+    const M = BRR.CIVICO_MESH; if (!M) return gt(d, P, 'CIVICO', gl);
+    const G0 = Math.min(...d.wheels.map(w => w.c[1] - w.radius)), COL = M.cols.map((c, k) => k === 0 ? P : k === 1 ? (gl || [0.07, 0.09, 0.12]) : c);
+    const body = meshCar(d.mesh.pal, { ...M.body, yOff: G0 }, k => COL[k] || P, null, false);
+    const g = body.mb.group('COLOR'), gb = body.brake.group('COLOR');   // pilotos traseros (el modelo los traía pintados del color del coche)
+    for (const sx of [-1, 1]) { const Q = [[sx * 0.42, 0.72, 1.945], [sx * 0.8, 0.72, 1.945], [sx * 0.8, 0.9, 1.945], [sx * 0.42, 0.9, 1.945]];
+      for (const k of [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]) { const v = Q[k]; g.pos.push(v[0], v[1] + G0, v[2]); g.col.push(0.6, 0.04, 0.03); g.lay.push(2); gb.pos.push(v[0], v[1] + G0, v[2] + 0.004); gb.col.push(1, 0.16, 0.1); gb.lay.push(3); } }
+    const W = d.wheels.map(w => ({ ...w, c: [Math.sign(w.c[0]) * 0.74, w.c[1], w.c[2] < 0 ? -1.27 : 1.215] })), gearF = d.gearF.map(r => [r[0] * 1.5, r[1] * 1.95, ...r.slice(2)]);   // punta ~190 km/h
+    return { ...d, gearF, name: 'CIVICO', vname: 'CIVICO', mesh: body.mb, brake: body.brake, wheels: W, box: { c: [0, 0.1, -0.07], h: [0.86, 0.5, 2.0] }, interior: null, logoSlot: false,
+      brakeSpots: [[-0.6, 0.81 + G0, 1.96], [0.6, 0.81 + G0, 1.96]], nitro: [0.35, 0.22 + G0, 1.95], decoParts: [], headPos: null };
+  }
   function gt(d, P, name, gl, variant) {
+    if (BRR.GT_MESH) {   // GT con malla 3D (gtmesh_data.js): carrocería del modelo, ruedas del juego
+      const G0 = Math.min(...d.wheels.map(w => w.c[1] - w.radius)), GLS = gl || [0.07, 0.09, 0.12];
+      const COL = [P, [0.05, 0.05, 0.055], GLS, [0.8, 0.81, 0.84], [0.12, 0.12, 0.13], [0.95, 0.95, 0.88], [0.8, 0.05, 0.04], [0.95, 0.55, 0.12], [0.85, 0.08, 0.06], [0.92, 0.92, 0.9], [0.3, 0.31, 0.34], [0.2, 0.2, 0.22]];
+      const body = meshCar(d.mesh.pal, { ...BRR.GT_MESH.body, yOff: G0 }, k => COL[k] || P, new Set([6]), false);
+      const W = d.wheels.map(w => ({ ...w, c: [Math.sign(w.c[0]) * 0.8, w.c[1], w.c[2] < 0 ? -1.38 : 1.36] })), gearF = d.gearF.map(r => [r[0] * 1.55, r[1] * 2.0, ...r.slice(2)]);
+      return { ...d, gearF, name: 'GT', vname: 'GT', mesh: body.mb, brake: body.brake, wheels: W, box: { c: [0, 0.12, -0.2], h: [0.92, 0.45, 2.17] }, interior: null, logoSlot: false,
+        brakeSpots: [[-0.59, 0.69 + G0, 1.98], [0.59, 0.69 + G0, 1.98]], nitro: [0.2, 0.29 + G0, 1.99], decoParts: [], headPos: null };
+    }
     const SPR = variant === 'sprint', ACC = [0.98, 0.78, 0.1];   // GT Sprint: misma mecánica, otra carrocería (morro con toma, franja lateral amarilla, alerón doble, escape central)
     const G = -0.6, BLACK = [0.06, 0.06, 0.07], GLASS = gl || [0.08, 0.1, 0.14], WHITE = [0.93, 0.93, 0.9], RED = [0.8, 0.05, 0.04], LENS = [0.95, 0.95, 0.88], CARB = [0.13, 0.13, 0.15];
     const mb = new BRR.MeshBuilder(d.mesh.pal), g = mb.group('COLOR'), brake = new BRR.MeshBuilder(d.mesh.pal), gb = brake.group('COLOR');
