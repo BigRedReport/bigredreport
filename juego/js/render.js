@@ -344,6 +344,7 @@ void main(){ if(bright==1){ vec3 c=vec3(0.); for(int i=-1;i<=2;i+=2) for(int j=-
       BRR.Renderer.prototype.draw.call(this, batches, W); gl.uniform1f(this.U.glow, 0); gl.depthMask(true); gl.disable(gl.BLEND); }
     ambient(sky, gnd) { this.gl.uniform3fv(this.U.skyC, sky || this.skyC || [.8, .8, .8]); this.gl.uniform3fv(this.U.gndC, gnd || this.gndC || [.4, .4, .4]); }   // luz ambiente para lo que se dibuje a continuación (sin argumentos: la normal). Túneles con luz de sodio
     drawGloss(batches, W, k = 1) { this.gl.uniform1f(this.U.gloss, k); this.draw(batches, W); this.gl.uniform1f(this.U.gloss, 0); }
+    drawCarBody(batches, W, k = 0) { const U = this.U, gl = this.gl; gl.uniform1f(U.relief, 0); gl.uniform1f(U.gloss, k); this.draw(batches, W); gl.uniform1f(U.gloss, 0); gl.uniform1f(U.relief, this.relief || 0); }   // coches: sin relieve (los logos quedaban abultados)
     drawGlow(batches, W, g = 1) { this.gl.uniform1f(this.U.glow, g); this.draw(batches, W); this.gl.uniform1f(this.U.glow, 0); }
     draw(batches, W) {
       const gl = this.gl; gl.uniformMatrix4fv(this.U.W, false, W || BRR.M4.I);

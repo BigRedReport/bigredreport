@@ -7,6 +7,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.0.2**
+- **Fuera del asfalto:** en Grand Prix, Fórmula 1 y karting, por el césped o la tierra se frena y no se pasa de algo menos de la mitad de la punta.
+- **Cívico:** suspensión más dura y bien amortiguada (ya no rebota) y dirección más tranquila a alta velocidad: va recto a 190 sin ir corrigiendo.
+- **Pilotos:** brazos hacia delante con las manos en el volante (se nota sobre todo en el kart).
+- **Gradas:** el público suena más fuerte y se oye desde más lejos.
+- **Logos de las escuderías en los coches:** sin relieve, y el fondo del logo del mismo color que la carrocería (con color propio no casaba).
+
 **Novedades de la 1.0.1**
 - **Cívico:** suena con un motor VTEC grabado (régimen medio y, arriba, la leva VTEC); fuera el sonido sintetizado.
 - **Sonido ambiente:** las gradas con público se oyen al pasar por delante (sonido 3D, se animan cuando pasan coches) y el Kanjo Loop tiene ambiente de ciudad de fondo (ahogado en los túneles). Grito «Big Red Report» al pulsar start.

@@ -340,7 +340,11 @@
       const place = g => [(g[0] - cx) * k, (g[1] - hmn[1]) * k - 0.2, (g[2] - cz) * k];
       // sentado: las piernas se doblan en la cadera (muslos hacia delante) y en la rodilla (espinillas hacia abajo), en vez de ir de pie atravesando el coche
       const oy = body.verts.filter(Boolean).map(v => v[1]), y0 = Math.min(...oy), y1 = Math.max(...oy), hip = y0 + (y1 - y0) * 0.52, L = y1 - hip;
-      const torso = { ...body, verts: body.verts.map(v => { if (!v || v[1] <= hip) return v; const d = v[1] - hip; return d <= L * 0.5 ? [v[0], hip + d * 0.12, v[2] + d] : [v[0], hip + L * 0.06 + (d - L * 0.5), v[2] + L * 0.5]; }) };
+      // brazos al volante: los brazos (lo que sobresale a los lados por debajo del hombro) giran en el hombro hacia delante y un poco hacia dentro
+      const xm = Math.max(...body.verts.filter(Boolean).map(v => Math.abs(v[0]))), ax = xm * 0.6, sy = y0 + (hip - y0) * 0.17, AL = Math.max(1, hip - sy), th = 0.97, cT = Math.cos(th), sT = Math.sin(th);
+      const arm = v => { if (!v || v[1] <= sy || v[1] >= hip + AL * 0.1 || Math.abs(v[0]) < ax) return v; const sx = Math.sign(v[0]), rx = v[0] - sx * ax, ry = v[1] - sy, rz = v[2], t = Math.min(1, ry / AL);
+        return [sx * ax + rx * 0.8 - sx * xm * 0.32 * t, sy + ry * cT - rz * sT, ry * sT + rz * cT]; };
+      const torso = { ...body, verts: body.verts.map(v => { v = arm(v); if (!v || v[1] <= hip) return v; const d = v[1] - hip; return d <= L * 0.5 ? [v[0], hip + d * 0.12, v[2] + d] : [v[0], hip + L * 0.06 + (d - L * 0.5), v[2] + L * 0.5]; }) };
       const mb = new BRR.MeshBuilder(skinPal(charPalFor(team, paint), c.sk)), tm = n => A.get(n + '.TM');
       mb.addModel(torso, v => place(bxf(v)), tm); mb.addModel(head, v => place(hxf(v)), tm);
       out = R.upload(mb);
@@ -1222,8 +1226,8 @@
     if (snd.crowd && snd.crowd.length) {   // las 3 gradas más cercanas a la cámara; se animan más cuando pasan coches cerca
       const cams = humans.map(h => h.cam.pos), dc = p => Math.min(...cams.map(q => Math.hypot(p[0] - q[0], p[1] - q[1], p[2] - q[2])));
       const near = snd.crowdAt.map(p => ({ p, d: dc(p) })).sort((a, b) => a.d - b.d), cars = [...humans.map(h => h.car), ...rivals.map(r => r.car)];
-      snd.crowd.forEach((l, k) => { const n = near[k]; if (!n) { l.set(0); return; } const busy = cars.some(c => Math.hypot(c.p[0] - n.p[0], c.p[2] - n.p[2]) < 30) ? 1 : 0;
-        l.set(paused || state !== 'race' ? 0 : (0.45 + 0.35 * busy) * Math.max(0, 1 - n.d / 160) ** (audio.spatial ? 1 : 2), n.p); });
+      snd.crowd.forEach((l, k) => { const n = near[k]; if (!n) { l.set(0); return; } const busy = cars.some(c => Math.hypot(c.p[0] - n.p[0], c.p[2] - n.p[2]) < 50) ? 1 : 0;
+        l.set(paused || state !== 'race' ? 0 : (0.9 + 0.5 * busy) * Math.max(0, 1 - n.d / 280) ** (audio.spatial ? 1 : 2), n.p); });
     }
     if (snd.rivEng && snd.rivEng.length) {
       const dmin = c => Math.min(...humans.map(h => Math.hypot(c.p[0] - h.cam.pos[0], c.p[1] - h.cam.pos[1], c.p[2] - h.cam.pos[2])));
@@ -2587,7 +2591,7 @@
     const Rm = c.R; if (c.out) return;
     if (hide) { if (hide === 'capo' && dd.interior && opt.cabin !== false) drawInterior(c, dd.interior); return; }
     const GA = c.gar || null, low = GA && GA.low > 0 ? Math.min(0.1, GA.low / 100) : 0, pb = low ? V.add(c.p, BRR.mv(Rm, [0, -low, 0])) : c.p, fin = (GA && GA.finish) || 'normal', camb = GA && GA.camber > 0 ? Math.min(12, GA.camber) * Math.PI / 180 : 0;   // garaje: coche rebajado, acabado de la pintura y caída de las ruedas
-    if (opt.gloss !== 'no' && R.mode && fin !== 'mate') R.drawGloss(body, BRR.M4.fromRT(Rm, pb), fin === 'metal' ? 1.9 : fin === 'perla' ? 2.7 : 1); else R.draw(body, BRR.M4.fromRT(Rm, pb));   // reflejos en la carrocería
+    if (R.drawCarBody) R.drawCarBody(body, BRR.M4.fromRT(Rm, pb), opt.gloss !== 'no' && R.mode && fin !== 'mate' ? (fin === 'metal' ? 1.9 : fin === 'perla' ? 2.7 : 1) : 0); else R.draw(body, BRR.M4.fromRT(Rm, pb));   // reflejos en la carrocería
     if (c.headDraw && c.def.headPos) R.draw(c.headDraw, BRR.M4.fromRT(Rm, V.add(c.p, BRR.mv(Rm, c.def.headPos))));   // el piloto
     if (dd.brake && c.brakeLight) { R.drawGlow(dd.brake, BRR.M4.fromRT(Rm, pb), 1.7);   // luces de freno, con halo de luz
       if (fx && c.def.brakeSpots) for (const q of c.def.brakeSpots) { const p = V.add(c.p, BRR.mv(Rm, [q[0], q[1], q[2] + 0.05])); fx.glow(p, [1, 0.12, 0.08, 0.55], 0.45); fx.glow(p, [1, 0.55, 0.45, 0.6], 0.16); } }

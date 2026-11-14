@@ -97,7 +97,7 @@
       if (!this.crowdB) this.crowdB = this.loopBuf('crowd', BRR.CROWD_SND);
       const b = await this.crowdB; if (!b) return null;
       const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; s.connect(g);
-      let pn = null; if (this.spatial) { pn = this.panner(pos); pn.refDistance = 14; pn.rolloffFactor = 1.4; g.connect(pn); pn.connect(this.bus('sfx')); } else g.connect(this.bus('sfx'));
+      let pn = null; if (this.spatial) { pn = this.panner(pos); pn.refDistance = 35; pn.rolloffFactor = 0.8; pn.maxDistance = 600; g.connect(pn); pn.connect(this.bus('sfx')); } else g.connect(this.bus('sfx'));
       s.start(0, Math.random() * b.duration);
       return { set: (v, at) => { const t = c.currentTime; g.gain.setTargetAtTime(v, t, 0.25); if (pn && at) this.movePanner(pn, at); }, stop: () => { try { s.stop(); } catch (e) { } } };
     }

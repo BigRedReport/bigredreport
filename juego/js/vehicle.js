@@ -174,12 +174,12 @@
     if (extra.logo) for (const [tn, rgba] of mb.textures) { if (!rgba || !slotTex.has(tn)) continue;
       const ox = 136 + ((team - 1) % 3) * 40, oy = 112 + (((team - 1) / 3) | 0) * 40, L = extra.logo;
       // lo transparente del logo toma el color de la carrocería (el color de cara más abundante del modelo), sin recuadro
-      if (!body.paint) { const area = new Map(); for (const f of body.faces) { if (f.tex || f.cond != null || f.idx.length < 3) continue; const P = f.idx.map(i => body.verts[i]); if (P.some(v => !v)) continue;
+      let bgC = null; { const area = new Map();   /* (el fondo se toma del color ya pintado de la paleta final: antes, con color propio, usaba el color elegido sin su sombreado y no casaba con la carrocería) */ for (const f of body.faces) { if (f.tex || f.cond != null || f.idx.length < 3) continue; const P = f.idx.map(i => body.verts[i]); if (P.some(v => !v)) continue;
           let a = 0; for (let k = 1; k < P.length - 1; k++) { const e1 = [P[k][0] - P[0][0], P[k][1] - P[0][1], P[k][2] - P[0][2]], e2 = [P[k + 1][0] - P[0][0], P[k + 1][1] - P[0][1], P[k + 1][2] - P[0][2]]; a += Math.hypot(e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]) / 2; }
           area.set(f.color, (area.get(f.color) || 0) + a); }
-        const sat = c => { const r = lvl.pal[c * 3], g = lvl.pal[c * 3 + 1], b = lvl.pal[c * 3 + 2], mx = Math.max(r, g, b); return mx > 80 ? (mx - Math.min(r, g, b)) / mx : 0; };
-        const c = [...area].sort((x, y) => (y[1] * (sat(y[0]) > 0.35 ? 6 : 1)) - (x[1] * (sat(x[0]) > 0.35 ? 6 : 1)))[0]; body.paint = c ? [lvl.pal[c[0] * 3], lvl.pal[c[0] * 3 + 1], lvl.pal[c[0] * 3 + 2]] : null; }
-      const bg = body.paint || [rgba[((oy + 1) * 256 + ox + 1) * 4], rgba[((oy + 1) * 256 + ox + 1) * 4 + 1], rgba[((oy + 1) * 256 + ox + 1) * 4 + 2]];
+        const sat = c => { const r = pal[c * 3], g = pal[c * 3 + 1], b = pal[c * 3 + 2], mx = Math.max(r, g, b); return mx > 80 ? (mx - Math.min(r, g, b)) / mx : 0; };
+        const c = [...area].sort((x, y) => (y[1] * (sat(y[0]) > 0.35 ? 6 : 1)) - (x[1] * (sat(x[0]) > 0.35 ? 6 : 1)))[0]; bgC = c ? [pal[c[0] * 3], pal[c[0] * 3 + 1], pal[c[0] * 3 + 2]] : null; }
+      const bg = bgC || [rgba[((oy + 1) * 256 + ox + 1) * 4], rgba[((oy + 1) * 256 + ox + 1) * 4 + 1], rgba[((oy + 1) * 256 + ox + 1) * 4 + 2]];
       for (let y = 0; y < 40; y++) for (let x = 0; x < 40; x++) { const k = ((oy + y) * 256 + ox + x) * 4, j = (y * 40 + x) * 4, a = L[j + 3] / 255;
         for (let c = 0; c < 3; c++) rgba[k + c] = Math.round(L[j + c] * a + bg[c] * (1 - a)); rgba[k + 3] = 255; } }
     const shapeCache = new Map(); const wheelMeshes = []; const wheelRad = [];
@@ -322,16 +322,16 @@
     forward() { return mv(this.R, [0, 0, -1]); }
     step(dt, inp) {
       const R = this.R, up = mv(R, [0, 1, 0]), fwd = mv(R, [0, 0, -1]), right = mv(R, [1, 0, 0]);
-      const GP = this.gpMode, F1 = GP && this.def.name === 'F1', vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K / (GP ? GPV : 1) / (this.vmul || 1), def = this.def;   // vmul: más velocidad punta (p. ej. el que lleva la bomba)   // en GP las tablas del coche se leen a escala (misma respuesta, más velocidad)
+      const GP = this.gpMode, F1 = GP && this.def.name === 'F1', CIV = this.def.name === 'CIVICO', vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K / (GP ? GPV : 1) / (this.vmul || 1), def = this.def;   // vmul: más velocidad punta (p. ej. el que lleva la bomba)   // en GP las tablas del coche se leen a escala (misma respuesta, más velocidad)
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
       const DR = this.driftMode, DB = DR && this.driftB ? (this.dB || (this.dB = { on: false, lat: 1, side: 1, charge: 0, offT: 0, cT: 0, exit: 0 })) : null;   // drift B (arcade): ver más abajo   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
-      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1) * (F1 ? 1 / (1 + (vf / 38) ** 2) : 1) * (this.kartMode ? 1.2 / (1 + (vf / 30) ** 2) + 0.1 : 1);   // más giro para contravolante; el F1, mucho menos a alta velocidad (si no, se va con el mínimo toque)
-      this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * (F1 ? 10 / (1 + Math.max(0, vf) / 30) : 10));
+      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1) * (F1 ? 1 / (1 + (vf / 38) ** 2) : 1) * (this.kartMode ? 1.2 / (1 + (vf / 30) ** 2) + 0.1 : 1) * (CIV ? 0.35 + 0.65 / (1 + (vf / 40) ** 2) : 1);   /* Cívico: a 190 la dirección es más tranquila (antes había que ir corrigiendo todo el rato) */   // más giro para contravolante; el F1, mucho menos a alta velocidad (si no, se va con el mínimo toque)
+      this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * (F1 || CIV ? 10 / (1 + Math.max(0, vf) / 30) : 10));
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
       if (this.gpMode && this.grounded && this.def.name === 'F1' && inp.throttle > 0.1 && V.dot(this.v, fwd) > -0.5) { const tp = this.topSpeed, vf0 = V.dot(this.v, fwd); if (vf0 < tp * 0.98) F = V.madd(F, fwd, this.m * 7.5 * inp.throttle * Math.max(0.15, 1 - vf0 / tp)); }   // F1: tracción de monoplaza (0-100 en ~2,4 s)
       if (this.gpMode && this.grounded) { const sp2 = this.v[0] ** 2 + this.v[2] ** 2, f1 = this.def.name === 'F1'; F = V.add(F, V.mul(up, -Math.min((f1 ? 0.0045 : 0.0028) * sp2, f1 ? 14 : 6) * this.m)); }   // F1: mucho más apoyo   // GP: apoyo aerodinámico (más agarre cuanto más rápido)
-      const K = this.K, L0 = K.L0, nW = this.W.length; let grounded = 0, wetN = 0;
+      const K = this.K, L0 = K.L0, nW = this.W.length; let grounded = 0, wetN = 0, offN = 0;
       const throttle = inp.throttle, brake = inp.brake; this.thr = throttle;
       // marcha: adelante, freno o atrás
       let drive = 0;
@@ -355,7 +355,7 @@
         if (!hit) { w.prevLen = w.len = L0; w.load = 0; w.spin += (w.spinRate || 0) * dt; continue; }
         grounded++;
         const len = Math.max(0, hit.t - w.radius), dl = (len - w.prevLen) / dt; w.prevLen = w.len = len;
-        const kw = (w.k || this.k) * (F1 ? 7 : this.kartMode ? 5 : 1), cw = (w.cd || this.c) * (F1 ? 3 : this.kartMode ? 2.6 : 1);   /* kart: sin muelles (chasis rígido), casi no balancea */ /* F1: suspensión muy dura (con tanto apoyo el fondo tocaba el suelo) */ let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
+        const kw = (w.k || this.k) * (F1 ? 7 : this.kartMode ? 5 : CIV ? 1.5 : 1), cw = (w.cd || this.c) * (F1 ? 3 : this.kartMode ? 2.6 : CIV ? 1.6 : 1);   /* Cívico: suspensión dura y bien amortiguada (rebotaba) */   /* kart: sin muelles (chasis rígido), casi no balancea */ /* F1: suspensión muy dura (con tanto apoyo el fondo tocaba el suelo) */ let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
         Fs = Math.max(0, Fs); w.load = Fs;
         const n = hit.n, cp = V.madd(top, down, hit.t), r = V.sub(cp, this.p);
         const vc = V.add(this.v, V.cross(this.w, r));
@@ -369,7 +369,8 @@
         if (DR && !DB && !w.steer) { if ((this.dSlip || 0) > 0.02) mu += (Math.min(mu, this.dOn ? 0.62 : 0.55) - mu) * this.dSlip;   // golpe de embrague: la trasera patina (sin frenar)
           if (!(this.dHold > 0)) { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
             mu *= 1 - 0.5 * ps; if (this.dOn && throttle > 0.3) mu *= 0.6; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando
-        if (w.surface === 'agua' && !K.floats) Flong0 -= vLong * 120;   // el agua frena (salvo a lo que flota)
+        if (w.surface === 'agua' && !K.floats) Flong0 -= vLong * 120;
+        else if ((GP || this.kartMode) && !hit.surf && w.surface !== 'asfalto' && !this.lvl.kanjo) { Flong0 -= vLong * (this.kartMode ? 30 : 20); offN++; }   /* GP, F1 y karting: fuera del asfalto (césped, tierra…) se va mucho más lento */   // el agua frena (salvo a lo que flota)
         let dmul = 1;
         const rampHit = hit.surf && /RAMP|JUMP|SKI|WEDGE|SLOPE|KICK/.test(hit.tag || ''); if (rampHit) this.onRamp = 0.5;
         if (K.boat && !rampHit && (hit.surf || w.surface !== 'agua')) { dmul = 0.3; Flong0 -= vLong * 260; }   // la lancha fuera del agua apenas avanza (en las rampas, sí: salta)
@@ -462,6 +463,7 @@
       this.grounded = grounded;
       // en el agua lo que flota remonta los rápidos (en el original el agua no impide las subidas): anula la gravedad cuesta arriba
       // hélice / turbina: empuje directo sobre el casco (no depende del agarre)
+      this.offN = offN; if (offN && this.topSpeed) { const vOff = this.topSpeed * (this.kartMode ? 0.36 : 0.38), ex = vf - vOff; if (ex > 0) F = V.madd(F, fwd, -this.m * (offN / nW) * Math.min(16, ex * 2)); }   /* fuera del asfalto la velocidad se queda en algo menos de la mitad de la punta */
       if (K.thrust && (grounded || this.nitroT > 0)) F = V.madd(F, fwd, drive * (K.boat && !wetN && !(this.onRamp > 0) ? 0.3 : 1)); if (this.onRamp > 0) this.onRamp -= dt;
       // el aerodeslizador/jet sube las cuestas con su turbina (compensa parte de la gravedad en subida)
       if (K.floats && !K.boat && grounded && throttle > 0.1 && fwd[1] > 0 && !wetN) F = V.madd(F, fwd, this.m * 9.81 * fwd[1] * 0.6 * throttle);
@@ -494,6 +496,7 @@
       if (!grounded && !K.fly) { // un poco de control en el aire, como en el original
         T = V.add(T, V.mul(right, -inp.pitchAir * this.I[0] * 1.5));
       }
+      if (CIV && grounded >= 3 && vf > 15) { const k = 2.2 * Math.min(1, (vf - 15) / 30), wy = V.dot(this.w, up); T = V.add(T, V.mul(up, -wy * this.I[1] * k * Math.max(0, 1 - Math.abs(inp.steer) * 0.6))); }   /* Cívico: estabilidad en recta a alta velocidad (no culea; al girar fuerte casi no actúa) */
       // "tilter" del original: par que devuelve el coche a la vertical cuando se inclina demasiado
       const tilt = V.cross(up, [0, 1, 0]), tl = V.len(tilt), upY = up[1];
       if (!K.fly && (upY < 0.94 || tl > 0.35)) {
