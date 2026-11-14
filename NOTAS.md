@@ -7,6 +7,17 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 0.118.12**
+- **Garaje:** altura (rebajar el coche, solo estética), caída de ruedas, acabado de la pintura (normal, mate, metalizado, perlado), dos tonos (techo, capó o ambos), franjas de carreras y dorsal en las puertas. Los rivales también salen a veces tuneados.
+- **Kanjo Loop:**
+  - los rivales van cada uno por su carril y cambian de carril con tiempo para esquivar el tráfico (antes iban en fila haciendo la serpiente y se comían los muros);
+  - lo normal es 1 vuelta;
+  - **libre:** una carrera sin fin con el Cívico y otros seis Cívicos dando vueltas, cada uno a su ritmo (sin rampas ni cambios de coche);
+  - **contrarreloj:** siempre con mucho tráfico, 1 o 2 vueltas, y con su recuadro en el menú de Contrarreloj;
+  - portada propia en el selector.
+- **Editor:** el autor puede fijar la hora y el clima del circuito.
+- **Kart:** ya no se abolla; solo suma el % de daño.
+
 **Novedades de la 0.118.11**
 - **Modo nuevo: Kanjo Loop.** El loop de Osaka a tamaño real (10,3 km de vuelta, trazado de OpenStreetMap), siempre de noche: autopista elevada sobre pilares con muros, pantallas acústicas, farolas y pórticos, la ciudad alrededor con las ventanas encendidas y neones, y cuatro túneles con luz amarilla de sodio. Todo el decorado es propio.
   - Se corre con el **Cívico** (coche nuevo) en **carrera, contrarreloj o libre**.

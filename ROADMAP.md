@@ -222,4 +222,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] IA de carreras por modo (GP agresivo, F1 profesional, karting a lo loco), memoria de vídeo y seguridad (0.118.9)
 - [x] Drift con embrague y cambio de lado suave; rivales sin frenadas en cadena (0.118.10)
 - [x] Modo Kanjo Loop (Osaka de noche, tráfico, Cívico, online) y modelos 3D nuevos de kart, fórmula y GT (0.118.11)
+- [x] Garaje: altura, caída, acabados, dos tonos, franjas y dorsal; IA del Kanjo por carriles, libre sin fin y contrarreloj con mucho tráfico; hora y clima en el editor (0.118.12)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

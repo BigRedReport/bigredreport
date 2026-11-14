@@ -31,6 +31,13 @@
   BRR.buildAILine = function (lvl, race, mode = 'ground') {
     lvl.aiLines = lvl.aiLines || {};
     if (lvl.aiLines[mode]) return lvl.aiLine = lvl.aiLines[mode];
+    if (lvl.kanjo) {   // Kanjo Loop: la línea es el centro de la autopista (cada piloto va por su carril; nada de trazada de circuito que los junte a todos)
+      const K = lvl.kanjo, step = 3, N = Math.floor(K.total / step), out = []; let i = 0;
+      for (let k = 0; k < N; k++) { const sv = k * step; while (i < K.n - 1 && K.SS[i + 1] <= sv) i++; const j = (i + 1) % K.n, s1 = j ? K.SS[j] : K.total, u = Math.min(1, Math.max(0, (sv - K.SS[i]) / Math.max(1e-6, s1 - K.SS[i])));
+        const p = [K.X[i] + (K.X[j] - K.X[i]) * u, 0, K.Z[i] + (K.Z[j] - K.Z[i]) * u], pr = race.project(p); out.push({ p, w: 30, vh: lvl.courseV[pr.i] || 3000, roomL: 6, roomR: 6, s: pr.s }); }
+      out.forEach((q2, k) => { const nx = out[(k + 1) % N].p; q2.t = V.norm([nx[0] - q2.p[0], 0, nx[2] - q2.p[2]]); });
+      return lvl.aiLine = lvl.aiLines[mode] = { mode, cache: { x0: 0, z0: 0, W: 1, H: 1, cmask: new Uint8Array(1) }, pts: out, step, N, total: N * step, ms: 0, corridorAt: () => false };
+    }
     const t0 = performance.now(), C = lvl.collider, T = C.T, P = lvl.course;
     // puntos de paso: recorrido + puertas de control, ordenados por distancia
     const way = P.map((p, i) => ({ p, s: race.cum[i] }));
@@ -188,7 +195,7 @@
   const rle = a => { const o = []; let v = a[0], n = 0; for (let i = 0; i < a.length; i++) { if (a[i] === v) n++; else { o.push(n); v = a[i]; n = 1; } } o.push(n); return { first: a[0], runs: o }; };
   const unrle = (r, len) => { const a = new Uint8Array(len); let v = r.first, i = 0; for (const n of r.runs) { if (v) a.fill(1, i, i + n); i += n; v ^= 1; } return a; };
   const attach = L => { const { x0, z0, W, H, cmask } = L.cache; L.corridorAt = (x, z) => { const ix = Math.floor(x - x0), iz = Math.floor(z - z0); return ix >= 0 && iz >= 0 && ix < W && iz < H && cmask[iz * W + ix] === 1; }; return L; };
-  BRR.loadAILine = async function (lvl, mode) {
+  BRR.loadAILine = async function (lvl, mode) { if (lvl.kanjo) return false;   /* Kanjo Loop: la línea se calcula al momento (es el centro de la autopista) */
     try { const db = await aidb(), key = AIV + ':' + (lvl.aiKey || lvl.name) + ':' + mode;
       const v = await new Promise(ok => { const r = db.transaction('l').objectStore('l').get(key); r.onsuccess = () => ok(r.result); r.onerror = () => ok(null); });
       if (!v) return false;
@@ -297,6 +304,10 @@
       this.laneT -= dt;
       if (this.laneT <= 0) { this.laneT = 2 + Math.random() * 4; this.laneTarget = Math.max(-0.7, Math.min(0.7, this.baseLane + (Math.random() - .5) * 2 * P.laneJitter)); }
       let lane = this.laneTarget + turnSign * P.cut * Math.min(1, turn * 1.5) * 0.8;
+      const KJL = car.lvl && car.lvl.kanjo ? [-0.92, -0.31, 0.31, 0.92] : null;   // Kanjo Loop: cuatro carriles; cada piloto lleva el suyo y cambia de vez en cuando
+      if (KJL) { if (this.kjLane == null) { this.kjLane = (BRR.AIDriver._kj = ((BRR.AIDriver._kj || 0) + 1)) % 4; this.kjT = 6 + Math.random() * 14; }
+        this.kjT -= dt; if (this.kjT <= 0) { this.kjT = 7 + Math.random() * 16; this.kjLane = Math.max(0, Math.min(3, this.kjLane + (Math.random() < 0.5 ? -1 : 1))); }
+        lane = KJL[this.kjLane]; }
       // salida limpia: los primeros segundos cada uno mantiene su fila de la parrilla y nadie va a por nadie (sin peloteras)
       const clean = race.t < (this.S ? 8 : 6);   // (en carreras, hasta pasar la primera frenada)
       if (this.startLane == null) { const d0 = V.sub(car.p, here.p); this.startLane = Math.max(-0.9, Math.min(0.9, (d0[0] * -here.t[2] + d0[2] * here.t[0]) / Math.max(1.5, half))); this.lane = this.startLane; }
@@ -378,14 +389,14 @@
         if (mid < L) { const l = ray(-0.45), r = ray(0.45); this.avoid = (r >= l ? 1 : -1) * (1 - mid / L); }
       }
       if (this.avoid) lane = Math.max(-0.9, Math.min(0.9, this.lane + this.avoid * 1.2));
-      // tráfico (Kanjo Loop): coches lentos, cada uno en su carril. Se busca con tiempo el hueco libre más cercano y, si no lo hay, se levanta el pie
-      let traf = false; { const rx = -here.t[2], rz = here.t[0], my = (car.p[0] - here.p[0]) * rx + (car.p[2] - here.p[2]) * rz, B = [];
-        for (const o of others) { if (!o.traffic) continue; const dx = o.p[0] - car.p[0], dz = o.p[2] - car.p[2], ah = dx * here.t[0] + dz * here.t[2], cl = v - o.spd; if (ah > -3 && ah < 14 + Math.max(0, cl) * 2.4) B.push([ah, my + dx * rx + dz * rz, o.spd, cl]); }
-        if (B.length) { const hw2 = Math.max(3, half - 1.2), blocked = c => B.some(b => Math.abs(b[1] - c) < 2.7); let best = null, bd = 1e9;
-          for (let c = -hw2; c <= hw2 + 0.01; c += hw2 / 4) { if (blocked(c)) continue; const d = Math.abs(c - my) + Math.abs(c - this.lane * half) * 0.3; if (d < bd) { bd = d; best = c; } }
-          if (blocked(my) || blocked(this.lane * half)) { traf = true; if (best != null) lane = Math.max(-0.92, Math.min(0.92, best / half));
-            for (const b of B) if (Math.abs(b[1] - my) < 2.2 && b[0] > 0 && b[0] < 5 + Math.max(0, b[3]) * (best == null ? 1.6 : 0.55)) blockSpeed = blockSpeed == null ? b[2] : Math.min(blockSpeed, b[2]); } } }
-      this.lane += (lane - this.lane) * Math.min(1, dt * (traf ? 5 : this.avoid || this.sepT > 0 ? 4 : S ? S.rate : 1.6));
+      // tráfico (Kanjo Loop): coches lentos, cada uno en su carril. Se mira con tiempo qué carriles van libres y se pasa al más cercano; si no hay ninguno, se levanta el pie
+      let traf = false; if (KJL) { const rx = -here.t[2], rz = here.t[0], my = (car.p[0] - here.p[0]) * rx + (car.p[2] - here.p[2]) * rz, B = [], sc = 6;
+        for (const o of others) { if (!o.traffic) continue; const dx = o.p[0] - car.p[0], dz = o.p[2] - car.p[2], ah = dx * here.t[0] + dz * here.t[2], cl = v - (o.vNow ?? o.spd); if (ah > -4 && ah < 18 + Math.max(0, cl) * 3) B.push([ah, my + dx * rx + dz * rz, o.vNow ?? o.spd, cl]); }
+        if (B.length) { const blocked = c => B.some(b => Math.abs(b[1] - c) < 2.9), cur = KJL[this.kjLane] * sc;
+          if (blocked(cur) || blocked(my)) { traf = true; let best = null, bd = 1e9; for (let k = 0; k < 4; k++) { const c = KJL[k] * sc; if (blocked(c)) continue; const d = Math.abs(c - my); if (d < bd) { bd = d; best = k; } }
+            if (best != null) { this.kjLane = best; this.kjT = Math.max(this.kjT, 4); lane = KJL[best]; }
+            for (const b of B) if (Math.abs(b[1] - my) < 2.3 && b[0] > 0 && b[0] < 6 + Math.max(0, b[3]) * (best == null ? 1.8 : 0.7)) blockSpeed = blockSpeed == null ? b[2] : Math.min(blockSpeed, b[2]); } } }
+      this.lane += (lane - this.lane) * Math.min(1, dt * (traf ? 2.6 : KJL ? 0.9 : this.avoid || this.sepT > 0 ? 4 : S ? S.rate : 1.6));
       // perfil de velocidad de la trazada (curvatura + frenada), una vez por coche
       if (!this.vprof) {
         // misma regla para todos: la velocidad sale de la física del coche en esa trazada (también en las trazadas de las grabaciones originales,
@@ -430,6 +441,7 @@
       if (this.overT) this.overT = Math.max(0, this.overT - dt);
       this.crossT = ae > 1.5 ? (this.crossT || 0) + dt : 0;
       if (this.crossT > 1.6 && !(this.revT > 0)) { this.crossT = 0; if (this.hidden() && this.crossN > 1) { this.recover(s); this.crossN = 0; } else { this.crossN = (this.crossN || 0) + 1; this.revT = 1.1; this.revSteer = Math.sign(err) || 1; } }
+      if (this.kjCruise) vt = Math.min(vt, 53 * this.kjCruise);   // Kanjo Loop libre: cada uno a su ritmo (95–190 km/h)
       if (blockSpeed != null) vt = Math.min(vt, Math.max(8, blockSpeed));
       this.dbg = { err: +err.toFixed(2), vt: +vt.toFixed(1), lat: +latOff.toFixed(1), look: +look.toFixed(1), blk: blockSpeed, half: +half.toFixed(1) };
       // gas y freno progresivos (sin toquecitos): según lo que sobra de velocidad, filtrados para que la frenada sea continua
