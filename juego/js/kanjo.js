@@ -29,6 +29,7 @@
           const ex = x - X[i] - dx * t, ez = z - Z[i] - dz * t, d = Math.sqrt(ex * ex + ez * ez); if (d < N.d) { N.d = d; N.i = i; N.t = t; N.y = Y[i] + (Y[j] - Y[i]) * t; } } }
       return N.d < 1e8; };
     lvl.terrain = (x, z, nrm) => { if (near(x, z) && N.d < hw + 1.4) { if (nrm) { nrm[0] = 0; nrm[1] = 1; nrm[2] = 0; } return N.y; } return t0(x, z, nrm); };
+    { const s0 = lvl.surface, ASF = { type: 'asfalto', col: [0.25, 0.25, 0.27] }; lvl.surface = (x, z) => near(x, z) && N.d < hw + 1.4 ? ASF : s0(x, z); }   /* el tablero es asfalto (no la tierra o el agua del mapa de debajo: levantaba polvo) */
     lvl.kanjo = { n, X, Z, NX, NZ, SS, Y, hw, near, N, total: S.total, ground: t0, T };
     lvl.tunnel = (x, z) => near(x, z, 2) && N.d < hw + 2 && KJ.inTunnel(lvl.kanjo, SS[N.i]);   // eco dentro de los túneles
   };
@@ -179,7 +180,7 @@
     const pick = lane => { const u = rr(), t = TM && TM.length ? (lane === 0 ? (u < 0.3 ? 'camion' : u < 0.55 ? 'suv' : 'sedan') : lane === 1 ? (u < 0.1 ? 'camion' : u < 0.35 ? 'suv' : u < 0.5 ? 'taxi' : 'sedan') : (u < 0.15 ? 'taxi' : u < 0.3 ? 'suv' : 'sedan')) : lane === 0 ? (u < 0.4 ? 'camion' : u < 0.6 ? 'furgo' : u < 0.8 ? 'kei' : 'sedan') : lane === 1 ? (u < 0.15 ? 'camion' : u < 0.35 ? 'furgo' : u < 0.55 ? 'kei' : u < 0.7 ? 'taxi' : 'sedan') : (u < 0.2 ? 'taxi' : u < 0.3 ? 'kei' : 'sedan'), L = KINDS.filter(k => k.t === t); return L[rr() * L.length | 0]; };
     const LW = 2 * hw / 4, SPD = [21, 24.5, 28, 31.5], gap = density === 'poco' ? 230 : density === 'mucho' ? 58 : 105, cars = [];   // 76–113 km/h; el carril rápido es el de dentro
     for (let lane = 0; lane < 4; lane++) for (let s = rr() * gap; s < total - 20;) { const k = pick(lane); if (!(s < 320 || s > total - 650)) cars.push({ lane, lag: 0, dO: 0, vO: 0, yaw: 0, yawV: 0, hitT: 0, s0: s, o: (lane - 1.5) * LW, spd: SPD[lane], k,
-        p: [0, 0, 0], v: [0, 0, 0], w: [0, 0, 0], R: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], def: { box: k.m.box, name: 'TRAFICO' }, m: k.t === 'camion' ? 9000 : 1400, kinematic: true, traffic: true, out: false, K: {}, lastHit: 0,
+        p: [0, 0, 0], v: [0, 0, 0], w: [0, 0, 0], R: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], def: { box: k.m.box, name: 'TRAFICO' }, m: k.t === 'camion' ? 9000 : k.t === 'suv' || k.t === 'furgo' ? 2400 : 1400, kinematic: true, traffic: true, out: false, K: {}, lastHit: 0,
         applyImpulse() { }, speed() { return this.spd; }, forward() { return [-this.R[0][2], 0, -this.R[2][2]]; } }); s += k.m.len + 22 + rr() * gap * (lane === 3 ? 3 : lane === 2 ? 2 : 1.3); }
     const at = (s, c) => { s = ((s % total) + total) % total; let lo = 0, hi = n - 1; while (lo < hi) { const m = (lo + hi + 1) >> 1; if (SS[m] <= s) lo = m; else hi = m - 1; }
       const i = lo, j = (i + 1) % n, s1 = j ? SS[j] : total, t = Math.min(1, Math.max(0, (s - SS[i]) / Math.max(1e-6, s1 - SS[i]))), nx = NX[i] + (NX[j] - NX[i]) * t, nz = NZ[i] + (NZ[j] - NZ[i]) * t, l = Math.hypot(nx, nz) || 1, ux = nx / l, uz = nz / l, tx = uz, tz = -ux;
@@ -210,14 +211,15 @@
         if (p0) { const d = cd(c.sNow, p0.s), cl = Math.abs(p0.lat - c.o - c.dO) - c.k.m.box.h[0] - 0.86; if (c.nmD != null && c.nmF === T.frame - 1 && c.nmD > 0 && d <= 0 && cl < 1.25 && cl > -0.2 && p0.v > c.spd + 4) T.miss = { cl, dv: p0.v - c.spd }; c.nmD = d; c.nmF = T.frame; }
         // golpe: sale despedido de su carril (de lado y girando), pierde velocidad y luego vuelve poco a poco a su sitio
         if (c.lastHit > 1.5 && c.hitBy && c.ux != null) { const o = c.hitBy, sd = (c.p[0] - o.p[0]) * c.ux + (c.p[2] - o.p[2]) * c.uz, k = Math.min(1, c.lastHit / 12) * (c.m > 5000 ? 0.35 : 1), sg = sd >= 0 ? 1 : -1;
-          const lf = 0.35 + 0.65 * Math.min(1, Math.abs(sd) / 1.2); c.vO += sg * (1.5 + 6 * k) * lf; c.yawV += -sg * (0.4 + 1.5 * k) * lf; c.hitT = 1.0 + 1.2 * k; }   // de refilón sale más de lado que por detrás
+          const lf = 0.35 + 0.65 * Math.min(1, Math.abs(sd) / 1.2); if (c.softHit) { c.vO += sg * (0.5 + 2 * k) * lf; c.yawV += -sg * (0.12 + 0.5 * k) * lf; } else { c.vO += sg * (1.5 + 6 * k) * lf; c.yawV += -sg * (0.4 + 1.5 * k) * lf; c.hitT = 1.0 + 1.2 * k; } }   // de refilón sale más de lado que por detrás
         if (c.hitBy && !c.hitBy.traffic) c.hitBy.kjHit = (c.hitBy.kjHit || 0) + 1;   // para el logro «sin un rasguño»
-        c.lastHit = 0; c.hitBy = null;
+        c.lastHit = 0; c.hitBy = null; c.softHit = false;
         if (c.hitT > 0 || c.dO || c.yaw) { c.hitT = Math.max(0, c.hitT - d2); c.dO += c.vO * d2; c.vO *= Math.exp(-2.2 * d2); c.yaw += c.yawV * d2; c.yawV *= Math.exp(-2.5 * d2); c.yaw = Math.max(-0.75, Math.min(0.75, c.yaw));
           const lim = hw - 1.2; if (c.o + c.dO > lim) { c.dO = lim - c.o; c.vO = -Math.abs(c.vO) * 0.3; } if (c.o + c.dO < -lim) { c.dO = -lim - c.o; c.vO = Math.abs(c.vO) * 0.3; }
           if (c.hitT > 0) slow = Math.min(slow, c.spd * 0.45); else { c.dO -= c.dO * Math.min(1, d2 * 0.8); c.yaw -= c.yaw * Math.min(1, d2 * 2.2); slow = Math.min(slow, c.spd * (Math.abs(c.dO) > 0.4 ? 0.75 : 1)); if (Math.abs(c.dO) < 0.05 && Math.abs(c.yaw) < 0.01) { c.dO = 0; c.yaw = 0; c.vO = 0; c.yawV = 0; } } }
         for (const f of fs) { const d = cd(f.s, c.sNow); if (d > 0 && d < hl + 7 + Math.max(0, c.spd - f.v) * 1.6 && Math.abs(f.lat - c.o - c.dO) < 2.4 && f.v < slow) slow = Math.max(0, f.v - 0.5); }
         for (const o of T.near) if (o !== c && Math.abs(o.o + o.dO - c.o - c.dO) < 2.3) { const d = cd(o.sNow, c.sNow); if (d > 0 && d < hl + o.k.m.len / 2 + 9) slow = Math.min(slow, (o.vNow ?? o.spd) * 0.8); }
+        if (c.pushV > 0.05) { c.lag -= c.pushV * d2; slow += c.pushV; c.pushV *= Math.exp(-1.1 * d2); } else c.pushV = 0;   /* empujado por detrás: se va hacia delante un momento */
         if (slow < c.spd) { c.lag += (c.spd - slow) * (dt || 0); c.sNow = (((c.s0 + c.spd * tt - c.lag) % total) + total) % total; }
         const sp = c.spd; c.spd = slow; at(c.sNow, c); c.spd = sp; c.vNow = slow; } };
     T.draw = (M4) => { const bl = (performance.now() / 380 | 0) % 2 === 0; let amb = false;

@@ -77,6 +77,43 @@
           s1.playbackRate.setTargetAtTime(r * 0.62, t, 0.07); s2.playbackRate.setTargetAtTime(r, t, 0.07); lp.frequency.setTargetAtTime(900 + 3200 * thr + 1500 * x, t, 0.1); lfo.frequency.setTargetAtTime(5 + 9 * x, t, 0.2); },
         stop: () => { for (const n of [s1, s2, lfo]) try { n.stop(); } catch (e) { } } };
     }
+    // Cívico: el motor grabado (music/civ_lo.wav: régimen medio; civ_hi.wav: arriba, con la leva VTEC). Abajo suena el primero; al subir de vueltas entra el segundo
+    async b64Buf(k, b64) { if (!this.ctx || !b64) return null; k = 'b64:' + k; if (!this.cache.has(k)) this.cache.set(k, (async () => { try { const bin = atob(b64), u = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) u[i] = bin.charCodeAt(i); return await this.ctx.decodeAudioData(u.buffer); } catch (e) { return null; } })()); return this.cache.get(k); }
+    async urlBuf(url) { if (!this.ctx) return null; const k = 'url:' + url; if (!this.cache.has(k)) this.cache.set(k, (async () => { try { const r = await fetch(url); return await this.ctx.decodeAudioData(await r.arrayBuffer()); } catch (e) { return null; } })()); return this.cache.get(k); }
+    // bucle sin corte: se quita el relleno del mp3 y el final se funde con el principio (1,5 s)
+    async loopBuf(k, b64) { const c = this.ctx, b = await this.b64Buf(k, b64); if (!b) return null; const sr = b.sampleRate, X = Math.floor(sr * 1.5), cut = Math.floor(sr * 0.1), L = b.length - cut * 2 - X; if (L < sr) return b;
+      const o = c.createBuffer(b.numberOfChannels, L, sr); for (let ch = 0; ch < b.numberOfChannels; ch++) { const d = o.getChannelData(ch), a = b.getChannelData(ch); for (let i = 0; i < L; i++) d[i] = a[cut + i];
+        for (let i = 0; i < X; i++) { const w = i / X; d[i] = a[cut + i] * w + a[cut + L + i] * (1 - w); } } return o; }
+    // ambiente de ciudad (Kanjo Loop): de fondo, sin posición; en los túneles se apaga y se oye ahogado
+    async city() {
+      if (!this.ctx || !BRR.CITY_SND) return null; const c = this.ctx; if (!this.cityB) this.cityB = this.loopBuf('city', BRR.CITY_SND); const b = await this.cityB; if (!b) return null;
+      const s = c.createBufferSource(), lp = c.createBiquadFilter(), g = c.createGain(); s.buffer = b; s.loop = true; lp.type = 'lowpass'; lp.frequency.value = 12000; g.gain.value = 0;
+      s.connect(lp); lp.connect(g); g.connect(this.bus('sfx')); s.start(0, Math.random() * b.duration);
+      return { set: (v, tun) => { const t = c.currentTime; g.gain.setTargetAtTime(v * (tun ? 0.45 : 1), t, 0.3); lp.frequency.setTargetAtTime(tun ? 700 : 12000, t, 0.3); }, stop: () => { try { s.stop(); } catch (e) { } } };
+    }
+    // público de una grada: bucle (empalmado con un fundido de 1,5 s para que no se note el corte) en un punto del mundo
+    async crowd(pos) {
+      if (!this.ctx || !BRR.CROWD_SND) return null; const c = this.ctx;
+      if (!this.crowdB) this.crowdB = this.loopBuf('crowd', BRR.CROWD_SND);
+      const b = await this.crowdB; if (!b) return null;
+      const s = c.createBufferSource(), g = c.createGain(); s.buffer = b; s.loop = true; g.gain.value = 0; s.connect(g);
+      let pn = null; if (this.spatial) { pn = this.panner(pos); pn.refDistance = 14; pn.rolloffFactor = 1.4; g.connect(pn); pn.connect(this.bus('sfx')); } else g.connect(this.bus('sfx'));
+      s.start(0, Math.random() * b.duration);
+      return { set: (v, at) => { const t = c.currentTime; g.gain.setTargetAtTime(v, t, 0.25); if (pn && at) this.movePanner(pn, at); }, stop: () => { try { s.stop(); } catch (e) { } } };
+    }
+    async civic(bus = 'engine', pos = null) {
+      const [bl, bh] = await Promise.all([this.b64Buf('civ_lo', BRR.CIV_SND && BRR.CIV_SND.lo), this.b64Buf('civ_hi', BRR.CIV_SND && BRR.CIV_SND.hi)]); if (!bl || !bh) return null; const c = this.ctx;
+      const mk = b => { const s = c.createBufferSource(); s.buffer = b; s.loop = true; return s; }, sl = mk(bl), sh = mk(bh), gl = c.createGain(), gh = c.createGain(), lp = c.createBiquadFilter(), out = c.createGain();
+      gl.gain.value = 0; gh.gain.value = 0; out.gain.value = 0; lp.type = 'lowpass'; lp.frequency.value = 2500; lp.Q.value = 0.4;
+      sl.connect(gl); sh.connect(gh); gl.connect(lp); gh.connect(lp); lp.connect(out);
+      let pn = null; if (pos && this.spatial) { pn = this.panner(pos); out.connect(pn); pn.connect(this.bus(bus)); } else out.connect(this.bus(bus));
+      sl.start(0, Math.random() * bl.duration); sh.start(0, Math.random() * bh.duration);
+      return { set: (v, r, x) => { const t = c.currentTime, thr = Array.isArray(x) ? 0.8 : (x ?? 0.5), u = Math.max(0, Math.min(1, (r - 1.42) / 0.3)), h = u * u * (3 - 2 * u);   // r: 0,8 (ralentí) … 1,9 (corte)
+          out.gain.setTargetAtTime(v * (0.9 + 0.25 * h), t, 0.05); gl.gain.setTargetAtTime(1 - h, t, 0.06); gh.gain.setTargetAtTime(h * 1.1, t, 0.06);
+          sl.playbackRate.setTargetAtTime(Math.max(0.55, r * 0.92), t, 0.05); sh.playbackRate.setTargetAtTime(Math.max(0.5, r * 0.5), t, 0.05);
+          lp.frequency.setTargetAtTime(1100 + 3800 * thr + 2500 * h, t, 0.08); if (pn && Array.isArray(x)) this.movePanner(pn, x); },
+        stop: () => { for (const n of [sl, sh]) try { n.stop(); } catch (e) { } } };
+    }
     // motor de cuatro cilindros japonés de altas vueltas (Cívico), sintetizado: grave y redondo abajo y, al pasar de unas 5.500 rpm,
     // entra la leva "de arriba": más agudo, más metálico y con más volumen, hasta el corte a 8.200
     vtec(bus = 'engine', pos = null) {

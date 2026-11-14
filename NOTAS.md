@@ -7,6 +7,20 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.0.1**
+- **Cívico:** suena con un motor VTEC grabado (régimen medio y, arriba, la leva VTEC); fuera el sonido sintetizado.
+- **Sonido ambiente:** las gradas con público se oyen al pasar por delante (sonido 3D, se animan cuando pasan coches) y el Kanjo Loop tiene ambiente de ciudad de fondo (ahogado en los túneles). Grito «Big Red Report» al pulsar start.
+- **Kanjo Loop:**
+  - los rivales se respetan entre ellos (cambian de carril en vez de embestirse);
+  - golpes con el tráfico: por debajo de 120 km/h contra un coche normal es un toque (lo empujas y frenas poco); por encima, golpe; los camiones siguen siendo un muro;
+  - online: al elegir Kanjo Loop salen sus modos (carrera, contrarreloj con mucho tráfico, libre sin fin) en vez de los modos extra;
+  - el puente ya no levanta polvo (contaba como la tierra del mapa de debajo).
+- **Menos humo** en karting y Kanjo Loop.
+- **Rivales:** en karting fácil van bastante más lentos; en GP y F1 van a fondo en las rectas (el pelotón solo los frena en curva).
+- **Coche destrozado:** al volver tras la explosión sale sin abolladuras. **Modo foto:** botón «Reparar coche».
+- **Pilotos:** cuerpos y cabezas con más polígonos; arreglada la parte de arriba del casco que no se pintaba con colores morados o rosas.
+- **Portadas** de los cuatro circuitos de karting y nueva del modo libre.
+
 **Novedades de la 1.0.0**
 - **Versión 1.0:** el juego deja la beta. Android y Steam Deck pasan a «disponible».
 - **Menú «Un jugador» con tarjetas:** cada modo con su portada.

@@ -415,7 +415,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <div class="grid3"><div><label class="row">Vueltas</label><select id="n_laps"><option value="0">Las del circuito</option><option>1</option><option>2</option><option>3</option><option>5</option><option>10</option><option>99</option></select></div>
           <div><label class="row">Rivales de la máquina</label><select id="n_ai"><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>6</option><option>8</option><option>10</option></select></div>
           <div><label class="row">Dificultad</label><select id="n_diff"><option value="1">Fácil</option><option value="2" selected>Normal</option><option value="3">Difícil</option><option value="4">Muy difícil</option></select></div></div>
-        <div id="n_kjrow" hidden><label class="row">Tráfico</label><select id="n_kjtraf"><option value="poco">Poco</option><option value="normal" selected>Normal</option><option value="mucho">Mucho</option></select></div>
+        <div id="n_kjrow" hidden class="grid2"><div><label class="row">Modo Kanjo Loop</label><select id="n_kjtype"><option value="carrera">Carrera</option><option value="tt">Contrarreloj</option><option value="libre">Libre (sin fin)</option></select></div><div><label class="row">Tráfico</label><select id="n_kjtraf"><option value="poco">Poco</option><option value="normal" selected>Normal</option><option value="mucho">Mucho</option></select></div></div>
         <div class="grid2"><div><label class="row">Modos extra</label><select id="n_crazy"><option value="normal">Carrera normal</option><option value="elim_cp">Eliminación</option><option value="bomba">Bomba caliente</option><option value="zombie">Infección zombi</option><option value="polis">Polis y cacos</option><option value="kart">Modo kart</option></select></div><div></div></div>
         <div class="grid2" style="margin-top:10px"><button class="main" id="n_create">Crear</button><button id="n_cancel">Cancelar</button></div>
       </div>
@@ -568,7 +568,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 </div></div>
 <div id="photo" hidden><b>Modo foto</b><span class="small">WASD/stick: mover · ratón/stick der.: mirar · Q/E: subir/bajar · Mayús: rápido</span>
   <label>Exposición <input id="ph_exp" type="range" min="-100" max="100" value="0"></label><label>Enfoque <input id="ph_dof" type="range" min="0" max="100" value="0"></label>
-  <label><input id="ph_hud" type="checkbox"> Mostrar marcador</label><button id="ph_shot">Guardar foto</button><button id="ph_cover" hidden>🖼 Usar como portada</button><button id="ph_exit">Salir (F)</button></div>
+  <label><input id="ph_hud" type="checkbox"> Mostrar marcador</label><button id="ph_fix">🔧 Reparar coche</button><button id="ph_shot">Guardar foto</button><button id="ph_cover" hidden>🖼 Usar como portada</button><button id="ph_exit">Salir (F)</button></div>
 <div id="fps"></div><div id="netbar" hidden></div>
 
 <div id="garage" hidden><div class="card">
@@ -677,6 +677,9 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/kart_data.js"></script>
 <script src="js/modecov_data.js"></script>
 <script src="js/kanjo_data.js"></script>
+<script src="js/civsnd_data.js"></script>
+<script src="js/crowd_data.js"></script>
+<script src="js/ciudad_data.js"></script>
 <script src="js/trafmesh_data.js"></script>
 <script src="js/kanjo.js"></script>
 <script src="js/gp_decor.js"></script>

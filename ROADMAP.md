@@ -224,4 +224,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Modo Kanjo Loop (Osaka de noche, tráfico, Cívico, online) y modelos 3D nuevos de kart, fórmula y GT (0.118.11)
 - [x] Garaje: altura, caída, acabados, dos tonos, franjas y dorsal; IA del Kanjo por carriles, libre sin fin y contrarreloj con mucho tráfico; hora y clima en el editor (0.118.12)
 - [x] Versión 1.0: menú de modos con portadas, logros y récords por modo, tráfico nuevo del Kanjo con cambios de carril, puntos por rozar y túneles con luz de sodio (1.0.0)
+- [x] Motor VTEC grabado, público en las gradas y ambiente de ciudad; rivales del Kanjo sin choques, F1 a fondo, toques suaves con el tráfico y modos del Kanjo online (1.0.1)
 - [ ] Ideas: modo fútbol (tipo Rocket League)
