@@ -481,19 +481,19 @@
     const G0 = Math.min(...d.wheels.map(w => w.c[1] - w.radius)), COL = M.cols.map((c, k) => k === 0 ? P : k === 1 ? (gl || [0.07, 0.09, 0.12]) : c);
     const body = meshCar(d.mesh.pal, { ...M.body, yOff: G0 }, k => COL[k] || P, null, false);
     const g = body.mb.group('COLOR'), gb = body.brake.group('COLOR');   // pilotos traseros (el modelo los traía pintados del color del coche)
-    for (const sx of [-1, 1]) { const Q = [[sx * 0.42, 0.72, 1.945], [sx * 0.8, 0.72, 1.945], [sx * 0.8, 0.9, 1.945], [sx * 0.42, 0.9, 1.945]];
-      for (const k of [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]) { const v = Q[k]; g.pos.push(v[0], v[1] + G0, v[2]); g.col.push(0.6, 0.04, 0.03); g.lay.push(2); gb.pos.push(v[0], v[1] + G0, v[2] + 0.004); gb.col.push(1, 0.16, 0.1); gb.lay.push(3); } }
+    const RL = [[[-0.4, 0.7, 1.864], [-0.72, 0.7, 1.796], [-0.72, 0.86, 1.773], [-0.4, 0.86, 1.867]], [[0.4, 0.7, 1.869], [0.72, 0.7, 1.816], [0.72, 0.86, 1.797], [0.4, 0.86, 1.866]]];   // pegados a la trasera (medidos sobre la malla)
+    for (const Q of RL) for (const k of [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]) { const v = Q[k]; g.pos.push(v[0], v[1] + G0, v[2]); g.col.push(0.6, 0.04, 0.03); g.lay.push(2); gb.pos.push(v[0], v[1] + G0, v[2] + 0.004); gb.col.push(1, 0.16, 0.1); gb.lay.push(3); }
     const W = d.wheels.map(w => ({ ...w, c: [Math.sign(w.c[0]) * 0.74, w.c[1], w.c[2] < 0 ? -1.27 : 1.215] })), gearF = d.gearF.map(r => [r[0] * 1.5, r[1] * 1.95, ...r.slice(2)]);   // punta ~190 km/h
     return { ...d, gearF, name: 'CIVICO', vname: 'CIVICO', mesh: body.mb, brake: body.brake, wheels: W, box: { c: [0, 0.1, -0.07], h: [0.86, 0.5, 2.0] }, interior: null, logoSlot: false,
-      brakeSpots: [[-0.6, 0.81 + G0, 1.96], [0.6, 0.81 + G0, 1.96]], nitro: [0.35, 0.22 + G0, 1.95], decoParts: [], headPos: null };
+      brakeSpots: [[-0.56, 0.78 + G0, 1.84], [0.56, 0.78 + G0, 1.85]], headl: [[-0.56, 0.59 + G0, -1.85], [0.6, 0.59 + G0, -1.85]], nitro: [0.35, 0.22 + G0, 1.9], decoParts: [], headPos: null };
   }
   function gt(d, P, name, gl, variant) {
     if (BRR.GT_MESH) {   // GT con malla 3D (gtmesh_data.js): carrocería del modelo, ruedas del juego
       const G0 = Math.min(...d.wheels.map(w => w.c[1] - w.radius)), GLS = gl || [0.07, 0.09, 0.12];
       const COL = [P, [0.05, 0.05, 0.055], GLS, [0.8, 0.81, 0.84], [0.12, 0.12, 0.13], [0.95, 0.95, 0.88], [0.8, 0.05, 0.04], [0.95, 0.55, 0.12], [0.85, 0.08, 0.06], [0.92, 0.92, 0.9], [0.3, 0.31, 0.34], [0.2, 0.2, 0.22]];
-      const body = meshCar(d.mesh.pal, { ...BRR.GT_MESH.body, yOff: G0 }, k => COL[k] || P, new Set([6]), false);
-      const W = d.wheels.map(w => ({ ...w, c: [Math.sign(w.c[0]) * 0.8, w.c[1], w.c[2] < 0 ? -1.38 : 1.36] })), gearF = d.gearF.map(r => [r[0] * 1.55, r[1] * 2.0, ...r.slice(2)]);
-      return { ...d, gearF, name: 'GT', vname: 'GT', mesh: body.mb, brake: body.brake, wheels: W, box: { c: [0, 0.12, -0.2], h: [0.92, 0.45, 2.17] }, interior: null, logoSlot: false,
+      const WK = 1.17, body = meshCar(d.mesh.pal, { ...BRR.GT_MESH.body, yOff: G0 + 0.03 }, k => COL[k] || P, new Set([6]), false);   // ruedas un 17 % más grandes (llenan los pasos de rueda); el coche pisa el suelo igual
+      const W = d.wheels.map(w => ({ ...w, radius: w.radius * WK, c: [Math.sign(w.c[0]) * 0.8, w.c[1] + w.radius * (WK - 1), w.c[2] < 0 ? -1.38 : 1.36] })), gearF = d.gearF.map(r => [r[0] * 1.55, r[1] * 2.0, ...r.slice(2)]);
+      return { ...d, gearF, name: 'GT', vname: 'GT', mesh: body.mb, brake: body.brake, wheels: W, wheelK: WK, box: { c: [0, 0.12, -0.2], h: [0.92, 0.45, 2.17] }, interior: null, logoSlot: false,
         brakeSpots: [[-0.59, 0.69 + G0, 1.98], [0.59, 0.69 + G0, 1.98]], nitro: [0.2, 0.29 + G0, 1.99], decoParts: [], headPos: null };
     }
     const SPR = variant === 'sprint', ACC = [0.98, 0.78, 0.1];   // GT Sprint: misma mecánica, otra carrocería (morro con toma, franja lateral amarilla, alerón doble, escape central)

@@ -342,6 +342,7 @@ void main(){ if(bright==1){ vec3 c=vec3(0.); for(int i=-1;i<=2;i+=2) for(int j=-
       for (let i = 0; i < n; i++) for (let k = 0; k < 3; k++) cols[i * 3 + k] = pal[(pa[1] + i) * 3 + k] / 255; this.palAnim = { n, cols, rate: 24 / Math.max(1, pa[0]) }; }
     drawGhost(batches, W, a = 0.4) { const gl = this.gl; gl.enable(gl.BLEND); gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA); gl.depthMask(false); gl.uniform1f(this.U.glow, -a);
       BRR.Renderer.prototype.draw.call(this, batches, W); gl.uniform1f(this.U.glow, 0); gl.depthMask(true); gl.disable(gl.BLEND); }
+    ambient(sky, gnd) { this.gl.uniform3fv(this.U.skyC, sky || this.skyC || [.8, .8, .8]); this.gl.uniform3fv(this.U.gndC, gnd || this.gndC || [.4, .4, .4]); }   // luz ambiente para lo que se dibuje a continuación (sin argumentos: la normal). Túneles con luz de sodio
     drawGloss(batches, W, k = 1) { this.gl.uniform1f(this.U.gloss, k); this.draw(batches, W); this.gl.uniform1f(this.U.gloss, 0); }
     drawGlow(batches, W, g = 1) { this.gl.uniform1f(this.U.glow, g); this.draw(batches, W); this.gl.uniform1f(this.U.glow, 0); }
     draw(batches, W) {

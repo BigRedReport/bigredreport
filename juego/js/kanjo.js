@@ -30,6 +30,7 @@
       return N.d < 1e8; };
     lvl.terrain = (x, z, nrm) => { if (near(x, z) && N.d < hw + 1.4) { if (nrm) { nrm[0] = 0; nrm[1] = 1; nrm[2] = 0; } return N.y; } return t0(x, z, nrm); };
     lvl.kanjo = { n, X, Z, NX, NZ, SS, Y, hw, near, N, total: S.total, ground: t0, T };
+    lvl.tunnel = (x, z) => near(x, z, 2) && N.d < hw + 2 && KJ.inTunnel(lvl.kanjo, SS[N.i]);   // eco dentro de los túneles
   };
 
   // ---------- texturas de fachada: ventanas encendidas y apagadas ----------
@@ -45,6 +46,7 @@
   const TEXS = () => [winTex(11, 0.42, WARM, [16, 15, 15]), winTex(23, 0.6, COOL, [12, 14, 18]), winTex(37, 0.25, MIX, [20, 18, 16]), winTex(51, 0.5, MIX, [9, 10, 12])];
   // tramos cubiertos (fracción de la vuelta): techo, paredes y luz amarilla de sodio
   const TUN = [[0.115, 0.165], [0.43, 0.475], [0.70, 0.765], [0.905, 0.935]];
+  KJ.AMB_SKY = [2.7, 1.85, 0.6]; KJ.AMB_GND = [1.7, 1.15, 0.35];   // luz de sodio de los túneles sobre los coches
   KJ.inTunnel = (K, s) => { const f = (((s % K.total) + K.total) % K.total) / K.total; return TUN.some(t => f >= t[0] && f < t[1]); };
   const NEON = [[1, 0.15, 0.25], [0.2, 0.8, 1], [1, 0.75, 0.1], [0.3, 1, 0.45], [1, 0.35, 0.9], [1, 1, 1]];
 
@@ -148,11 +150,33 @@
       if (type === 'taxi') G.bx(-0.22, 1.42, -0.1, 0.22, 1.58, 0.12, [1, 0.85, 0.3]); }
     return { up: R.upload(A.mb), glow: R.upload(G.mb), box: { c: [0, H / 2, 0], h: [W / 2, H / 2, L / 2] }, len: L };
   }
+  // modelos low poly del tráfico (trafmesh_data.js): pintura del color que toque, cristales, ruedas, embellecedores; las luces se encienden aparte
+  const unb = (b, T) => { const s = atob(b), u = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) u[i] = s.charCodeAt(i); return new T(u.buffer); };
+  function tmesh3(R, M, col) {
+    const v = unb(M.v, Int16Array), f = unb(M.f, Uint16Array), c = unb(M.c, Uint8Array), sc = M.sc, mb = new BRR.MeshBuilder(null), g = mb.group('COLOR');
+    const C2 = col.map(x => Math.min(1, x * 0.55 + 0.4)), K = [col, C2, [0.05, 0.07, 0.1], [0.05, 0.05, 0.055], [0.62, 0.63, 0.66], [0.16, 0.16, 0.17], [0.95, 0.93, 0.8], [0.7, 0.05, 0.04]];
+    for (let t = 0; t < c.length; t++) { const k = K[c[t]] || K[5]; for (const q of [0, 1, 2, 0, 2, 1]) { const i = f[t * 3 + q] * 3; g.pos.push(v[i] / sc, v[i + 1] / sc, v[i + 2] / sc); g.col.push(k[0], k[1], k[2]); g.lay.push(0); } }
+    const G = new BRR.MeshBuilder(null), gg = G.group('COLOR'), L = M.L / 2, hw = M.W / 2, big = M.t === 'camion', y = big ? 0.85 : M.t === 'sedan' ? 0.62 : 0.8;
+    const quad = (P, cc) => { for (const k of [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]) { gg.pos.push(P[k][0], P[k][1], P[k][2]); gg.col.push(cc[0], cc[1], cc[2]); gg.lay.push(0); } };
+    for (const sx of [-1, 1]) { const x0 = sx * (hw - 0.22), x1 = sx * (hw - (big ? 0.6 : 0.5));
+      quad([[x0, y, -L - 0.02], [x1, y, -L - 0.02], [x1, y + 0.16, -L - 0.02], [x0, y + 0.16, -L - 0.02]], [1, 0.95, 0.8]);
+      quad([[x0, y + 0.05, L + 0.02], [x1, y + 0.05, L + 0.02], [x1, y + (big ? 0.35 : 0.22), L + 0.02], [x0, y + (big ? 0.35 : 0.22), L + 0.02]], [1, 0.1, 0.06]); }
+    if (M.taxi) { const yt = M.H; for (const [a, b] of [[-0.25, 0.25]]) quad([[a, yt + 0.16, 0.2], [b, yt + 0.16, 0.2], [b, yt + 0.16, -0.05], [a, yt + 0.16, -0.05]], [1, 0.85, 0.3]); }
+    const bk = [-1, 1].map(sx => { const B = new BRR.MeshBuilder(null), gb = B.group('COLOR'), x0 = sx * (hw - 0.02), x1 = sx * (hw - 0.24);
+      for (const z of [-L - 0.03, L + 0.03]) for (const k of [0, 1, 2, 0, 2, 3, 0, 2, 1, 0, 3, 2]) { const P = [[x0, y - 0.02, z], [x1, y - 0.02, z], [x1, y + 0.14, z], [x0, y + 0.14, z]][k]; gb.pos.push(P[0], P[1], P[2]); gb.col.push(1, 0.6, 0.05); gb.lay.push(0); } return R.upload(B); });
+    return { up: R.upload(mb), glow: R.upload(G), bk, box: { c: [0, M.H / 2, 0], h: [hw, M.H / 2, L] }, len: M.L };
+  }
   KJ.traffic = function (lvl, R, density) {
     const K = lvl.kanjo; if (!K) return null; const { n, X, Z, NX, NZ, SS, Y, hw, total } = K, rr = rnd(density === 'poco' ? 4242 : density === 'mucho' ? 9090 : 1717);
     const COLS = [[0.82, 0.82, 0.84], [0.1, 0.1, 0.12], [0.55, 0.57, 0.6], [0.6, 0.08, 0.08], [0.1, 0.2, 0.5], [0.85, 0.8, 0.6], [0.08, 0.3, 0.2]];
-    const KINDS = []; for (const [t, cs] of [['sedan', [0, 1, 2, 3, 4]], ['kei', [0, 5, 6, 2]], ['furgo', [0, 2]], ['taxi', [1]], ['camion', [0, 4]]]) for (const c of cs) KINDS.push({ t, m: tmesh(R, t, t === 'taxi' ? [0.9, 0.7, 0.1] : COLS[c]) });
-    const pick = lane => { const u = rr(), t = lane === 0 ? (u < 0.4 ? 'camion' : u < 0.6 ? 'furgo' : u < 0.8 ? 'kei' : 'sedan') : lane === 1 ? (u < 0.15 ? 'camion' : u < 0.35 ? 'furgo' : u < 0.55 ? 'kei' : u < 0.7 ? 'taxi' : 'sedan') : (u < 0.2 ? 'taxi' : u < 0.3 ? 'kei' : 'sedan'), L = KINDS.filter(k => k.t === t); return L[rr() * L.length | 0]; };
+    const KINDS = []; const TM = BRR.TRAF_MESH;
+    if (TM && TM.length) { const by = t => TM.filter(m => m.t === t), TRK = [[0.85, 0.85, 0.86], [0.12, 0.25, 0.55], [0.55, 0.08, 0.07], [0.15, 0.4, 0.2]];
+      by('sedan').forEach((m, i) => { for (const c of [i % 7, (i + 3) % 7]) KINDS.push({ t: 'sedan', m: tmesh3(R, m, COLS[c]) }); });
+      [...by('suv'), ...by('pickup')].forEach((m, i) => KINDS.push({ t: 'suv', m: tmesh3(R, m, COLS[(i * 2 + 1) % 7]) }));
+      by('camion').forEach((m, i) => KINDS.push({ t: 'camion', m: tmesh3(R, m, TRK[i % 4]) }));
+      by('sedan').slice(0, 2).forEach(m => KINDS.push({ t: 'taxi', m: tmesh3(R, { ...m, taxi: 1 }, [0.92, 0.72, 0.12]) })); }
+    else for (const [t, cs] of [['sedan', [0, 1, 2, 3, 4]], ['kei', [0, 5, 6, 2]], ['furgo', [0, 2]], ['taxi', [1]], ['camion', [0, 4]]]) for (const c of cs) KINDS.push({ t, m: tmesh(R, t, t === 'taxi' ? [0.9, 0.7, 0.1] : COLS[c]) });
+    const pick = lane => { const u = rr(), t = TM && TM.length ? (lane === 0 ? (u < 0.3 ? 'camion' : u < 0.55 ? 'suv' : 'sedan') : lane === 1 ? (u < 0.1 ? 'camion' : u < 0.35 ? 'suv' : u < 0.5 ? 'taxi' : 'sedan') : (u < 0.15 ? 'taxi' : u < 0.3 ? 'suv' : 'sedan')) : lane === 0 ? (u < 0.4 ? 'camion' : u < 0.6 ? 'furgo' : u < 0.8 ? 'kei' : 'sedan') : lane === 1 ? (u < 0.15 ? 'camion' : u < 0.35 ? 'furgo' : u < 0.55 ? 'kei' : u < 0.7 ? 'taxi' : 'sedan') : (u < 0.2 ? 'taxi' : u < 0.3 ? 'kei' : 'sedan'), L = KINDS.filter(k => k.t === t); return L[rr() * L.length | 0]; };
     const LW = 2 * hw / 4, SPD = [21, 24.5, 28, 31.5], gap = density === 'poco' ? 230 : density === 'mucho' ? 58 : 105, cars = [];   // 76–113 km/h; el carril rápido es el de dentro
     for (let lane = 0; lane < 4; lane++) for (let s = rr() * gap; s < total - 20;) { const k = pick(lane); if (!(s < 320 || s > total - 650)) cars.push({ lane, lag: 0, dO: 0, vO: 0, yaw: 0, yawV: 0, hitT: 0, s0: s, o: (lane - 1.5) * LW, spd: SPD[lane], k,
         p: [0, 0, 0], v: [0, 0, 0], w: [0, 0, 0], R: [[1, 0, 0], [0, 1, 0], [0, 0, 1]], def: { box: k.m.box, name: 'TRAFICO' }, m: k.t === 'camion' ? 9000 : 1400, kinematic: true, traffic: true, out: false, K: {}, lastHit: 0,
@@ -163,18 +187,31 @@
       const dx = X[j] - X[i], dz = Z[j] - Z[i], sg = dx * tx + dz * tz < 0 ? -1 : 1, fx = tx * sg, fz = tz * sg;
       const oo = c.o + c.dO, cy = Math.cos(c.yaw), sy = Math.sin(c.yaw), gx = fx * cy - fz * sy, gz = fx * sy + fz * cy;
       c.p[0] = X[i] + (X[j] - X[i]) * t + ux * oo; c.p[1] = Y[i] + (Y[j] - Y[i]) * t + 0.05; c.p[2] = Z[i] + (Z[j] - Z[i]) * t + uz * oo;
-      c.v[0] = fx * c.spd + ux * c.vO; c.v[2] = fz * c.spd + uz * c.vO; c.R[0][0] = -gz; c.R[0][2] = -gx; c.R[2][0] = gx; c.R[2][2] = -gz; c.ux = ux; c.uz = uz; };
-    const T = { cars, near: [], free() { if (R.free) for (const k of KINDS) { R.free(k.m.up); R.free(k.m.glow); } } };
+      c.v[0] = fx * c.spd + ux * c.vO; c.v[2] = fz * c.spd + uz * c.vO; c.R[0][0] = -gz; c.R[0][2] = -gx; c.R[2][0] = gx; c.R[2][2] = -gz; c.ux = ux; c.uz = uz; c.sg = sg; };
+    const T = { cars, near: [], free() { if (R.free) for (const k of KINDS) { R.free(k.m.up); R.free(k.m.glow); if (k.m.bk) k.m.bk.forEach(b => R.free(b)); } } };
     // t: tiempo de carrera; focos: posiciones [x,z] de los coches de verdad y de la cámara. Solo se colocan los que están cerca
     // t: tiempo de carrera; reales: los coches de verdad. Solo se colocan los que están cerca de alguno.
     // Si tienen delante un coche más lento (parado en su carril, la parrilla de salida…) frenan y se quedan detrás, no lo arrollan
-    T.update = (t, reales, dt) => { T.near.length = 0; const fs = []; for (const r of reales) if (K.near(r.p[0], r.p[2], 3)) { const i = K.N.i; fs.push({ s: SS[i] + K.N.t * ((i + 1 < n ? SS[i + 1] : total) - SS[i]), lat: (r.p[0] - X[i]) * NX[i] + (r.p[2] - Z[i]) * NZ[i], v: Math.hypot(r.v[0], r.v[2]) }); } if (!fs.length) return;
+    T.frame = 0; T.update = (t, reales, dt) => { T.near.length = 0; T.frame++; const fs = []; for (const r of reales) if (K.near(r.p[0], r.p[2], 3)) { const i = K.N.i; fs.push({ s: SS[i] + K.N.t * ((i + 1 < n ? SS[i + 1] : total) - SS[i]), lat: (r.p[0] - X[i]) * NX[i] + (r.p[2] - Z[i]) * NZ[i], v: Math.hypot(r.v[0], r.v[2]) }); } if (!fs.length) return;
       const cd = (a, b) => { let d = a - b; if (d > total / 2) d -= total; if (d < -total / 2) d += total; return d; }, tt = Math.max(-8, t);
       for (const c of cars) { const s = c.s0 + c.spd * tt - c.lag; c.sNow = ((s % total) + total) % total; let ok = false; for (const f of fs) { const d = cd(c.sNow, f.s); if (d > -260 && d < 520) { ok = true; break; } } if (ok) T.near.push(c); }
+      const p0 = fs[0]; T.miss = null;
       for (const c of T.near) { let slow = c.spd; const hl = c.k.m.len / 2, d2 = dt || 0;
+        // de vez en cuando cambia de carril (con intermitente), si tiene hueco y no le viene nadie por ese lado
+        if (!c.lc) { c.lcT = (c.lcT ?? (10 + Math.random() * 50)) - d2;
+          if (c.lcT <= 0 && !(c.hitT > 0) && !c.dO) { c.lcT = 25 + Math.random() * 60; const to = c.lane + (Math.random() < 0.5 ? -1 : 1);
+            if (to >= 0 && to <= 3 && (c.k.t !== 'camion' || to <= 1)) { const o2 = (to - 1.5) * LW; let free = true;
+              for (const o of T.near) if (o !== c && (Math.abs(o.o + o.dO - o2) < LW * 0.9 || (o.lc && Math.abs(o.lc.to - o2) < LW * 0.9)) && Math.abs(cd(o.sNow, c.sNow)) < 40) { free = false; break; }
+              for (const f of fs) { const d = cd(f.s, c.sNow); if (Math.abs(f.lat - o2) < LW * 1.2 && d > -90 && d < 30) { free = false; break; } }
+              if (free) c.lc = { from: c.o, to: o2, lane: to, u: 0, side: Math.sign(o2 - c.o) }; } } }
+        else { c.lc.u += d2 / 3.4; const u = Math.min(1, c.lc.u), e = u * u * (3 - 2 * u); c.o = c.lc.from + (c.lc.to - c.lc.from) * e;
+          if (u >= 1) { const raw = c.s0 + c.spd * tt - c.lag; c.lane = c.lc.lane; c.o = c.lc.to; c.spd = SPD[c.lane]; c.s0 = raw - c.spd * tt + c.lag; c.lc = null; } }
+        // pasar rozando (para los puntos del modo libre): el jugador lo adelanta con muy poco hueco de lado
+        if (p0) { const d = cd(c.sNow, p0.s), cl = Math.abs(p0.lat - c.o - c.dO) - c.k.m.box.h[0] - 0.86; if (c.nmD != null && c.nmF === T.frame - 1 && c.nmD > 0 && d <= 0 && cl < 1.25 && cl > -0.2 && p0.v > c.spd + 4) T.miss = { cl, dv: p0.v - c.spd }; c.nmD = d; c.nmF = T.frame; }
         // golpe: sale despedido de su carril (de lado y girando), pierde velocidad y luego vuelve poco a poco a su sitio
         if (c.lastHit > 1.5 && c.hitBy && c.ux != null) { const o = c.hitBy, sd = (c.p[0] - o.p[0]) * c.ux + (c.p[2] - o.p[2]) * c.uz, k = Math.min(1, c.lastHit / 12) * (c.m > 5000 ? 0.35 : 1), sg = sd >= 0 ? 1 : -1;
           const lf = 0.35 + 0.65 * Math.min(1, Math.abs(sd) / 1.2); c.vO += sg * (1.5 + 6 * k) * lf; c.yawV += -sg * (0.4 + 1.5 * k) * lf; c.hitT = 1.0 + 1.2 * k; }   // de refilón sale más de lado que por detrás
+        if (c.hitBy && !c.hitBy.traffic) c.hitBy.kjHit = (c.hitBy.kjHit || 0) + 1;   // para el logro «sin un rasguño»
         c.lastHit = 0; c.hitBy = null;
         if (c.hitT > 0 || c.dO || c.yaw) { c.hitT = Math.max(0, c.hitT - d2); c.dO += c.vO * d2; c.vO *= Math.exp(-2.2 * d2); c.yaw += c.yawV * d2; c.yawV *= Math.exp(-2.5 * d2); c.yaw = Math.max(-0.75, Math.min(0.75, c.yaw));
           const lim = hw - 1.2; if (c.o + c.dO > lim) { c.dO = lim - c.o; c.vO = -Math.abs(c.vO) * 0.3; } if (c.o + c.dO < -lim) { c.dO = -lim - c.o; c.vO = Math.abs(c.vO) * 0.3; }
@@ -183,7 +220,10 @@
         for (const o of T.near) if (o !== c && Math.abs(o.o + o.dO - c.o - c.dO) < 2.3) { const d = cd(o.sNow, c.sNow); if (d > 0 && d < hl + o.k.m.len / 2 + 9) slow = Math.min(slow, (o.vNow ?? o.spd) * 0.8); }
         if (slow < c.spd) { c.lag += (c.spd - slow) * (dt || 0); c.sNow = (((c.s0 + c.spd * tt - c.lag) % total) + total) % total; }
         const sp = c.spd; c.spd = slow; at(c.sNow, c); c.spd = sp; c.vNow = slow; } };
-    T.draw = (M4) => { for (const c of T.near) { const W = M4.fromRT(c.R, c.p); R.draw(c.k.m.up, W); R.drawGlow(c.k.m.glow, W, 1.6); } };
+    T.draw = (M4) => { const bl = (performance.now() / 380 | 0) % 2 === 0; let amb = false;
+      for (const c of T.near) { const W = M4.fromRT(c.R, c.p), tu = KJ.inTunnel(K, c.sNow); if (tu !== amb && R.ambient) { amb = tu; if (tu) R.ambient(KJ.AMB_SKY, KJ.AMB_GND); else R.ambient(); }
+        R.draw(c.k.m.up, W); R.drawGlow(c.k.m.glow, W, 1.6); if (c.lc && bl && c.k.m.bk) R.drawGlow(c.k.m.bk[c.lc.side * (c.sg || 1) > 0 ? 1 : 0], W, 1.8); }
+      if (amb && R.ambient) R.ambient(); };
     return T;
   };
 })();

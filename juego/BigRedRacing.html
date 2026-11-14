@@ -89,6 +89,8 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .home{grid-template-columns:minmax(260px,420px) 1fr;align-items:center}
 .hmenu{display:flex;flex-direction:column;justify-content:center;height:100%}
 .hcol{display:flex;flex-direction:column;gap:10px}.hcol[hidden]{display:none}
+.hcol.hmodes:not([hidden]){display:grid;grid-template-columns:repeat(auto-fill,minmax(205px,1fr));gap:10px;width:min(900px,92vw)}.hmodes .hbtn.mc{height:128px;margin:0;display:flex;align-items:flex-end;padding:9px 12px;background-size:165%;background-position:center 88%;font-size:18px;text-shadow:0 2px 6px #000,0 0 2px #000;border-color:rgba(255,255,255,.18)}.hmodes .hbtn.mc.own{background-size:cover;background-position:center 30%}.hmodes .hbtn.mc .ico{font-size:16px;margin-right:6px}.hmodes .hbtn.small2{grid-column:1/-1;width:auto;justify-self:start}
+@media (max-height:720px){.hmodes .hbtn.mc{height:96px;font-size:16px}}
 .hbtn{font-size:22px;font-weight:700;font-style:italic;text-align:left;padding:14px 22px;background:rgba(14,17,25,.82);border:2px solid rgba(255,255,255,.12);border-radius:12px;letter-spacing:.3px;transition:transform .1s,background .1s}
 .hbtn.small2{font-size:16px;padding:10px 22px}
 .hbtn:hover,.hbtn:focus{background:var(--red);border-color:#fff;transform:translateX(8px);outline:none}
@@ -268,12 +270,12 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="comm"><span class="ico">🗺️</span>Circuitos y editor</button>
         <button class="hbtn" data-go="options"><span class="ico">⚙️</span>Opciones</button>
         <button class="hbtn" data-go="mods"><span class="ico">🧩</span>Mods</button>
-        <div class="hrow"><button class="hbtn small2" data-go="dos" title="F2">Juego original (1995)</button><button class="hbtn small2" data-go="orig">Menú clásico</button>
+        <div class="hrow"><button class="hbtn small2" data-go="dos" title="F2">Juego original (1995)</button>
         <button class="hbtn small2 dnt" data-go="donate">❤ Apoyar el proyecto</button>
         <button class="hbtn small2" data-go="exit">Salir</button></div>
         <div id="updbar" class="updbar" hidden></div>
       </div>
-      <div class="hcol" id="h_single" hidden>
+      <div class="hcol hmodes" id="h_single" hidden>
         <button class="hbtn" data-go="quick"><span class="ico">⏱️</span>Carrera rápida</button>
         <button class="hbtn" data-go="tourn"><span class="ico">🏆</span>Campeonato</button>
         <button class="hbtn" data-go="tt"><span class="ico">🏁</span>Contrareloj</button>
@@ -673,7 +675,9 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/drift_data.js"></script>
 <script src="js/gp_data.js"></script>
 <script src="js/kart_data.js"></script>
+<script src="js/modecov_data.js"></script>
 <script src="js/kanjo_data.js"></script>
+<script src="js/trafmesh_data.js"></script>
 <script src="js/kanjo.js"></script>
 <script src="js/gp_decor.js"></script>
 <script src="js/procobjs.js"></script>

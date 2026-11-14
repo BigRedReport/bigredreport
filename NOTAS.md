@@ -7,6 +7,22 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.0.0**
+- **Versión 1.0:** el juego deja la beta. Android y Steam Deck pasan a «disponible».
+- **Menú «Un jugador» con tarjetas:** cada modo con su portada.
+- **Carrera rápida:** solo con los circuitos del juego original.
+- **Nombre de piloto:** la primera vez se pide el nombre del perfil (antes salía «Piloto» y unas letras en el chat y las clasificaciones).
+- **Fuera el menú clásico:** el juego arranca siempre en el menú moderno; el juego original sigue en «Juego original (1995)».
+- **Logros por modo:** Grand Prix, Fórmula 1, Karting, Drift y Kanjo Loop tienen su sección (15 logros nuevos y uno de drift).
+- **Récords del perfil:** ahora salen los de todos los modos, separados (antes solo los del juego original).
+- **Kanjo Loop:**
+  - tráfico con modelos nuevos (turismos, todoterrenos, taxis y camiones) que cambia de carril de vez en cuando con intermitente;
+  - dentro de los túneles los coches se tiñen de luz amarilla y hay eco;
+  - **libre del Kanjo:** puntos por adelantar al tráfico rozándolo, con multiplicador hasta x8 (un golpe lo devuelve a x1);
+  - el Cívico suena a cuatro cilindros de altas vueltas con cambio de leva; sus faros y pilotos van pegados a la carrocería.
+- **GT:** ruedas más grandes que llenan los pasos de rueda.
+- **Física:** si una rueda da un valor imposible, deja de empujar ese instante en vez de romper el coche entero (fallos #31–#34).
+
 **Novedades de la 0.118.12**
 - **Garaje:** altura (rebajar el coche, solo estética), caída de ruedas, acabado de la pintura (normal, mate, metalizado, perlado), dos tonos (techo, capó o ambos), franjas de carreras y dorsal en las puertas. Los rivales también salen a veces tuneados.
 - **Kanjo Loop:**

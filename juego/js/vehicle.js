@@ -391,6 +391,10 @@
         // (truco arcade para que no vuelque en cada curva, como en el original)
         const Fsus = V.mul(up, Fs), Ftire = V.add(V.mul(fw, Flong), V.mul(lat, Flat));
         const rT = V.madd(r, up, -V.dot(r, up) * 0.8);
+        if (!(Number.isFinite(Fsus[0] + Fsus[1] + Fsus[2] + Ftire[0] + Ftire[1] + Ftire[2]) && Number.isFinite(r[0] + r[1] + r[2]))) {   // una rueda con un valor imposible (contacto degenerado): esa rueda no empuja en este paso (antes rompía toda la física)
+          if (!this._nanW) this._nanW = { t: +(+hit.t).toFixed(3), n: (hit.n || []).map(x => +(+x).toFixed(3)).join(','), Fs: Fs, mu: mu, Flat: Flat, Flong: Flong, drive: drive, vLong: vLong, vLat: vLat, sup: w.surface };
+          if (!this._nanWs && BRR.onPhysBreak) { this._nanWs = 1; try { BRR.onPhysBreak({ car: this.def && this.def.name, bad: 'rueda (evitado)', donde: 'rueda', rueda: JSON.stringify(this._nanW), modo: '', ruedas: this.W.map(q => (q.contact ? 1 : 0) + ':' + (q.surface || '')).join(' ') }); } catch (e) { } }   // avisa una vez para dar con la causa
+          w.load = 0; continue; }
         F = V.add(F, V.add(Fsus, Ftire)); T = V.add(T, V.add(V.cross(r, Fsus), V.cross(rT, Ftire)));
         w.spinRate = vLong / w.radius; w.spin += w.spinRate * dt;
       }
@@ -558,7 +562,7 @@
       this._nanAt = ok(this) ? '' : 'fuera del paso (choque entre coches u objetos)';
       step0.call(this, dt, inp);
       if (!ok(this)) { try { const g0 = this._good || {}, r1 = a => a ? a.map(x => +(+x).toFixed(2)).join(',') : '?';   // diagnóstico (una vez): qué se rompió y cómo iba el coche justo antes, para dar con la causa
-          if (BRR.onPhysBreak) BRR.onPhysBreak({ car: this.def && this.def.name, bad: ['p', 'v', 'w', 'q'].filter(k => !fin(this[k])).join('+'), donde: this._nanAt || '?', v: r1(g0.v), w: r1(g0.w), p: r1(g0.p), q: r1(g0.q), dt,
+          if (BRR.onPhysBreak) BRR.onPhysBreak({ car: this.def && this.def.name, bad: ['p', 'v', 'w', 'q'].filter(k => !fin(this[k])).join('+'), donde: this._nanAt || '?', rueda: this._nanW ? JSON.stringify(this._nanW) : '', v: r1(g0.v), w: r1(g0.w), p: r1(g0.p), q: r1(g0.q), dt,
             inp: inp ? [inp.throttle, inp.brake, inp.steer, inp.handbrake ? 1 : 0, inp.nitro ? 1 : 0].map(x => +(+x || 0).toFixed(2)).join(',') : '', modo: (this.gpMode ? 'gp ' : '') + (this.kartMode ? 'kart ' : '') + (this.driftMode ? 'drift ' : '') + (this.dOn ? 'derrapando' : ''),
             ruedas: (this.W || []).map(w => (w.contact ? 1 : 0) + ':' + (w.surface || '')).join(' ') }); } catch (x) { } const g = this._good; if (g) { this.p = g.p.slice(); this.q = g.q.slice(); } this.v = [0, 0, 0]; this.w = [0, 0, 0];
         for (const w of this.W || []) for (const k in w) if (typeof w[k] === 'number' && !Number.isFinite(w[k])) w[k] = 0; }

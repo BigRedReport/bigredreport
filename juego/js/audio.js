@@ -77,6 +77,25 @@
           s1.playbackRate.setTargetAtTime(r * 0.62, t, 0.07); s2.playbackRate.setTargetAtTime(r, t, 0.07); lp.frequency.setTargetAtTime(900 + 3200 * thr + 1500 * x, t, 0.1); lfo.frequency.setTargetAtTime(5 + 9 * x, t, 0.2); },
         stop: () => { for (const n of [s1, s2, lfo]) try { n.stop(); } catch (e) { } } };
     }
+    // motor de cuatro cilindros japonés de altas vueltas (Cívico), sintetizado: grave y redondo abajo y, al pasar de unas 5.500 rpm,
+    // entra la leva "de arriba": más agudo, más metálico y con más volumen, hasta el corte a 8.200
+    vtec(bus = 'engine', pos = null) {
+      if (!this.ctx) return null; const c = this.ctx;
+      const O = ['sawtooth', 'sawtooth', 'square', 'sawtooth'].map(t => { const o = c.createOscillator(); o.type = t; return o; }), Gn = O.map(() => c.createGain());
+      const ws = c.createWaveShaper(), cur = new Float32Array(1024); for (let i = 0; i < 1024; i++) { const x = i / 512 - 1; cur[i] = Math.tanh(x * 2.4) * 0.9; } ws.curve = cur;
+      const mix = c.createGain(); mix.gain.value = 0.5; const lp = c.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 900; lp.Q.value = 1.4; const pk = c.createBiquadFilter(); pk.type = 'peaking'; pk.frequency.value = 2600; pk.Q.value = 1.2; pk.gain.value = 0;
+      const hp = c.createBiquadFilter(); hp.type = 'highpass'; hp.frequency.value = 55; const out = c.createGain(); out.gain.value = 0;
+      O.forEach((o, i) => { o.connect(Gn[i]); Gn[i].connect(mix); }); mix.connect(ws); ws.connect(lp); lp.connect(pk); pk.connect(hp); hp.connect(out);
+      let pn = null; if (pos && this.spatial) { pn = this.panner(pos); out.connect(pn); pn.connect(this.bus(bus)); } else out.connect(this.bus(bus));
+      const jit = c.createOscillator(), jg = c.createGain(); jit.frequency.value = 9; jg.gain.value = 0.8; jit.connect(jg); for (const o of O) jg.connect(o.frequency);
+      for (const o of [...O, jit]) o.start();
+      return { set: (v, r, x) => { const t = c.currentTime, thr = Array.isArray(x) ? 0.8 : (x ?? 0.5), k = Math.max(0, Math.min(1, (r - 0.8) / 1.1)), f = 30 + 243 * k, u = Math.max(0, Math.min(1, (k - 0.6) / 0.08)), vt = u * u * (3 - 2 * u) * (0.35 + 0.65 * thr);   // encendidos por segundo: ralentí ~900 rpm, corte ~8.200
+          out.gain.setTargetAtTime(v * (0.62 + 0.3 * vt), t, 0.05); [f, f * 0.5, f * 2, f * 4].forEach((ff, i) => O[i].frequency.setTargetAtTime(ff, t, 0.04));
+          Gn[0].gain.setTargetAtTime(0.5, t, 0.05); Gn[1].gain.setTargetAtTime(0.4 * (1 - 0.6 * vt), t, 0.05); Gn[2].gain.setTargetAtTime(0.1 + 0.34 * vt, t, 0.04); Gn[3].gain.setTargetAtTime(0.26 * vt, t, 0.04);
+          lp.frequency.setTargetAtTime(650 + 1900 * thr + 1100 * k + 3200 * vt, t, 0.05); lp.Q.setTargetAtTime(1.4 + 2.2 * vt, t, 0.05); pk.gain.setTargetAtTime(9 * vt, t, 0.05); jg.gain.setTargetAtTime(0.5 + 2 * (1 - thr), t, 0.1);
+          if (pn && Array.isArray(x)) this.movePanner(pn, x); },
+        stop: () => { for (const n of [...O, jit]) try { n.stop(); } catch (e) { } } };
+    }
     // motor de dos tiempos (go-kart) sintetizado: zumbido rasposo y agudo, con explosiones a la frecuencia del cigüeñal y algo de ruido de escape
     twoStroke(bus = 'engine', pos = null) {
       if (!this.ctx) return null; const c = this.ctx;

@@ -227,8 +227,8 @@ footer b{color:#fff}
       <p>Este port lee <b>tu propia copia del juego</b> y lo hace funcionar en un ordenador de hoy sin emulador: todo se dibuja de nuevo, con las texturas, modelos, sonidos y música originales del CD. Por eso no incluye ningún archivo del juego: hace falta el original.</p>
     </div>
     <dl class="facts">
-      <dt>Estado</dt><dd>Beta · se juega entero de principio a fin; ahora toca pulir y añadir</dd>
-      <dt>Funciona en</dt><dd>Windows y Linux (programa que se actualiza solo) en el navegador (Chrome o Edge) y en Android y Steam Deck (de prueba)</dd>
+      <dt>Estado</dt><dd>Versión 1 · completo de principio a fin; sigue creciendo con modos y mejoras</dd>
+      <dt>Funciona en</dt><dd>Windows, Mac y Linux (programa que se actualiza solo), en el navegador (Chrome o Edge), en Android y en Steam Deck</dd>
       <dt>Necesitas</dt><dd>La carpeta BIGRED del juego original (y la imagen del CD para la música)</dd>
       <dt>Rivales</dt><dd>Las carreras grabadas del juego original, como en 1995</dd>
       <dt>Multijugador</dt><dd>Online sin servidor, red local (LAN) y pantalla partida</dd>
@@ -238,12 +238,12 @@ footer b{color:#fff}
 </div></section>
 
 <section id="descargar"><div class="wrap">
-  <div class="head"><div><div class="eyebrow">Descargas</div><h2>Descargar</h2><p><span id="dlver">Versión de prueba</span><span id="dlcount"></span>. Necesitas tu copia original de Big Red Racing: al abrir el juego te pide la carpeta BIGRED.</p></div></div>
+  <div class="head"><div><div class="eyebrow">Descargas</div><h2>Descargar</h2><p><span id="dlver">Última versión</span><span id="dlcount"></span>. Necesitas tu copia original de Big Red Racing: al abrir el juego te pide la carpeta BIGRED.</p></div></div>
   <div class="dl">
     <div class="dlc"><span class="st" style="color:var(--ok)">Recomendado</span><h3>Windows, Mac y Linux</h3><p class="mono">Programa con lanzador: eliges la carpeta del juego una vez y a jugar. Se actualiza solo, trae red local (LAN) y servidor propio. Descomprime y abre BigRedReport.</p><a class="cta" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Windows.zip">Windows</a> <a class="cta ghost" style="color:var(--ink);border-color:var(--line)" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Mac.zip">Mac</a> <a class="cta ghost" style="color:var(--ink);border-color:var(--line)" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux.tar.gz">Linux</a> <a class="cta ghost" style="color:var(--ink);border-color:var(--line)" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Linux-ARM64.tar.gz">Linux ARM</a></div>
     <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Navegador</h3><p class="mono">En Chrome o Edge, sin instalar nada (y se puede instalar como app). Para jugar sin conexión, descarga el .zip y abre BigRedRacing.html.</p><a class="cta" href="juego/BigRedRacing.html">Jugar ahora</a> <a class="cta ghost" style="color:var(--ink);border-color:var(--line)" id="dllink" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedRacing_port.zip">Sin conexión (.zip)</a></div>
-    <div class="dlc"><span class="st" style="color:var(--ok)">Prueba</span><h3>Android</h3><p class="mono">App para móvil y tablet: a pantalla completa, controles táctiles y mando. La primera vez eliges un .zip con tu carpeta BIGRED. Se actualiza sola.</p><a class="cta" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Android.apk">Descargar APK</a></div>
-    <div class="dlc"><span class="st" style="color:var(--ok)">Nuevo · prueba</span><h3>Steam Deck</h3><p class="mono">El programa de Linux con instalador para la Deck: se añade a Steam (modo juego), busca solo tu copia (tarjeta SD, Descargas…), lanzador con el mando y ajustes para su pantalla. Descomprime en modo escritorio y ejecuta instalar-steamdeck.sh.</p><a class="cta" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-SteamDeck.tar.gz">Descargar para Steam Deck</a></div>
+    <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Android</h3><p class="mono">App para móvil y tablet: a pantalla completa, controles táctiles y mando. La primera vez eliges un .zip con tu carpeta BIGRED. Se actualiza sola.</p><a class="cta" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-Android.apk">Descargar APK</a></div>
+    <div class="dlc"><span class="st" style="color:var(--ok)">Disponible</span><h3>Steam Deck</h3><p class="mono">El programa de Linux con instalador para la Deck: se añade a Steam (modo juego), busca solo tu copia (tarjeta SD, Descargas…), lanzador con el mando y ajustes para su pantalla. Descomprime en modo escritorio y ejecuta instalar-steamdeck.sh.</p><a class="cta" href="https://github.com/BigRedReport/bigredreport/releases/latest/download/BigRedReport-SteamDeck.tar.gz">Descargar para Steam Deck</a></div>
   </div>
   <p class="note">Para jugar hace falta <b>tu copia original</b> de Big Red Racing: el port no incluye ni va a distribuir los datos del juego (circuitos, coches, música…). La música sale de la imagen del CD (IMAGE.img y IMAGE.cue) si está en la carpeta que eliges.</p>
 </div></section>
@@ -315,6 +315,9 @@ footer b{color:#fff}
 <section id="noticias"><div class="wrap">
   <div class="head"><div><div class="eyebrow">Diario de desarrollo</div><h2>Noticias</h2></div></div>
   <div class="news">
+    <article class="post"><div><time datetime="2026-11-14">14 nov 2026</time><br><span class="ver">1.0.0</span></div><div>
+      <h3>Versión 1.0</h3>
+      <p>Big Red Report deja la beta. Llega con <b>menú de modos con portadas</b>, logros propios para Grand Prix, Fórmula 1, Karting, Drift y Kanjo Loop, récords de todos los modos en el perfil, y un Kanjo Loop más vivo: <b>tráfico nuevo</b> que cambia de carril, túneles con luz amarilla, <b>puntos por pasar rozando</b> en su modo libre y un Cívico que suena a VTEC.</p></div></article>
     <article class="post"><div><time datetime="2026-11-14">14 nov 2026</time><br><span class="ver">0.118.12</span></div><div>
       <h3>Garaje nuevo y Kanjo Loop más listo</h3>
       <p>En el garaje: <b>rebajar el coche, caída de ruedas, pintura mate, metalizada o perlada, dos tonos, franjas de carreras y dorsal</b>. En el Kanjo Loop los rivales van cada uno por su carril, el modo libre es una carrera sin fin con otros Cívicos, y la contrarreloj va con mucho tráfico. Además, portada para el loop y hora y clima en el editor.</p></div></article>
@@ -330,9 +333,6 @@ footer b{color:#fff}
     <article class="post"><div><time datetime="2026-11-11">11 nov 2026</time><br><span class="ver">0.118.8</span></div><div>
       <h3>Arreglo urgente del sonido</h3>
       <p>Arreglado un fallo del sonido del motor que podía colgar la carrera en algunos equipos, y el aviso de pantalla completa en Android.</p></div></article>
-    <article class="post"><div><time datetime="2026-11-09">9 nov 2026</time><br><span class="ver">0.118.7</span></div><div>
-      <h3>Unidades de red y enlaces</h3>
-      <p>El programa de escritorio ya encuentra el juego en unidades de red y a través de enlaces simbólicos, sin tener que copiarlo.</p></div></article>
     <p class="mono" style="margin-top:6px"><a href="https://github.com/BigRedReport/bigredreport/blob/main/NOTAS.md">Ver todas las novedades</a></p>
   </div></section>
 
@@ -391,7 +391,7 @@ footer b{color:#fff}
   <div class="faq">
     <details><summary>¿Necesito el juego original?</summary><p>Sí. El port lee los archivos de tu copia (la carpeta BIGRED y, para la música, la imagen del CD). No incluye ni distribuye ningún archivo del juego.</p></details>
     <details><summary>¿Es un proyecto oficial?</summary><p>No. Es un proyecto de fans sin relación con Big Red Software, Domark ni los actuales dueños de los derechos del juego.</p></details>
-    <details><summary>¿En qué ordenadores funciona?</summary><p>En Windows y Linux con el programa (recomendado: se actualiza solo) y en Chrome o Edge en cualquier ordenador reciente. También hay app de Android y versión para Steam Deck (de prueba).</p></details>
+    <details><summary>¿En qué ordenadores funciona?</summary><p>En Windows y Linux con el programa (recomendado: se actualiza solo) y en Chrome o Edge en cualquier ordenador reciente. También hay app de Android y versión para Steam Deck.</p></details>
     <details><summary>¿Qué mandos sirven?</summary><p>Cualquiera que reconozca el ordenador: Xbox (también Elite), PlayStation, 8BitDo, Flydigi Vader, Logitech… Si tienes varios conectados, valen todos. En Opciones → Controles ves los que detecta.</p></details>
     <details><summary>¿Cómo juego en red local (LAN)?</summary><p>Con el programa de Windows o Linux: Multijugador → Red local (LAN) → Crear partida en tu red. Los demás ordenadores de tu casa la verán en la misma pantalla en unos segundos.</p></details>
     <details><summary>¿Sirve el parche v2.25 del original?</summary><p>Sí, puedes copiar sus archivos en tu carpeta BIGRED. Solo cambia textos y arregla fallos del ejecutable original; los circuitos y rivales son los mismos.</p></details>
