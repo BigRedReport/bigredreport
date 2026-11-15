@@ -6,7 +6,7 @@
 "use strict";
 (function () {
   const BRR = window.BRR;
-  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' } };
+  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' } };
   const orig = BRR.loadVehicle;
   BRR.loadVehicle = async function (files, name, lvl, team = 1, extra = {}) {
     const C = BRR.CUSTOM_CARS[String(name).toUpperCase()]; if (!C) return orig(files, name, lvl, team, extra);
@@ -21,6 +21,9 @@
     if (NM === 'MINIMO') return minimo(d, (extra.paint || [190, 20, 25]).map(v => v / 255), gl);
     if (NM === 'BAV30') return coupe(d, (extra.paint || (NM === 'BAV30' ? [235, 235, 230] : [235, 150, 30])).map(v => v / 255), NM, gl);
     if (NM === 'KART') return kart(d, (extra.paint || [230, 40, 30]).map(v => v / 255));
+    if (BRR.KJ_MESH && BRR.KJ_MESH[NM]) return kjcar(d, (extra.paint || (NM === 'SUPREMO' ? [225, 120, 20] : [40, 70, 160])).map(v => v / 255), gl, NM);
+    if (NM === 'CYBER') return cyber(d, (extra.paint || [186, 188, 192]).map(v => v / 255), gl);
+    if (NM === 'JETSKI') return jetski(d, (extra.paint || [215, 25, 25]).map(v => v / 255));
     if (NM === 'F1') return f1(d, (extra.paint || [200, 20, 20]).map(v => v / 255));
     return panda(d, paint, NM, gl);
   };
@@ -375,6 +378,34 @@
       for (const v of L) { g.pos.push(v[0], v[1], v[2]); g.col.push(...col); g.lay.push(0); }
       if (brakeCats && brakeCats.has(C[t])) for (const v of L) { gb.pos.push(v[0], v[1], v[2]); gb.col.push(1, 0.16, 0.1); gb.lay.push(0); } }
     return { mb, brake };
+  }
+  // ---------- coches del Kanjo Loop además del Cívico (Supremo: deportivo japonés de los 90 con alerón; Horizonte: berlina deportiva japonesa): malla de kjcars_data.js, ruedas del juego ----------
+  function kjcar(d, P, gl, NM) {
+    const M = BRR.KJ_MESH[NM], wf = M.wheels.front, wr = M.wheels.rear, [mn, mx] = M.ext;
+    const { W, M: WM, G } = placeWheels(d, [wf[0], wf[1], wf[2], wf[3]], [wr[0], wr[1], wr[2], wr[3]], [0.72, 0.73, 0.76]);
+    const COL = M.cols.map(c => c === 'paint' ? P : c === 'glass' ? (gl || [0.07, 0.09, 0.12]) : c === 'brake' ? [0.55, 0.04, 0.03] : c), bi = M.cols.indexOf('brake');
+    const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => COL[k] || P, new Set(bi >= 0 ? [bi] : []), false);
+    const gearF = d.gearF.map(r => [r[0] * 1.7, r[1] * 2.15, ...r.slice(2)]);   // más potentes que el Cívico: punta ~210 km/h
+    const yb = 0.85 + G, zb = mx[2] - 0.04, zf = mn[2] + 0.08;
+    return { ...d, gearF, name: NM, vname: NM, mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: WM, box: { c: [0, G + (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2], h: [mx[0] - 0.04, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, interior: null, logoSlot: false,
+      brakeSpots: [[-0.6, yb, zb], [0.6, yb, zb]], headl: [[-0.6, 0.62 + G, zf], [0.6, 0.62 + G, zf]], nitro: [0.35, 0.25 + G, zb + 0.04], decoParts: [], headPos: null };
+  }
+  // ---------- ciberpickup: malla del modelo (cyber_data.js) con ruedas del juego en sus pasos de rueda; motor, marchas, peso y suspensión del dumper ----------
+  function cyber(d, P, gl) {
+    if (!BRR.CYBER_MESH) return d;
+    const { W, M, G } = placeWheels(d, [0.847, -1.785, 0.39, 0.15], [0.847, 1.53, 0.39, 0.15], [0.2, 0.2, 0.22]);
+    const COL = [P, [0.06, 0.06, 0.065], [0.12, 0.12, 0.13], gl || [0.07, 0.09, 0.12], [0.035, 0.035, 0.04], [0.15, 0.15, 0.16], [0.95, 0.95, 0.9], [0.75, 0.05, 0.04]];
+    const body = meshCar(d.mesh.pal, { ...BRR.CYBER_MESH.body, yOff: G }, k => COL[k] || P, new Set([7]), false);
+    return { ...d, name: 'CYBER', vname: 'CYBER', mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: M, box: { c: [0, G + 0.86, 0], h: [0.98, 0.76, 2.55] }, interior: null, logoSlot: false,
+      brakeSpots: [[-0.8, G + 1.1, 2.5], [0.8, G + 1.1, 2.5]], nitro: [0, G + 0.5, 2.56], decoParts: [], headPos: null };
+  }
+  // ---------- moto de agua: malla del modelo (jetski_data.js) sobre la lancha neumática del juego (misma física: flota, empuja y gira como ella) ----------
+  function jetski(d, P) {
+    if (!BRR.JETSKI_MESH) return d;
+    const COL = [P, [0.11, 0.11, 0.12], [0.05, 0.05, 0.055], [0.17, 0.17, 0.19], [0.74, 0.75, 0.78], [0.95, 0.95, 0.86]];
+    const body = meshCar(d.mesh.pal, BRR.JETSKI_MESH.body, k => COL[k] || P, null, true);
+    return { ...d, name: 'JETSKI', vname: 'JETSKI', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, box: { c: [0, 0.15, 0], h: [0.54, 0.45, 1.43] },
+      brakeSpots: [], nitro: [0, 0.0, 1.44], headPos: [0, 1.02, 0.05] };
   }
   function minimo(d, P, gl) {
     const M = BRR.MINIMO_MESH; if (!M) return minimoOld(d, P, gl);

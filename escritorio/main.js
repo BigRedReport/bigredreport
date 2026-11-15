@@ -33,7 +33,7 @@ function openLauncher() {
 function openGame() {
   if (game) { game.focus(); return; }
   game = new BrowserWindow({ width: cfg.width, height: cfg.height, fullscreen: !!cfg.fullscreen, title: 'Big Red Report', backgroundColor: '#000', autoHideMenuBar: true,
-    icon: path.join(__dirname, 'game', 'icon-512.png'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, backgroundThrottling: false } });
+    icon: path.join(__dirname, 'game', 'icon-512.png'), webPreferences: { preload: path.join(__dirname, 'preload.js'), contextIsolation: true, backgroundThrottling: false, autoplayPolicy: 'no-user-gesture-required' } });
   game.loadFile(GAME_HTML(), { query: { native: '1', ...(DECK ? { deck: '1' } : {}), ...(cfg.lang ? { lang: cfg.lang } : {}) } });
   game.on('closed', () => { game = null; if (launcher && !GAMEMODE) launcher.show(); else app.quit(); });   // en el modo juego del Deck, salir del juego cierra el programa
   if (launcher) launcher.hide();

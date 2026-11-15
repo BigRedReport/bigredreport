@@ -15,7 +15,7 @@ button,select{font:inherit;color:var(--fg);background:#1c2230;border:1px solid v
 button.main{background:var(--red);border-color:var(--red);font-weight:600;width:100%;margin-top:6px}
 button:hover{filter:brightness(1.15)} select{width:100%}
 label.row{display:block;margin:12px 0 4px;color:var(--mut);font-size:13px}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px}.grid2[hidden]{display:none}
 #options{margin-top:4px}
 #options .opt{display:grid;grid-template-columns:170px 1fr 70px;align-items:center;gap:10px;margin:8px 0;font-size:14px}
 #options .opt span:last-child{text-align:right;color:var(--mut)}
@@ -178,7 +178,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 .series.cur{border-color:var(--red)}.series .row4{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:8px}
 .series .tcard{aspect-ratio:16/10}.won{position:absolute;top:6px;right:6px;background:#ffd23f;color:#000;font-weight:700;font-size:11px;padding:2px 6px;border-radius:5px}
 #optpanel{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.5);z-index:20}
-#optpanel[hidden]{display:none}
+#optpanel[hidden]{display:none}#dbstats{position:fixed;left:50%;top:12%;transform:translateX(-50%);z-index:19;pointer-events:none}#dbstats .dbs_c{background:rgba(10,12,18,.88);border:1px solid var(--line);border-radius:12px;padding:12px 16px;min-width:min(420px,90vw)}#dbstats[hidden],#dbs_btn[hidden]{display:none}#dbs_btn{position:fixed;left:50%;bottom:10px;transform:translateX(-50%);z-index:19;font-size:18px;padding:4px 10px;opacity:.85}.dbafk{position:absolute;left:50%;top:70px;transform:translateX(-50%);color:#ff3b30;font-weight:800;font-size:15px;text-shadow:0 1px 3px #000;pointer-events:none}
+#splobby{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.6);z-index:21}#splobby[hidden]{display:none}#splobby .card{zoom:var(--uiz,1)}
 .optcard{width:min(640px,100%);max-height:92vh;overflow:auto}.otabs{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0 4px}.otabs button{padding:7px 12px}.otabs button.on{background:var(--red);border-color:var(--red)}.opage[hidden]{display:none}
 #loading{background:#000 center/cover no-repeat}#loading .card{background:rgba(14,17,24,.82)}
 #results{background:rgba(0,0,0,.35) center/cover no-repeat}
@@ -336,7 +337,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <aside class="detail"><div class="dbody"><h2>Mods</h2><p class="small">Se guardan en el navegador (no se modifica tu carpeta del juego). Puedes activarlos, desactivarlos o borrarlos cuando quieras.</p></div></aside>
   </section>
   <section id="pane_quick" class="pane" hidden>
-    <div class="tcol"><div id="tracks" class="tracks"></div><div id="tracks_gpw" hidden><div class="tgph">🏎️ Grand Prix</div><div id="tracks_gp" class="tracks"></div></div><div id="tracks_f1w" hidden><div class="tgph">🏁 Fórmula 1</div><div id="tracks_f1" class="tracks"></div></div><div id="tracks_kw" hidden><div class="tgph">🛞 Karting</div><div id="tracks_k" class="tracks"></div></div><div id="tracks_kjw" hidden><div class="tgph">🌃 Kanjo Loop</div><div id="tracks_kj" class="tracks"></div></div><div id="tracks_cw" hidden><div class="tgph">🛠 Circuitos propios y de la comunidad</div><div id="tracks_c" class="tracks"></div></div></div>
+    <div class="tcol"><div id="tracks" class="tracks"></div><div id="tracks_gpw" hidden><div class="tgph">🏎️ Grand Prix</div><div id="tracks_gp" class="tracks"></div></div><div id="tracks_f1w" hidden><div class="tgph">🏁 Fórmula 1</div><div id="tracks_f1" class="tracks"></div></div><div id="tracks_kw" hidden><div class="tgph">🛞 Karting</div><div id="tracks_k" class="tracks"></div></div><div id="tracks_kjw" hidden><div class="tgph">🌃 Kanjo Loop</div><div id="tracks_kj" class="tracks"></div></div><div id="tracks_drw" hidden><div class="tgph">💨 Drift</div><div id="tracks_dr" class="tracks"></div></div><div id="tracks_dbw" hidden><div class="tgph">💥 Destruction Derby</div><div id="tracks_db" class="tracks"></div></div><div id="tracks_cw" hidden><div class="tgph">🛠 Circuitos propios y de la comunidad</div><div id="tracks_c" class="tracks"></div></div></div>
     <aside class="detail">
       <div class="dimg"><img id="d_img" alt="" hidden><canvas id="d_globe" width="440" height="440"></canvas><div id="d_place"></div><div id="d_ttbest" class="ttbest" hidden></div></div>
       <div class="dbody">
@@ -447,6 +448,9 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 </div>
 </div>
 
+<div id="dbstats" hidden><div class="dbs_c"><h3 style="margin:0 0 8px">💥 Destruction Derby · <span id="dbs_t"></span></h3><table class="lbt" id="dbs_tab"></table><p class="small" style="margin:8px 0 0">Tab · Select (mando) · 📊: mostrar u ocultar</p></div></div><button id="dbs_btn" hidden title="Estadísticas (Tab)">📊</button>
+<div id="splobby" hidden><div class="card" style="width:min(1180px,96vw)"><h2 style="margin:0 0 4px">Pantalla partida</h2><p class="small" id="spl_hint" style="margin:0 0 12px">Cada jugador elige su coche. Conecta otro mando y aparece otro recuadro. Con el mando: ↑↓ elige, ←→ cambia, A listo.</p><div id="spl_grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px"></div>
+  <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button id="spl_back">◀ Volver</button><button id="spl_less">− Jugador</button><button id="spl_more">+ Jugador</button><span style="flex:1"></span><button id="spl_go" class="primary">🏁 ¡A correr!</button></div></div></div>
 <div id="optpanel" hidden><div class="card optcard"><h2 style="margin:0 0 6px">Opciones</h2>
 <nav class="otabs"><button data-ot="g" class="on">Gráficos</button><button data-ot="c">Cámara y HUD</button><button data-ot="s">Sonido</button><button data-ot="j">Juego</button><button data-ot="k">Controles</button></nav>
 <div id="options">
@@ -660,6 +664,9 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/vehicle.js"></script>
 <script src="js/minimo_data.js"></script>
 <script src="js/kartmesh_data.js"></script>
+<script src="js/jetski_data.js"></script>
+<script src="js/cyber_data.js"></script>
+<script src="js/kjcars_data.js"></script>
 <script src="js/f1mesh_data.js"></script>
 <script src="js/gtmesh_data.js"></script>
 <script src="js/civico_data.js"></script>

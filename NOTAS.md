@@ -7,6 +7,19 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.2**
+- **Vehículos nuevos:**
+  - **Moto de agua** en WATER1, WATER2 y WATER3 (con la física de la lancha);
+  - **Ciberpickup** en RUF1, RUF2 y RUF3 (se conduce como el dumper);
+  - **Supremo** y **Horizonte** en el Kanjo Loop, junto al Cívico (mismo manejo, más potencia).
+- **Pantalla partida:** salen todos los circuitos de todos los modos y, tras elegir el mapa, cada mando tiene su recuadro para elegir coche, equipo, logo, llantas y claxon, con el coche girando.
+- **Reto semanal:** se corre contra tu fantasma y el del mejor tiempo online; logro nuevo por acabar entre los tres primeros.
+- **Destruction Derby:** quieto 30 s sale una cuenta atrás roja y el coche explota si no se mueve; tabla de bajas de cada uno (Tab o el botón Select del mando).
+- **Chats:** pinchando en el nombre de otro jugador se le puede mandar invitación de amistad.
+- **Online:** al crear partida de derbi ya no salen los recuadros del Kanjo Loop y del tráfico.
+- **Karting:** los pilotos llevan las manos en el volante y las piernas estiradas hacia delante.
+- El grito «Big Red Report» suena al abrir el juego.
+
 **Novedades de la 1.1.1**
 - **Destruction Derby:**
   - la IA conduce por el trazado (gira en los cruces avanzando, sin maniobras adelante y atrás) y, cuando te tiene a tiro, va a por ti a fondo y con nitro;
