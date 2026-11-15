@@ -500,10 +500,10 @@
   // «Un jugador»: cada modo es una tarjeta con la imagen de uno de sus circuitos
   function modeCards() { if (!front || !front.tracks) return; const O = front.tracks.filter(t => !t.custom && t.view), K = k => front.tracks.filter(t => t.kind === k && t.view), pick = (L, i) => L.length ? L[i % L.length].view : null;
     const IMG = { quick: pick(O, 0), tourn: pick(O, 6), tt: pick(O, 11), free: pick(O, 3), drift: pick(K('drift'), 0), gp: pick(K('gp'), 0), f1: pick(K('gp'), 4), kart: pick(K('kart'), 0), kanjo: pick(K('kanjo'), 0), derby: pick(K('derby'), 0), reto: pick(O, 16) };
-    for (const b of document.querySelectorAll('#h_single .hbtn[data-go]')) { const own = (BRR.MODE_COVERS || {})[b.dataset.go], im = own || IMG[b.dataset.go]; if (!(b.dataset.go in IMG)) continue; b.classList.add('mc'); b.classList.toggle('own', !!own);   /* portada propia del modo si la hay; si no, la de uno de sus circuitos */ b.style.backgroundImage = 'linear-gradient(to top, rgba(0,0,0,.88), rgba(0,0,0,.25) 55%, rgba(0,0,0,.1))' + (im ? ', url("' + im + '")' : ''); } }
+    for (const b of document.querySelectorAll('#h_single .hbtn[data-go], #h_multi .hbtn[data-go]')) { const own = (BRR.MODE_COVERS || {})[b.dataset.go], im = own || IMG[b.dataset.go]; if (!(b.dataset.go in IMG) && !own) continue; b.classList.add('mc'); b.classList.toggle('own', !!own);   /* portada propia del modo si la hay; si no, la de uno de sus circuitos */ b.style.backgroundImage = 'linear-gradient(to top, rgba(0,0,0,.88), rgba(0,0,0,.25) 55%, rgba(0,0,0,.1))' + (im ? ', url("' + im + '")' : ''); } }
   function go(v, silent) {
     if (v === 'home') setTimeout(askName, 400);
-    if (v === 'single') try { modeCards(); } catch (e) { }
+    if (v === 'single' || v === 'multi') try { modeCards(); } catch (e) { }
     if (v === 'options') { $('optpanel').hidden = false; setTimeout(() => navFocusFirst($('optpanel')), 0); return; }
     if (v === 'dos') { dosOpen(); return; }
     if (v === 'orig') { if (orig) { opt.menu = 'original'; save(); orig.open(); } return; }
@@ -1278,7 +1278,8 @@
     // nitro: una «r» por lata; con el turbo puesto, giran, se enciende el piloto y la barra se va vaciando
     let RX = W - m; { const mi = h.q('mini'); if (opt.hmini && mi && mi.offsetParent) { const a = mi.getBoundingClientRect(); if (a.top - r.top < H / dpr * 0.4 && a.left > r.left + r.width / 2) RX = Math.min(RX, (a.left - r.left) * dpr - m); } }   // a la izquierda del minimapa
     // nitro: cuadraditos (uno por lata), como en el marcador moderno; el que se está gastando parpadea
-    if (opt.hnitro) { const n = c.nitroInf ? 0 : Math.max(0, Math.min(12, c.nitros | 0)), act = c.nitroT > 0, q = 15 * k, gp = 5 * k;
+    if (opt.hnitro && c.nitroBar != null) { const q = 15 * k, Wd = 120 * k, x = RX - Wd; g.fillStyle = '#000'; g.fillRect(x - 2 * k, m - 2 * k, Wd + 4 * k, q * 1.5 + 4 * k); g.fillStyle = '#3a1210'; g.fillRect(x, m, Wd, q * 1.5); g.fillStyle = c.nitroT > 0 ? '#ffd23f' : '#e2231a'; g.fillRect(x, m, Wd * c.nitroBar, q * 1.5); g.fillStyle = 'rgba(255,255,255,.3)'; g.fillRect(x, m, Wd * c.nitroBar, q * 0.35); }
+    else if (opt.hnitro) { const n = c.nitroInf ? 0 : Math.max(0, Math.min(12, c.nitros | 0)), act = c.nitroT > 0, q = 15 * k, gp = 5 * k;
       const tot = n + (act && !c.nitroInf ? 1 : 0); let x = RX - tot * (q + gp);
       for (let i = 0; i < tot; i++, x += q + gp) { const burn = act && i === tot - 1 && !c.nitroInf; if (burn && (performance.now() / 120 | 0) % 2) continue;
         g.fillStyle = '#000'; g.fillRect(x - 2 * k, m - 2 * k, q + 4 * k, q * 1.5 + 4 * k); g.fillStyle = burn ? '#ffd23f' : '#e2231a'; g.fillRect(x, m, q, q * 1.5); g.fillStyle = 'rgba(255,255,255,.35)'; g.fillRect(x, m, q, q * 0.35); }
@@ -1658,7 +1659,8 @@
     if (+opt.assist && h.race.phase === 'race' && !netRace) assist(h, inp, dt, +opt.assist);
     if (h.race.phase === 'countdown') { inp.throttle = 0; inp.brake = 0; inp.nitro = false; inp.climb = 0; inp.handbrake = true; }   // en la cuenta atrás no se mueve (ni marcha atrás)
     if (h.race.phase === 'finished') { const sp = h.car.speed(); inp.throttle = 0; inp.brake = sp > 1.2 ? 0.4 : 0; inp.handbrake = sp <= 1.2; inp.steer = 0; }
-    if (h.car.broken > 0 || h.car.kSpin > 0) { inp.throttle = 0; inp.nitro = false; inp.brake = 0; }   // destrozado: unos segundos sin control
+    if (h.car.broken > 0 || h.car.kSpin > 0) { inp.throttle = 0; inp.nitro = false; inp.brake = 0; }
+    if (h.car.out && lvl && lvl.derby) { for (const k in inp) inp[k] = typeof inp[k] === 'number' ? 0 : false; inp.handbrake = true; }   /* derbi: en el agua (de espectador) ya no se conduce, ni pita ni hay turbo */   // destrozado: unos segundos sin control
     h.inp = inp; return inp;
   }
   setInterval(() => { const P = pads(); $('pad').textContent = P.length ? 'Mandos: ' + P.map(g => (padSeen(g).active ? '✓ ' : '') + (g.id.replace(/\(.*?\)/g, '').trim().slice(0, 28) || 'Mando') + (g.mapping === 'standard' ? '' : ' (modo DirectInput)')).join(' · ') : 'Mando: conéctalo y pulsa un botón para que el navegador lo detecte.'; }, 1500);
@@ -2923,7 +2925,7 @@
     const L = [...humans.map(h => ({ car: h.car, race: h.race, h, id: netRace ? netRace.myId : null })), ...rivals.filter(r => !r.remote)];
     L.forEach((o, i) => { const c = o.car; c.dbK = 0; c.dbBy = null; c.dbById = null; derbyPut(o, ids ? Math.max(0, ids.indexOf(o.id)) : i * 3 + rot); });
     for (const r of rivals) { r.car.dbK = 0; r.dby = null; } for (const q of lvl.derby.picks) q.off = 0;
-    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.nitros = 3; c.gpMode = false; }
+    for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.nitros = 0; c.nitroBar = 1; c.derbyMode = true; c.gpMode = false; }
   }
   function derbyAI(r, dt) {
     if (r.race.phase === 'countdown' || humans[0].race.phase === 'countdown') return { steer: 0, throttle: 0, brake: 0, handbrake: true, pitchAir: 0 };
@@ -2960,8 +2962,8 @@
     for (const q of D.picks) { if (q.off > 0) { q.off -= dt; continue; }
       const y = q.p[1] + Math.sin(performance.now() / 350 + q.p[0]) * 0.22; fx.glow([q.p[0], y, q.p[2]], q.t === 'rep' ? [0.25, 1, 0.4, 0.95] : [0.3, 0.65, 1, 0.95], 0.5);
       for (const o of mine) { const c = o.car; if (c.out || Math.hypot(c.p[0] - q.p[0], c.p[2] - q.p[2]) > 2.6 || Math.abs(c.p[1] - q.p[1]) > 2.5) continue; q.off = 25;
-        if (q.t === 'rep') { c.dmg = 0; c.broken = 0; dentReset(c); c.hitV = 0; } else c.nitros = Math.min(9, (c.nitros || 0) + 2);
-        if (o.h) { flash(o.h, q.t === 'rep' ? '🔧 Coche reparado' : '🔥 Nitro +2', 1.5); if (audio && audio.ctx) audio.play('SAMPLES/BEEP4.WAV', { vol: 0.7 }); } break; } }
+        if (q.t === 'rep') { c.dmg = 0; c.broken = 0; dentReset(c); c.hitV = 0; } else c.nitroBar = Math.min(1, (c.nitroBar || 0) + 0.5);
+        if (o.h) { flash(o.h, q.t === 'rep' ? '🔧 Coche reparado' : '🔥 Nitro', 1.5); if (audio && audio.ctx) audio.play('SAMPLES/BEEP4.WAV', { vol: 0.7 }); } break; } }
   }
   function crazyHud(h) {
     if (crazy.mode === 'derby') { const n = order.filter(o => !o.car.out).length; return '🚗 ' + n + ' · ' + fmt(Math.max(0, crazy.dbLeft)).slice(0, -3) + (h.car.dbK ? ' · 💥' + h.car.dbK : ''); }
@@ -3720,7 +3722,7 @@
       if (!freeMode && !driftMode && !kjLibre) h.q('h_best').textContent = fmt(bl != null && (!rec.lap || bl < rec.lap) ? bl : rec.lap);
       h.q('wrong').hidden = !rc.wrong;
       { const d = Math.min(100, Math.round(c.dmg || 0)), on = opt.damage !== '0' && !netRace; h.q('h_dmg').hidden = h.q('h_dmgl').hidden = !on; if (on) { h.q('h_dmg').textContent = d + '%'; h.q('h_dmg').style.color = d >= 95 ? '#ff4a3d' : d >= 80 ? '#ffb13d' : ''; } }
-      h.q('h_nitro').textContent = c.nitroInf ? '∞' : '▮'.repeat(Math.max(0, c.nitros | 0)) || '–'; h.q('nitrobox').classList.toggle('on', c.nitroT > 0);
+      h.q('h_nitro').textContent = c.nitroBar != null ? '▮'.repeat(Math.round(c.nitroBar * 10)) + '▯'.repeat(10 - Math.round(c.nitroBar * 10)) : c.nitroInf ? '∞' : '▮'.repeat(Math.max(0, c.nitros | 0)) || '–'; h.q('nitrobox').classList.toggle('on', c.nitroT > 0);
       if (h.msgT > 0) { h.msgT -= dt; if (h.msgT <= 0) h.q('msg').hidden = true; }
       drawMinimap(h); ohudDraw(h, dt);
     }

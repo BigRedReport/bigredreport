@@ -533,7 +533,7 @@
       A.p = V.madd(A.p, n, pen * kA); B.p = V.madd(B.p, n, -pen * kB);
       const vrel = V.dot(V.sub(A.v, B.v), n);
       if (vrel < 0) {
-        let iA = A.kinematic ? 0 : 1 / A.m, iB = B.kinematic ? 0 : 1 / B.m, rest = soft ? 1 : 1.25, hK = 1;
+        let iA = A.kinematic ? 0 : 1 / A.m, iB = B.kinematic ? 0 : 1 / B.m, rest = soft ? 1 : A.derbyMode && B.derbyMode && vrel < -4 ? 1.75 : 1.25, hK = 1;   /* derbi: un golpe fuerte lanza al otro (antes casi no rebotaba) */
         // Kanjo Loop: un coche normal del tráfico no es un muro. Por debajo de 120 km/h es un toque: se le empuja y frena poco; por encima, golpe (algo menos seco que contra un camión o un coche grande, que siguen como un muro)
         const TR = A.traffic ? A : B.traffic ? B : null, CR = TR ? (TR === A ? B : A) : null; let tSoft = false;
         if (!soft && TR && CR && !CR.kinematic && TR.m < 2000) { tSoft = Math.hypot(CR.v[0], CR.v[2]) < 33.3; const f = tSoft ? 0.35 : 0.7, iC = 1 / CR.m, iT = iC * (1 - f) / f; if (TR === A) iA = iT; else iB = iT; rest = 1; hK = tSoft ? 0.45 : 0.8;

@@ -7,6 +7,17 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.1**
+- **Destruction Derby:**
+  - la IA conduce por el trazado (gira en los cruces avanzando, sin maniobras adelante y atrás) y, cuando te tiene a tiro, va a por ti a fondo y con nitro;
+  - las rampas empiezan en el borde de la plataforma (ya no hay escalón para subir a los pisos de arriba);
+  - solo el Mini, el Escarabajo y el Jeep, con frenos mucho mejores y algo más de fuerza (el Mini, más);
+  - los golpes fuertes lanzan al otro coche;
+  - el nitro es una barra que se gasta mientras se aprieta el botón;
+  - en el agua, de espectador, ya no se puede acelerar, pitar ni usar el turbo.
+- **Karting:** más ángulo de giro, sin trompos incontrolables, suspensión menos rígida (salía disparado a mucha velocidad) y marcas de derrape solo al deslizar de verdad.
+- **Portadas:** Kanjo Loop y drift; y el menú de multijugador ahora también tiene portadas (pantalla partida, online, red local y amigos).
+
 **Novedades de la 1.1.0**
 - **Nuevo modo: Destruction Derby.** Arenas de vigas de madera y losas sobre el mar, de noche y a varias alturas (Telaraña, Cruz, Anillos, Torres y Parrilla). Todos con el mismo coche; quien cae al agua queda fuera y gana el último que queda arriba (si se acaba el tiempo, el que más ha tirado). 5 segundos de protección al salir, objetos de reparar y de nitro, quién ha tirado a quién, espectador al caer, minimapa de la arena, rivales de la máquina que buscan pelea sin tirarse solos, y online. Tres logros nuevos.
 - **Volante y pedales:** modo volante en Opciones → Controles (dirección directa con sensibilidad ajustable, y pedales asignables por eje).

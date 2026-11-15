@@ -227,4 +227,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Motor VTEC grabado, público en las gradas y ambiente de ciudad; rivales del Kanjo sin choques, F1 a fondo, toques suaves con el tráfico y modos del Kanjo online (1.0.1)
 - [x] Fuera de pista más lento en GP, F1 y karting; Cívico con suspensión dura y estable; manos al volante; gradas más audibles; logos sin relieve (1.0.2)
 - [x] Nuevo modo Destruction Derby (arenas sobre el mar, online), volante y pedales, portadas nuevas y arreglos de #35, #36 y #37 (1.1.0)
+- [x] Derbi: IA por el trazado, rampas sin escalón, nitro de barra y 3 coches con buenos frenos; kart más estable; portadas en multijugador (1.1.1)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

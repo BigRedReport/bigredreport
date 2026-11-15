@@ -5,7 +5,7 @@
 (function () {
   const BRR = window.BRR, DB = BRR.derby = {};
   DB.BASE = 'CHOPPER3'; DB.ORIGIN = [504, -1528];   // centro del mar abierto de ese nivel (un cuadrado de 1 km de agua)
-  DB.CARS = ['MINI', 'BEETLE', 'CABBET', 'CABMINI', 'JEEP', 'ATV', 'BUGGY', 'JETCAR', 'MONS', 'TRUCK', 'JCB', 'CAT', 'PLOUGH', 'SNOWCAT'];
+  DB.CARS = ['MINI', 'BEETLE', 'JEEP'];
   const rnd = seed => () => (seed = (seed * 16807) % 2147483647) / 2147483647;
 
   // ---------- mapas: listas de piezas { a:[x,y,z], b:[x,y,z], w, k } (k: 'v' viga de madera, 'l' losa gris), en metros desde el centro ----------
@@ -63,8 +63,15 @@
   // ---------- instalación en el nivel: piezas en coordenadas del mundo, suelo, grafo para la IA, salidas y objetos ----------
   DB.install = function (lvl, map) {
     const ox = DB.ORIGIN[0], oz = DB.ORIGIN[1], wy = lvl.terrain(ox, oz), EXT = 0.5;
-    const PC = map.P.map(p => { const a = [ox + p.a[0], wy + p.a[1], oz + p.a[2]], b = [ox + p.b[0], wy + p.b[1], oz + p.b[2]], dx = b[0] - a[0], dz = b[2] - a[2], L = Math.hypot(dx, dz) || 1, e = p.k === 'l' ? 0 : Math.min(EXT * p.w, 3);
-      return { a, b, w: p.w, k: p.k, L, ux: dx / L, uz: dz / L, e, sl: (b[1] - a[1]) / L }; });
+    // las rampas empiezan en el borde de la pieza a la que llegan (no en su centro, que dejaba un escalón)
+    const on = (q, x, z) => { const dx = q.b[0] - q.a[0], dz = q.b[2] - q.a[2], L = Math.hypot(dx, dz) || 1, ux = dx / L, uz = dz / L, rx = x - q.a[0], rz = z - q.a[2], t = rx * ux + rz * uz, e = q.k === 'l' ? 0 : Math.min(EXT * q.w, 3);
+      if (t < -e || t > L + e || Math.abs(rx * uz - rz * ux) > q.w / 2) return null; return q.a[1] + (q.b[1] - q.a[1]) * Math.max(0, Math.min(1, t / L)); };
+    const P0 = map.P.map(p => ({ ...p, a: p.a.slice(), b: p.b.slice() }));
+    for (const p of P0) { if (Math.abs(p.b[1] - p.a[1]) < 0.1) continue; for (const [E, O] of [[p.a, p.b], [p.b, p.a]]) { const L = Math.hypot(O[0] - E[0], O[2] - E[2]), ux = (O[0] - E[0]) / L, uz = (O[2] - E[2]) / L;
+        for (const q of P0) { if (q === p || Math.abs(q.b[1] - q.a[1]) > 0.1) continue; const y = on(q, E[0], E[2]); if (y == null || Math.abs(y - E[1]) > 0.4) continue;
+          let d = 0; while (d < 20 && on(q, E[0] + ux * (d + 0.25), E[2] + uz * (d + 0.25)) != null) d += 0.25; d = Math.max(0, d - 0.4); E[0] += ux * d; E[2] += uz * d; break; } } }
+    const PC = P0.map(p => { const a = [ox + p.a[0], wy + p.a[1], oz + p.a[2]], b = [ox + p.b[0], wy + p.b[1], oz + p.b[2]], dx = b[0] - a[0], dz = b[2] - a[2], L = Math.hypot(dx, dz) || 1, e = p.k === 'l' ? 0 : Math.min(EXT * p.w, 3);
+      return { a, b, w: p.w, k: p.k, L, ux: dx / L, uz: dz / L, e: Math.abs(b[1] - a[1]) > 0.1 ? 0.4 : e, sl: (b[1] - a[1]) / L }; });
     // altura del suelo en (x, z): la pieza más alta que quede por debajo de yMax (o null si ahí no hay nada: agua)
     const floor = (x, z, yMax = 1e9, mg = 0) => { let best = null; for (const p of PC) { const rx = x - p.a[0], rz = z - p.a[2], t = rx * p.ux + rz * p.uz; if (t < -p.e + mg || t > p.L + p.e - mg) continue; const l = Math.abs(rx * p.uz - rz * p.ux); if (l > p.w / 2 - mg) continue;
         const y = p.a[1] + p.sl * Math.max(0, Math.min(p.L, t)); if (y <= yMax + 1 && (best == null || y > best)) best = y; } return best; };
@@ -80,6 +87,7 @@
         let bj = -1, bd = 1e9; for (let j = p.n0; j <= p.n1; j++) { const d = Math.hypot(N[j].p[0] - a.p[0], N[j].p[2] - a.p[2]); if (d < bd) { bd = d; bj = j; } } if (bj >= 0) link(i, bj); } }
     const nearest = (q, yTol = 2.2) => { let b = -1, bd = 1e9; for (let i = 0; i < N.length; i++) { const n = N[i], dy = Math.abs(n.p[1] - q[1]); if (dy > yTol) continue; const d = (n.p[0] - q[0]) ** 2 + (n.p[2] - q[2]) ** 2 + dy * dy * 4; if (d < bd) { bd = d; b = i; } } return b; };
     const prev = new Int32Array(N.length), queue = new Int32Array(N.length);
+    const dist = to => { const d = new Int32Array(N.length).fill(1e6); if (to < 0) return d; d[to] = 0; let qh = 0, qt = 0; queue[qt++] = to; while (qh < qt) { const c = queue[qh++]; for (const o of adj[c]) if (d[o] > d[c] + 1) { d[o] = d[c] + 1; queue[qt++] = o; } } return d; };
     const path = (from, to) => { if (from < 0 || to < 0) return null; prev.fill(-2); prev[to] = -1; let qh = 0, qt = 0; queue[qt++] = to;   // desde el destino: así prev[] da el siguiente paso
       while (qh < qt) { const c = queue[qh++]; if (c === from) break; for (const o of adj[c]) if (prev[o] === -2) { prev[o] = c; queue[qt++] = o; } }
       if (prev[from] === -2) return null; const out = [from]; let c = from; while (prev[c] >= 0 && out.length < 400) { c = prev[c]; out.push(c); } return out; };
@@ -91,7 +99,7 @@
     // objetos: reparar (verde) y nitro (azul), lejos de las salidas
     const picks = []; { const cand = flat.filter(i => spawns.every(s => Math.hypot(N[i].p[0] - s.p[0], N[i].p[2] - s.p[2]) > 9)); for (let k = 0; k < 8 && cand.length; k++) { const i = cand.splice(Math.floor(R0() * cand.length), 1)[0];
       if (picks.some(q => Math.hypot(q.p[0] - N[i].p[0], q.p[2] - N[i].p[2]) < 22)) { k--; if (cand.length < 3) break; continue; } picks.push({ p: [N[i].p[0], N[i].p[1] + 1.1, N[i].p[2]], t: k % 2 ? 'nitro' : 'rep', off: 0 }); } }
-    lvl.derby = { map, PC, N, adj, floor, under, nearest, path, spawns, picks, waterY: wy, c: [ox, wy, oz] };
+    lvl.derby = { map, PC, N, adj, floor, under, nearest, path, dist, spawns, picks, waterY: wy, c: [ox, wy, oz] };
     return lvl.derby;
   };
 
@@ -121,50 +129,56 @@
     return { up: R.upload(mb), tris };
   };
 
-  // ---------- IA: va por el grafo hacia su presa, embiste cuando la tiene a tiro y no se tira sola ----------
+  // ---------- IA: conduce por las vigas como un coche (sigue el trazado y gira en los cruces), y cuando tiene a alguien a tiro va a por él a fondo ----------
   DB.ai = function (r, cars, dt, K = 1) {
     const D = r.car.lvl.derby, c = r.car, inp = { steer: 0, throttle: 0, brake: 0, handbrake: false, pitchAir: 0 }; if (!D) return inp;
-    const S = r.dby || (r.dby = { t: Math.random() * 0.5, tgt: null, tT: 0, path: null, stuck: 0, rev: 0, revS: 1, wander: -1 });
-    const fw = c.forward(), sp = Math.hypot(c.v[0], c.v[2]), vf = c.v[0] * fw[0] + c.v[2] * fw[2], y = c.p[1];
+    const S = r.dby || (r.dby = { t: Math.random() * 0.5, tgt: null, tT: 0, d: null, goal: -1, stuck: 0, rev: 0, revS: 0, last: -1, wander: -1, ramT: 0 });
+    const fw = c.forward(), sp = Math.hypot(c.v[0], c.v[2]), vf = c.v[0] * fw[0] + c.v[2] * fw[2], y = c.p[1], now = performance.now() / 1000;
     const has = (d, l = 0) => { const f = D.floor(c.p[0] + fw[0] * d + fw[2] * l, c.p[2] + fw[2] * d - fw[0] * l, y + 0.5); return f != null && f > y - 1.8 - Math.abs(d) * 0.4; };   // suelo a su altura (una viga de abajo no cuenta)
     if (D.floor(c.p[0], c.p[2], y + 0.5) == null && !c.W.some(w => w.contact)) return inp;   // cayendo: nada que hacer
     // ayuda: sin que nadie le empuje, la IA no se cae por un lado de la viga (se le frena la deriva hacia el borde)
-    { const U = D.under(c.p[0], c.p[2], y), now = performance.now() / 1000; if (U && now - (c.dbT || 0) > 1.2 && U.p.k === 'v') { const nx = U.p.uz, nz = -U.p.ux, sg = Math.sign(U.l) || 1, room = U.p.w / 2 - Math.abs(U.l) - c.def.box.h[0];
+    { const U = D.under(c.p[0], c.p[2], y); if (U && now - (c.dbT || 0) > 1.2 && U.p.k === 'v') { const nx = U.p.uz, nz = -U.p.ux, sg = Math.sign(U.l) || 1, room = U.p.w / 2 - Math.abs(U.l) - c.def.box.h[0];
         if (room < 0.6) { const vo = (c.v[0] * nx + c.v[2] * nz) * sg; if (vo > 0) { const k = Math.min(1, dt * 10) * (room < 0.2 ? 1 : 0.6); c.v[0] -= nx * sg * vo * k; c.v[2] -= nz * sg * vo * k; }
           if (room < 0.1) { c.v[0] -= nx * sg * dt * 3; c.v[2] -= nz * sg * dt * 3; } } } }
-    // presa: la más cercana (con algo de azar para que no vayan todos a por el mismo), mejor si está a su altura
-    S.tT -= dt; if (!S.tgt || S.tgt.out || S.tT <= 0) { let b = null, bd = 1e9; for (const o of cars) { if (o === c || o.out) continue; const d = (Math.hypot(o.p[0] - c.p[0], o.p[2] - c.p[2]) + Math.abs(o.p[1] - y) * 4) * (0.6 + 0.8 * Math.random()); if (d < bd) { bd = d; b = o; } } S.tgt = b; S.tT = 2.5 + Math.random() * 3; S.t = 0; }
-    S.t -= dt; if (S.t <= 0) { S.t = 0.45 + Math.random() * 0.2; const me = D.nearest(c.p); let goal = S.tgt ? D.nearest(S.tgt.p) : -1;
-      if (goal < 0 || goal === me) { if (S.wander < 0 || S.wander === me) S.wander = Math.floor(Math.random() * D.N.length); if (!S.tgt) goal = S.wander; }
-      S.path = D.path(me, goal); if (!S.path && S.tgt) { S.tgt = null; S.tT = 0; } }
-    // punto al que apunta: dos nodos por delante en la ruta; si la presa está cerca, a la misma altura y con suelo hasta ella, directo a por ella
-    let aim = null, ram = false; const T = S.tgt;
-    if (T) { const dx = T.p[0] - c.p[0], dz = T.p[2] - c.p[2], d = Math.hypot(dx, dz); if (d < 16 && Math.abs(T.p[1] - y) < 1.2) { let ok = true; for (let k = 1; k <= 4 && ok; k++) { const f = D.floor(c.p[0] + dx * k / 4, c.p[2] + dz * k / 4, y + 0.5); if (f == null || f < y - 2) ok = false; }
-        if (ok) { aim = [T.p[0] + T.v[0] * 0.25, 0, T.p[2] + T.v[2] * 0.25]; ram = true; } } }
-    let narrow = c.def.box.h[0] * 2 + 1.6, nodeW = 6;
-    if (!aim && S.path && S.path.length) { const P = S.path; let i0 = 0; { let bd = 1e9; for (let i = 0; i < Math.min(P.length, 4); i++) { const n = D.N[P[i]].p, d = Math.hypot(n[0] - c.p[0], n[2] - c.p[2]); if (d < bd) { bd = d; i0 = i; } } }
-      const n = D.N[P[Math.min(P.length - 1, i0 + (sp > 9 ? 2 : 1))]]; aim = n.p; nodeW = D.N[P[Math.min(P.length - 1, i0)]].w; }
+    // presa: la más cercana (con algo de azar), mejor si está a su altura
+    S.tT -= dt; if (!S.tgt || S.tgt.out || S.tT <= 0) { let b = null, bd = 1e9; for (const o of cars) { if (o === c || o.out) continue; const d = (Math.hypot(o.p[0] - c.p[0], o.p[2] - c.p[2]) + Math.abs(o.p[1] - y) * 4) * (0.6 + 0.8 * Math.random()); if (d < bd) { bd = d; b = o; } } S.tgt = b; S.tT = 3 + Math.random() * 3; S.t = 0; }
+    const me = D.nearest(c.p); if (me >= 0 && me !== S.cur) { S.last = S.cur ?? -1; S.cur = me; }
+    S.t -= dt; if (S.t <= 0 || !S.d) { S.t = 0.5 + Math.random() * 0.2; let goal = S.tgt ? D.nearest(S.tgt.p) : -1; if (goal < 0) { if (S.wander < 0 || S.wander === me) S.wander = Math.floor(Math.random() * D.N.length); goal = S.wander; } if (goal !== S.goal || !S.d) { S.goal = goal; S.d = D.dist(goal); } }
+    // siguiente nodo: de los vecinos que quedan por delante (no da la vuelta en la viga), el que más acerca al objetivo; si no hay ninguno por delante (final de viga), el mejor de todos
+    const ahead = (from, prevN) => { const n0 = D.N[from], dd = S.d; let best = -1, bs = 1e9, anyB = -1, anyS = 1e9;
+      for (const o of D.adj[from]) { if (o === prevN) continue; const n = D.N[o], dx = n.p[0] - c.p[0], dz = n.p[2] - c.p[2], l = Math.hypot(dx, dz) || 1, fwd = (dx * fw[0] + dz * fw[2]) / l, sc = dd[o] - fwd * 0.6;
+        if (fwd > -0.15 && sc < bs) { bs = sc; best = o; } if (sc < anyS) { anyS = sc; anyB = o; } } return best >= 0 ? best : anyB; };
+    let aim = null, nodeW = 6, ram = false, tdist = 0;
+    const T = S.tgt;
+    // a tiro: delante, a su altura y con suelo hasta ella (hasta 45 m): a por ella a fondo, sin frenar
+    if (T) { const dx = T.p[0] - c.p[0], dz = T.p[2] - c.p[2], d = Math.hypot(dx, dz), a = Math.atan2(fw[0] * dz - fw[2] * dx, fw[0] * dx + fw[2] * dz);
+      if (d < 45 && Math.abs(T.p[1] - y) < 1.3 && Math.abs(a) < (d < 12 ? 0.6 : 0.4)) { let ok = true; for (let k = 3; k < d && ok; k += 3) { const f = D.floor(c.p[0] + dx * k / d, c.p[2] + dz * k / d, y + 0.5); if (f == null || f < y - 2) ok = false; }
+        if (ok) { const lead = Math.min(0.6, d / 30); aim = [T.p[0] + T.v[0] * lead, 0, T.p[2] + T.v[2] * lead]; ram = true; tdist = d; } } }
+    let vTurn = 99;
+    if (!aim && me >= 0) { const n1 = ahead(me, S.last); if (n1 >= 0) { const n2 = ahead(n1, me), A = D.N[n1].p, B = n2 >= 0 ? D.N[n2].p : A, d1 = Math.hypot(A[0] - c.p[0], A[2] - c.p[2]);
+        // el giro que viene en el siguiente nodo: frena antes de llegar y empieza a girar un poco antes, avanzando (como un coche en un cruce)
+        const a1 = Math.atan2(A[2] - c.p[2], A[0] - c.p[0]), a2 = Math.atan2(B[2] - A[2], B[0] - A[0]); let tA = Math.abs(a2 - a1); if (tA > Math.PI) tA = 2 * Math.PI - tA; if (n2 < 0 || B === A) tA = 0;
+        if (tA > 0.35) vTurn = Math.max(3.2, 11 - tA * 6) + Math.max(0, d1 - 2) * 0.7;
+        aim = d1 < 2 + tA * 2.6 ? B : A; nodeW = Math.min(D.N[me].w, D.N[n1].w); } }
     if (!aim) { inp.brake = sp > 1 ? 1 : 0; return inp; }
-    const dx = aim[0] - c.p[0], dz = aim[2] - c.p[2], err = Math.atan2(fw[0] * dz - fw[2] * dx, fw[0] * dx + fw[2] * dz), dist = Math.hypot(dx, dz);
-    inp.steer = Math.max(-1, Math.min(1, err * 1.7));
-    // velocidad: según lo ancho que sea donde pisa y lo que haya que girar; a la presa, a fondo
-    let vmax = (nodeW >= 11 ? 16 : nodeW >= 7 ? 11 : nodeW >= 5 ? 8 : 6.5) * K; if (nodeW < narrow + 1) vmax *= 0.8;
-    vmax *= Math.max(0.3, 1 - Math.abs(err) * 0.9); if (ram && Math.abs(err) < 0.4) vmax = 26 * K;
-    // el borde: si delante no hay suelo, frena y gira hacia donde sí lo hay
-    // sensores: suelo delante y en las dos esquinas delanteras y los costados (l < 0: a la derecha, hacia donde gira un volante positivo)
-    const hw = c.def.box.h[0] + 0.45, look = 3 + sp * 0.75, ahead = has(look), fR = has(1.2 + sp * 0.25, -hw), fL = has(1.2 + sp * 0.25, hw), sR = has(0, -hw), sL = has(0, hw), sR2 = has(look * 0.75, -hw * 1.3), sL2 = has(look * 0.75, hw * 1.3);
-    if (nodeW < 8 && sp > 3) inp.steer = Math.max(-0.65, Math.min(0.65, inp.steer));   // en vigas estrechas, sin volantazos
+    const dx = aim[0] - c.p[0], dz = aim[2] - c.p[2], err = Math.atan2(fw[0] * dz - fw[2] * dx, fw[0] * dx + fw[2] * dz);
+    inp.steer = Math.max(-1, Math.min(1, err * 1.8));
+    // velocidad: según lo ancho que sea y lo que haya que girar (para girar en un cruce, frena antes y gira avanzando); a la presa, a fondo
+    let vmax = (nodeW >= 11 ? 17 : nodeW >= 7 ? 12 : nodeW >= 5 ? 9.5 : 7.5) * K; vmax *= Math.max(0.35, 1 - Math.abs(err) * 0.8); vmax = Math.min(vmax, vTurn * K); if (ram) vmax = 40;
+    // sensores: suelo delante y en las esquinas y los costados (l < 0: a la derecha, hacia donde gira un volante positivo)
+    const hw = c.def.box.h[0] + 0.45, look = ram ? Math.min(3 + sp * 0.75, Math.max(3, tdist - 2)) : 3 + sp * 0.75, aheadOk = has(look), fR = has(1.2 + sp * 0.25, -hw), fL = has(1.2 + sp * 0.25, hw), sR = has(0, -hw), sL = has(0, hw), sR2 = has(look * 0.75, -hw * 1.3), sL2 = has(look * 0.75, hw * 1.3);
+    if (nodeW < 8 && sp > 6 && !ram) inp.steer = Math.max(-0.7, Math.min(0.7, inp.steer));
     if (!fR || !sR) inp.steer = Math.min(inp.steer, -0.45 - (!fR && !sR ? 0.4 : 0)); else if (!fL || !sL) inp.steer = Math.max(inp.steer, 0.45 + (!fL && !sL ? 0.4 : 0));
     else if (!sR2 && sL2) inp.steer = Math.min(inp.steer, 0.15); else if (!sL2 && sR2) inp.steer = Math.max(inp.steer, -0.15);
-    if (!ahead) { vmax = Math.min(vmax, 2); if (sp > 2.5) { inp.brake = 1; inp.throttle = 0; } if (sR2 !== sL2) inp.steer = sR2 ? 0.8 : -0.8; }
-    if (!inp.brake) { if (vf < vmax - 0.5) inp.throttle = Math.min(1, 0.35 + (vmax - vf) * 0.25); else if (vf > vmax + 1.5) inp.brake = Math.min(1, (vf - vmax) * 0.3); }
-    if (ram && Math.abs(err) < 0.25 && dist > 6 && dist < 15 && ahead && c.nitros > 0 && Math.random() < dt * 0.7) inp.nitro = true;
-    // atascado (contra otro coche o de lado en una viga): marcha atrás un momento, si detrás hay suelo
+    if (!aheadOk) { vmax = Math.min(vmax, 2.5); if (sp > 3) { inp.brake = 1; inp.throttle = 0; } if (sR2 !== sL2) inp.steer = sR2 ? 0.8 : -0.8; }
+    if (!inp.brake) { if (vf < vmax - 0.5) inp.throttle = ram ? 1 : Math.min(1, 0.4 + (vmax - vf) * 0.25); else if (vf > vmax + 1.5) inp.brake = Math.min(1, (vf - vmax) * 0.3); }
+    if (ram && Math.abs(err) < 0.25 && tdist > 4 && aheadOk && (c.nitroBar || 0) > 0.05) inp.nitro = true;   // el último empujón con el nitro
+    // atascado (contra otro o contra el final de una viga): marcha atrás un momento y sigue; empujándose de frente sin avanzar: se echa atrás y vuelve con carrerilla
     if (sp < 0.8 && r.race && r.race.phase === 'race') S.stuck += dt; else S.stuck = Math.max(0, S.stuck - dt * 2);
+    S.ramT = ram && sp < 2.5 ? S.ramT + dt : 0;
     if (S.rev > 0) { S.rev -= dt; if (has(-(2.5 + sp * 0.4))) { inp.throttle = 0; inp.brake = 0.8; inp.steer = -S.revS; } else { inp.brake = 0; inp.throttle = 0.6; S.rev = 0; } }
-    S.ramT = ram && sp < 2.5 ? (S.ramT || 0) + dt : 0;   // empujándose de frente sin avanzar: se echa atrás y vuelve a embestir con carrerilla
-    if (S.rev <= 0 && S.ramT > 1.4 && has(-3.5)) { S.ramT = 0; S.rev = 0.8 + Math.random() * 0.5; S.revS = 0; }
-    else if (S.stuck > 1.3 || (Math.abs(err) > 2.2 && sp < 2)) { S.stuck = 0; S.rev = 0.9 + Math.random() * 0.5; S.revS = Math.sign(err) || 1; }
+    else if (S.ramT > 1.4 && has(-3.5)) { S.ramT = 0; S.rev = 0.8 + Math.random() * 0.4; S.revS = 0; S.nR = (S.nR || 0) + 1; }
+    else if (S.stuck > 1.5) { S.stuck = 0; S.rev = 0.8 + Math.random() * 0.4; S.revS = Math.sign(err) * 0.6; S.nS = (S.nS || 0) + 1; }
     return inp;
   };
 })();

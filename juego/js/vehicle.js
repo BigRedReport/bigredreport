@@ -326,7 +326,7 @@
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
       const DR = this.driftMode, DB = DR && this.driftB ? (this.dB || (this.dB = { on: false, lat: 1, side: 1, charge: 0, offT: 0, cT: 0, exit: 0 })) : null;   // drift B (arcade): ver más abajo   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
-      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1) * (F1 ? 1 / (1 + (vf / 38) ** 2) : 1) * (this.kartMode ? 1.2 / (1 + (vf / 30) ** 2) + 0.1 : 1) * (CIV ? 0.35 + 0.65 / (1 + (vf / 40) ** 2) : 1);   /* Cívico: a 190 la dirección es más tranquila (antes había que ir corrigiendo todo el rato) */   // más giro para contravolante; el F1, mucho menos a alta velocidad (si no, se va con el mínimo toque)
+      const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1) * (F1 ? 1 / (1 + (vf / 38) ** 2) : 1) * (this.kartMode ? 1.45 / (1 + (vf / 38) ** 2) + 0.25 : 1) * (CIV ? 0.35 + 0.65 / (1 + (vf / 40) ** 2) : 1);   /* Cívico: a 190 la dirección es más tranquila (antes había que ir corrigiendo todo el rato) */   // más giro para contravolante; el F1, mucho menos a alta velocidad (si no, se va con el mínimo toque)
       for (const k of ['steer', 'throttle', 'brake']) if (!Number.isFinite(inp[k])) inp[k] = 0;   /* una entrada rota (NaN) dejaba la dirección en NaN para siempre */
       this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * (F1 || CIV ? 10 / (1 + Math.max(0, vf) / 30) : 10));
       if (!Number.isFinite(this.steerAng)) this.steerAng = 0;
@@ -340,6 +340,7 @@
       if (throttle > 0.01) drive = throttle * curve(def.gearF, vf > 0 ? spdScript : 0) / 600 * 7.5 * this.m * (GP ? GPF : 1) * (this.kartMode ? 1.3 : 1);   // karting: sale más fuerte de las curvas
       // F1: tracción y empuje de un monoplaza (0-100 en unos 2,5 s; adaptado a la escala del juego, punta ~260 km/h)
       // nitro: empuje extra y supera la velocidad máxima
+      if (this.derbyMode) { drive *= this.def.name === 'MINI' ? 1.35 : 1.15; if (inp.nitro && this.nitroBar > 0 && throttle > 0.1) { this.nitroBar = Math.max(0, this.nitroBar - dt / 5); this.nitroT = Math.max(this.nitroT, 0.05); } }   /* derbi: algo más de fuerza (el Mini, más) y el nitro va con una barra que se gasta mientras se aprieta el botón */
       if (this.nitroT > 0) { this.nitroT -= dt; drive = Math.max(drive, curve(def.gearF, Math.max(0, spdScript) * 0.7) / 600 * 7.5 * this.m) + 0.38 * 9.81 * this.m; }
       let braking = 0; this.brakeLight = brake > 0.05 && Math.abs(this.speed()) > 0.3;
       if (brake > 0.01) { if (vf > 1) braking = brake; else drive = -brake * curve(def.gearB, vf < 0 ? spdScript : 0) / 444 * 5 * this.m; }
@@ -357,7 +358,7 @@
         if (!hit) { w.prevLen = w.len = L0; w.load = 0; w.spin += (w.spinRate || 0) * dt; continue; }
         grounded++;
         const len = Math.max(0, hit.t - w.radius), dl = (len - w.prevLen) / dt; w.prevLen = w.len = len;
-        const kw = (w.k || this.k) * (F1 ? 7 : this.kartMode ? 5 : CIV ? 1.5 : 1), cw = (w.cd || this.c) * (F1 ? 3 : this.kartMode ? 2.6 : CIV ? 1.6 : 1);   /* Cívico: suspensión dura y bien amortiguada (rebotaba) */   /* kart: sin muelles (chasis rígido), casi no balancea */ /* F1: suspensión muy dura (con tanto apoyo el fondo tocaba el suelo) */ let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
+        const kw = (w.k || this.k) * (F1 ? 7 : this.kartMode ? 3.4 : CIV ? 1.5 : 1), cw = (w.cd || this.c) * (F1 ? 3 : this.kartMode ? 2.3 : CIV ? 1.6 : 1);   /* Cívico: suspensión dura y bien amortiguada (rebotaba) */   /* kart: sin muelles (chasis rígido), casi no balancea */ /* F1: suspensión muy dura (con tanto apoyo el fondo tocaba el suelo) */ let Fs = kw * (L0 - len) - cw * dl; if (len <= 0.01) Fs += kw * 4 * (0.01 - len);
         Fs = Math.max(0, Fs); w.load = Fs;
         const n = hit.n, cp = V.madd(top, down, hit.t), r = V.sub(cp, this.p);
         const vc = V.add(this.v, V.cross(this.w, r));
@@ -368,7 +369,7 @@
         const vLong = V.dot(vc, fw), vLat = V.dot(vc, lat); let Flong0 = 0;
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
-        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (F1 ? 1.32 : GP ? 1.15 : 1) * (this.kartMode ? (w.steer ? 1.3 : 1.24 * (braking && Math.abs(inp.steer) > 0.3 && vf > 12 ? 0.9 : 1)) : 1);   // GP: neumáticos de carreras (F1: aún más) · kart: mucho agarre, y la trasera se suelta un poco si entras frenando y girando
+        let mu = (K.muFix ? 1 : hit.surf ? 1.0 : MU[w.surface] || 0.95) * (inp.handbrake && !w.steer && !DR ? 0.45 : 1) * (F1 ? 1.32 : GP ? 1.15 : 1) * (this.kartMode ? (w.steer ? 1.25 : 1.38) : 1);   /* kart: la trasera agarra más que la delantera (antes se iba de lado sin control) */   // GP: neumáticos de carreras (F1: aún más) · kart: mucho agarre, y la trasera se suelta un poco si entras frenando y girando
         if (DR && !DB && !w.steer) { if ((this.dSlip || 0) > 0.02) mu += (Math.min(mu, this.dOn ? 0.62 : 0.55) - mu) * this.dSlip;   // golpe de embrague: la trasera patina (sin frenar)
           if (!(this.dHold > 0)) { const ps = Math.max(0, throttle - 0.55) / 0.45 * Math.min(1, Math.abs(inp.steer) * 1.6) * Math.min(1, Math.max(0, vf - 5) / 6);   // a fondo y girando: las ruedas de atrás patinan (sobreviraje de potencia)
             mu *= 1 - 0.5 * ps; if (this.dOn && throttle > 0.3) mu *= 0.6; } }   // ya de lado y con gas, sigue derrapando   // de lado y con gas, el eje trasero sigue deslizando
@@ -383,14 +384,14 @@
         let Flat = -vLat * Math.min(14000, 0.5 * share / dt) * K.lat * (DB ? DB.lat : DR && this.dOn ? 1 - 0.985 * (this.dRamp || 0) * (this.dSpd ?? 1) : 1);   // drift A: de lado las gomas apenas tiran del coche hacia el morro (la trayectoria la lleva el derrape)   // drift B: de lado las gomas apenas sujetan (la trayectoria la lleva el derrape)
         const dA = DR && !DB && this.dOn ? (this.dRamp || 0) * (this.dSpd ?? 1) : 0;   // drift A en marcha: el motor empuja en el sentido de la marcha (abajo), no hacia el morro
         let Flong = (K.thrust ? 0 : DR ? (w.steer || (DB && DB.on) ? 0 : drive * 1.55 * dmul / nRear * (1 - dA)) : drive * dmul / this.ndrive) - vLong * (DB && DB.on ? 2 : 25 - 23 * dA) + Flong0;
-        if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * (F1 ? 4.6 : GP ? GPB : 1) * share, Math.abs(vLong) * share / dt * 0.5);
+        if (braking) Flong -= Math.sign(vLong) * Math.min(braking * 9 * (F1 ? 4.6 : GP ? GPB : this.derbyMode ? 2.1 : 1) * share, Math.abs(vLong) * share / dt * 0.5);
         if (inp.handbrake && !w.steer && !DR) Flong -= Math.sign(vLong) * Math.min(6 * share, Math.abs(vLong) * share / dt * 0.5);
         if (!throttle && !brake && Math.abs(vLong) < 1.5) Flong -= vLong * Math.min(0.3 * share / dt, 6000);
-        const lk = GP && braking ? (F1 ? 2.7 : 1.7) : 1, lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong / lk);   // GP: frenos de carreras (la frenada agarra mucho más sin bloquear)
+        const lk = GP && braking ? (F1 ? 2.7 : 1.7) : this.derbyMode && braking ? 1.8 : 1, lim = mu * Fs * 1.15, tot = Math.hypot(Flat, Flong / lk);   // GP: frenos de carreras (la frenada agarra mucho más sin bloquear)
         // derrape visible (marcas, humo, chirrido): de lado solo si la rueda resbala de verdad (>~1 m/s), no por el tope de agarre
         // en una curva normal (a los coches pequeños les pasaba siempre); de frente (frenazo o acelerón), según el exceso de fuerza
-        { const raw = tot > lim ? 1 - lim / tot : 0; w.slip = !raw ? 0 : Math.abs(Flong) > Math.abs(Flat) ? raw * (this.gpMode || this.kartMode ? 0.3 : 0.7) :   /* GP, F1 y karting: patinar un poco al acelerar no es un derrape (ni marcas ni chirrido) */ Math.min(raw, Math.max(0, (Math.abs(vLat) - 0.9) / 2.5)); }
-        if (tot > lim) { if (this.kartMode && !w.steer) { const fl = Math.sign(Flat) * Math.min(Math.abs(Flat), lim * (vf > 9 ? 0.9 : 1)), rest = Math.sqrt(Math.max(0, lim * lim - fl * fl)) * lk; Flat = fl; Flong = Math.max(-rest, Math.min(rest, Flong)); } else { Flat *= lim / tot; Flong *= lim / tot; } }   /* kart: la trasera agarra de lado antes que traccionar (no hace trompos al acelerar); al entrar muy rápido resbala un poco (pequeño derrape lateral) */
+        { const raw = tot > lim ? 1 - lim / tot : 0; w.slip = !raw ? 0 : Math.abs(Flong) > Math.abs(Flat) ? raw * (this.gpMode || this.kartMode ? 0.3 : 0.7) :   /* GP, F1 y karting: patinar un poco al acelerar no es un derrape (ni marcas ni chirrido) */ Math.min(raw, Math.max(0, (Math.abs(vLat) - (this.kartMode ? 2.2 : 0.9)) / (this.kartMode ? 3.5 : 2.5))); }   /* kart: girar no deja marcas, solo deslizar de verdad */
+        if (tot > lim) { if (this.kartMode && !w.steer) { const fl = Math.sign(Flat) * Math.min(Math.abs(Flat), lim), rest = Math.sqrt(Math.max(0, lim * lim - fl * fl)) * lk; Flat = fl; Flong = Math.max(-rest, Math.min(rest, Flong)); } else { Flat *= lim / tot; Flong *= lim / tot; } }   /* kart: la trasera agarra de lado antes que traccionar (no hace trompos al acelerar); al entrar muy rápido resbala un poco (pequeño derrape lateral) */
         // suspensión en el punto real; tracción/agarre aplicados cerca de la altura del centro de masas
         // (truco arcade para que no vuelque en cada curva, como en el original)
         const Fsus = V.mul(up, Fs), Ftire = V.add(V.mul(fw, Flong), V.mul(lat, Flat));
@@ -499,6 +500,7 @@
       if (!grounded && !K.fly) { // un poco de control en el aire, como en el original
         T = V.add(T, V.mul(right, -inp.pitchAir * this.I[0] * 1.5));
       }
+      if (this.kartMode && grounded >= 3 && vf > 8) { const wy = V.dot(this.w, up), want = -this.steerAng * vf / 2.2, over = Math.abs(wy) > Math.abs(want) * 1.15 + 0.15 || (wy * want < 0 && Math.abs(wy) > 0.3); if (over) T = V.add(T, V.mul(up, -(wy - want) * this.I[1] * 3.5 * Math.min(1, (vf - 8) / 12))); }   /* kart: no se cruza de lado él solo (gira lo que manda el volante; antes a veces hacía un trompo incontrolable) */
       if (CIV && grounded >= 3 && vf > 15) { const k = 2.2 * Math.min(1, (vf - 15) / 30), wy = V.dot(this.w, up); T = V.add(T, V.mul(up, -wy * this.I[1] * k * Math.max(0, 1 - Math.abs(inp.steer) * 0.6))); }   /* Cívico: estabilidad en recta a alta velocidad (no culea; al girar fuerte casi no actúa) */
       // "tilter" del original: par que devuelve el coche a la vertical cuando se inclina demasiado
       const tilt = V.cross(up, [0, 1, 0]), tl = V.len(tilt), upY = up[1];
