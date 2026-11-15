@@ -7,6 +7,12 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.0**
+- **Nuevo modo: Destruction Derby.** Arenas de vigas de madera y losas sobre el mar, de noche y a varias alturas (Telaraña, Cruz, Anillos, Torres y Parrilla). Todos con el mismo coche; quien cae al agua queda fuera y gana el último que queda arriba (si se acaba el tiempo, el que más ha tirado). 5 segundos de protección al salir, objetos de reparar y de nitro, quién ha tirado a quién, espectador al caer, minimapa de la arena, rivales de la máquina que buscan pelea sin tirarse solos, y online. Tres logros nuevos.
+- **Volante y pedales:** modo volante en Opciones → Controles (dirección directa con sensibilidad ajustable, y pedales asignables por eje).
+- **Portadas** nuevas de los modos (modo libre, reto semanal, Grand Prix, Fórmula 1, karting y Destruction Derby) y arreglado el borde de las portadas.
+- **Arreglos:** error del emulador del juego original (#37), ventana morada en algunos Linux (#36), la dirección ya no se queda rota tras un valor imposible y el coche que cae de morro ya no da error de física (#35).
+
 **Novedades de la 1.0.2**
 - **Fuera del asfalto:** en Grand Prix, Fórmula 1 y karting, por el césped o la tierra se frena y no se pasa de algo menos de la mitad de la punta.
 - **Cívico:** suspensión más dura y bien amortiguada (ya no rebota) y dirección más tranquila a alta velocidad: va recto a 190 sin ir corrigiendo.

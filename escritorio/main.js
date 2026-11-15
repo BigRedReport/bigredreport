@@ -4,6 +4,8 @@ const { app, BrowserWindow, ipcMain, dialog, shell, utilityProcess } = require('
 const path = require('path'), fs = require('fs'), zlib = require('zlib');
 // Linux: al descomprimir el .tar.gz el ayudante del sandbox de Chromium no tiene permisos de root; sin esto no arranca
 if (process.platform === 'linux' && !process.env.BRR_SANDBOX) app.commandLine.appendSwitch('no-sandbox');
+// Linux: si /dev/shm no se puede usar (algunos sistemas o lanzadores aislados), Chromium se cierra al arrancar y la ventana se queda morada (#36): se usa /tmp
+if (process.platform === 'linux') { let ok = true; try { fs.accessSync('/dev/shm', fs.constants.W_OK | fs.constants.X_OK); const t = path.join('/dev/shm', '.brr-' + process.pid); fs.writeFileSync(t, ''); fs.unlinkSync(t); } catch (e) { ok = false; } if (!ok || process.env.BRR_NOSHM) app.commandLine.appendSwitch('disable-dev-shm-usage'); }
 
 // Steam Deck: Steam pone SteamDeck=1 en modo juego; en modo escritorio se mira el fabricante de la placa (Valve, Jupiter/Galileo). --deck lo fuerza
 const DECK = (() => { if (process.platform !== 'linux') return false; if (process.argv.includes('--deck') || process.env.SteamDeck === '1') return true;

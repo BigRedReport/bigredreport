@@ -327,7 +327,9 @@
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
       const DR = this.driftMode, DB = DR && this.driftB ? (this.dB || (this.dB = { on: false, lat: 1, side: 1, charge: 0, offT: 0, cT: 0, exit: 0 })) : null;   // drift B (arcade): ver más abajo   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado
       const lock = (a1 + (a2 - a1) * tt) / 0x280 * 0.55 * (DR ? 1.75 : 1) * (F1 ? 1 / (1 + (vf / 38) ** 2) : 1) * (this.kartMode ? 1.2 / (1 + (vf / 30) ** 2) + 0.1 : 1) * (CIV ? 0.35 + 0.65 / (1 + (vf / 40) ** 2) : 1);   /* Cívico: a 190 la dirección es más tranquila (antes había que ir corrigiendo todo el rato) */   // más giro para contravolante; el F1, mucho menos a alta velocidad (si no, se va con el mínimo toque)
+      for (const k of ['steer', 'throttle', 'brake']) if (!Number.isFinite(inp[k])) inp[k] = 0;   /* una entrada rota (NaN) dejaba la dirección en NaN para siempre */
       this.steerAng += (inp.steer * lock - this.steerAng) * Math.min(1, dt * (F1 || CIV ? 10 / (1 + Math.max(0, vf) / 30) : 10));
+      if (!Number.isFinite(this.steerAng)) this.steerAng = 0;
       let F = [0, -9.81 * this.m, 0], T = [0, 0, 0];
       if (this.gpMode && this.grounded && this.def.name === 'F1' && inp.throttle > 0.1 && V.dot(this.v, fwd) > -0.5) { const tp = this.topSpeed, vf0 = V.dot(this.v, fwd); if (vf0 < tp * 0.98) F = V.madd(F, fwd, this.m * 7.5 * inp.throttle * Math.max(0.15, 1 - vf0 / tp)); }   // F1: tracción de monoplaza (0-100 en ~2,4 s)
       if (this.gpMode && this.grounded) { const sp2 = this.v[0] ** 2 + this.v[2] ** 2, f1 = this.def.name === 'F1'; F = V.add(F, V.mul(up, -Math.min((f1 ? 0.0045 : 0.0028) * sp2, f1 ? 14 : 6) * this.m)); }   // F1: mucho más apoyo   // GP: apoyo aerodinámico (más agarre cuanto más rápido)
@@ -361,7 +363,8 @@
         const vc = V.add(this.v, V.cross(this.w, r));
         const sa = this.steerAng * (w.steerK != null ? w.steerK : w.steer ? 1 : 0);
         const f0 = V.add(V.mul(fwd, Math.cos(sa)), V.mul(right, Math.sin(sa)));
-        const fw = V.norm(V.madd(f0, n, -V.dot(f0, n))), lat = V.norm(V.cross(fw, n));
+        let fp = V.madd(f0, n, -V.dot(f0, n)); if (V.dot(fp, fp) < 1e-8) fp = V.cross(n, V.sub(V.mul(right, Math.cos(sa)), V.mul(fwd, Math.sin(sa))));   /* coche de morro o de culo contra el suelo: el «delante» de la rueda no se puede proyectar (salía NaN); se saca del lado */
+        const fw = V.norm(fp), lat = V.norm(V.cross(fw, n));
         const vLong = V.dot(vc, fw), vLat = V.dot(vc, lat); let Flong0 = 0;
         const sf = hit.surf ? null : this.lvl.surface(cp[0], cp[2]); w.surface = sf ? sf.type : 'asfalto'; w.green = !!(sf && sf.grass);
         const MU = { asfalto: 1.0, tierra: 0.9, arena: 0.8, nieve: 0.72, agua: 0.62 };
