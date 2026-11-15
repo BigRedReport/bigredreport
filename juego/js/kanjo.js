@@ -48,7 +48,7 @@
   // tramos cubiertos (fracción de la vuelta): techo, paredes y luz amarilla de sodio
   const TUN = [[0.115, 0.165], [0.43, 0.475], [0.70, 0.765], [0.905, 0.935]];
   KJ.AMB_SKY = [2.7, 1.85, 0.6]; KJ.AMB_GND = [1.7, 1.15, 0.35];   // luz de sodio de los túneles sobre los coches
-  KJ.inTunnel = (K, s) => { const f = (((s % K.total) + K.total) % K.total) / K.total; return TUN.some(t => f >= t[0] && f < t[1]); };
+  KJ.inTunnel = (K, s) => { const f = (((s % K.total) + K.total) % K.total) / K.total; return ((K.T && Array.isArray(K.T.tun)) ? K.T.tun : TUN).some(t => f >= t[0] && f < t[1]); };   // cada trazado puede traer sus túneles (la C1); si no, los del loop de Osaka
   const NEON = [[1, 0.15, 0.25], [0.2, 0.8, 1], [1, 0.75, 0.1], [0.3, 1, 0.45], [1, 0.35, 0.9], [1, 1, 1]];
 
   // ---------- la geometría ----------
