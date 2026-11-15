@@ -1819,13 +1819,14 @@
     const W = p => [p.x * 8, 0, -p.z * 8], used = [];
     const X = (a, b, c, d) => { const r = (o, p, q) => (p.x - o.x) * (q.z - o.z) - (p.z - o.z) * (q.x - o.x), d1 = r(c, d, a), d2 = r(c, d, b), d3 = r(a, b, c), d4 = r(a, b, d); return d1 * d2 < 0 && d3 * d4 < 0 ? d1 / (d1 - d2) : null; };
     for (let i = 0; i < n; i++) for (let j = i + 12; j < n; j++) { if (i < 6 && j > n - 6) continue; if (used.some(u => Math.abs(u - j) < 60)) continue;
-      const t = X(S[j], S[(j + 1) % n], S[i], S[(i + 1) % n]); if (t == null) continue; used.push(j);
-      // cruce: el tramo j (más tarde en la vuelta) va arriba
-      const lo = [S[i], S[(i + 1) % n]], ang = Math.abs(Math.asin(Math.max(-1, Math.min(1, S[i].tx * S[j].tz - S[i].tz * S[j].tx)))) || 0.5;
-      const sc = S[j].s + t * (S[(j + 1) % n].s - S[j].s), H = 6.5, Lf = Math.min(60, (half + 5) / Math.max(0.35, Math.sin(ang)) + 4), Lr = 70, TOT = S.total;
+      const t0 = X(S[j], S[(j + 1) % n], S[i], S[(i + 1) % n]); if (t0 == null) continue; used.push(j);
+      // cruce: el tramo j (más tarde en la vuelta) va arriba; con «bridgeFirst», el que se pasa primero desde la salida (Oriokart)
+      const F = !!T.bridgeFirst, hi = F ? i : j, li = F ? j : i, t = F ? X(S[i], S[(i + 1) % n], S[j], S[(j + 1) % n]) : t0;
+      const lo = [S[li], S[(li + 1) % n]], ang = Math.abs(Math.asin(Math.max(-1, Math.min(1, S[i].tx * S[j].tz - S[i].tz * S[j].tx)))) || 0.5;
+      const sc = S[hi].s + t * (S[(hi + 1) % n].s - S[hi].s), H = 6.5, Lf = Math.min(60, (half + 5) / Math.max(0.35, Math.sin(ang)) + 4), Lr = 70, TOT = S.total;
       const hAt = ds => { const a = Math.abs(ds); if (a <= Lf) return H; if (a >= Lf + Lr) return 0; const u = 1 - (a - Lf) / Lr; return H * u * u * (3 - 2 * u); };
       const dist = (a, b) => { let d = a - b; if (d > TOT / 2) d -= TOT; if (d < -TOT / 2) d += TOT; return d; };
-      const lowD = (x, z) => { let m = 1e9; for (let k = -40; k <= 40; k++) { const p = S[(i + k + n) % n], q = W(p); m = Math.min(m, Math.hypot(x - q[0], z - q[2])); } return m; };
+      const lowD = (x, z) => { let m = 1e9; for (let k = -40; k <= 40; k++) { const p = S[(li + k + n) % n], q = W(p); m = Math.min(m, Math.hypot(x - q[0], z - q[2])); } return m; };
       const mb = new BRR.MeshBuilder(null), g = mb.group('COLOR'), tris = [], asph = [0.3, 0.3, 0.32], line = [0.92, 0.92, 0.9], conc = [0.7, 0.7, 0.68], dark = [0.45, 0.45, 0.47];
       const quad = (a, b, c, d, col, solid) => { for (const [x, y, z] of [[a, b, c], [a, c, d]]) { for (const v of [x, y, z]) { g.pos.push(...v); g.col.push(...col); g.lay.push(0); } for (const v of [x, z, y]) { g.pos.push(...v); g.col.push(...col); g.lay.push(0); } if (solid) tris.push([x, y, z]); } };
       const box = (x0, y0, z0, x1, y1, z1, col) => { const V = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]; for (const f of [[0, 1, 2, 3], [4, 5, 6, 7], [3, 2, 6, 7], [0, 3, 7, 4], [1, 2, 6, 5]]) quad(...f.map(k => V[k]), col, true); };

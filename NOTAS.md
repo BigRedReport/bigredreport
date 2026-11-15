@@ -7,6 +7,9 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.5**
+- **Oriokart:** el puente, como en el de verdad: al salir de meta se pasa primero por encima y, tras la curva, por debajo.
+
 **Novedades de la 1.1.4**
 - **Kanjo:** nuevo circuito, la **ruta C1 de Tokio** (Shuto Expressway, sentido exterior, 13,8 km, trazado real de OpenStreetMap) con sus túneles, tráfico y el mismo decorado nocturno que Osaka.
 - **Karting:** dos circuitos nuevos, **Finestrat** (trazado real de OpenStreetMap) y **Oriokart** (Orihuela, con su puente), con portada.

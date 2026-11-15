@@ -231,4 +231,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Moto de agua, Ciberpickup, Supremo y Horizonte; menú de pantalla partida por mando; fantasmas del reto semanal; AFK y bajas en el derbi (1.1.2)
 - [x] Nave espacial en Marte y Bambino en la ciudad (1.1.3)
 - [x] Ruta C1 de Tokio en el Kanjo; karts de Finestrat y Oriokart (1.1.4)
+- [x] Puente de Oriokart en el sentido correcto (1.1.5)
 - [ ] Ideas: modo fútbol (tipo Rocket League)
