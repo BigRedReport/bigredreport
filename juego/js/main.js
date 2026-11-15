@@ -167,7 +167,7 @@
   const FREE_ONLY = new Set(['CITY3']);   // circuitos solo para el modo libre (fuera de carrera rápida, contrarreloj, retos, online y clasificaciones)
   const LEVEL_NAMES = { CITY: 'Ciudad', DIRT: 'Tierra', MOON: 'Marte', WATER: 'Río', SNOW: 'Nieve', RUF: 'Desierto', RIG: 'Plataforma', CHOPPER: 'Helicóptero', TEST: 'Prueba' };
   const VEH_NAMES = { MINIMO: 'Mínimo 50', PANDA: 'Panda 86', GT: 'GT Racer', KART: 'Go-kart', F1: 'Fórmula', GTS: 'GT Sprint', CIVICO: 'Cívico', BAV30: 'Bávaro 30', ZETA35: 'Zeta 35', JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable',
-    PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', JETSKI: 'Moto de agua', CYBER: 'Ciberpickup', SUPREMO: 'Supremo', HORIZONTE: 'Horizonte', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
+    PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', JETSKI: 'Moto de agua', CYBER: 'Ciberpickup', SUPREMO: 'Supremo', HORIZONTE: 'Horizonte', NAVE: 'Nave espacial', BAMBINO: 'Bambino', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
   // vehículos de cada circuito (líneas "car" del guion del nivel), como en el original
   const levelCars = {};
   const KANJO_CARS = ['CIVICO', 'SUPREMO', 'HORIZONTE'];   // Kanjo Loop: el Cívico, el Supremo y el Horizonte (mismo manejo)
@@ -182,6 +182,8 @@
       const txt = BRR.text(A.get(t)).replace(/;[^\n]*/g, '');
       const L = [...txt.matchAll(/^\s*car\s+(\w+)/gm)].map(m => m[1].toUpperCase()).slice(0, 2).filter(n => n !== 'FEHELI' && files.has(n + '.VHC'));
       if (/^MOON/.test(id) && files.has('UFO.VHC') && !L.includes('UFO')) L.push('UFO');   // el ovni, también de serie en Marte, Venus y la Luna
+      if (/^CITY[1-4]$/i.test(id) && files.has('MINI.VHC') && !L.includes('BAMBINO')) L.push('BAMBINO');   // en la ciudad, también el Bambino (utilitario italiano de los 50)
+      if (/^MOON[123]$/i.test(id) && files.has('JETCAR.VHC') && !L.includes('NAVE')) { const m = L.indexOf('JETCAR'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'NAVE'); }   // en Marte, también la nave espacial (se maneja como el jet car)
       if (/^RUF[123]$/i.test(id) && files.has('CAT.VHC') && !L.includes('CYBER')) { const m = L.indexOf('CAT'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'CYBER'); }   // en el desierto, también la ciberpickup (se conduce como el dumper)
       if (/^WATER[123]$/i.test(id) && files.has('INFLATE.VHC') && !L.includes('JETSKI')) { const m = L.indexOf('INFLATE'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'JETSKI'); }   // en los ríos, también la moto de agua (con la física de la lancha) como otro principal
       { const m = L.findIndex(n => n === 'MINI' || n === 'CABMINI'); if (m >= 0 && !L.includes('MINIMO') && files.has('MINI.VHC')) L.splice(m + 1, 0, 'MINIMO'); }   // donde sale el Mini del juego, también el Mínimo 50 (Mini R50) como otro principal

@@ -229,4 +229,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Nuevo modo Destruction Derby (arenas sobre el mar, online), volante y pedales, portadas nuevas y arreglos de #35, #36 y #37 (1.1.0)
 - [x] Derbi: IA por el trazado, rampas sin escalón, nitro de barra y 3 coches con buenos frenos; kart más estable; portadas en multijugador (1.1.1)
 - [x] Moto de agua, Ciberpickup, Supremo y Horizonte; menú de pantalla partida por mando; fantasmas del reto semanal; AFK y bajas en el derbi (1.1.2)
+- [x] Nave espacial en Marte y Bambino en la ciudad (1.1.3)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

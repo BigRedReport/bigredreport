@@ -7,6 +7,11 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.3**
+- **Vehículos nuevos:**
+  - **Nave espacial** en MOON1, MOON2 y MOON3 (flota y se maneja como el jet car);
+  - **Bambino**, utilitario italiano de los 50, en CITY1, CITY2, CITY3 y CITY4 (con el motor del Mini).
+
 **Novedades de la 1.1.2**
 - **Vehículos nuevos:**
   - **Moto de agua** en WATER1, WATER2 y WATER3 (con la física de la lancha);

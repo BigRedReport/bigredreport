@@ -6,7 +6,7 @@
 "use strict";
 (function () {
   const BRR = window.BRR;
-  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' } };
+  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' }, NAVE: { base: 'JETCAR', name: 'Nave espacial' }, BAMBINO: { base: 'MINI', name: 'Bambino' } };
   const orig = BRR.loadVehicle;
   BRR.loadVehicle = async function (files, name, lvl, team = 1, extra = {}) {
     const C = BRR.CUSTOM_CARS[String(name).toUpperCase()]; if (!C) return orig(files, name, lvl, team, extra);
@@ -21,7 +21,8 @@
     if (NM === 'MINIMO') return minimo(d, (extra.paint || [190, 20, 25]).map(v => v / 255), gl);
     if (NM === 'BAV30') return coupe(d, (extra.paint || (NM === 'BAV30' ? [235, 235, 230] : [235, 150, 30])).map(v => v / 255), NM, gl);
     if (NM === 'KART') return kart(d, (extra.paint || [230, 40, 30]).map(v => v / 255));
-    if (BRR.KJ_MESH && BRR.KJ_MESH[NM]) return kjcar(d, (extra.paint || (NM === 'SUPREMO' ? [225, 120, 20] : [40, 70, 160])).map(v => v / 255), gl, NM);
+    if (BRR.KJ_MESH && BRR.KJ_MESH[NM]) return kjcar(d, (extra.paint || (NM === 'SUPREMO' ? [225, 120, 20] : NM === 'BAMBINO' ? [140, 190, 225] : [40, 70, 160])).map(v => v / 255), gl, NM);
+    if (NM === 'NAVE') return nave(d, (extra.paint || [228, 228, 232]).map(v => v / 255));
     if (NM === 'CYBER') return cyber(d, (extra.paint || [186, 188, 192]).map(v => v / 255), gl);
     if (NM === 'JETSKI') return jetski(d, (extra.paint || [215, 25, 25]).map(v => v / 255));
     if (NM === 'F1') return f1(d, (extra.paint || [200, 20, 20]).map(v => v / 255));
@@ -385,10 +386,18 @@
     const { W, M: WM, G } = placeWheels(d, [wf[0], wf[1], wf[2], wf[3]], [wr[0], wr[1], wr[2], wr[3]], [0.72, 0.73, 0.76]);
     const COL = M.cols.map(c => c === 'paint' ? P : c === 'glass' ? (gl || [0.07, 0.09, 0.12]) : c === 'brake' ? [0.55, 0.04, 0.03] : c), bi = M.cols.indexOf('brake');
     const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => COL[k] || P, new Set(bi >= 0 ? [bi] : []), false);
-    const gearF = d.gearF.map(r => [r[0] * 1.7, r[1] * 2.15, ...r.slice(2)]);   // más potentes que el Cívico: punta ~210 km/h
-    const yb = 0.85 + G, zb = mx[2] - 0.04, zf = mn[2] + 0.08;
+    const BB = NM === 'BAMBINO', gearF = BB ? d.gearF : d.gearF.map(r => [r[0] * 1.7, r[1] * 2.15, ...r.slice(2)]);   // Supremo y Horizonte: más potentes que el Cívico (punta ~210 km/h); el Bambino, con el motor del Mini
+    const yb = (BB ? 0.55 : 0.85) + G, zb = mx[2] - 0.04, zf = mn[2] + 0.08;
     return { ...d, gearF, name: NM, vname: NM, mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: WM, box: { c: [0, G + (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2], h: [mx[0] - 0.04, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, interior: null, logoSlot: false,
-      brakeSpots: [[-0.6, yb, zb], [0.6, yb, zb]], headl: [[-0.6, 0.62 + G, zf], [0.6, 0.62 + G, zf]], nitro: [0.35, 0.25 + G, zb + 0.04], decoParts: [], headPos: null };
+      brakeSpots: [[BB ? -0.5 : -0.6, yb, zb], [BB ? 0.5 : 0.6, yb, zb]], headl: [[BB ? -0.48 : -0.6, (BB ? 0.56 : 0.62) + G, zf], [BB ? 0.48 : 0.6, (BB ? 0.56 : 0.62) + G, zf]], nitro: [0.35, 0.25 + G, zb + 0.04], decoParts: [], headPos: null };
+  }
+  // ---------- nave espacial (Marte, Venus y la Luna): malla del modelo (nave_data.js) sobre el jet car del juego (misma física: flota y se maneja como él) ----------
+  function nave(d, P) {
+    if (!BRR.NAVE_MESH) return d;
+    const COL = [P, [0.05, 0.06, 0.08], [0.34, 0.35, 0.39], [0.14, 0.14, 0.15]];
+    const body = meshCar(d.mesh.pal, BRR.NAVE_MESH.body, k => COL[k] || P, null, true);
+    return { ...d, name: 'NAVE', vname: 'NAVE', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, box: { c: [0, 0.3, 0], h: [1.25, 0.5, 1.45] },
+      brakeSpots: [], nitro: [0, 0.45, 1.47], headPos: null };
   }
   // ---------- ciberpickup: malla del modelo (cyber_data.js) con ruedas del juego en sus pasos de rueda; motor, marchas, peso y suspensión del dumper ----------
   function cyber(d, P, gl) {
