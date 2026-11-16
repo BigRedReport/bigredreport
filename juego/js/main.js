@@ -698,13 +698,13 @@
   setTimeout(loadNews, 2500);
   // ---------- chat general (menú principal) ----------
   // por los buzones públicos de siempre (sin servidor propio). Sin HTML (solo texto), 200 letras, un mensaje cada 3 s,
-  // palabrotas tapadas con asteriscos y «silenciar» a quien moleste (clic en su nombre). Solo se guardan las últimas 24 horas.
+  // palabrotas tapadas con asteriscos y «silenciar» a quien moleste (clic en su nombre). Se guardan los últimos 100 mensajes, sin caducidad.
   (function chatInit() {
     const log = $('hc_log'), inp = $('hc_in'), box = $('h_chat'); if (!log || !BRR.cloud || !BRR.cloud.chatSend) return;
     const seen = new Set(), msgs = [], MUTE_K = 'brr_chatmute'; let mute = []; try { mute = JSON.parse(localStorage.getItem(MUTE_K)) || []; } catch (e) { }
     const BAD = /\b(put[ao]s?|cabr[oó]n(es)?|gilipollas|maric[oó]n(es)?|hijo ?de ?puta|subnormal|mierda|cojones|co[nñ]o|polla|zorra|fuck(ing|er)?|shit|bitch|cunt|nigg(er|a)s?|fag(got)?s?|asshole|dick|whore|retard(ed)?)\b/gi;
     const clean = t => String(t).replace(/[\u0000-\u001f‪-‮]/g, ' ').replace(BAD, w => w[0] + '*'.repeat(Math.max(2, w.length - 1)));
-    const ok = m => m && typeof m.mid === 'string' && typeof m.text === 'string' && typeof m.t === 'number' && m.text.trim() && m.text.length <= 200 && Date.now() - m.t < 86400000 && m.t - Date.now() < 300000;
+    const ok = m => m && typeof m.mid === 'string' && typeof m.text === 'string' && typeof m.t === 'number' && m.text.trim() && m.text.length <= 200 && m.t > 1.7e12 && m.t - Date.now() < 300000;   // ya no caducan a las 24 h: se quedan hasta que los empujan los nuevos
     const hhmm = t => { const d = new Date(t); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); };
     function render() { const atEnd = log.scrollTop + log.clientHeight >= log.scrollHeight - 30; log.textContent = '';
       const L = msgs.filter(m => !mute.includes(m.pid)).slice(-80); if (!L.length) { const d = document.createElement('div'); d.className = 'sys'; d.textContent = BRR.t ? BRR.t('Todavía no hay mensajes. ¡Saluda!') : 'Todavía no hay mensajes. ¡Saluda!'; log.appendChild(d); }
@@ -713,7 +713,7 @@
         if (m.pid !== BRR.cloud.id) { b.style.cursor = 'pointer'; b.onclick = () => playerMenu(m.pid, m.name || 'Piloto', () => { mute.push(m.pid); try { localStorage.setItem(MUTE_K, JSON.stringify(mute.slice(-200))); } catch (e) { } render(); }); }
         const sp = document.createElement('span'); sp.textContent = clean(m.text); d.append(tm, b, sp); log.appendChild(d); }
       if (atEnd) log.scrollTop = log.scrollHeight; }
-    function add(m) { if (!ok(m) || seen.has(m.mid)) return false; seen.add(m.mid); msgs.push(m); msgs.sort((a, b) => a.t - b.t); if (msgs.length > 200) msgs.splice(0, msgs.length - 200); return true; }
+    function add(m) { if (BRR.cloud.chatSeen) BRR.cloud.chatSeen(m); if (!ok(m) || seen.has(m.mid)) return false; seen.add(m.mid); msgs.push(m); msgs.sort((a, b) => a.t - b.t); if (msgs.length > 100) msgs.splice(0, msgs.length - 100); return true; }
     const st = n => { $('hc_st').textContent = n ? '' : (BRR.t ? BRR.t('(conectando…)') : '(conectando…)'); };
     let started = false; const start = () => { if (started) return; started = true; st(0);
       BRR.cloud.chatHistory().then(r => { r.rows.forEach(add); render(); }).catch(() => render());
@@ -1911,7 +1911,7 @@
     if (!down && h.jumpPrev && h.jumpHold != null) { const held = now - h.jumpHold; h.jumpHold = null; h.jumpLv = null; h.msgT = Math.min(h.msgT, 0.3); carJump(h, JUMP_LV.filter(l => held >= l[0]).pop()[1]); }
   }
   function carJump(h, vy) {
-    const c = h.car; if (c.K.fly) return; const now = performance.now();
+    const c = h.car; if (c.K.fly || c.out) return; const now = performance.now();
     if (now - (h.jumpT || 0) < 600 || c.W.filter(w => w.contact).length < 2) return; h.jumpT = now;
     const up = BRR.mv(c.R, [0, 1, 0]), u = up[1] > 0.5 ? up : [0, 1, 0]; c.v = V.madd(c.v, u, vy); c.v[1] = Math.max(c.v[1], vy * 0.85);
     if (audio) audio.play('SAMPLES/BEEP4.WAV', { vol: 0.3 });
@@ -2826,7 +2826,7 @@
   const CRAZY_NAME = { drift: 'Modo drift', gp: 'Grand Prix', f1: 'Fórmula 1', elim_cp: 'Eliminación', bomba: 'Bomba caliente', zombie: 'Infección zombi', polis: 'Polis y cacos', kart: 'Modo kart', kartgp: 'Karting', kanjo: 'Kanjo Loop', derby: 'Destruction Derby' };
   const crazyR = () => crazy && crazy.mode !== 'kart';   // modos con eliminados/ganadores propios (el kart es una carrera normal)
   const crazyNoLaps = () => crazyJump() || !!(crazy && crazy.mode === 'derby') || !!(lvl && lvl.derby);   // sin vueltas ni controles
-  const crazyJump = () => crazy && (crazy.mode === 'bomba' || crazy.mode === 'zombie' || crazy.mode === 'polis');   // modos sin vueltas: se puede saltar
+  const crazyJump = () => crazy && (crazy.mode === 'bomba' || crazy.mode === 'zombie' || crazy.mode === 'polis' || crazy.mode === 'derby');   // (en el derbi también)   // modos sin vueltas: se puede saltar
   function crazyInit() {
     const mode = ttMode || tourMode || rpLoad ? 'normal' : netRace ? (netRace.crazy || 'normal') : !freeMode ? crazyPick : 'normal';
     for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { c.out = !!c.spec; c.outN = 0; c.vmul = 1; c.bombLeft = BOMB_T; c.cop = false; c.robber = false; }
@@ -3019,7 +3019,15 @@
   }
   function derbyAI(r, dt) {
     if (r.race.phase === 'countdown' || humans[0].race.phase === 'countdown') return { steer: 0, throttle: 0, brake: 0, handbrake: true, pitchAir: 0 };
-    return BRR.derby.ai(r, order.map(o => o.car), dt, [0, 0.85, 0.95, 1.05, 1.15][opt.diff] || 0.95);
+    const inp = BRR.derby.ai(r, order.map(o => o.car), dt, [0, 0.85, 0.95, 1.05, 1.15][opt.diff] || 0.95), c = r.car;
+    // salto de la IA: para esquivar a uno que le embiste o para pasar por encima del que tiene delante (solo si al caer hay suelo)
+    const now = performance.now() / 1000; if (c.out || now < (r.dbJT || 0)) return inp;
+    const sp = Math.hypot(c.v[0], c.v[2]), fw = c.forward(), D = lvl.derby, land = t => { const x = c.p[0] + c.v[0] * t, z = c.p[2] + c.v[2] * t, f = D.floor(x, z, c.p[1] + 3); return f != null && f > D.waterY + 1; };
+    for (const o of order) { const b = o.car; if (b === c || b.out) continue; const dx = b.p[0] - c.p[0], dz = b.p[2] - c.p[2], d = Math.hypot(dx, dz); if (d > 10 || d < 0.5 || Math.abs(b.p[1] - c.p[1]) > 1.5) continue;
+      const ux = dx / d, uz = dz / d, close = -((b.v[0] - c.v[0]) * ux + (b.v[2] - c.v[2]) * uz), toMe = -(b.v[0] * ux + b.v[2] * uz), ahead = fw[0] * ux + fw[2] * uz;
+      if (d < 8 && close > 10 && toMe > 8 && Math.abs(ahead) < 0.8) { r.dbJT = now + 1.2; if (Math.random() < 0.55 && land(0.9) && aiJump(c, 6.2)) return inp; break; }   // esquivar
+      if (d < 7 && ahead > 0.9 && sp > 13 && close > 5) { r.dbJT = now + 1.5; if (Math.random() < 0.3 && land(1.2) && aiJump(c, 7.4)) return inp; break; } }   // por encima
+    return inp;
   }
   function derbySplash(c) { const p = [c.p[0], lvl.derby.waterY + 0.2, c.p[2]];
     for (let i = 0; i < 26; i++) { const a = Math.random() * 6.283, s = 2 + Math.random() * 5; fx.puff(p, [Math.cos(a) * s, 4 + Math.random() * 7, Math.sin(a) * s], [0.82, 0.92, 1, 0.75], 0.5, 1.4, 3.2, 1, 0.6); }
@@ -3044,7 +3052,9 @@
       if (c.dbIdle > 40 && !o.remote) { crazyBoom(c); derbyOut(o, null, false, 'afk'); } }
     for (const o of alive) { const c = o.car; if (c.out || c.p[1] > wy + 4.5) continue;
       if (t < 5) { if (!o.remote) derbyPut(o); continue; }   // 5 s de protección al salir: si te caes, vuelves a tu sitio
-      derbyOut(o, c.dbBy && !c.dbBy.car.out && now - c.dbT < 6 ? c.dbBy : null); }
+      // te tira el último que te haya tocado en los últimos 10 s (aunque él ya esté fuera); si nadie te ha tocado en 10 s, la caída es tuya
+      let by = c.dbBy, bt = c.dbT || -1e9; if (c.dbHitCar && (c.dbHitT || -1e9) > bt) { by = alive.find(q => q.car === c.dbHitCar) || [...humans.map(h => ({ car: h.car, h })), ...rivals].find(q => q.car === c.dbHitCar) || by; bt = c.dbHitT; }
+      derbyOut(o, by && by !== o && by.car !== c && now - bt < 10 ? by : null); }
     const left = order.filter(o => !o.car.out);
     if (left.length <= 1) return crazyEnd(left[0]);
     if (crazy.dbLeft <= 0) return crazyEnd(left.slice().sort((a, b) => (b.car.dbK || 0) - (a.car.dbK || 0) || (a.car.dmg || 0) - (b.car.dmg || 0))[0]);   // tiempo: gana el que más ha tirado
@@ -3776,7 +3786,7 @@
       for (const h of humans) { h.race.update(dt, h.car); handleEvents(h); ghostRecord(h); } ghostFrame();
       for (const r of rivals) { if (r.remote || r.car.out) continue; r.race.update(dt, r.car); r.race.ev.length = 0; }
       if (netRace) netFrame(dt);
-      updatePositions(dt); crazyFrame(dt); { const dbOn = !!(crazy && crazy.mode === 'derby'); if (!dbOn && (!$('dbs_btn').hidden || !$('dbstats').hidden)) { $('dbs_btn').hidden = true; $('dbstats').hidden = true; } if (dbOn) for (const gp of pads()) { const b8 = !!(gp.buttons[8] && gp.buttons[8].pressed); if (b8 && !dbPadPrev[gp.index]) derbyStats($('dbstats').hidden); dbPadPrev[gp.index] = b8; } } kartFrame(dt); crazySirens(); neonFrame(); smokeFrame(dt); rpRecord(dt); if (netRace) { crazyNetHits(); crazyNetSend(dt); } for (const c of realCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
+      updatePositions(dt); crazyFrame(dt); { const dbOn = !!(crazy && crazy.mode === 'derby'); if (!dbOn && (!$('dbs_btn').hidden || !$('dbstats').hidden)) { $('dbs_btn').hidden = true; $('dbstats').hidden = true; } if (dbOn) for (const gp of pads()) { const b8 = !!(gp.buttons[13] && gp.buttons[13].pressed); if (b8 && !dbPadPrev[gp.index]) derbyStats($('dbstats').hidden); dbPadPrev[gp.index] = b8;   /* clasificación: cruceta abajo (Select es la cámara) */ } } kartFrame(dt); crazySirens(); neonFrame(); smokeFrame(dt); rpRecord(dt); if (netRace) { crazyNetHits(); crazyNetSend(dt); } for (const c of realCars) c.hitBy = null;   // los choques de este fotograma ya se han usado
       if (kjLibre && humans[0] && humans[0].race.phase === 'race') { const h0 = humans[0]; h0.kjKm = (h0.kjKm || 0) + Math.abs(h0.car.speed()) * dt / 1000; if (h0.kjKm >= 50) achUnlock('kj_libre'); }
       if (humans[0] && humans[0].race.phase === 'race') { const h0 = humans[0]; if (h0.race.t > 8 && order.length >= 4 && h0.pos === order.length) h0.wasLast = true; if (freeMode && (h0.freeT = (h0.freeT || 0) + dt) > 300) achUnlock('libre'); statAcc.km += Math.abs(humans[0].car.speed()) * dt / 1000; statAcc.t += dt; statAcc.veh = humans[0].car.def.name; }
       for (const hit of props.update(dt, realCars)) propSound(hit);

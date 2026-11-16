@@ -7,6 +7,13 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.7**
+- **Destruction Derby:**
+  - te tira el último que te haya tocado en los últimos 10 s (si nadie te ha tocado en 10 s, la caída es tuya) y ya se cuentan todas las bajas;
+  - la clasificación sale con la cruceta abajo del mando (Select vuelve a ser la cámara);
+  - se puede saltar (cruceta arriba), y la IA salta para esquivar o pasar por encima.
+- **Chat general:** los mensajes ya no caducan a las 24 h; se quedan los últimos 100 y los más viejos se van quitando al llegar otros nuevos.
+
 **Novedades de la 1.1.6**
 - **Oriokart:** barreras entre los tramos que estaban muy juntos (ya no se puede atajar de una carretera a otra), pista algo más estrecha y el puente corto y bajo, lo justo para pasar por debajo.
 - **Karting:** la IA sigue siempre su propio tramo y no ataja por el césped en los circuitos con tramos muy juntos.

@@ -533,6 +533,7 @@
         if (o < pen) { pen = o; n = dist >= 0 ? ax : V.mul(ax, -1); }
       }
       if (!n || pen <= 0) continue;
+      if (A.derbyMode && B.derbyMode) { const tn = performance.now() / 1000; A.dbHitCar = B; A.dbHitT = tn; B.dbHitCar = A; B.dbHitT = tn; }   // derbi: el último que te ha tocado (para saber quién te tira)
       const kA = A.kinematic ? 0 : B.kinematic ? 1 : 0.5, kB = B.kinematic ? 0 : A.kinematic ? 1 : 0.5;
       A.p = V.madd(A.p, n, pen * kA); B.p = V.madd(B.p, n, -pen * kB);
       const vrel = V.dot(V.sub(A.v, B.v), n);

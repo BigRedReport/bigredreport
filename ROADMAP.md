@@ -233,4 +233,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Ruta C1 de Tokio en el Kanjo; karts de Finestrat y Oriokart (1.1.4)
 - [x] Puente de Oriokart en el sentido correcto (1.1.5)
 - [x] Barreras y puente corto en Oriokart; IA de karts por su tramo (1.1.6)
+- [x] Derbi: bajas por último toque, salto y clasificación en la cruceta; chat general sin caducidad (1.1.7)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

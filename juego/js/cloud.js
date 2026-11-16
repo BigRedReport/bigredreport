@@ -34,6 +34,7 @@
     return { any, items: [...got.values()] };
   }
   const parse = s => { try { return JSON.parse(s); } catch (e) { return null; } };
+  const CHAT_N = 100, chatSlots = new Array(CHAT_N).fill(0);   // chat general: hora del mensaje que hay en cada casilla
   const okRow = r => r && typeof r === 'object' && typeof r.lap === 'number' && r.lap > 5 && r.lap < 3600 && typeof r.name === 'string';
   function merge(rows) {   // una fila por piloto y vehículo: la mejor vuelta
     const best = new Map(); for (const r of rows) { if (!okRow(r)) continue; const k = (r.pid || r.name) + '|' + (r.veh || ''); const o = best.get(k); if (!o || r.lap < o.lap) best.set(k, r); }
@@ -133,11 +134,17 @@
       for (const it of R.items) { const j = parse(it.p); if (j && j.brr === 'track' && (!best || (j.rev | 0) > (best.rev | 0))) best = j; }
       if (!best) try { const r = await fetch(SITE + 'datos/circuitos/' + id + '.json', { cache: 'no-cache' }); if (r.ok) { const j = await r.json(); if (j && j.brr === 'track') best = j; } } catch (e) { }
       return best; },
-    // chat general del menú: cada mensaje va en directo (chat/live) y además retenido en una de 60 casillas que se van pisando (chat/h/N),
-    // así quien entra ve los últimos mensajes. Se publica en todos los buzones y se lee de todos (sin repetidos).
+    // chat general del menú: cada mensaje va en directo (chat/live) y además retenido en una de 100 casillas (chat/g/N): el nuevo pisa
+    // siempre la casilla con el mensaje más viejo, así se quedan los últimos 100 y solo se van quitando cuando llegan otros (no caducan).
+    // Se publica en todos los buzones y se lee de todos (sin repetidos).
     async chatSend(name, text, mid) { const m = { mid: mid || Math.random().toString(36).slice(2, 10), pid: ID, name: String(name || 'Piloto').slice(0, 20), text: String(text || '').slice(0, 200), t: Date.now() }; if (!m.text.trim()) return 0;
-      const j = JSON.stringify(m), slot = Math.floor(m.t / 1000) % 60; pubAll(T + 'chat/h/' + slot, j, true); return pubAll(T + 'chat/live', j, false); },
-    async chatHistory() { const R = await readAll(T + 'chat/h/#', 2500), out = []; for (const it of R.items) { const j = parse(it.p); if (j) out.push(j); } return { online: R.any > 0, rows: out }; },
+      let slot = 0; for (let k = 1; k < CHAT_N; k++) if (chatSlots[k] < chatSlots[slot]) slot = k; chatSlots[slot] = m.t; m.s = slot;
+      const j = JSON.stringify(m); pubAll(T + 'chat/g/' + slot, j, true); return pubAll(T + 'chat/live', j, false); },
+    chatSeen(m) { if (m && m.s >= 0 && m.s < CHAT_N && typeof m.t === 'number') chatSlots[m.s] = Math.max(chatSlots[m.s], m.t); },
+    async chatHistory() { const R = await readAll(T + 'chat/g/#', 2500), R0 = await readAll(T + 'chat/h/#', 1500), out = [];
+      for (const it of R.items) { const j = parse(it.p), k = +String(it.t).split('/').pop(); if (j) { if (k >= 0 && k < CHAT_N) { j.s = k; chatSlots[k] = Math.max(chatSlots[k], j.t || 0); } out.push(j); } }
+      for (const it of R0.items) { const j = parse(it.p); if (j) out.push(j); }   // los de antes (sistema viejo de 60 casillas) también se ven
+      return { online: R.any > 0, rows: out }; },
     chatListen(cb, status) {   // en directo, en todos los buzones (y se reconecta solo); status(n) = buzones conectados
       let up = 0; const hook = u => conn(u).then(mq => { const c = pool.get(u); if (c) c.keep = true; up++; status && status(up); mq.sub(T + 'chat/live', (t, p) => { const j = parse(p); if (j) cb(j); });
         const was = mq.onclose; mq.onclose = () => { was && was(); up = Math.max(0, up - 1); status && status(up); setTimeout(() => hook(u), 10000); }; }, () => setTimeout(() => hook(u), 30000));
