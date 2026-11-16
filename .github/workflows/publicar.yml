@@ -43,7 +43,7 @@ jobs:
             platform: linux
             arch: arm64
             asset: BigRedReport-Linux-ARM64.tar.gz
-          - os: macos-latest
+          - os: macos-15-intel   # los Mac ARM de GitHub van saturados; el Intel también empaqueta la versión universal
             platform: darwin
             arch: universal
             asset: BigRedReport-Mac.zip
