@@ -232,4 +232,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Nave espacial en Marte y Bambino en la ciudad (1.1.3)
 - [x] Ruta C1 de Tokio en el Kanjo; karts de Finestrat y Oriokart (1.1.4)
 - [x] Puente de Oriokart en el sentido correcto (1.1.5)
+- [x] Barreras y puente corto en Oriokart; IA de karts por su tramo (1.1.6)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

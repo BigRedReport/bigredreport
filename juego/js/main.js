@@ -1823,7 +1823,7 @@
       // cruce: el tramo j (más tarde en la vuelta) va arriba; con «bridgeFirst», el que se pasa primero desde la salida (Oriokart)
       const F = !!T.bridgeFirst, hi = F ? i : j, li = F ? j : i, t = F ? X(S[i], S[(i + 1) % n], S[j], S[(j + 1) % n]) : t0;
       const lo = [S[li], S[(li + 1) % n]], ang = Math.abs(Math.asin(Math.max(-1, Math.min(1, S[i].tx * S[j].tz - S[i].tz * S[j].tx)))) || 0.5;
-      const sc = S[hi].s + t * (S[(hi + 1) % n].s - S[hi].s), H = 6.5, Lf = Math.min(60, (half + 5) / Math.max(0.35, Math.sin(ang)) + 4), Lr = 70, TOT = S.total;
+      const SH = !!T.bridgeShort, sc = S[hi].s + t * (S[(hi + 1) % n].s - S[hi].s), H = SH ? 3.0 : 6.5, Lf = SH ? Math.min(20, (half + 1.5) / Math.max(0.35, Math.sin(ang)) + 1) : Math.min(60, (half + 5) / Math.max(0.35, Math.sin(ang)) + 4), Lr = SH ? 16 : 70, TOT = S.total;   // «bridgeShort»: puente de kart, bajo y corto (lo justo para pasar por debajo)
       const hAt = ds => { const a = Math.abs(ds); if (a <= Lf) return H; if (a >= Lf + Lr) return 0; const u = 1 - (a - Lf) / Lr; return H * u * u * (3 - 2 * u); };
       const dist = (a, b) => { let d = a - b; if (d > TOT / 2) d -= TOT; if (d < -TOT / 2) d += TOT; return d; };
       const lowD = (x, z) => { let m = 1e9; for (let k = -40; k <= 40; k++) { const p = S[(li + k + n) % n], q = W(p); m = Math.min(m, Math.hypot(x - q[0], z - q[2])); } return m; };
@@ -1832,15 +1832,15 @@
       const box = (x0, y0, z0, x1, y1, z1, col) => { const V = [[x0, y0, z0], [x1, y0, z0], [x1, y1, z0], [x0, y1, z0], [x0, y0, z1], [x1, y0, z1], [x1, y1, z1], [x0, y1, z1]]; for (const f of [[0, 1, 2, 3], [4, 5, 6, 7], [3, 2, 6, 7], [0, 3, 7, 4], [1, 2, 6, 5]]) quad(...f.map(k => V[k]), col, true); };
       const pts = []; for (let k = 0; k < n; k++) { const p = S[k], d = dist(p.s, sc); if (Math.abs(d) <= Lf + Lr) pts.push({ p, d }); } pts.sort((a, b) => a.d - b.d);
       const sec = pts.map(({ p, d }) => { const c = W(p), nx = p.tz, nz = p.tx, h = hAt(d), y = lvl.terrain(c[0], c[2]) + 0.06 + h; return { c, nx, nz, h, y, d, at: (o, dy = 0) => [c[0] + nx * o, y + dy, c[2] + nz * o] }; });
-      const hw = half + 0.8;
+      const hw = half + 0.8, DK = SH ? 0.5 : 1.3;   // canto del tablero
       for (let k = 0; k + 1 < sec.length; k++) { const A = sec[k], B = sec[k + 1];
         quad(A.at(-hw), A.at(hw), B.at(hw), B.at(-hw), asph, true);   // tablero (se conduce encima)
         for (const o of [-half + 0.4, half - 0.6]) quad(A.at(o, 0.02), A.at(o + 0.2, 0.02), B.at(o + 0.2, 0.02), B.at(o, 0.02), line, false);   // líneas blancas
-        if (Math.max(A.h, B.h) > 0.6) { for (const sd of [-1, 1]) { const o = sd * hw; quad(A.at(o), B.at(o), B.at(o, 1.1), A.at(o, 1.1), conc, true); quad(A.at(o, 1.1), B.at(o, 1.1), B.at(o + sd * 0.35, 1.1), A.at(o + sd * 0.35, 1.1), conc, false); quad(A.at(o + sd * 0.35, -1.3), B.at(o + sd * 0.35, -1.3), B.at(o + sd * 0.35, 1.1), A.at(o + sd * 0.35, 1.1), dark, false); }   // muretes y cantos
-          quad(A.at(-hw - 0.35, -1.3), A.at(hw + 0.35, -1.3), B.at(hw + 0.35, -1.3), B.at(-hw - 0.35, -1.3), dark, false); } }   // panza del tablero
+        if (Math.max(A.h, B.h) > 0.6) { for (const sd of [-1, 1]) { const o = sd * hw; quad(A.at(o), B.at(o), B.at(o, 1.1), A.at(o, 1.1), conc, true); quad(A.at(o, 1.1), B.at(o, 1.1), B.at(o + sd * 0.35, 1.1), A.at(o + sd * 0.35, 1.1), conc, false); quad(A.at(o + sd * 0.35, -DK), B.at(o + sd * 0.35, -DK), B.at(o + sd * 0.35, 1.1), A.at(o + sd * 0.35, 1.1), dark, false); }   // muretes y cantos
+          quad(A.at(-hw - 0.35, -DK), A.at(hw + 0.35, -DK), B.at(hw + 0.35, -DK), B.at(-hw - 0.35, -DK), dark, false); } }   // panza del tablero
       let lastP = -1e9; for (const q of sec) { if (q.h < 2.2 || Math.abs(q.d - lastP) < 14) continue;   // pilares (nunca sobre la carretera de abajo)
         let ok = true; const P = [-hw + 0.6, hw - 0.6].map(o => q.at(o)); for (const v of P) if (lowD(v[0], v[2]) < half + 2.5) ok = false; if (!ok) continue; lastP = q.d;
-        for (const v of P) { const gy = lvl.terrain(v[0], v[2]); box(v[0] - 0.6, gy - 0.2, v[2] - 0.6, v[0] + 0.6, q.y - 1.3, v[2] + 0.6, conc); } }
+        for (const v of P) { const gy = lvl.terrain(v[0], v[2]); box(v[0] - 0.6, gy - 0.2, v[2] - 0.6, v[0] + 0.6, q.y - DK, v[2] + 0.6, conc); } }
       const m = sec[sec.length >> 1]; out.push({ up: R.upload(mb), tris, c: m ? m.c : [0, 0, 0], axis: sec.map(q => [q.c[0], q.c[2], hw + 2 - half]) }); }
     return out;
   }

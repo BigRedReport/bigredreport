@@ -160,14 +160,18 @@
     for (let it = 0; it < 10; it++) pts = pts.map((p, k) => { const a = pts[(k - 2 + pts.length) % pts.length], b = pts[(k + 2) % pts.length]; return [(a[0] + 2 * p[0] + b[0]) / 4, 0, (a[2] + 2 * p[2] + b[2]) / 4]; });    for (let it = 0; it < 10; it++) pts = pts.map((p, k) => { const a = pts[(k - 2 + pts.length) % pts.length], b = pts[(k + 2) % pts.length]; return [(a[0] + 2 * p[0] + b[0]) / 4, 0, (a[2] + 2 * p[2] + b[2]) / 4]; });
     // trazada de carreras: se tensa la línea (menos curvatura, recorta por dentro) sin salirse de la pista ni acercarse a paredes
     { const narrow = lvl.roadDist && lvl.custom && lvl.custom.kind === 'kart' ? lvl.roadHalf - 1.8 : 0;   // karting: la trazada no sale del asfalto (la pista es estrecha y hay barreras al lado)
-      const ok = (x, z) => { const c = cell(x, z); return c >= 0 && dist[c] >= 3 && (mode === 'fly' || wet[c] || !landCost) && (mode !== 'fly' || dist[c] >= 3) && (!narrow || lvl.roadDist(x, z) <= narrow); };
-      const n = pts.length;
+      // karting: cada punto de la trazada se mide contra SU tramo de pista (seguido en orden), no contra el más cercano: si no, en los circuitos con tramos muy juntos la trazada se cuela por el césped de en medio
+      const n = pts.length, home = new Int32Array(n), segOK = !!(narrow && lvl.roadSeg);
+      if (segOK) { let k = lvl.roadSegFirst(pts[0][0], pts[0][2]); for (let i = 0; i < n; i++) { k = lvl.roadSeg(pts[i][0], pts[i][2], k, 12).k; home[i] = k; } }
+      const rd = (x, z, i) => segOK ? lvl.roadSeg(x, z, home[i], 14).d : lvl.roadDist(x, z);
+      const ok = (x, z, i) => { const c = cell(x, z); return c >= 0 && dist[c] >= 3 && (mode === 'fly' || wet[c] || !landCost) && (mode !== 'fly' || dist[c] >= 3) && (!narrow || rd(x, z, i) <= narrow); };
       for (let it = 0; it < 80; it++) for (let k = 0; k < n; k++) {
         const a = pts[(k - 1 + n) % n], b = pts[(k + 1) % n], p = pts[k], tx = (a[0] + b[0]) / 2, tz = (a[2] + b[2]) / 2;
         const nx = p[0] + (tx - p[0]) * 0.5, nz = p[2] + (tz - p[2]) * 0.5;
-        if (ok(nx, nz)) { p[0] = nx; p[2] = nz; }
+        if (ok(nx, nz, k)) { p[0] = nx; p[2] = nz; }
       }
-      if (narrow) for (const p of pts) { const q = lvl.roadNear(p[0], p[2]); if (q.d > narrow && q.d < 1e8) { const f = narrow / q.d; p[0] = q.x + (p[0] - q.x) * f; p[2] = q.z + (p[2] - q.z) * f; } }   // karting: lo que quede fuera del asfalto (atajos por el césped), de vuelta a la pista
+      if (narrow && segOK) pts.forEach((p, i) => { const r = lvl.roadSeg(p[0], p[2], home[i], 14); if (r.d > narrow) { const f = narrow / r.d; p[0] = r.x + (p[0] - r.x) * f; p[2] = r.z + (p[2] - r.z) * f; } });
+      else if (narrow) for (const p of pts) { const q = lvl.roadNear(p[0], p[2]); if (q.d > narrow && q.d < 1e8) { const f = narrow / q.d; p[0] = q.x + (p[0] - q.x) * f; p[2] = q.z + (p[2] - q.z) * f; } }   // karting: lo que quede fuera del asfalto (atajos por el césped), de vuelta a la pista
     }
     const step = 3, res = []; { let carry = 0;
       for (let k = 0; k < pts.length; k++) { const a = pts[k], b = pts[(k + 1) % pts.length], L = Math.hypot(b[0] - a[0], b[2] - a[2]);
@@ -189,7 +193,7 @@
     return best;
   };
   // caché en IndexedDB de la trazada (tarda unos segundos en calcularse la primera vez)
-  const AIV = 'v14';   // v14: trazadas de karting dentro del asfalto
+  const AIV = 'v15';   // v15: trazadas de karting medidas contra su propio tramo (circuitos con tramos muy juntos)
   // (antes) v13:   // v13: suelo, objetos apoyados y lanchas sin montañas: las trazadas se recalculan
   const aidb = () => new Promise((ok, ko) => { const r = indexedDB.open('brr_ai', 1); r.onupgradeneeded = () => r.result.createObjectStore('l'); r.onsuccess = () => ok(r.result); r.onerror = ko; });
   const rle = a => { const o = []; let v = a[0], n = 0; for (let i = 0; i < a.length; i++) { if (a[i] === v) n++; else { o.push(n); v = a[i]; n = 1; } } o.push(n); return { first: a[0], runs: o }; };
