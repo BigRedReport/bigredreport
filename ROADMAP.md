@@ -234,4 +234,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Puente de Oriokart en el sentido correcto (1.1.5)
 - [x] Barreras y puente corto en Oriokart; IA de karts por su tramo (1.1.6)
 - [x] Derbi: bajas por último toque, salto y clasificación en la cruceta; chat general sin caducidad (1.1.7)
+- [x] Marte, Venus y la Luna como en el original (cielos, Tierra, tele, público, base de la Luna); descompresor para navegadores antiguos (1.1.8)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

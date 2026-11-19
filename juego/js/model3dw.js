@@ -2,7 +2,7 @@
 "use strict";
 (function () {
   const BRR = window.BRR;
-  BRR.parse3DW = function (bytes, lod = 0) {
+  BRR.parse3DW = function (bytes, lod = 0, animVal = null) {   // animVal: valor de la animación del circuito («anim» del guion) para las piezas que cambian (tele, público de los tubos)
     const dv = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
     const I = o => dv.getInt32(o, true);
     const texoff = I(16);
@@ -20,6 +20,7 @@
     o += 4 + nb * 24 + 4;
     const nv = I(o); o += 12;
     const verts = new Array(nv).fill(null), faces = [], stack = [];
+    let animBits = 0; const sprites = [];
     let state = null, cond = null, condEnd = -1, altUV = null, els = null, elsEnd = -1;   // geometría condicional: orden 9 + caras ("si") y bloque 7 ("si no"); variable 2: el "si" son los pilotos apagados, el "si no" encendidos (frenando)
     const uvblock = p => {
       const rel = I(p + 4), n = I(p + 8), t = p + 4 + rel;
@@ -50,11 +51,19 @@
         if (state) faces.push({ tex: state.tex, uv: state.uv, idx, cond, els, alt: altUV && altUV.n > 0 && cond === null ? altUV : null }); o += 12 + 4 * n;
       } else if (c === 8) { stack.push(o + 8); o = o + 4 + I(o + 4); }
       else if (c === 7) { if (cond !== null) { els = cond; elsEnd = o + 4 + I(o + 4); cond = null; o += 8; } else o = o + 4 + I(o + 4); }   // fin del "si": el bloque "si no" es la geometría normal
-      else if (c === 9) { const v = I(o + 8); if (v === 2) { cond = v; condEnd = o + 20 + I(o + 16); } o += 20; }   // solo la variable 2 (freno); las demás como antes: se pinta el "si" y se salta el "si no"
+      else if (c === 9) { const v = I(o + 8); animBits |= v;
+        if (animVal !== null) { if (animVal & v) o += 20; else o = o + 16 + I(o + 16); continue; }   // piezas animadas: «si el bit está puesto, el bloque; si no, saltarlo»
+        if (v === 2) { cond = v; condEnd = o + 20 + I(o + 16); } o += 20; }
+      else if (c === 12) { const rel = I(o + 4), t = o + 4 + rel, uv = []; for (let k = 0; k < 4; k++) uv.push([I(o + 8 + 8 * k), I(o + 12 + 8 * k)]); state = { tex: texs.get(t - 8) || null, uv }; o += 40; }   // coordenadas de textura de 4 esquinas (para los sprites)
+      else if (c === 13) { if (state) sprites.push({ v: I(o + 4), w: I(o + 8), h: I(o + 12), tex: state.tex, uv: state.uv }); o += 16; }   // sprite (público de los tubos, la Tierra del cielo de la Luna)   // solo la variable 2 (freno); las demás como antes: se pinta el "si" y se salta el "si no"
       else if (c === 10) o += 24;
       else if (c === 11) o += 16;
       else break; // comandos 3/12 sin documentar
     }
-    return { radius: I(0), boxes, verts, faces, texNames: [...texs.values()] };
+    // los sprites se pintan como dos cuadros cruzados (se ven desde cualquier lado)
+    for (const sp of sprites) { const c = verts[sp.v]; if (!c) continue; const b = verts.length, { w, h } = sp;
+      verts.push([c[0] - w, c[1] - h, c[2]], [c[0] + w, c[1] - h, c[2]], [c[0] + w, c[1] + h, c[2]], [c[0] - w, c[1] + h, c[2]], [c[0], c[1] - h, c[2] - w], [c[0], c[1] - h, c[2] + w], [c[0], c[1] + h, c[2] + w], [c[0], c[1] + h, c[2] - w]);
+      faces.push({ tex: sp.tex, uv: sp.uv, idx: [b, b + 1, b + 2, b + 3], two: true, sprite: true }, { tex: sp.tex, uv: sp.uv, idx: [b + 4, b + 5, b + 6, b + 7], two: true, sprite: true }); }
+    return { radius: I(0), boxes, verts, faces, texNames: [...texs.values()], animBits, sprites };
   };
 })();

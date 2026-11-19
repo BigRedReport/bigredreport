@@ -78,7 +78,7 @@
 
   // ---------- pantallas ----------
   const show = id => { for (const s of document.querySelectorAll('.screen')) s.hidden = s.id !== id; if (id !== 'race' && id !== 'hud') { const a = document.getElementById('dbs_btn'), b = document.getElementById('dbstats'); if (a) a.hidden = true; if (b) b.hidden = true; } };
-  let terrainB = [], fx = null, props = null, files = null, lvl = null, car = null, statics = [], carDraw = null, state = 'folder', race = null, audio = null, snd = {}, rivals = [];
+  let terrainB = [], fx = null, props = null, files = null, lvl = null, car = null, statics = [], animDraws = [], horizonB = null, carDraw = null, state = 'folder', race = null, audio = null, snd = {}, rivals = [];
   const TEAM = [null, { n: 'Rojo', c: '#e23b3b', v: 'RED' }, { n: 'Verde', c: '#3bb54a', v: 'GREEN' }, { n: 'Amarillo', c: '#f2d230', v: 'YELLOW' },
     { n: 'Azul', c: '#3b6fe2', v: 'BLUE' }, { n: 'Naranja', c: '#f28c28', v: 'ORANGE' }, { n: 'Morado', c: '#9b4fd6', v: 'PURPLE' }];
   // accesibilidad: colores de equipo que se distinguen con daltonismo (paleta Okabe-Ito) en marcador, minimapa y nombres
@@ -181,7 +181,7 @@
     try { const A = await files.archive(id + '.LEV'), t = [...A.keys()].find(k => k === id + '.TXT') || [...A.keys()].find(k => k.endsWith('.TXT') && k !== 'VIEW.TXT');
       const txt = BRR.text(A.get(t)).replace(/;[^\n]*/g, '');
       const L = [...txt.matchAll(/^\s*car\s+(\w+)/gm)].map(m => m[1].toUpperCase()).slice(0, 2).filter(n => n !== 'FEHELI' && files.has(n + '.VHC'));
-      if (/^MOON/.test(id) && files.has('UFO.VHC') && !L.includes('UFO')) L.push('UFO');   // el ovni, también de serie en Marte, Venus y la Luna
+      if (/^MOON[123]$/i.test(id)) { const u = L.indexOf('UFO'); if (u >= 0) L.splice(u, 1); }   // el ovni ya no es de serie en Marte, Venus y la Luna
       if (/^CITY[1-4]$/i.test(id) && files.has('MINI.VHC') && !L.includes('BAMBINO')) L.push('BAMBINO');   // en la ciudad, también el Bambino (utilitario italiano de los 50)
       if (/^MOON[123]$/i.test(id) && files.has('JETCAR.VHC') && !L.includes('NAVE')) { const m = L.indexOf('JETCAR'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'NAVE'); }   // en Marte, también la nave espacial (se maneja como el jet car)
       if (/^RUF[123]$/i.test(id) && files.has('CAT.VHC') && !L.includes('CYBER')) { const m = L.indexOf('CAT'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'CYBER'); }   // en el desierto, también la ciberpickup (se conduce como el dumper)
@@ -1079,8 +1079,9 @@
       if (cT) for (const g of lvl.checkpoints || []) { if (g.num === 0) continue; const M = [[g.ax[0], 0, g.az[0]], [0, 1, 0], [g.ax[2], 0, g.az[2]]], y = lvl.terrain(g.c[0], g.c[2]);
         { const hw = (cT.w || 14) / 2, px = hw + 1, onRoad = sx => lvl.roadDist && lvl.roadDist(g.c[0] + g.ax[0] * px * sx, g.c[2] + g.ax[2] * px * sx) < hw + 0.9; if (onRoad(1) || onRoad(-1)) continue; }   // un poste que caería sobre otro tramo de pista (tramos juntos, curvas cerradas): ese pórtico no se pone
         trackProcs.push({ n: 'GANTRY', w: cT.w || 14, p: [g.c[0], y - 0.05, g.c[2]], R: M, up: gantryMesh(cT.w || 14).up }); }
-      R.free(statics); R.free(terrainB); if (props && props.models) for (const m of props.models.values()) R.free(m);   // fuera de la tarjeta gráfica el circuito anterior
+      R.free(statics); R.free(terrainB); for (const d of animDraws) R.free(d.b); animDraws = []; if (horizonB) R.free(horizonB); horizonB = null; if (props && props.models) for (const m of props.models.values()) R.free(m);   // fuera de la tarjeta gráfica el circuito anterior
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
+      animDraws = (lvl.animMeshes || []).map(m => ({ a: m.a, v: m.v, b: R.upload(m.mb) })); horizonB = lvl.horizon ? R.upload(lvl.horizon) : null;   // piezas animadas (tele, público) y la Tierra del cielo de la Luna
       R.setEnvironment(lvl.sun, lvl.sky); { const at = makeAtmos(level, lvl.sun, lvl.sky); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
       // jugadores humanos: el equipo elegido para J1 y los siguientes colores para los demás
       $('phuds').innerHTML = ''; humans = [];
@@ -3825,7 +3826,9 @@
       }
       R.viewRect = [vx, vy, vw, vh];
       R.begin(cam.pos, view, proj, far, lvl.sky);
-      R.draw(terrainB); R.draw(statics); props.draw(cam.pos, far); if (trackDerby) R.draw(trackDerby.up); if (trackKanjo) { for (const q of trackKanjo.chunks) { const d = Math.hypot(q.c[0] - cam.pos[0], q.c[2] - cam.pos[2]); if (d < far + 120) { R.draw(q.up); if (q.glow) R.drawGlow(q.glow, undefined, 1.35); } } R.drawGlow(trackKanjo.city, undefined, 1.15); if (trackTraffic) trackTraffic.draw(BRR.M4); } for (const q of netRamps.values()) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackPipes) R.draw(makePipe().up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackProcs) if (camDist(q.p) < far + 40) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackFences) if (camDist(q.c) < far + 80) R.draw(q.up, FENCE_M); for (const q of trackBridges) R.draw(q.up, FENCE_M); for (const q of humans) { if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p)); if (q.pipe) R.draw(q.pipe.up, BRR.M4.fromRT(q.pipe.R, q.pipe.p)); }
+      if (horizonB) { const gl = R.gl; gl.depthMask(false); R.drawGlow(horizonB, BRR.M4.translate ? BRR.M4.translate(cam.pos[0], cam.pos[1], cam.pos[2]) : [1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, cam.pos[0], cam.pos[1], cam.pos[2], 1], 0.6); gl.depthMask(true); }   // la Tierra, siempre al fondo
+      R.draw(terrainB); R.draw(statics);
+      if (animDraws.length) { const t = performance.now() / 1000; for (const d of animDraws) { const A = lvl.anims[d.a]; if (A && A.seq[Math.floor(t * 25 / Math.max(1, A.speed)) % A.seq.length] === d.v) R.draw(d.b); } } props.draw(cam.pos, far); if (trackDerby) R.draw(trackDerby.up); if (trackKanjo) { for (const q of trackKanjo.chunks) { const d = Math.hypot(q.c[0] - cam.pos[0], q.c[2] - cam.pos[2]); if (d < far + 120) { R.draw(q.up); if (q.glow) R.drawGlow(q.glow, undefined, 1.35); } } R.drawGlow(trackKanjo.city, undefined, 1.15); if (trackTraffic) trackTraffic.draw(BRR.M4); } for (const q of netRamps.values()) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackPipes) R.draw(makePipe().up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackProcs) if (camDist(q.p) < far + 40) R.draw(q.up, BRR.M4.fromRT(q.R, q.p)); for (const q of trackFences) if (camDist(q.c) < far + 80) R.draw(q.up, FENCE_M); for (const q of trackBridges) R.draw(q.up, FENCE_M); for (const q of humans) { if (q.ramp) R.draw(q.ramp.up, BRR.M4.fromRT(q.ramp.R, q.ramp.p)); if (q.pipe) R.draw(q.pipe.up, BRR.M4.fromRT(q.pipe.R, q.pipe.p)); }
       const kjA = c => { if (c.kjTun && R.ambient) { R.ambient(BRR.kanjo.AMB_SKY, BRR.kanjo.AMB_GND); return true; } return false; };   // Kanjo: dentro de los túneles los coches se bañan de luz amarilla
       for (const hh of humans) { const ka = kjA(hh.car); drawCar(hh.car, hh.draw, hh === h && ['capo', 'parachoques'].includes(h.camMode || opt.cam) ? (h.camMode || opt.cam) : false, hh === humans[0] ? carDraw : hh.dd); if (ka) R.ambient(); }
       for (const r of rivals) { const d2 = (r.car.p[0] - cam.pos[0]) ** 2 + (r.car.p[2] - cam.pos[2]) ** 2; if (d2 < far * far) { const ka = kjA(r.car); drawCar(r.car, r.draw, false, r.dd); if (ka) R.ambient(); } }

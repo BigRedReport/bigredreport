@@ -7,6 +7,14 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.8**
+- **Marte, Venus y la Luna como en el original:**
+  - cielo rojo en Marte, verde en Venus y el espacio con la Tierra en la Luna;
+  - la base de la Luna vuelve a estar sobre sus patas (ya no tapa el camino);
+  - la tele de Venus pone su vídeo, y hay público animado en los tubos;
+  - el ovni ya no es vehículo de serie en esos mapas.
+- **Arreglado:** el juego no arrancaba en navegadores antiguos (Chrome/WebView anteriores a la 103, p. ej. algunas consolas Android).
+
 **Novedades de la 1.1.7**
 - **Destruction Derby:**
   - te tira el último que te haya tocado en los últimos 10 s (si nadie te ha tocado en 10 s, la caída es tuya) y ya se cuentan todas las bajas;
