@@ -413,14 +413,14 @@
   function avispa(d, P) {
     const M = BRR.AVISPA_MESH; if (!M) return d;
     const G = Math.min(...d.wheels.map(w => w.c[1] - w.radius)), COL = [P, [0.75, 0.76, 0.78], [0.05, 0.05, 0.05], [0.4, 0.24, 0.14], [0.45, 0.45, 0.47], [0.95, 0.95, 0.88]];
-    const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => COL[k] || P, null, true), [mn, mx] = M.ext;
+    const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => COL[k] || P, null, false), [mn, mx] = M.ext;   // por las dos caras (si no, las ruedas y partes de la malla quedaban invisibles)
     return { ...d, name: 'AVISPA', vname: 'AVISPA', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: d.wheels.map(() => null), lean: true, oneTrack: true, groundY: G,
-      box: { c: [0, G + mx[1] * 0.4, 0], h: [0.4, mx[1] * 0.4, mx[2]] }, brakeSpots: [[0, G + 0.62, mx[2] - 0.02]], nitro: [0.12, G + 0.3, mx[2]], headPos: window.BRR_AVHEAD || [0, G + 1.42, 0.22] };
+      box: d.box, brakeSpots: [[0, G + 0.52, mx[2] - 0.02]], nitro: [0.12, G + 0.3, mx[2]], headPos: window.BRR_AVHEAD || [0, G + 1.24, 0.22] };
   }
   // ---------- cortacésped aéreo (helicópteros): malla del modelo (mower_data.js) sobre el helicóptero ligero (misma física: vuela y se maneja como él, sin rotor), con el piloto sentado en el asiento ----------
   function mower(d, P) {
     const M = BRR.MOWER_MESH; if (!M) return d;
-    const body = meshCar(d.mesh.pal, M.body, k => { const c = M.cols[k]; return c === 'paint' ? P : c === 'glass' ? [0.08, 0.1, 0.13] : c || P; }, null, true);
+    const body = meshCar(d.mesh.pal, M.body, k => { const c = M.cols[k]; return c === 'paint' ? P : c === 'glass' ? [0.08, 0.1, 0.13] : c || P; }, null, false);   // por las dos caras: la parte de atrás quedaba invisible
     const [mn, mx] = M.ext, s = M.seat, G = window.BRR_MWOFF || 0;
     return { ...d, name: 'MOWER', vname: 'MOWER', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: (d.wheels || []).map(() => null),
       box: { c: [0, (mn[1] + mx[1]) / 2 + G, (mn[2] + mx[2]) / 2], h: [mx[0] * 0.8, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, brakeSpots: [], nitro: [0, 0.4 + G, mx[2]], headPos: window.BRR_MWHEAD || [0, s[1] + 0.66 + G, s[2] - 0.1] };

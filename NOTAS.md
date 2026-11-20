@@ -7,6 +7,15 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.10**
+- **Arreglado:** los objetos que se mueven (conos, árboles, postes, rampas del modo libre), la estructura del destruction derby, la ciudad del Kanjo Loop, vallas, puentes y tubos se habían vuelto invisibles en la 1.1.9.
+- **Vehículos originales con más polígonos:** subdivisión que conserva aristas y esquinas (solo se suavizan las zonas curvas) y ruedas más redondas; se puede desactivar en Opciones › Gráficos › Vehículos.
+- **Avispa:** se inclina hacia el lado del giro, más pequeña, con ruedas visibles, retrovisores grises y faro blanco; ya no clava el morro al caer de los saltos.
+- **Hover Mower:** algo más pequeño y sin partes invisibles por detrás.
+- **Rotativo:** las ruedas ya no sobresalen de la carrocería.
+- **Escarabajo:** los cristales ya no se ponen de colores (los colores animados quedan solo para el suelo).
+- **OVNI:** a la mitad de tamaño.
+
 **Novedades de la 1.1.9**
 - **Vehículos nuevos:** la Avispa (escúter, ciudad; se inclina en las curvas y deja un solo rastro), el Defensor (todoterreno, plataformas), el Rotativo (Kanjo Loop), la moto aérea (Marte, Venus y la Luna; sustituye a la nave) y el Hover Mower (helicópteros).
 - **Carrocerías nuevas:** el Panda 86 pasa a ser el Tofu 86, el Bávaro 30 el B 30 y el Zeta 35 el Lady350.

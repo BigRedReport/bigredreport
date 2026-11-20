@@ -141,8 +141,9 @@
     const engM = all.match(/hnd fx engine\s+\d+\s*,\s*\w+\s+vhc\s+(\w+)/i);
     const find = n => A.get(n) || lvl.find(n);
     const parseM = n => { const b = find(n.toUpperCase() + '.3DW'); return b ? BRR.parse3DW(b) : null; };
-    const body = parseM(vname + team) || parseM(name + team) || parseM(vname + '1') || parseM(name + '1');
+    let body = parseM(vname + team) || parseM(name + team) || parseM(vname + '1') || parseM(name + '1');
     if (!body) throw new Error('No encuentro el modelo de ' + name);
+    if (BRR.roundCars) try { body = creaseSub(body); } catch (e) { console.warn(e); }   // más polígonos conservando aristas y esquinas (solo se suavizan las zonas ya curvas)
     const findTM = n => find(n + '.TM');
     // pintura propia (color RGB): la gama de 16 tonos del color del equipo se cambia por la del color elegido, con las mismas luces y sombras
     let pal = lvl.pal;
@@ -185,7 +186,7 @@
     const shapeCache = new Map(); const wheelMeshes = []; const wheelRad = [];
     for (const w of wheels) {
       const sh = shapes[w.shape]; let m = null;
-      if (sh) { if (!shapeCache.has(sh)) shapeCache.set(sh, parseM(sh)); m = shapeCache.get(sh); }
+      if (sh) { if (!shapeCache.has(sh)) shapeCache.set(sh, BRR.roundCars ? roundWheel(parseM(sh)) : parseM(sh)); m = shapeCache.get(sh); }
       let rad = 0.4;
       if (m) {
         rad = Math.max(...m.verts.filter(Boolean).map(v => Math.hypot(v[0], v[1]))) * S;
@@ -244,7 +245,7 @@
         interior = { mesh: imb, steer, dials, dash: dash ? dash.toUpperCase() : null, dashBase: T ? new Uint8Array(T) : null, pal }; } } } catch (e) { interior = null; }
     if (brakeMB) { const P = []; for (const g of brakeMB.groups.values()) for (let i = 0; i < g.pos.length; i += 3) P.push([g.pos[i], g.pos[i + 1], g.pos[i + 2]]);
       for (const sd of [-1, 1]) { const Q = P.filter(p => Math.sign(p[0] || sd) === sd); if (Q.length) brakeSpots.push([0, 1, 2].map(a => Q.reduce((s, q) => s + q[a], 0) / Q.length)); } }
-    return {
+    const OUT = {
       dmgFx, brakeSpots, tough: (() => { const m = all.match(/hnd damage\s+(\d+)/); return m ? +m[1] : 100; })(),
       kind, decoParts, brake: brakeMB, interior,
       name, vname, mesh: mb, wheelMeshes, engineWav: engM ? name + '/' + engM[1].toUpperCase() + '.WAV' : null,
@@ -255,7 +256,85 @@
       gearF: table('f') || [[0, 600], [35000, 0]], gearB: table('b') || [[0, 444], [15000, 0]],
       steer: steerM ? [num(steerM[1]), num(steerM[2]), num(steerM[3]), num(steerM[4])] : [7000, 0x280, 28000, 0x180],
     };
+    if (NM === 'UFO') scaleDef(OUT, 0.5);   // el ovni del original es gigante: a la mitad
+    return OUT;
   };
+  // más polígonos para las carrocerías: subdivisión de Loop con aristas vivas. Una arista es «viva» si separa caras con más de ~35° de ángulo,
+  // de distinto color o es borde; los vértices con 2 aristas vivas se mueven solo a lo largo de ellas y los de 1 o 3+ (esquinas) no se mueven:
+  // las cajas siguen siendo cajas y solo se redondean las zonas que ya eran curvas
+  function creaseSub(m, levels = 1, ang = 35) {
+    const P = [], idxOf = new Map(), extra = []; let F = [];
+    const weld = v => { const k = v.map(x => Math.round(x * 100)).join(); let i = idxOf.get(k); if (i == null) { i = P.length; P.push(v.slice()); idxOf.set(k, i); } return i; };
+    const fixed = new Set();
+    for (const f of m.faces) { const uv = f.tex ? (f.uv && f.uv.length === f.idx.length ? f.uv : null) : undefined;
+      if (f.cond != null || f.sprite || f.idx.length < 3 || f.idx.some(i => !m.verts[i]) || uv === null) { extra.push(f); continue; }
+      const q = f.idx.map(i => weld(m.verts[i])); if (uv) q.forEach(i => fixed.add(i));   // caras con textura: entran (para que no queden rendijas) pero no se mueven
+      for (let k = 1; k < q.length - 1; k++) if (q[0] !== q[k] && q[k] !== q[k + 1] && q[0] !== q[k + 1]) F.push(uv ? { ...f, idx: [q[0], q[k], q[k + 1]], uv: [uv[0], uv[k], uv[k + 1]] } : { ...f, idx: [q[0], q[k], q[k + 1]] }); }
+    if (!F.length) return m;
+    for (const f of extra) for (const i of f.idx) if (m.verts[i]) { const k = idxOf.get(m.verts[i].map(x => Math.round(x * 100)).join()); if (k != null) fixed.add(k); }
+    let V = P; const cosT = Math.cos(ang * Math.PI / 180);
+    for (let L = 0; L < levels; L++) {
+      const nrm = F.map(f => { const [a, b, c] = f.idx.map(i => V[i]), u = [b[0] - a[0], b[1] - a[1], b[2] - a[2]], w = [c[0] - a[0], c[1] - a[1], c[2] - a[2]], n = [u[1] * w[2] - u[2] * w[1], u[2] * w[0] - u[0] * w[2], u[0] * w[1] - u[1] * w[0]], l = Math.hypot(...n) || 1; return n.map(x => x / l); });
+      const E = new Map(), ek = (a, b) => a < b ? a + '_' + b : b + '_' + a;
+      F.forEach((f, fi) => { for (let k = 0; k < 3; k++) { const a = f.idx[k], b = f.idx[(k + 1) % 3], key = ek(a, b); let e = E.get(key); if (!e) E.set(key, e = { a, b, f: [], opp: [] }); e.f.push(fi); e.opp.push(f.idx[(k + 2) % 3]); } });
+      const nb = V.map(() => []), cr = V.map(() => []);
+      for (const e of E.values()) { e.crease = e.f.length !== 2 || (nrm[e.f[0]][0] * nrm[e.f[1]][0] + nrm[e.f[0]][1] * nrm[e.f[1]][1] + nrm[e.f[0]][2] * nrm[e.f[1]][2]) < cosT || F[e.f[0]].color !== F[e.f[1]].color || F[e.f[0]].tex !== F[e.f[1]].tex || !!F[e.f[0]].uv;
+        nb[e.a].push(e.b); nb[e.b].push(e.a); if (e.crease) { cr[e.a].push(e.b); cr[e.b].push(e.a); } if (e.f.length !== 2) { fixed.add(e.a); fixed.add(e.b); } }   // en bordes sueltos (uniones en T del modelo): quietos
+      const NV = V.map((v, i) => { const c = cr[i].length; if (fixed.has(i)) return v.slice();
+        if (c === 2) { const A = V[cr[i][0]], B = V[cr[i][1]]; return v.map((x, a) => 0.75 * x + 0.125 * (A[a] + B[a])); }
+        if (c || nb[i].length < 3) return v.slice();
+        const n = nb[i].length, be = n > 3 ? 3 / (8 * n) : 3 / 16, o = v.map(x => x * (1 - n * be)); for (const j of nb[i]) for (let a = 0; a < 3; a++) o[a] += V[j][a] * be; return o; });
+      const mid = new Map();
+      for (const [key, e] of E) { const A = V[e.a], B = V[e.b]; let p;
+        if (e.crease) p = [0, 1, 2].map(a => (A[a] + B[a]) / 2); else { const C = V[e.opp[0]], D = V[e.opp[1]]; p = [0, 1, 2].map(a => 0.375 * (A[a] + B[a]) + 0.125 * (C[a] + D[a])); }
+        if (e.f.length !== 2) continue;   // bordes sueltos: sin punto nuevo (si no, quedan rendijas de un píxel contra la pieza de al lado)
+        mid.set(key, NV.length); NV.push(p); }
+      const NF = [], um = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+      for (const f of F) { const I = f.idx, U = f.uv, M = [0, 1, 2].map(k => mid.get(ek(I[k], I[(k + 1) % 3]))), n = M.filter(x => x != null).length;
+        const put = (ii, uu) => NF.push(U ? { ...f, idx: ii, uv: uu } : { ...f, idx: ii });
+        const MU = U ? [0, 1, 2].map(k => um(U[k], U[(k + 1) % 3])) : [];
+        if (n === 3) { put([I[0], M[0], M[2]], U && [U[0], MU[0], MU[2]]); put([M[0], I[1], M[1]], U && [MU[0], U[1], MU[1]]); put([M[2], M[1], I[2]], U && [MU[2], MU[1], U[2]]); put([M[0], M[1], M[2]], U && [MU[0], MU[1], MU[2]]); continue; }
+        if (n === 0) { put(I, U); continue; }
+        // 1 o 2 aristas partidas: abanico desde los puntos nuevos (rotando para empezar en la primera arista partida)
+        let r = 0; while (M[r] == null) r++;
+        const i0 = I[r], i1 = I[(r + 1) % 3], i2 = I[(r + 2) % 3], m0 = M[r], m1 = M[(r + 1) % 3], m2 = M[(r + 2) % 3];
+        const u0 = U && U[r], u1 = U && U[(r + 1) % 3], u2 = U && U[(r + 2) % 3], v0 = U && MU[r], v1 = U && MU[(r + 1) % 3], v2 = U && MU[(r + 2) % 3];
+        if (n === 1) { put([i0, m0, i2], U && [u0, v0, u2]); put([m0, i1, i2], U && [v0, u1, u2]); }
+        else if (m1 != null) { put([i0, m0, i2], U && [u0, v0, u2]); put([m0, i1, m1], U && [v0, u1, v1]); put([m0, m1, i2], U && [v0, v1, u2]); }
+        else { put([i0, m0, m2], U && [u0, v0, v2]); put([m0, i1, i2], U && [v0, u1, u2]); put([m0, i2, m2], U && [v0, u2, v2]); } }
+      V = NV; F = NF; }
+    const base = V.length; return { ...m, verts: V.concat(m.verts), faces: F.concat(extra.map(f => ({ ...f, idx: f.idx.map(i => i + base) }))) };
+  }
+  // ruedas redondas: cada cara en 4 (dos veces) y los puntos nuevos del borde llevados a su radio (el octógono original pasa a 32 lados); también las texturas
+  function roundWheel(m, levels = 2) {
+    if (!m) return m;
+    const V = m.verts.slice(), out = [], cache = new Map(), r2 = v => Math.hypot(v[0], v[1]);
+    const mid = (a, b) => { const k = a < b ? a + '_' + b : b + '_' + a; let i = cache.get(k); if (i != null) return i;
+      const A = V[a], B = V[b], P = [(A[0] + B[0]) / 2, (A[1] + B[1]) / 2, (A[2] + B[2]) / 2], ra = r2(A), rb = r2(B), rp = r2(P);
+      if (ra > 1e-3 && rb > 1e-3 && Math.abs(ra - rb) < 0.15 * Math.max(ra, rb) && rp > 1e-3) { const t = (ra + rb) / 2 / rp; P[0] *= t; P[1] *= t; }   // mismo anillo: al radio
+      i = V.length; V.push(P); cache.set(k, i); return i; };
+    for (const f of m.faces) {
+      if (f.sprite || f.cond != null || f.idx.length < 3 || f.idx.some(i => !V[i])) { out.push(f); continue; }
+      const uv = f.uv && f.uv.length === f.idx.length ? f.uv : null;
+      let T = []; for (let k = 1; k < f.idx.length - 1; k++) T.push({ i: [f.idx[0], f.idx[k], f.idx[k + 1]], u: uv ? [uv[0], uv[k], uv[k + 1]] : null });
+      for (let L = 0; L < levels; L++) { const N = [];
+        for (const t of T) { const [a, b, c] = t.i, ab = mid(a, b), bc = mid(b, c), ca = mid(c, a), U = t.u, um = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+          const uab = U && um(U[0], U[1]), ubc = U && um(U[1], U[2]), uca = U && um(U[2], U[0]);
+          N.push({ i: [a, ab, ca], u: U && [U[0], uab, uca] }, { i: [ab, b, bc], u: U && [uab, U[1], ubc] }, { i: [ca, bc, c], u: U && [uca, ubc, U[2]] }, { i: [ab, bc, ca], u: U && [uab, ubc, uca] }); }
+        T = N; }
+      for (const t of T) { const g = { ...f, idx: t.i }; if (t.u) g.uv = t.u; else delete g.uv; out.push(g); } }
+    return { ...m, verts: V, faces: out };
+  }
+  // encoge un vehículo entero (malla, ruedas, piezas, caja y puntos de luces/piloto)
+  function scaleDef(d, k) {
+    const mbS = mb => { if (mb && mb.groups) for (const g of mb.groups.values()) for (let i = 0; i < g.pos.length; i++) g.pos[i] *= k; };
+    const v3 = v => v && v.length === 3 ? v.map(x => x * k) : v;
+    mbS(d.mesh); mbS(d.brake); (d.wheelMeshes || []).forEach(mbS);
+    for (const p of d.decoParts || []) { mbS(p.mesh); p.p = v3(p.p); }
+    d.wheels = d.wheels.map(w => ({ ...w, c: v3(w.c), radius: w.radius * k }));
+    d.box = { c: v3(d.box.c), h: v3(d.box.h) }; d.nitro = v3(d.nitro); d.headPos = v3(d.headPos); d.head = v3(d.head);
+    d.brakeSpots = (d.brakeSpots || []).map(v3); for (const q in d.dmgFx) d.dmgFx[q] = v3(d.dmgFx[q]); d.interior = null;
+  }
 
   // ---------- física ----------
   const SPEED_K = 30 / 35000;   // unidades de velocidad del script -> m/s (35000 ≈ 108 km/h)

@@ -236,4 +236,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Derbi: bajas por último toque, salto y clasificación en la cruceta; chat general sin caducidad (1.1.7)
 - [x] Marte, Venus y la Luna como en el original (cielos, Tierra, tele, público, base de la Luna); descompresor para navegadores antiguos (1.1.8)
 - [x] Avispa, Defensor, Rotativo, moto aérea y Hover Mower; Tofu 86, B 30 y Lady350; gorros y gafas; objetos del derby; modo libre con todo; opción «Sin coches nuevos» (1.1.9)
+- [x] Objetos visibles otra vez; vehículos originales con más polígonos; arreglos de la Avispa, Hover Mower, Rotativo, Escarabajo y OVNI (1.1.10)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

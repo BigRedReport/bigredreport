@@ -43,14 +43,14 @@ float shadow(vec3 n){
   for(int i=-1;i<=1;i++) for(int j=-1;j<=1;j++) s+=texture(SM,vec3(q.xy+vec2(i,j)*smTexel,q.z-b));
   float fade=smoothstep(.85,1.,max(abs(q.x-.5),abs(q.y-.5))*2.);
   return mix(s/9.,1.,fade); }
-void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) discard;
+void main(){ vec4 c = useTex>=1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) discard;
   // colores animados del original (palanim): el alfa guarda la posición en el ciclo
-  if(useTex==1 && animN>0 && c.a<0.99){ int i=int(floor(c.a*255.+.5))-200; if(i>=0 && i<animN){ c.rgb=animPal[(i+animN-int(animStep))%animN]; } c.a=1.; }
+  if(useTex==2 && animN>0 && c.a<0.99){ int i=int(floor(c.a*255.+.5))-200; if(i>=0 && i<animN){ c.rgb=animPal[(i+animN-int(animStep))%animN]; } c.a=1.; }
   // normal: suave si la malla la trae (terreno), si no la de la cara
   bool ter=dot(vn,vn)>0.25; vec3 n; if(ter) n=normalize(vn); else { n=normalize(cross(dFdx(wp),dFdy(wp))); if(dot(n,cam-wp)<0.) n=-n; }
   float d=length(wp-cam); vec3 rgb;
   /* texturas con volumen: relieve sacado del brillo de la propia textura (lo claro sobresale) y grano fino en el suelo; se apaga a lo lejos */
-  if(relief>0. && mode==1 && useTex==1 && gloss<=0. && glow==0. && !(vwat>0.5 && c.b-c.r>0.06)){ float fd=1.-smoothstep(30.,110.,d);
+  if(relief>0. && mode==1 && useTex>=1 && gloss<=0. && glow==0. && !(vwat>0.5 && c.b-c.r>0.06)){ float fd=1.-smoothstep(30.,110.,d);
     if(fd>0.){ vec2 e=3./vec2(textureSize(T,0));
       vec2 g=vec2(lum3(texture(T,vuv+vec2(e.x,0.)).rgb)-lum3(texture(T,vuv-vec2(e.x,0.)).rgb), lum3(texture(T,vuv+vec2(0.,e.y)).rgb)-lum3(texture(T,vuv-vec2(0.,e.y)).rgb));
       vec3 dpx=dFdx(wp), dpy=dFdy(wp); vec2 dtx=dFdx(vuv), dty=dFdy(vuv); vec3 p2=cross(dpy,n), p1=cross(n,dpx);
@@ -182,7 +182,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE); gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
             gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAX_LEVEL, (img.terrain ? 3 : 2) + Math.max(0, Math.round(Math.log2(w / (img.terrain ? 768 : 256)))));   /* texturas nítidas ×2/×4: más niveles de mipmap */
             gl.generateMipmap(gl.TEXTURE_2D);
-            if (img.smooth) t._smooth = true; this.setFilter(t); texs.set(name, t);
+            if (img.smooth) t._smooth = true; if (img.terrain) t._pal = true;   /* solo el terreno lleva colores animados (palanim): los cristales semitransparentes de los coches se ponían de colores */ this.setFilter(t); texs.set(name, t);
           }
           tex = texs.get(name);
         }
@@ -352,7 +352,7 @@ void main(){ if(bright==1){ vec3 c=vec3(0.); for(int i=-1;i<=2;i+=2) for(int j=-
       const gl = this.gl; gl.uniformMatrix4fv(this.U.W, false, W || BRR.M4.I);
       for (const b of batches) {
         if (!b.vao) continue;   // (malla ya liberada)
-        gl.uniform1i(this.U.useTex, b.tex ? 1 : 0);
+        gl.uniform1i(this.U.useTex, b.tex ? (b.tex._pal ? 2 : 1) : 0);
         if (b.tex) { gl.activeTexture(gl.TEXTURE0); gl.bindTexture(gl.TEXTURE_2D, b.tex); }
         gl.bindVertexArray(b.vao); gl.drawArrays(gl.TRIANGLES, 0, b.n);
       }
