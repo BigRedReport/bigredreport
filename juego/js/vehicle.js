@@ -322,7 +322,7 @@
     forward() { return mv(this.R, [0, 0, -1]); }
     step(dt, inp) {
       const R = this.R, up = mv(R, [0, 1, 0]), fwd = mv(R, [0, 0, -1]), right = mv(R, [1, 0, 0]);
-      const GP = this.gpMode, F1 = GP && this.def.name === 'F1', CIV = /^(CIVICO|SUPREMO|HORIZONTE)$/.test(this.def.name), vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K / (GP ? GPV : 1) / (this.vmul || 1), def = this.def;   // vmul: más velocidad punta (p. ej. el que lleva la bomba)   // en GP las tablas del coche se leen a escala (misma respuesta, más velocidad)
+      const GP = this.gpMode, F1 = GP && this.def.name === 'F1', CIV = /^(CIVICO|SUPREMO|HORIZONTE|ROTATIVO)$/.test(this.def.name), vf = V.dot(this.v, fwd), spdScript = Math.abs(vf) / SPEED_K / (GP ? GPV : 1) / (this.vmul || 1), def = this.def;   // vmul: más velocidad punta (p. ej. el que lleva la bomba)   // en GP las tablas del coche se leen a escala (misma respuesta, más velocidad)
       // dirección: el ángulo máximo baja con la velocidad (tabla "hnd steering")
       const [s1, a1, s2, a2] = def.steer, tt = Math.min(1, Math.max(0, (spdScript - s1) / (s2 - s1)));
       const DR = this.driftMode, DB = DR && this.driftB ? (this.dB || (this.dB = { on: false, lat: 1, side: 1, charge: 0, offT: 0, cT: 0, exit: 0 })) : null;   // drift B (arcade): ver más abajo   // modo drift: propulsión trasera con más par, el freno de mano cruza sin frenar y con gas se mantiene de lado

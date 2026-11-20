@@ -7,6 +7,17 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.9**
+- **Vehículos nuevos:** la Avispa (escúter, ciudad; se inclina en las curvas y deja un solo rastro), el Defensor (todoterreno, plataformas), el Rotativo (Kanjo Loop), la moto aérea (Marte, Venus y la Luna; sustituye a la nave) y el Hover Mower (helicópteros).
+- **Carrocerías nuevas:** el Panda 86 pasa a ser el Tofu 86, el Bávaro 30 el B 30 y el Zeta 35 el Lady350.
+- **Piloto y escudería:** gorros, cascos y gafas; fuera la cabeza repetida.
+- **Destruction derby:** la llave inglesa y la botella de nitro flotan sobre sus luces; cámaras de televisión cerca de la estructura; el marcador, con Tab o la cruceta abajo (sin botón en pantalla).
+- **Modo libre general:** también los circuitos de karting y del Kanjo Loop, y cualquier vehículo (Kanjo, kart, GP, fórmula) en cualquier circuito.
+- **Opción «Sin coches nuevos»:** en carrera rápida y campeonato, solo los vehículos originales.
+- **Marte, Venus y la Luna:** público mirando a cámara, vídeo de la tele, lava bajando, estructuras de Marte con su base, cartel de la Luna en alto, flechas y semáforos corregidos.
+- **Plataformas:** el camión y el monster truck con el mismo tono en el selector.
+- **Arreglado:** fallo al abrir las estadísticas del piloto antes de cargar el juego (#40).
+
 **Novedades de la 1.1.8**
 - **Marte, Venus y la Luna como en el original:**
   - cielo rojo en Marte, verde en Venus y el espacio con la Tierra en la Luna;

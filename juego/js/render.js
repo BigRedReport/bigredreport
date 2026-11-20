@@ -15,7 +15,9 @@
       const VS = `#version 300 es
 in vec3 p; in vec2 uv; in vec3 col; in float lay; in vec3 nrm; uniform mat4 VP; uniform mat4 W; uniform mat4 LVP; uniform vec3 cam; uniform float layK;
 out vec2 vuv; out vec3 vcol; out vec3 wp; out vec4 lp; out float vwat; out vec3 vn;
-void main(){ vec4 w=W*vec4(p,1.); vn=mat3(W)*nrm; vuv=uv; vcol=col; wp=w.xyz; lp=LVP*w; vwat=lay<-0.5?1.:0.;
+void main(){ vec4 w=W*vec4(p,1.); vn=mat3(W)*nrm; vuv=uv; vcol=col;
+  if(lay<-5.){ vec3 tc0=cam-w.xyz; tc0.y=0.; vec3 r=normalize(cross(vec3(0.,1.,0.),tc0)+vec3(1e-5,0.,0.)); w.xyz+=r*nrm.x+vec3(0.,nrm.y,0.); vn=normalize(tc0+vec3(0.,1e-4,0.)); }   // sprites: de cara a la cámara
+  wp=w.xyz; lp=LVP*w; vwat=(lay<-0.5&&lay>-5.)?1.:0.;
   // capas: caras coplanarias posteriores se acercan un poco a la cámara (sustituye al orden de pintado del original)
   vec3 tc=cam-w.xyz; float d=length(tc); if(lay>0.) w.xyz+=tc/max(d,1e-3)*lay*layK*(0.003+d*0.00035);
   gl_Position=VP*w; }`;
@@ -43,7 +45,7 @@ float shadow(vec3 n){
   return mix(s/9.,1.,fade); }
 void main(){ vec4 c = useTex==1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) discard;
   // colores animados del original (palanim): el alfa guarda la posición en el ciclo
-  if(useTex==1 && animN>0 && c.a<0.99){ int i=int(floor(c.a*255.+.5))-200; if(i>=0 && i<animN){ c.rgb=animPal[(i+int(animStep))%animN]; } c.a=1.; }
+  if(useTex==1 && animN>0 && c.a<0.99){ int i=int(floor(c.a*255.+.5))-200; if(i>=0 && i<animN){ c.rgb=animPal[(i+animN-int(animStep))%animN]; } c.a=1.; }
   // normal: suave si la malla la trae (terreno), si no la de la cara
   bool ter=dot(vn,vn)>0.25; vec3 n; if(ter) n=normalize(vn); else { n=normalize(cross(dFdx(wp),dFdy(wp))); if(dot(n,cam-wp)<0.) n=-n; }
   float d=length(wp-cam); vec3 rgb;
@@ -171,7 +173,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
         if (!g.pos.length) continue;
         let tex = null;
         if (key !== 'COLOR') {
-          const name = key.startsWith('tex:') ? key.slice(4) : key, img = mb.textures.get(name);
+          const name = (key.startsWith('tex:') ? key.slice(4) : key).split('#')[0], img = mb.textures.get(name);
           if (!img) continue;
           if (!texs.has(name)) {
             const w = img.w || 256, h = img.h || 192, data = img.data || img;

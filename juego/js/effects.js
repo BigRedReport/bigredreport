@@ -106,9 +106,10 @@ void main(){ float a=vcol.a;
         return;
       }
       c.W.forEach((w, i) => {
-        const key = id + ':' + i;
+        const key = id + ':' + i, one = c.def.oneTrack;
+        if (one && (w.c[2] < 0 || w.c[0] < 0)) return;   // moto: un solo rastro, el de la rueda de atrás (en el centro)
         if (!w.contact) { this.last.delete(key); return; }
-        const wc = V.add(c.p, BRR.mv(R, [w.c[0], w.c[1] + 0.3 - w.len - w.radius + 0.03, w.c[2]]));
+        const wc = V.add(c.p, BRR.mv(R, [one ? 0 : w.c[0], w.c[1] + 0.3 - w.len - w.radius + 0.03, one ? (c.def.box.h[2] * 0.62) : w.c[2]]));
         const s0 = this.lvl.surface(wc[0], wc[2]), s = w.surface && w.surface !== s0.type ? { ...s0, type: w.surface } : s0, slip = w.slip || 0;   // sobre un puente u objeto manda la rueda (no el agua o la tierra de debajo)
         // polvo / agua / nieve
         if (s.type !== 'asfalto' && sp > 3) {
@@ -138,7 +139,7 @@ void main(){ float a=vcol.a;
         const leave = c.K.boat || c.K.floats || s.type === 'agua' ? 0 : slip > (c.kartMode ? 0.16 : 0.3) ? 1 :   /* en el agua (y las lanchas) no quedan marcas */ (s.type === 'tierra' || s.type === 'nieve' || s.type === 'arena') && sp > 2 ? 0.55 : 0;
         const prev = this.last.get(key);
         if (leave && prev && V.len(V.sub(wc, prev.p)) > 0.25) {
-          const d = V.sub(wc, prev.p), side = V.mul(V.norm([-d[2], 0, d[0]]), Math.min(0.28, w.radius * 0.45));
+          const d = V.sub(wc, prev.p), side = V.mul(V.norm([-d[2], 0, d[0]]), Math.min(0.28, w.radius * 0.45) * (c.def.oneTrack ? 0.45 : 1));
           const col = s.type === 'asfalto' ? [0.05, 0.05, 0.05] : s.type === 'nieve' ? [0.62, 0.66, 0.74] : s.col.map(x => x * 0.55);
           this.marks.push({ a: V.add(prev.p, side), b: V.sub(prev.p, side), c: V.sub(wc, side), d: V.add(wc, side), col, al: leave * (s.type === 'asfalto' ? 0.55 : 0.5), age: 0 });
           if (this.marks.length > this.maxMarks) this.marks.shift();

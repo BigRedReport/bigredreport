@@ -100,6 +100,9 @@
     const picks = []; { const cand = flat.filter(i => spawns.every(s => Math.hypot(N[i].p[0] - s.p[0], N[i].p[2] - s.p[2]) > 9)); for (let k = 0; k < 8 && cand.length; k++) { const i = cand.splice(Math.floor(R0() * cand.length), 1)[0];
       if (picks.some(q => Math.hypot(q.p[0] - N[i].p[0], q.p[2] - N[i].p[2]) < 22)) { k--; if (cand.length < 3) break; continue; } picks.push({ p: [N[i].p[0], N[i].p[1] + 1.1, N[i].p[2]], t: k % 2 ? 'nitro' : 'rep', off: 0 }); } }
     lvl.derby = { map, PC, N, adj, floor, under, nearest, path, dist, spawns, picks, waterY: wy, c: [ox, wy, oz] };
+    // cámaras de televisión: las del circuito base quedaban lejísimos; aquí, 8 alrededor de la estructura, algo por encima y mirando hacia dentro
+    { let R = 0, top = wy; for (const n of N) { R = Math.max(R, Math.hypot(n.p[0] - ox, n.p[2] - oz)); top = Math.max(top, n.p[1]); }
+      lvl.fixcams = []; for (let k = 0; k < 8; k++) { const a = k / 8 * Math.PI * 2 + 0.3, r = R * 0.6 + 6; lvl.fixcams.push([ox + Math.cos(a) * r, top + 5 + (k % 2) * 3, oz + Math.sin(a) * r]); } }
     return lvl.derby;
   };
 

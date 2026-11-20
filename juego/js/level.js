@@ -23,6 +23,13 @@
       const PI = this.planeIndex || (this.planeIndex = new Map());
       for (let f of model.faces) {
         if (!this.condOnly && f.els != null) continue;   // pilotos encendidos ("si no" de la variable 2): solo en la malla de freno
+        if (f.sprite) { const c = model.verts[f.idx[0]]; if (!c || !f.tex) continue;   // sprite: el centro y el tamaño; el dibujo lo pone de cara a la cámara
+          if (!this.textures.has(f.tex)) { const tm = findTM(f.tex); const rgba = tm ? BRR.tmRGBA(tm, pal) : null; this.textures.set(f.tex, rgba && BRR.texHD && BRR.texUp && this.hd ? BRR.texUp(rgba, 256, 192) : rgba); }
+          if (!this.textures.get(f.tex)) continue;
+          const C = xf(c), ww = Math.hypot(...[0, 1, 2].map(a => xf([c[0] + f.sprite.w, c[1], c[2]])[a] - C[a])), hh = Math.hypot(...[0, 1, 2].map(a => xf([c[0], c[1] + f.sprite.h, c[2]])[a] - C[a]));
+          const g = this.group('tex:' + f.tex + '#spr'); g.nrm = g.nrm || []; const O = [[-ww, hh], [ww, hh], [ww, -hh], [-ww, -hh]];
+          for (const j of [0, 2, 1, 0, 3, 2]) { g.pos.push(...C); g.lay.push(-10); g.nrm.push(O[j][0], O[j][1], 0); g.uv.push((f.uv[j][0] + .5) / 256, (f.uv[j][1] + .5) / 192); }
+          continue; }
         const idx = f.idx; if (idx.length < 3 || idx.some(i => !V[i])) continue;
         let n = null;
         for (let k = 1; k < idx.length - 1 && !n; k++) {
@@ -131,6 +138,7 @@
     // «anim velocidad, n, máscara, valores…»: secuencias que el original usa para la tele, el público de los tubos, luces…
     const ANIMS = [...script.matchAll(/^\s*anim\s+([^;\n]+)/gm)].map(m => m[1].split(',').map(t => parseInt(t, 10)).filter(x => !isNaN(x))).filter(a => a.length > 3).map(a => ({ speed: a[0], mask: a[2], seq: a.slice(3, 3 + a[1]) }));
     const animMB = new Map(), modelVar = new Map();   // malla por (animación, valor)
+    const SIGN_V = window.BRR_SIGNV != null ? window.BRR_SIGNV : 0, animBitsCache = new Map(), animBitsOf = n => { if (!animBitsCache.has(n)) { const b = find(n + '.3DW'); let r = 0; if (b && !b.faces) for (const v of [null, 0, -1]) r |= BRR.parse3DW(b, 0, v).animBits; animBitsCache.set(n, r); } return animBitsCache.get(n); };
     const getModelV = (n, v) => { const k = n + '#' + v; if (!modelVar.has(k)) { const b = find(n + '.3DW'); modelVar.set(k, b && !b.faces ? BRR.parse3DW(b, 0, v) : null); } return modelVar.get(k); };
     const XT = files.extra || null;   // circuitos del editor: objetos de otros circuitos (ya leídos y con los colores pasados a esta paleta)
     const find = n => { n = n.toUpperCase(); if (XT && XT.has(n)) return XT.get(n); for (const s of srcs) if (s.has(n)) return s.get(n); return null; };
@@ -242,7 +250,9 @@
     for (let i = 0; i + 22 <= dat.length; i += 22) if (/POST|S_LIGHT/.test(names[dat[i]] || '')) posts.push([dv.getInt32(i + 1, true), dv.getInt32(i + 5, true), dv.getInt32(i + 9, true), /S_LIGHT/.test(names[dat[i]])]);
     // objetos que flotan sobre el terreno (en el original casi no se notaba): se bajan al suelo, y lo que está encima (copas, tejados) baja con ellos.
     // No se tocan puentes, tubos, nubes ni lo que se apoya en otro objeto. Los carteles y vallas siguen la pendiente.
-    const KEEP_UP = /UFO|SAUCER|LUNAPOD|SATEL|CLOUD|SKY|BRIDG(?!END)|BRIJ|TUBE|ROOF|PLAT|PAGODA2|TORII|BIRD|BALLOON|BLIMP|AIRSHIP|ZEPP|PLANE|KITE|WIRE|CABLE|START|CHECKP|SUN$|STAR|RAINBOW|FX$/;
+    // los NODE de Marte (cabezas de los tubos con público) son la torre sin su base: se pintan con la base (TOWER3), a su altura, con el pie hasta el suelo
+    const getModelO = n => (env === 'MOON' && n === 'NODE' && find('TOWER3.3DW') && getModel('TOWER3')) || getModel(n);
+    const KEEP_UP = /UFO|SAUCER|LUNAPOD|^NODE$|^MSIGN|SATEL|CLOUD|SKY|BRIDG(?!END)|BRIJ|TUBE|ROOF|PLAT|PAGODA2|TORII|BIRD|BALLOON|BLIMP|AIRSHIP|ZEPP|PLANE|KITE|WIRE|CABLE|START|CHECKP|SUN$|STAR|RAINBOW|FX$/;
     const THIN = /FENCE|BILBORD|BILLB|BOARD|SIGN|BANNER|WALL|BARR|RAIL|HOARD/;
     const drop = new Map(), drape = new Set(), objB = [], pillarsAt = [], lift = new Map();
     // en otros planetas (MOON1-3: Marte, Venus, Luna) las construcciones y señales flotan a propósito: no se bajan al suelo
@@ -251,7 +261,7 @@
       const B = objB;
       for (let i = 0; i + 22 <= dat.length; i += 22) {
         const name = names[dat[i]], cls = dat[i + 20]; if (!name || cls === 50 || cls === 3 || cls === 7 || cls === 8 || /TUNN/.test(name)) continue;
-        const m = getModel(name); if (!m) continue; const Vs = m.verts.filter(Boolean); if (!Vs.length) continue;
+        const m = getModelO(name); if (!m) continue; const Vs = m.verts.filter(Boolean); if (!Vs.length) continue;
         const ox = dv.getInt32(i + 1, true), oy = dv.getInt32(i + 5, true), oz = dv.getInt32(i + 9, true), k = 2 * Math.PI / 65536, Rm = BRR.rot(dv.getInt16(i + 13, true) * k, dv.getUint16(i + 15, true) * k, dv.getInt16(i + 17, true) * k);
         const G = Vs.map(v => BRR.toGL(ox + Rm[0][0] * v[0] + Rm[0][1] * v[1] + Rm[0][2] * v[2], oy + Rm[1][0] * v[0] + Rm[1][1] * v[1] + Rm[1][2] * v[2], oz + Rm[2][0] * v[0] + Rm[2][1] * v[1] + Rm[2][2] * v[2]));
         const lo = Math.min(...G.map(g => g[1])), hi = Math.max(...G.map(g => g[1])), xs = G.map(g => g[0]), zs = G.map(g => g[2]);
@@ -289,7 +299,7 @@
       const cls = dat[i + 20];
       if (cls === 50) continue;
       if (BRR.newClouds && /^CLOUD/.test(name)) continue;   // nubes nuevas (en el cielo): fuera las planas del original
-      const m = getModel(name); if (!m) continue;
+      const m = getModelO(name); if (!m) continue;
       const ox = dv.getInt32(i + 1, true), oz = dv.getInt32(i + 9, true); let oy = dv.getInt32(i + 5, true);
       // decorado lejano que flota sobre el terreno (icebergs del ártico...): se apoya en el suelo
       if (env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(name) && farFromCourse(ox, oz)) { const lift = -oy * S - groundAt(ox, oz); if (lift > 3) oy += lift / S; }   // icebergs del ártico
@@ -300,7 +310,7 @@
         let best = null; for (const q of posts) { if (q[3]) continue; const d = Math.hypot(q[0] - ox, q[2] - oz); if (d > 300 && d < 2600 && (best === null || q[1] + pTop < best)) best = q[1] + pTop; }
         if (best !== null && oy + bTop - best > 64) oy = best - bTop; } }   // pancarta en el suelo con los postes altos (CITY3): sube hasta lo alto de los postes
       if (name === 'START') banners.push({ c: BRR.toGL(ox, oy, oz), ax: [R[0][0], -R[1][0], -R[2][0]] });   // pancartas de salida/control (la salida lanzada de la contrarreloj pasa por la más cercana al control 0)
-      if (cls === 4 || cls === 5 || cls === 10 || SOFT.test(name)) {   // derribable: instancia aparte
+      if ((cls === 4 || cls === 5 || cls === 10 || SOFT.test(name)) && !(env === 'MOON' && /TOWER/.test(name) && animBitsOf(name))) {   // derribable: instancia aparte (la tele de Venus no: es fija y animada)
         props.push({ name, cls, o: BRR.toGL(ox, oy, oz), R: [[R[0][0], -R[0][1], -R[0][2]], [-R[1][0], R[1][1], R[1][2]], [-R[2][0], R[2][1], R[2][2]]], r: Math.max(0.4, m.radius * S * 0.5) });
         continue;
       }
@@ -329,8 +339,9 @@
           const gap = -(oy + ymax) * S - groundAt(ox, oz);   // >0: el pie queda por encima del suelo (metros)
           if (gap > 0.05 && gap < (gateP ? 25 : 12)) { const base = xfm; xfm = v => { const g = base(v); if (v[1] >= ymax - 1) { const wx = ox + R[0][0] * v[0] + R[0][2] * v[2], wz = oz + R[2][0] * v[0] + R[2][2] * v[2]; g[1] = groundAt(wx, wz) - 0.1; } return g; }; } } }
       // otros planetas: nudos de tubos, plataformas, cabezas de puente y balizas colgando en el aire (les faltaba la base): sus pies bajan hasta el suelo
-      if (env === 'MOON' && !decal && /NODE|PLAT|PLA3|BRIDGEN|BEACON|TOWER|POLE/.test(name)) { const Vs = m.verts.filter(Boolean), ymax = Math.max(...Vs.map(v => v[1])), ymid = (ymax + Math.min(...Vs.map(v => v[1]))) / 2, wall = /BRIDGEN/.test(name); const base = xfm, gw = v => groundAt(ox + R[0][0] * v[0] + R[0][2] * v[2], oz + R[2][0] * v[0] + R[2][2] * v[2]), gMin = Math.min(...Vs.filter(v => v[1] >= ymax - 8).map(gw), ...(wall ? [-1, 0, 1].flatMap(a => [-1, 0, 1].map(b => groundAt(ox + a * 6 / S, oz + b * 6 / S))) : []));   /* cabezas de puente: hasta el fondo del hueco que tienen al lado (la pista) */   /* el pie llega al punto más bajo del suelo bajo él (en ladera quedaba un hueco por el lado de abajo) */   /* cabezas de puente (rombos): la mitad de abajo baja entera, como un muro hasta el suelo */
-        xfm = v => { const g = base(v); if (v[1] >= ymax - 8 || (wall && v[1] > ymid + 2)) { if (g[1] - gMin > 0.3 && g[1] - gMin < 30) g[1] = gMin - 0.1; } return g; }; }
+      if (env === 'MOON' && !decal && /NODE|PLAT|PLA3|BRIDGEN|BEACON|TOWER|POLE/.test(name)) {    const Vs = m.verts.filter(Boolean), ymax = Math.max(...Vs.map(v => v[1])), ymid = (ymax + Math.min(...Vs.map(v => v[1]))) / 2, wall = /BRIDGEN/.test(name); const base = xfm, gw = v => groundAt(ox + R[0][0] * v[0] + R[0][2] * v[2], oz + R[2][0] * v[0] + R[2][2] * v[2]), gMin = Math.min(...Vs.filter(v => v[1] >= ymax - 8).map(gw), ...(wall ? [-1, 0, 1].flatMap(a => [-1, 0, 1].map(b => groundAt(ox + a * 6 / S, oz + b * 6 / S))) : []));   /* cabezas de puente: hasta el fondo del hueco que tienen al lado (la pista) */   /* el pie llega al punto más bajo del suelo bajo él (en ladera quedaba un hueco por el lado de abajo) */   /* cabezas de puente (rombos): la mitad de abajo baja entera, como un muro hasta el suelo */
+        const isNode = name === 'NODE', dN = isNode ? (base([0, ymax, 0])[1] - gMin + 0.1) : 0;   // NODE de Marte: la base entera baja al suelo y el cuello se alarga
+        xfm = v => { const g = base(v); if (isNode) { if (v[1] >= ymax - 60 && dN > 0.3 && dN < 30) g[1] -= dN; return g; } if (v[1] >= ymax - 8 || (wall && v[1] > ymid + 2)) { if (g[1] - gMin > 0.3 && g[1] - gMin < 30) g[1] = gMin - 0.1; } return g; }; }
       // bloques de edificios que se solapan en las esquinas (CITY4): sus fachadas coincidían en el mismo plano y parpadeaban; cada uno se encoge un poquito distinto
       if (!decal && /^(BLOCK|BIGBUIL|OFFICE|BUILD)/.test(name)) { const d = (0.004 + 0.007 * (bldN++ % 4)) / S, base = xfm; xfm = v => base([v[0] - Math.sign(v[0]) * d, v[1], v[2] - Math.sign(v[2]) * d]); }
       let mm = m;
@@ -369,9 +380,16 @@
           const G = f.idx.map(i => xfm(mm.verts[i])).filter(Boolean); if (G.length < 3) return f; const V = BRR.V, c = [0, 1, 2].map(a => G.reduce((s2, g) => s2 + g[a], 0) / G.length), n = V.norm(V.cross(V.sub(G[1], G[0]), V.sub(G[2], G[0])));
           const ext = Math.max(...G.map(g => V.len(V.sub(g, c)))); lamps.push({ p: c, n, k, r: Math.max(0.12, Math.min(0.5, ext)) }); return { ...f, color: dimOf(f.color) }; }) }; }
       // piezas animadas de los otros planetas (tele de Venus, público de los tubos): una malla por cada valor de su animación
-      let animK = -1; if (env === 'MOON' && mm.animBits && ANIMS.length) { animK = dat[i + 21]; const A = ANIMS[animK]; if (!A || (A.mask | mm.animBits) !== A.mask) animK = ANIMS.findIndex(a => (a.mask | mm.animBits) === a.mask && a.seq.some(v => v & mm.animBits)); }
-      if (animK >= 0) { const A = ANIMS[animK]; for (const v of new Set(A.seq)) { const key = animK + ':' + v, mv = getModelV(name, v); if (!mv) continue; if (!animMB.has(key)) { const nb = new BRR.MeshBuilder(pal); nb.hd = true; animMB.set(key, nb); } animMB.get(key).addModel(mv, xfm, findTM, null, 1); } }
-      (animK >= 0 ? (mbAnimSolid || (mbAnimSolid = new BRR.MeshBuilder(pal))) : mb).addModel(mm, xfm, findTM, solid ? (a, b, c) => { if (/BRIJ|BRIDG/.test(name)) { const V = BRR.V, u = V.sub(b, a), w = V.sub(c, a), n = V.norm(V.cross(u, w)), ny = Math.abs(n[1]), hs = Math.max(a[1], b[1], c[1]) - Math.min(a[1], b[1], c[1]); if (ny > 0.25 && ny < 0.85 && hs > 3) return; if (/^NEWBRIJ/.test(name) && Math.abs(n[0] * R[0][2] - n[1] * R[1][2] - n[2] * R[2][2]) > 0.7) return; }   /* sus tapas de las bocas (celosía pintada en una caja) tampoco son pared */ col.add(a, b, c, name); } : null,   /* puentes de celosía (RUF3): la cara inclinada de la boca (invisible) era una pared que no dejaba entrar */ decal ? 3 + (decalN % 8) * 2 : 1);
+      // piezas animadas de los otros planetas: tele de Venus, público y luces de los tubos (una malla por cada valor de su animación);
+      // los semáforos de salida van con la cuenta atrás y los carteles se quedan fijos (antes cambiaban solos)
+      let animK = -1; const bits = env === 'MOON' ? animBitsOf(name) : 0;
+      if (bits && /LIGHTS$/.test(name)) animK = -2;
+      else if (bits && /SIGN/.test(name)) { const mv = getModelV(name, SIGN_V); if (mv) mm = KEEP_UP.test(name) ? mv : mv; }
+      else if (bits && ANIMS.length) { animK = dat[i + 21]; const A = ANIMS[animK]; if (!A || (A.mask | bits) !== A.mask) animK = ANIMS.findIndex(a => (a.mask | bits) === a.mask && a.seq.some(v => v & bits)); }
+      const vals = animK === -2 ? [0, 1, 2, 3, 4, 5, 6, 7] : animK >= 0 ? [...new Set(ANIMS[animK].seq)] : [];
+      for (const v of vals) { const key = animK + ':' + v, mv = getModelV(name, v); if (!mv) continue; if (!animMB.has(key)) { const nb = new BRR.MeshBuilder(pal); nb.hd = true; animMB.set(key, nb); } animMB.get(key).addModel(mv, xfm, findTM, null, 1); }
+      if (vals.length) animK = Math.max(animK, -2); else if (animK !== -2) animK = -1;
+      (animK !== -1 ? (mbAnimSolid || (mbAnimSolid = new BRR.MeshBuilder(pal))) : mb).addModel(mm, xfm, findTM, solid ? (a, b, c) => { if (/BRIJ|BRIDG/.test(name)) { const V = BRR.V, u = V.sub(b, a), w = V.sub(c, a), n = V.norm(V.cross(u, w)), ny = Math.abs(n[1]), hs = Math.max(a[1], b[1], c[1]) - Math.min(a[1], b[1], c[1]); if (ny > 0.25 && ny < 0.85 && hs > 3) return; if (/^NEWBRIJ/.test(name) && Math.abs(n[0] * R[0][2] - n[1] * R[1][2] - n[2] * R[2][2]) > 0.7) return; }   /* sus tapas de las bocas (celosía pintada en una caja) tampoco son pared */ col.add(a, b, c, name); } : null,   /* puentes de celosía (RUF3): la cara inclinada de la boca (invisible) era una pared que no dejaba entrar */ decal ? 3 + (decalN % 8) * 2 : 1);
       nobj++;
       // puentes y pasarelas que flotan: pilares en las esquinas hasta el suelo o el agua (sin paredes: las lanchas pasan por debajo)
       if (solid && !decal && !offWorld && env !== 'MOON' && /BRIDG|BRIJ|PLAT|JETTY|PIER|WALKW/.test(name) && !/^VBRIDGE/.test(name)) {   /* (VBRIDGE: pórtico por encima de la pista, no lleva pilares) */ const G = mm.verts.filter(Boolean).map(xfm), lo = Math.min(...G.map(g => g[1]));

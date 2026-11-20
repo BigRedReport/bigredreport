@@ -1,12 +1,12 @@
 // Coches propios (no vienen en el juego original): se montan sobre las físicas, ruedas y sonido de un coche del juego
 // y llevan una carrocería hecha aquí, de pocos polígonos, al estilo del original.
-//  · PANDA ("Panda 86"): coupé japonés de los 80 de propulsión trasera, faros escamoteables levantados, parte de abajo negra
+//  · PANDA ("Tofu 86", antes Panda 86; malla de tofu_data.js, y si falta, la carrocería hecha a mano): coupé japonés de los 80 de propulsión trasera, faros escamoteables levantados, parte de abajo negra
 //    y la de arriba del color elegido (blanca por defecto). De momento solo en el modo drift.
 //  · GT: coche de carreras de gran turismo para el Grand Prix: bajo y ancho, morro largo, trasera fastback, alerón grande y franjas blancas.
 "use strict";
 (function () {
   const BRR = window.BRR;
-  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Panda 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'Bávaro 30' }, ZETA35: { base: 'MINI', name: 'Zeta 35' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' }, NAVE: { base: 'JETCAR', name: 'Nave espacial' }, BAMBINO: { base: 'MINI', name: 'Bambino' } };
+  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Tofu 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'B 30' }, ZETA35: { base: 'MINI', name: 'Lady350' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' }, HOVERBIKE: { base: 'JETCAR', name: 'Moto aérea' }, DEFENSOR: { base: 'JEEP', name: 'Defensor' }, ROTATIVO: { base: 'MINI', name: 'Rotativo' }, MOWER: { base: 'COPTER', name: 'Hover Mower' }, AVISPA: { base: 'MINI', name: 'Avispa' }, BAMBINO: { base: 'MINI', name: 'Bambino' } };
   const orig = BRR.loadVehicle;
   BRR.loadVehicle = async function (files, name, lvl, team = 1, extra = {}) {
     const C = BRR.CUSTOM_CARS[String(name).toUpperCase()]; if (!C) return orig(files, name, lvl, team, extra);
@@ -17,12 +17,14 @@
     if (NM === 'CIVICO') return civico(d, (extra.paint || [215, 40, 30]).map(v => v / 255), gl);
     if (NM === 'GT') return gt(d, (extra.paint || [200, 30, 26]).map(v => v / 255), 'GT', gl);
     if (NM === 'GTS') return gt(d, (extra.paint || [30, 90, 200]).map(v => v / 255), 'GTS', gl, 'sprint');   // la variante del GT: mismo coche, otra carrocería
-    if (NM === 'ZETA35') return zeta(d, (extra.paint || [235, 150, 30]).map(v => v / 255), gl);
+    if (NM === 'ZETA35' && !(BRR.KJ_MESH && BRR.KJ_MESH.ZETA35)) return zeta(d, (extra.paint || [235, 150, 30]).map(v => v / 255), gl);
     if (NM === 'MINIMO') return minimo(d, (extra.paint || [190, 20, 25]).map(v => v / 255), gl);
-    if (NM === 'BAV30') return coupe(d, (extra.paint || (NM === 'BAV30' ? [235, 235, 230] : [235, 150, 30])).map(v => v / 255), NM, gl);
+    if (NM === 'BAV30' && !(BRR.KJ_MESH && BRR.KJ_MESH.BAV30)) return coupe(d, (extra.paint || (NM === 'BAV30' ? [235, 235, 230] : NM === 'ZETA35' ? [160, 18, 30] : [235, 150, 30])).map(v => v / 255), NM, gl);
     if (NM === 'KART') return kart(d, (extra.paint || [230, 40, 30]).map(v => v / 255));
-    if (BRR.KJ_MESH && BRR.KJ_MESH[NM]) return kjcar(d, (extra.paint || (NM === 'SUPREMO' ? [225, 120, 20] : NM === 'BAMBINO' ? [140, 190, 225] : [40, 70, 160])).map(v => v / 255), gl, NM);
-    if (NM === 'NAVE') return nave(d, (extra.paint || [228, 228, 232]).map(v => v / 255));
+    if (BRR.KJ_MESH && BRR.KJ_MESH[NM]) return kjcar(d, (extra.paint || (NM === 'SUPREMO' ? [225, 120, 20] : NM === 'BAMBINO' ? [140, 190, 225] : NM === 'DEFENSOR' ? [38, 72, 44] : NM === 'ROTATIVO' ? [236, 236, 232] : NM === 'PANDA' ? [238, 238, 234] : NM === 'BAV30' ? [235, 235, 230] : NM === 'ZETA35' ? [160, 18, 30] : [40, 70, 160])).map(v => v / 255), gl, NM);
+    if (NM === 'AVISPA') return avispa(d, (extra.paint || [220, 140, 152]).map(v => v / 255));
+    if (NM === 'MOWER') return mower(d, (extra.paint || [24, 110, 20]).map(v => v / 255));
+    if (NM === 'HOVERBIKE') return hoverbike(d, (extra.paint || [222, 196, 28]).map(v => v / 255));
     if (NM === 'CYBER') return cyber(d, (extra.paint || [186, 188, 192]).map(v => v / 255), gl);
     if (NM === 'JETSKI') return jetski(d, (extra.paint || [215, 25, 25]).map(v => v / 255));
     if (NM === 'F1') return f1(d, (extra.paint || [200, 20, 20]).map(v => v / 255));
@@ -371,6 +373,7 @@
   const cross3 = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]], norm3 = a => { const l = Math.hypot(...a) || 1; return a.map(v => v / l); };
   // Mínimo 50 con la malla de minimo_data.js (modelo 3D ajustado al tamaño y a las ruedas del Mini del juego)
   function unpackMesh(o) { const b = s => Uint8Array.from(atob(s), c => c.charCodeAt(0)).buffer; return { V: new Int16Array(b(o.v)), F: new Uint16Array(b(o.f)), C: new Uint8Array(b(o.c)), sc: o.sc }; }
+  BRR.meshCar = (...a) => meshCar(...a);   // también para otras mallas sueltas (objetos del destruction derby)
   function meshCar(pal, o, colOf, brakeCats, one) {
     const { V, F, C, sc } = unpackMesh(o), mb = new BRR.MeshBuilder(pal), g = mb.group('COLOR'), brake = new BRR.MeshBuilder(pal), gb = brake.group('COLOR');
     const yo = o.yOff || 0, vx = i => [V[i * 3] / sc, V[i * 3 + 1] / sc + yo, V[i * 3 + 2] / sc];
@@ -386,18 +389,41 @@
     const { W, M: WM, G } = placeWheels(d, [wf[0], wf[1], wf[2], wf[3]], [wr[0], wr[1], wr[2], wr[3]], [0.72, 0.73, 0.76]);
     const COL = M.cols.map(c => c === 'paint' ? P : c === 'glass' ? (gl || [0.07, 0.09, 0.12]) : c === 'brake' ? [0.55, 0.04, 0.03] : c), bi = M.cols.indexOf('brake');
     const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => COL[k] || P, new Set(bi >= 0 ? [bi] : []), false);
-    const BB = NM === 'BAMBINO', gearF = BB ? d.gearF : d.gearF.map(r => [r[0] * 1.7, r[1] * 2.15, ...r.slice(2)]);   // Supremo y Horizonte: más potentes que el Cívico (punta ~210 km/h); el Bambino, con el motor del Mini
+    const BB = NM === 'BAMBINO', DF = NM === 'DEFENSOR', TF = NM === 'PANDA', B3 = NM === 'BAV30', Z3 = NM === 'ZETA35', gearF = BB || DF ? d.gearF : TF ? d.gearF.map(r => [r[0] * 1.45, r[1] * 1.9, ...r.slice(2)]) : B3 ? d.gearF.map(r => [r[0] * 1.42, r[1] * 1.85, ...r.slice(2)]) : Z3 ? d.gearF.map(r => [r[0] * 1.5, r[1] * 2.0, ...r.slice(2)]) : d.gearF.map(r => [r[0] * 1.7, r[1] * 2.15, ...r.slice(2)]);   // Tofu 86: el motor de siempre del Panda 86 (mucho par para derrapar)
+    if (TF || B3 || Z3) { const zb = mx[2] - 0.05, zf = mn[2] + 0.1;   // Tofu 86, B 30 y Lady350 (coches de drift): su motor de siempre, con mucho par
+      return { ...d, gearF, name: NM, vname: NM, mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: WM, box: { c: [0, G + (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2], h: [mx[0] - 0.06, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, interior: null, logoSlot: false,
+        brakeSpots: [[-0.52, 0.72 + G, zb], [0.52, 0.72 + G, zb]], headl: [[-0.5, 0.6 + G, zf], [0.5, 0.6 + G, zf]], nitro: [0.3, 0.3 + G, zb + 0.04], decoParts: [], headPos: null }; }   // Supremo y Horizonte: más potentes que el Cívico (punta ~210 km/h); el Bambino, con el motor del Mini; el Defensor, con el del jeep
+    if (DF) { const yb = 0.73 + G, zb = mx[2] - 0.02, zf = mn[2] + 0.1;   // Defensor: todoterreno con motor, marchas, peso y suspensión del jeep del juego
+      return { ...d, name: NM, vname: NM, mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: WM, box: { c: [0, G + (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2], h: [mx[0] - 0.04, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, interior: null, logoSlot: false,
+        brakeSpots: [[-0.58, yb, zb], [0.58, yb, zb]], headl: [[-0.48, 0.71 + G, zf], [0.48, 0.71 + G, zf]], nitro: [0.32, 0.38 + G, zb + 0.04], decoParts: [], headPos: null }; }
     const yb = (BB ? 0.55 : 0.85) + G, zb = mx[2] - 0.04, zf = mn[2] + 0.08;
     return { ...d, gearF, name: NM, vname: NM, mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: WM, box: { c: [0, G + (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2], h: [mx[0] - 0.04, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, interior: null, logoSlot: false,
       brakeSpots: [[BB ? -0.5 : -0.6, yb, zb], [BB ? 0.5 : 0.6, yb, zb]], headl: [[BB ? -0.48 : -0.6, (BB ? 0.56 : 0.62) + G, zf], [BB ? 0.48 : 0.6, (BB ? 0.56 : 0.62) + G, zf]], nitro: [0.35, 0.25 + G, zb + 0.04], decoParts: [], headPos: null };
   }
-  // ---------- nave espacial (Marte, Venus y la Luna): malla del modelo (nave_data.js) sobre el jet car del juego (misma física: flota y se maneja como él) ----------
-  function nave(d, P) {
-    if (!BRR.NAVE_MESH) return d;
-    const COL = [P, [0.05, 0.06, 0.08], [0.34, 0.35, 0.39], [0.14, 0.14, 0.15]];
-    const body = meshCar(d.mesh.pal, BRR.NAVE_MESH.body, k => COL[k] || P, null, true);
-    return { ...d, name: 'NAVE', vname: 'NAVE', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, box: { c: [0, 0.3, 0], h: [1.25, 0.5, 1.45] },
-      brakeSpots: [], nitro: [0, 0.45, 1.47], headPos: null };
+  // ---------- moto aérea (Marte, Venus y la Luna): malla del modelo (hoverbike_data.js) sobre el jet car (misma física: flota y se maneja como él), con el piloto a horcajadas ----------
+  function hoverbike(d, P) {
+    if (!BRR.HOVERBIKE_MESH) return d;
+    const COL = [P, [0.05, 0.05, 0.055], [0.16, 0.16, 0.18], [0.36, 0.36, 0.39], [0.15, 0.9, 0.95], [0.07, 0.1, 0.14], [0.85, 0.18, 0.08]];
+    const body = meshCar(d.mesh.pal, BRR.HOVERBIKE_MESH.body, k => COL[k] || P, null, true);
+    return { ...d, name: 'HOVERBIKE', vname: 'HOVERBIKE', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: d.wheels.map(() => null),
+      box: { c: [0, 0.35, 0], h: [0.5, 0.4, 1.12] }, brakeSpots: [], nitro: [0, 0.35, 1.15], headPos: window.BRR_HBHEAD || [0, 1.0, 0.18] };
+  }
+  // ---------- Avispa (escúter italiano clásico, ciudad): malla del modelo (avispa_data.js) sobre el Mini (mismo manejo y velocidad), sin ruedas del juego (las suyas van en la malla),
+  //            con el piloto sentado, inclinándose en las curvas (lean) y con un solo rastro, el de la rueda de atrás (oneTrack) ----------
+  function avispa(d, P) {
+    const M = BRR.AVISPA_MESH; if (!M) return d;
+    const G = Math.min(...d.wheels.map(w => w.c[1] - w.radius)), COL = [P, [0.75, 0.76, 0.78], [0.05, 0.05, 0.05], [0.4, 0.24, 0.14], [0.45, 0.45, 0.47], [0.95, 0.95, 0.88]];
+    const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => COL[k] || P, null, true), [mn, mx] = M.ext;
+    return { ...d, name: 'AVISPA', vname: 'AVISPA', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: d.wheels.map(() => null), lean: true, oneTrack: true, groundY: G,
+      box: { c: [0, G + mx[1] * 0.4, 0], h: [0.4, mx[1] * 0.4, mx[2]] }, brakeSpots: [[0, G + 0.62, mx[2] - 0.02]], nitro: [0.12, G + 0.3, mx[2]], headPos: window.BRR_AVHEAD || [0, G + 1.42, 0.22] };
+  }
+  // ---------- cortacésped aéreo (helicópteros): malla del modelo (mower_data.js) sobre el helicóptero ligero (misma física: vuela y se maneja como él, sin rotor), con el piloto sentado en el asiento ----------
+  function mower(d, P) {
+    const M = BRR.MOWER_MESH; if (!M) return d;
+    const body = meshCar(d.mesh.pal, M.body, k => { const c = M.cols[k]; return c === 'paint' ? P : c === 'glass' ? [0.08, 0.1, 0.13] : c || P; }, null, true);
+    const [mn, mx] = M.ext, s = M.seat, G = window.BRR_MWOFF || 0;
+    return { ...d, name: 'MOWER', vname: 'MOWER', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: (d.wheels || []).map(() => null),
+      box: { c: [0, (mn[1] + mx[1]) / 2 + G, (mn[2] + mx[2]) / 2], h: [mx[0] * 0.8, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, brakeSpots: [], nitro: [0, 0.4 + G, mx[2]], headPos: window.BRR_MWHEAD || [0, s[1] + 0.66 + G, s[2] - 0.1] };
   }
   // ---------- ciberpickup: malla del modelo (cyber_data.js) con ruedas del juego en sus pasos de rueda; motor, marchas, peso y suspensión del dumper ----------
   function cyber(d, P, gl) {

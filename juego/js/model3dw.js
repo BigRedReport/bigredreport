@@ -60,10 +60,8 @@
       else if (c === 11) o += 16;
       else break; // comandos 3/12 sin documentar
     }
-    // los sprites se pintan como dos cuadros cruzados (se ven desde cualquier lado)
-    for (const sp of sprites) { const c = verts[sp.v]; if (!c) continue; const b = verts.length, { w, h } = sp;
-      verts.push([c[0] - w, c[1] - h, c[2]], [c[0] + w, c[1] - h, c[2]], [c[0] + w, c[1] + h, c[2]], [c[0] - w, c[1] + h, c[2]], [c[0], c[1] - h, c[2] - w], [c[0], c[1] - h, c[2] + w], [c[0], c[1] + h, c[2] + w], [c[0], c[1] + h, c[2] - w]);
-      faces.push({ tex: sp.tex, uv: sp.uv, idx: [b, b + 1, b + 2, b + 3], two: true, sprite: true }, { tex: sp.tex, uv: sp.uv, idx: [b + 4, b + 5, b + 6, b + 7], two: true, sprite: true }); }
+    // los sprites miran siempre a la cámara (como en el original): una cara marcada, que el dibujo gira hacia quien mira
+    for (const sp of sprites) { if (!verts[sp.v]) continue; faces.push({ tex: sp.tex, uv: sp.uv, idx: [sp.v, sp.v, sp.v, sp.v], sprite: { w: sp.w, h: sp.h } }); }
     return { radius: I(0), boxes, verts, faces, texNames: [...texs.values()], animBits, sprites };
   };
 })();

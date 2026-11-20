@@ -305,7 +305,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   </section>
   <section id="pane_profile" class="pane" hidden>
     <div class="tlist">
-      <div class="series"><h3>Piloto</h3><div class="psub">Cabeza</div><div id="pf_heads" class="pgrid pcolors"></div><div class="psub">Cuerpo</div><div id="pf_chars" class="pgrid"></div><div class="psub">Piel</div><div id="pf_skins" class="pgrid"></div></div>
+      <div class="series"><h3>Piloto</h3><div class="psub">Cabeza</div><div id="pf_heads" class="pgrid pcolors"></div><div class="psub">Cuerpo</div><div id="pf_chars" class="pgrid"></div><div class="psub">Piel</div><div id="pf_skins" class="pgrid"></div><div class="psub">Gorro o casco</div><div id="pf_hats" class="pgrid pcolors"></div><div class="psub">Gafas</div><div id="pf_glasses" class="pgrid pcolors"></div></div>
       <div class="series"><h3>Nombre del equipo</h3><input id="pf_tname" class="inp" maxlength="24"></div>
       <div class="series"><h3>Escudería (logo y color)</h3><div class="psub">Logo</div><div id="pf_logos" class="pgrid"></div><div class="psub">Color</div><div id="pf_colors" class="pgrid pcolors"></div></div>
       <div class="series"><h3>Bocina <small>H en el teclado · L3/R3 en el mando</small></h3><div id="pf_horns" class="hgrid"></div>
@@ -448,7 +448,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 </div>
 </div>
 
-<div id="dbstats" hidden><div class="dbs_c"><h3 style="margin:0 0 8px">💥 Destruction Derby · <span id="dbs_t"></span></h3><table class="lbt" id="dbs_tab"></table><p class="small" style="margin:8px 0 0">Tab · cruceta abajo (mando) · 📊: mostrar u ocultar</p></div></div><button id="dbs_btn" hidden title="Estadísticas (Tab)">📊</button>
+<div id="dbstats" hidden><div class="dbs_c"><h3 style="margin:0 0 8px">💥 Destruction Derby · <span id="dbs_t"></span></h3><table class="lbt" id="dbs_tab"></table><p class="small" style="margin:8px 0 0">Tab · cruceta abajo (mando): mostrar u ocultar</p></div></div><button id="dbs_btn" hidden title="Estadísticas (Tab)">📊</button>
 <div id="splobby" hidden><div class="card" style="width:min(1180px,96vw)"><h2 style="margin:0 0 4px">Pantalla partida</h2><p class="small" id="spl_hint" style="margin:0 0 12px">Cada jugador elige su coche. Conecta otro mando y aparece otro recuadro. Con el mando: ↑↓ elige, ←→ cambia, A listo.</p><div id="spl_grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px"></div>
   <div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap"><button id="spl_back">◀ Volver</button><button id="spl_less">− Jugador</button><button id="spl_more">+ Jugador</button><span style="flex:1"></span><button id="spl_go" class="primary">🏁 ¡A correr!</button></div></div></div>
 <div id="optpanel" hidden><div class="card optcard"><h2 style="margin:0 0 6px">Opciones</h2>
@@ -527,6 +527,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   </div>
   <div class="opage" data-op="j" hidden>
     <div class="opt"><span>Idioma</span><select id="o_lang" data-notr></select><span></span></div>
+    <div class="opt"><span>Sin coches nuevos</span><input id="o_noNew" type="checkbox"><span class="small">carrera rápida y campeonato: solo los vehículos originales del juego, sin los añadidos</span></div>
     <div class="opt"><span>Rivales</span><select id="o_origai"><option value="0">IA nueva (con físicas, recomendado)</option><option value="1">Originales de 1995 (carreras grabadas: van por raíles)</option></select><span></span></div>
     <div class="opt"><span>Pelotón (goma elástica)</span><select id="o_aiPack"><option value="no">No: cada uno a su ritmo (carreras justas)</option><option value="si">Sí: los rivales te esperan o se acercan</option></select><span></span></div>
     <div class="opt"><span>Aspecto de los rivales</span><select id="o_rivLook"><option value="aleatorio">Colores RGB y bocinas al azar</option><option value="clasico">Colores de equipo (como el original)</option></select><span></span></div>
@@ -667,7 +668,16 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/jetski_data.js"></script>
 <script src="js/cyber_data.js"></script>
 <script src="js/kjcars_data.js"></script>
-<script src="js/nave_data.js"></script>
+<script src="js/defensor_data.js"></script>
+<script src="js/rotativo_data.js"></script>
+<script src="js/tofu_data.js"></script>
+<script src="js/b30_data.js"></script>
+<script src="js/lady350_data.js"></script>
+<script src="js/mower_data.js"></script>
+<script src="js/avispa_data.js"></script>
+<script src="js/picks_data.js"></script>
+<script src="js/hoverbike_data.js"></script>
+<script src="js/accessories_data.js"></script>
 <script src="js/bambino_data.js"></script>
 <script src="js/f1mesh_data.js"></script>
 <script src="js/gtmesh_data.js"></script>
