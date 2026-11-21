@@ -258,6 +258,20 @@
         for (let k = 0; k < d.length; k += 4) if (d[k + 3]) { const f = (0.3 * d[k] + 0.59 * d[k + 1] + 0.11 * d[k + 2]) / ref; d[k] = Math.min(255, paint[0] * f); d[k + 1] = Math.min(255, paint[1] * f); d[k + 2] = Math.min(255, paint[2] * f); } }
       put(l, 8, 8); g.putImageData(im, 0, 0); return cv.toDataURL();
     }
+    // logo propio o añadido (imagen) dentro del mismo recuadro del equipo que los logos originales (a 4× para que la imagen no pierda detalle)
+    async frameURL(src, team, paint) {
+      const S = await this.scene('LOGOSCN'); if (!S.rawData || !S.sprites.length) return null;
+      const pal = BRR.pal6(S.rawData.subarray(0, 768)), p = S.sprites[13 + (team - 1) * 5]; if (!p) return null;
+      const w = p.w, h = p.h, base = document.createElement('canvas'); base.width = w; base.height = h; const g0 = base.getContext('2d'), im = g0.createImageData(w, h), d = im.data;
+      for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) { const c = p.px[j * w + i]; if (!c) continue; const k = (j * w + i) * 4; d[k] = pal[c * 3]; d[k + 1] = pal[c * 3 + 1]; d[k + 2] = pal[c * 3 + 2]; d[k + 3] = 255; }
+      if (paint) { let ref = 0, n = 0; for (let k = 0; k < d.length; k += 4) if (d[k + 3]) { ref += 0.3 * d[k] + 0.59 * d[k + 1] + 0.11 * d[k + 2]; n++; } ref = ref / Math.max(1, n) || 128;
+        for (let k = 0; k < d.length; k += 4) if (d[k + 3]) { const f = (0.3 * d[k] + 0.59 * d[k + 1] + 0.11 * d[k + 2]) / ref; d[k] = Math.min(255, paint[0] * f); d[k + 1] = Math.min(255, paint[1] * f); d[k + 2] = Math.min(255, paint[2] * f); } }
+      g0.putImageData(im, 0, 0);
+      const K = 4, cv = document.createElement('canvas'); cv.width = w * K; cv.height = h * K; const g = cv.getContext('2d'); g.imageSmoothingEnabled = false; g.drawImage(base, 0, 0, w * K, h * K);
+      const img = new Image(); img.src = src; await img.decode(); const s = Math.min(40 / img.width, 40 / img.height) * K; g.imageSmoothingEnabled = true;
+      g.drawImage(img, 8 * K + (40 * K - img.width * s) / 2, 8 * K + (40 * K - img.height * s) / 2, img.width * s, img.height * s);
+      return cv.toDataURL();
+    }
     // logo i en RGBA 40×40 (transparente donde no hay dibujo), para pintarlo en los coches
     // logos de los equipos del juego (TEAMS.TEA › DECALS.TM: 24 dibujos de 40×40 en rejilla de 6) que no están entre los 13 del menú: se añaden detrás (logo 13 en adelante)
     async decals() {

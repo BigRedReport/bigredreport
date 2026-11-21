@@ -7,6 +7,18 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.2.1**
+- **Vehículos nuevos:** moto de nieve (SNOW1-3, como el quitanieves), quad (DIRT1-3, como el quad 6x6, con ruedas del juego) y Montés 4x4 (DIRT1-3, como el jeep).
+- **Logos:** todos los coches nuevos llevan el logo del equipo (costados, capó o delante); los logos añadidos y el propio, con el recuadro de los originales en el selector.
+- **Montañas de hielo:** cada una es una sola pieza, apoyada en el suelo con su túnel debajo.
+- **Señales del Ártico:** flechas en vez del panel de cuadros.
+- **Agua de China:** el efecto ya no sube por la arena.
+- **Luna:** cielo de estrellas con la Vía Láctea.
+- **Opciones:** sin neones, sin daños visuales nuevos (los daños ya no son opción); fuera las gafas de los complementos.
+- **Garaje:** neones del color del coche y encender/apagar en todos.
+- **Menú:** Esc hace de «Volver»; la barra de espectador no se queda al terminar el derby; en espectador, la cruceta del mando cambia de piloto.
+- **Moto de agua:** el piloto va recto.
+
 **Novedades de la 1.2**
 - **Cielos:** todos los circuitos con el cielo en degradado por franjas del original (Kenia, Irlanda, España, Alemania, Noruega, México, Inglaterra, Francia, Egipto, EE. UU., India, China, Japón, Escocia, Rusia, Italia, Hawái); con luz moderna, degradado suave.
 - **Arreglo:** tras una carrera en un mapa con banderas animadas, la siguiente se quedaba colgada al cargar.

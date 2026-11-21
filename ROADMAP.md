@@ -239,4 +239,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Objetos visibles otra vez; vehículos originales con más polígonos; arreglos de la Avispa, Hover Mower, Rotativo, Escarabajo y OVNI (1.1.10)
 - [x] Anuncios y señales originales, 16 logos, cielos y suelos, agua ajustada, banderas, lancha neumática, portadas del derby, vídeo en el menú (1.1.11)
 - [x] Cielos con degradado, arreglo de carga tras mapas con banderas, circuitos del editor sin baches, puente de Suzuka, controles de Oriokart, clasificaciones GP/F1, música del menú (1.2)
+- [x] Moto de nieve, quad y Montés 4x4, logos en los coches nuevos, montañas de hielo enteras, estrellas en la Luna, opciones de neones y daños, Esc en el menú (1.2.1)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

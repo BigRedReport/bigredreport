@@ -268,7 +268,7 @@
     for (let i = 0; i + 13 <= shl.length; i += 13) { let s = ''; for (let k = i; k < i + 13 && shl[k]; k++) s += String.fromCharCode(shl[k]); names.push(s.toUpperCase()); }
     const dat = find(mapn + '.DAT'), dv = new DataView(dat.buffer, dat.byteOffset, dat.byteLength);
     const findTM = n => find(n + '.TM');
-    const cseRaw = []; { const cs = find(mapn + '.CSE'); if (cs) { const v = new DataView(cs.buffer, cs.byteOffset, cs.byteLength); for (let j = 0; j + 16 <= cs.length; j += 16) cseRaw.push([v.getInt32(j, true), v.getInt32(j + 4, true)]); } }
+    const cseRaw = []; { const cs = find(mapn + '.CSE'); if (cs) { const v = new DataView(cs.buffer, cs.byteOffset, cs.byteLength); for (let j = 0; j + 16 <= cs.length; j += 16) cseRaw.push([v.getInt32(j, true), v.getInt32(j + 4, true), 0, v.getInt16(j + 12, true), v.getInt16(j + 14, true)]); } }
     const courseDist = (x, z) => { let m = 1e9; for (let j = 0; j < cseRaw.length; j++) { const a = cseRaw[j], b = cseRaw[(j + 1) % cseRaw.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * vx + (z - a[1]) * vz) / (vx * vx + vz * vz || 1))); m = Math.min(m, Math.hypot(a[0] + vx * t - x, a[1] + vz * t - z)); } return m * S; };   // metros hasta la línea del recorrido
     const farFromCourse = (x, z) => { for (let j = 0; j < cseRaw.length; j++) { const a = cseRaw[j], b = cseRaw[(j + 1) % cseRaw.length], vx = b[0] - a[0], vz = b[1] - a[1], t = Math.max(0, Math.min(1, ((x - a[0]) * vx + (z - a[1]) * vz) / (vx * vx + vz * vz || 1))); if (Math.hypot(a[0] + vx * t - x, a[1] + vz * t - z) < 40 / S) return false; } return cseRaw.length > 0; };
     const groundAt = (x, z) => { const fx = x / CELL, fz = z / CELL, ix = Math.max(0, Math.min(254, Math.floor(fx))), iz = Math.max(0, Math.min(254, Math.floor(fz))), u = fx - ix, v = fz - iz, h = (a, b) => hgt[b * 256 + a]; return (h(ix, iz) * (1 - u) + h(ix + 1, iz) * u) * (1 - v) + (h(ix, iz + 1) * (1 - u) + h(ix + 1, iz + 1) * u) * v; };
@@ -281,13 +281,13 @@
     const getModelO = n => (env === 'MOON' && n === 'NODE' && find('TOWER3.3DW') && getModel('TOWER3')) || getModel(n);
     const KEEP_UP = /UFO|SAUCER|LUNAPOD|^NODE$|^MSIGN|SATEL|CLOUD|SKY|BRIDG(?!END)|BRIJ|TUBE|ROOF|PLAT|PAGODA2|TORII|BIRD|BALLOON|BLIMP|AIRSHIP|ZEPP|PLANE|KITE|WIRE|CABLE|START|CHECKP|SUN$|STAR|RAINBOW|FX$/;
     const THIN = /FENCE|BILBORD|BILLB|BOARD|SIGN|BANNER|WALL|BARR|RAIL|HOARD/;
-    const drop = new Map(), drape = new Set(), objB = [], pillarsAt = [], lift = new Map();
+    const drop = new Map(), drape = new Set(), objB = [], pillarsAt = [], lift = new Map(), stackMoved = new Set();
     // en otros planetas (MOON1-3: Marte, Venus, Luna) las construcciones y señales flotan a propósito: no se bajan al suelo
     const offWorld = false;   // (antes en Marte, Venus y la Luna se dejaba todo flotando; ahora se asienta igual que en la Tierra: lo que vuela de verdad está muy alto o en KEEP_UP)
     if (!window.BRR_NOGROUND) {
       const B = objB;
       for (let i = 0; i + 22 <= dat.length; i += 22) {
-        const name = names[dat[i]], cls = dat[i + 20]; if (!name || cls === 50 || cls === 3 || cls === 7 || cls === 8 || /TUNN/.test(name)) continue;
+        const name = names[dat[i]], cls = dat[i + 20]; if (!name || cls === 50 || ((cls === 3 || cls === 7 || cls === 8) && !(env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(name))) || /TUNN/.test(name)) continue;   /* (los arcos de hielo sí: van con sus patas) */
         const m = getModelO(name); if (!m) continue; const Vs = m.verts.filter(Boolean); if (!Vs.length) continue;
         const ox = dv.getInt32(i + 1, true), oy = dv.getInt32(i + 5, true), oz = dv.getInt32(i + 9, true), k = 2 * Math.PI / 65536, Rm = BRR.rot(dv.getInt16(i + 13, true) * k, dv.getUint16(i + 15, true) * k, dv.getInt16(i + 17, true) * k);
         const G = Vs.map(v => BRR.toGL(ox + Rm[0][0] * v[0] + Rm[0][1] * v[1] + Rm[0][2] * v[2], oy + Rm[1][0] * v[0] + Rm[1][1] * v[1] + Rm[1][2] * v[2], oz + Rm[2][0] * v[0] + Rm[2][1] * v[1] + Rm[2][2] * v[2]));
@@ -313,8 +313,17 @@
         else if (!offWorld && !KEEP_UP.test(a.name) && a.minC > 0.12 && a.minC < 10) { d = a.minC + 0.06; if (THIN.test(a.name) || (Math.min(a.x1 - a.x0, a.z1 - a.z0) < 1.6 && Math.max(a.x1 - a.x0, a.z1 - a.z0) > 2.5 && a.hi - a.lo < 8)) drape.add(a.i); }
         if (env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(a.name)) drape.delete(a.i);   /* (tampoco se pegan al suelo punto a punto: se aplastaban)
  */
-        if (d && !(env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(a.name) && !a.sup)) drop.set(a.i, d);   /* montañas de hielo hechas de piezas (rocas + arco): se quedan juntas como en el original; bajar una sola rompía la montaña */
+        if (d && !(env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(a.name) && !a.sup)) drop.set(a.i, d);
       }
+      /* montañas de hielo hechas de piezas (dos patas curvas + el arco de arriba): es un puzle que en el original encaja tal cual; se mueve entero,
+         como una sola pieza (nunca una pieza suelta), y solo baja si todas sus patas flotan (hasta que la más baja toca el suelo) */
+      if (env === 'SNOW') { const ST = B.filter(o => /^(STACK|ICEBRIJ)/.test(o.name)), gi = ST.map((_, k) => k), fd = k => gi[k] === k ? k : (gi[k] = fd(gi[k]));
+        const near = (a, b) => a.x0 < b.x1 + 1 && b.x0 < a.x1 + 1 && a.z0 < b.z1 + 1 && b.z0 < a.z1 + 1 && a.lo < b.hi + 1 && b.lo < a.hi + 1;
+        for (let a = 0; a < ST.length; a++) for (let b = a + 1; b < ST.length; b++) if (near(ST[a], ST[b])) gi[fd(a)] = fd(b);
+        const G = new Map(); ST.forEach((o, k) => { const r = fd(k); if (!G.has(r)) G.set(r, []); G.get(r).push(o); });
+        for (const L of G.values()) { const lo = Math.min(...L.map(o => o.lo)), cx = (Math.min(...L.map(o => o.x0)) + Math.max(...L.map(o => o.x1))) / 2, cz = (Math.min(...L.map(o => o.z0)) + Math.max(...L.map(o => o.z1))) / 2;
+          const d = L.length > 1 ? lo - groundAt(cx / S, -cz / S) : Math.max(0, Math.min(...L.map(o => o.minC)));   /* la base del arco a la altura del suelo bajo su hueco (por donde se pasa, como un túnel); puede meterse en la ladera de al lado */
+          for (const o of L) { if (Math.abs(d) > 0.05) drop.set(o.i, d); else drop.delete(o.i); drape.delete(o.i); stackMoved.add(o.i); } } }
     }
     const tunnelGrey = () => { if (tGrey < 0) { let best = 1e9; for (let c = 1; c < 256; c++) { const d = (pal[c * 3] - 38) ** 2 + (pal[c * 3 + 1] - 37) ** 2 + (pal[c * 3 + 2] - 36) ** 2;   /* suelo del túnel: asfalto oscuro */ if (d < best) { best = d; tGrey = c; } } } return tGrey; };
     for (let i = 0; i + 22 <= dat.length; i += 22) {
@@ -331,7 +340,7 @@
       const m = getModelO(name); if (!m) continue;
       const ox = dv.getInt32(i + 1, true), oz = dv.getInt32(i + 9, true); let oy = dv.getInt32(i + 5, true);
       // decorado lejano que flota sobre el terreno (icebergs del ártico...): se apoya en el suelo
-      if (env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(name) && farFromCourse(ox, oz)) { const lift = -oy * S - groundAt(ox, oz); if (lift > 3) oy += lift / S; }   // icebergs del ártico
+      if (env === 'SNOW' && /^(STACK|ICEBRIJ)/.test(name) && !stackMoved.has(i) && farFromCourse(ox, oz)) { const lift = -oy * S - groundAt(ox, oz); if (lift > 3) oy += lift / S; }   // icebergs del ártico
       const k = 2 * Math.PI / 65536, R = BRR.rot(dv.getInt16(i + 13, true) * k, dv.getUint16(i + 15, true) * k, dv.getInt16(i + 17, true) * k);
       const dGL = drop.get(i) || 0, dr = drape.has(i); if (dGL && !dr && !(dGL > 0 && /^ST_POST|^CHECKP/.test(name))) oy += dGL / S;   /* los postes de las pancartas no bajan enteros (se quedaban cortos y no llegaban al cartel): solo se alargan los pies hasta el suelo */
       if (lift.has(i)) oy -= lift.get(i) / S;   // pasarela subida (circuitos de agua)
@@ -476,6 +485,12 @@
       const nx = raw[(k + 1) % raw.length], hx = nx[0] - r[0], hz = nx[1] - r[1], l = Math.hypot(hx, hz) || 1, Lx = -hz / l, Lz = hx / l, off = (r[3] + r[4]) / 2;
       course.push([(r[0] + Lx * off) * S, 0, -(r[1] + Lz * off) * S]); courseW.push(Math.max(400, Math.abs(r[3] - r[4])) * S); courseV.push(r[2]);
     });
+    /* señales con las variantes 1 y 3 (en el original son flechas; con su número salía el panel de cuadros y rayas): flecha hacia donde gira la pista */
+    if (course.length > 6) for (const q of props) { if (!/^ROADSIGN/.test(q.name) || (q.mv !== (64 | 1) && q.mv !== (64 | 3))) continue;
+      let bi = 0, bd = 1e18; course.forEach((c, k) => { const d = (c[0] - q.o[0]) ** 2 + (c[2] - q.o[2]) ** 2; if (d < bd) { bd = d; bi = k; } });
+      const n = course.length, P = k => course[(k + n) % n], t = (a, b) => { const x = P(b)[0] - P(a)[0], z = P(b)[2] - P(a)[2], l = Math.hypot(x, z) || 1; return [x / l, z / l]; };
+      const t1 = t(bi - 1, bi + 1), t2 = t(bi + 2, bi + 4), cr = t1[0] * t2[1] - t1[1] * t2[0];
+      q.mv = 64 | (cr > 0 ? 14 : 13); }   /* (flecha curva, como en el original) */
     // parrilla de salida: x, z, ángulo, 2 vectores, y luego tríos (lateral, atrás, ?) por plaza
     const gridSlots = [];
     { const L = script.split(/\r?\n/), gi = L.findIndex(l => /^grid\b/.test(l)); let txt = '';
@@ -545,7 +560,7 @@
       if (main.length) { const wp = new Float32Array(256), bp = new Float32Array(256); let bn = 0; const ms = new Set(main);
         for (const t of main) for (let c = 0; c < 256; c++) wp[c] += tileSurf[t].hist[c] / main.length;
         for (const [t] of [...freq].filter(([t]) => !ms.has(t) && t < tileSurf.length && tileSurf[t].wet < 150).sort((a, b) => b[1] - a[1]).slice(0, 3)) { for (let c = 0; c < 256; c++) bp[c] += tileSurf[t].hist[c]; bn++; }
-        for (let c = 0; c < 256; c++) if (wp[c] >= 2 && wp[c] > (bn ? bp[c] / bn : 0) * 1.5) WATERC.add(c); }
+        for (let c = 0; c < 256; c++) if (wp[c] >= 2 && wp[c] > (bn ? bp[c] / bn : 0) * 1.5 && !(pal[c * 3] > pal[c * 3 + 2] + 20 && pal[c * 3] >= pal[c * 3 + 1])) WATERC.add(c); }   /* (los tonos cálidos —arena, tierra— nunca son agua: China ondulaba la arena) */
     }
     for (const q of tileSurf) { let n = 0; for (const c of WATERC) n += q.hist[c]; q.wfx = n >= 16; }
     // en las baldosas con agua, también los tonos azules de la orilla (agua poco profunda, espuma azulada) ondulan

@@ -306,7 +306,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   </section>
   <section id="pane_profile" class="pane" hidden>
     <div class="tlist">
-      <div class="series"><h3>Piloto</h3><div class="psub">Cabeza</div><div id="pf_heads" class="pgrid pcolors"></div><div class="psub">Cuerpo</div><div id="pf_chars" class="pgrid"></div><div class="psub">Piel</div><div id="pf_skins" class="pgrid"></div><div class="psub">Gorro o casco</div><div id="pf_hats" class="pgrid pcolors"></div><div class="psub">Gafas</div><div id="pf_glasses" class="pgrid pcolors"></div></div>
+      <div class="series"><h3>Piloto</h3><div class="psub">Cabeza</div><div id="pf_heads" class="pgrid pcolors"></div><div class="psub">Cuerpo</div><div id="pf_chars" class="pgrid"></div><div class="psub">Piel</div><div id="pf_skins" class="pgrid"></div><div class="psub">Gorro o casco</div><div id="pf_hats" class="pgrid pcolors"></div></div>
       <div class="series"><h3>Nombre del equipo</h3><input id="pf_tname" class="inp" maxlength="24"></div>
       <div class="series"><h3>Escudería (logo y color)</h3><div class="psub">Logo</div><div id="pf_logos" class="pgrid"></div><div class="psub">Color</div><div id="pf_colors" class="pgrid pcolors"></div></div>
       <div class="series"><h3>Bocina <small>H en el teclado · L3/R3 en el mando</small></h3><div id="pf_horns" class="hgrid"></div>
@@ -533,7 +533,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <div class="opt"><span>Rivales</span><select id="o_origai"><option value="0">IA nueva (con físicas, recomendado)</option><option value="1">Originales de 1995 (carreras grabadas: van por raíles)</option></select><span></span></div>
     <div class="opt"><span>Pelotón (goma elástica)</span><select id="o_aiPack"><option value="no">No: cada uno a su ritmo (carreras justas)</option><option value="si">Sí: los rivales te esperan o se acercan</option></select><span></span></div>
     <div class="opt"><span>Aspecto de los rivales</span><select id="o_rivLook"><option value="aleatorio">Colores RGB y bocinas al azar</option><option value="clasico">Colores de equipo (como el original)</option></select><span></span></div>
-    <div class="opt"><span>Daños (como el original)</span><select id="o_damage"><option value="1">Sí</option><option value="0">No</option></select><span></span></div>
+    <div class="opt"><span>Sin daños visuales nuevos</span><input id="o_noDents" type="checkbox"></div>
+    <div class="opt"><span>Sin neones</span><input id="o_noNeon" type="checkbox"></div>
     <div class="opt"><span>Ayudas de conducción</span><select id="o_assist"><option value="0">No</option><option value="1">Suaves</option><option value="2">Fuertes</option></select><span></span></div>
     <div class="opt"><span>Colores para daltonismo</span><select id="o_cb"><option value="no">No</option><option value="deu">Deuteranopía / protanopía (rojo-verde)</option><option value="tri">Tritanopía (azul-amarillo)</option></select><span></span></div>
     <div class="opt"><span>Tamaño de los menús</span><select id="o_uiz"><option value="100">Normal</option><option value="115">Grande</option><option value="130">Muy grande</option></select><span></span></div>
@@ -598,7 +599,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
     <select id="gr_rimsize"><option value="15">15"</option><option value="16">16"</option><option value="17">17"</option><option value="18">18"</option><option value="19">19"</option></select>
     <select id="gr_rimcol"><option value="plata">Plata</option><option value="negro">Negro</option><option value="gris">Grafito</option><option value="oro">Oro</option><option value="bronce">Bronce</option><option value="blanco">Blanco</option><option value="carro">Color del coche</option></select></div></div>
   <div class="grrow"><div><b>Color del turbo</b></div><div><input type="color" id="gr_turbo"> <button id="gr_turbo0">Como el coche</button></div></div>
-  <div class="grrow"><div><b>Neones</b> <span class="small">luz de color bajo el coche</span></div><div><select id="gr_neon"><option value="no">Sin neones</option><option value="si">Con neones</option></select> <input type="color" id="gr_neoncol"> <input type="range" id="gr_neonint" min="15" max="140" step="5" title="Intensidad" style="width:110px;vertical-align:middle"></div></div>
+  <div class="grrow"><div><b>Neones</b> <span class="small">luz de color bajo el coche</span></div><div><select id="gr_neon"><option value="no">Sin neones</option><option value="si">Con neones</option></select> <input type="color" id="gr_neoncol"> <button id="gr_neon0">Como el coche</button> <input type="range" id="gr_neonint" min="15" max="140" step="5" title="Intensidad" style="width:110px;vertical-align:middle"></div></div>
+  <div class="grrow"><div><b>Neones en todos</b> <span class="small">encender o apagar los neones de todos tus vehículos a la vez</span></div><div><button id="gr_neonall1">Encender en todos</button> <button id="gr_neonall0">Apagar en todos</button></div></div>
   <div class="grrow"><div><b>Luces</b> <span class="small">color de los faros (de noche, niebla y lluvia)</span></div><select id="gr_lights"><option value="normal">Originales</option><option value="blanca">Blancas (xenón)</option><option value="intermedia">Blanco cálido</option><option value="amarilla">Amarillas</option></select></div>
   <div class="grrow"><div><b>Altura</b> <span class="small">rebajar el coche (solo estética)</span></div><div><select id="gr_low"><option value="0">De serie</option><option value="3">Baja</option><option value="6">Muy baja</option><option value="9">Al suelo</option></select></div></div>
   <div class="grrow"><div><b>Caída de ruedas</b> <span class="small">ruedas abiertas por abajo</span></div><div><select id="gr_camber"><option value="0">Sin caída</option><option value="3">3°</option><option value="6">6°</option><option value="10">10°</option></select></div></div>
@@ -676,6 +678,9 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
 <script src="js/b30_data.js"></script>
 <script src="js/lady350_data.js"></script>
 <script src="js/mower_data.js"></script>
+<script src="js/snowbike_data.js"></script>
+<script src="js/quad_data.js"></script>
+<script src="js/montes_data.js"></script>
 <script src="js/avispa_data.js"></script>
 <script src="js/picks_data.js"></script>
 <script src="js/hoverbike_data.js"></script>

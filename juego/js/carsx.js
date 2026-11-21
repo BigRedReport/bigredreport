@@ -6,10 +6,72 @@
 "use strict";
 (function () {
   const BRR = window.BRR;
-  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Tofu 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'B 30' }, ZETA35: { base: 'MINI', name: 'Lady350' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' }, HOVERBIKE: { base: 'JETCAR', name: 'Moto aérea' }, DEFENSOR: { base: 'JEEP', name: 'Defensor' }, ROTATIVO: { base: 'MINI', name: 'Rotativo' }, MOWER: { base: 'COPTER', name: 'Hover Mower' }, AVISPA: { base: 'MINI', name: 'Avispa' }, BAMBINO: { base: 'MINI', name: 'Bambino' } };
+  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Tofu 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'B 30' }, ZETA35: { base: 'MINI', name: 'Lady350' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' }, HOVERBIKE: { base: 'JETCAR', name: 'Moto aérea' }, DEFENSOR: { base: 'JEEP', name: 'Defensor' }, ROTATIVO: { base: 'MINI', name: 'Rotativo' }, MOWER: { base: 'COPTER', name: 'Hover Mower' }, SNOWBIKE: { base: 'PLOUGH', name: 'Moto de nieve' }, QUAD: { base: 'ATV', name: 'Quad' }, MONTES: { base: 'JEEP', name: 'Montés 4x4' }, AVISPA: { base: 'MINI', name: 'Avispa' }, BAMBINO: { base: 'MINI', name: 'Bambino' } };
   const orig = BRR.loadVehicle;
   BRR.loadVehicle = async function (files, name, lvl, team = 1, extra = {}) {
     const C = BRR.CUSTOM_CARS[String(name).toUpperCase()]; if (!C) return orig(files, name, lvl, team, extra);
+    const r = await custom(files, name, lvl, team, extra, C);
+    if (r && !extra.logo && !extra.logoHi) {   /* siempre el logo del equipo tal como lo lleva el Mini (algunos vehículos base tienen el hueco con otra cosa) */ const k = team; if (!logoCache.has(k)) logoCache.set(k, (async () => { for (const b of ['MINI', 'JEEP', 'BEETLE']) { try { if (!files.has(b + '.VHC')) continue; const q = await orig(files, b, lvl, team, {}); if (q && q.teamLogo) return q.teamLogo; } catch (e) { } } return null; })());
+      r.teamLogo = (await logoCache.get(k)) || r.teamLogo; }   // vehículo base sin dibujo en el hueco del logo: el logo del equipo de otro coche del juego
+    try { addLogo(r, extra); } catch (e) { console.warn(e); } return r; };
+  const logoCache = new Map();
+  /* logo del equipo en los coches nuevos (no tienen hueco de logo en sus texturas): una calcomanía a cada lado, sobre la carrocería (puerta, costado o carenado),
+     buscada lanzando rayos contra la malla; del tamaño que quepa */
+  function addLogo(d, extra) {
+    if (!d || !d.mesh || !d.mesh.groups) return; const g0 = d.mesh.groups.get('COLOR'); if (!g0 || !g0.pos.length) return;
+    let img = extra.logoHi || null;
+    if (!img) { const L = extra.logo || d.teamLogo; if (!L) return; const bg = extra.logo ? (extra.paint || [200, 200, 200]) : null, data = new Uint8Array(40 * 40 * 4);
+      for (let i = 0; i < 1600; i++) { const a = bg ? L[i * 4 + 3] / 255 : 1; for (let c = 0; c < 3; c++) data[i * 4 + c] = Math.round(L[i * 4 + c] * a + (bg ? bg[c] : 0) * (1 - a)); data[i * 4 + 3] = 255; }
+      img = { w: 40, h: 40, data }; }
+    const P = g0.pos, nT = P.length / 9; let mn = [1e9, 1e9, 1e9], mx = [-1e9, -1e9, -1e9];
+    for (let i = 0; i < P.length; i += 3) for (let a = 0; a < 3; a++) { mn[a] = Math.min(mn[a], P[i + a]); mx[a] = Math.max(mx[a], P[i + a]); }
+    const H = mx[1] - mn[1], Lz = mx[2] - mn[2];
+    // rayo horizontal desde fuera hacia dentro: primera cara que corta (Möller–Trumbore)
+    const cast = (o, dir) => { let best = null;
+      for (let t = 0; t < nT; t++) { const k = t * 9, ax = P[k], ay = P[k + 1], az = P[k + 2], e1 = [P[k + 3] - ax, P[k + 4] - ay, P[k + 5] - az], e2 = [P[k + 6] - ax, P[k + 7] - ay, P[k + 8] - az];
+        const p = [dir[1] * e2[2] - dir[2] * e2[1], dir[2] * e2[0] - dir[0] * e2[2], dir[0] * e2[1] - dir[1] * e2[0]], det = e1[0] * p[0] + e1[1] * p[1] + e1[2] * p[2]; if (Math.abs(det) < 1e-9) continue;
+        const inv = 1 / det, s = [o[0] - ax, o[1] - ay, o[2] - az], u = (s[0] * p[0] + s[1] * p[1] + s[2] * p[2]) * inv; if (u < 0 || u > 1) continue;
+        const q = [s[1] * e1[2] - s[2] * e1[1], s[2] * e1[0] - s[0] * e1[2], s[0] * e1[1] - s[1] * e1[0]], v = (dir[0] * q[0] + dir[1] * q[1] + dir[2] * q[2]) * inv; if (v < 0 || u + v > 1) continue;
+        const tt = (e2[0] * q[0] + e2[1] * q[1] + e2[2] * q[2]) * inv; if (tt <= 0 || (best && tt >= best.t)) continue;
+        const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]], l = Math.hypot(...n) || 1; best = { t: tt, n: n.map(x => x / l), tri: t }; }
+      return best; };
+    // color de la carrocería: el que más superficie ocupa en los costados
+    const C = g0.col, colKey = t => C ? Math.round(C[t * 9] * 20) + ',' + Math.round(C[t * 9 + 1] * 20) + ',' + Math.round(C[t * 9 + 2] * 20) : '', areaBy = new Map();
+    for (let t = 0; t < nT; t++) { const k = t * 9, e1 = [P[k + 3] - P[k], P[k + 4] - P[k + 1], P[k + 5] - P[k + 2]], e2 = [P[k + 6] - P[k], P[k + 7] - P[k + 1], P[k + 8] - P[k + 2]];
+      const n = [e1[1] * e2[2] - e1[2] * e2[1], e1[2] * e2[0] - e1[0] * e2[2], e1[0] * e2[1] - e1[1] * e2[0]], l = Math.hypot(...n); if (l < 1e-12 || Math.abs(n[0]) / l < 0.6 || (C && C[t * 9] * 0.3 + C[t * 9 + 1] * 0.59 + C[t * 9 + 2] * 0.11 < 0.2)) continue; const ck = colKey(t);   /* (ni gomas ni bajos negros) */ areaBy.set(ck, (areaBy.get(ck) || 0) + l); }
+    const dark = t => C && C[t * 9] * 0.3 + C[t * 9 + 1] * 0.59 + C[t * 9 + 2] * 0.11 < 0.2;
+    const bodyCol = [...areaBy].sort((x, y) => y[1] - x[1])[0]; const bodyK = d.logoCol ? d.logoCol.map(v => Math.round(v * 20)).join(',') : bodyCol ? bodyCol[0] : null;   /* logoCol: el color donde va (la moto de nieve, en el capó rojo) */
+    const g = d.mesh.group('tex:LOGOHI'), cz = (mn[2] + mx[2]) / 2;
+    const sides = [];
+    for (const sx of d.logoFront ? [] : [1, -1]) {
+      // la zona más plana y vertical del costado: se prueban alturas y posiciones a lo largo
+      let pick = null;
+      for (const fy of [0.45, 0.55, 0.38, 0.65, 0.3, 0.72, 0.8]) for (const fz of d.logoFwd ? [-0.24, -0.34, -0.16, -0.08] : [0, -0.12, 0.12, -0.24, 0.24, -0.34, 0.34]) {   /* logoFwd: en la parte de delante (motos de agua y voladoras) */
+        const o = [sx * (mx[0] + 1), mn[1] + H * fy, cz + Lz * fz], h = cast(o, [-sx, 0, 0]); if (!h) continue;
+        let n = h.n; if (n[0] * sx < 0) n = n.map(x => -x); if (n[0] * sx < (d.logoCol && colKey(h.tri) === bodyK ? 0.25 : 0.45)) continue;
+        const hit = [o[0] - sx * h.t, o[1], o[2]]; if (Math.abs(hit[0]) < mx[0] * 0.55 || dark(h.tri)) continue;   // por dentro (bastidor, motor) o en negro (gomas, bajos): no
+        const score = n[0] * sx - Math.abs(fz) * 0.3 + (colKey(h.tri) === bodyK ? (d.logoCol ? 5 : 2) : 0); if (!pick || score > pick.score) pick = { hit, n, score }; }
+      if (!pick) { if (sx > 0) sides.push(null); continue; } sides.push(pick); }
+    // sin costado liso (motos, quads): uno delante, en el carenado o el guardabarros
+    if (!sides.some(Boolean)) { let pick = null;
+      for (const fy of d.logoTop ? [] : [0.55, 0.45, 0.65, 0.35, 0.75]) for (const fx of [0, 0.15, -0.15]) { const o = [mx[0] * fx, mn[1] + H * fy, mn[2] - 1], h = cast(o, [0, 0, 1]); if (!h) continue;
+        let n = h.n; if (n[2] > 0) n = n.map(x => -x); if (-n[2] < 0.5) continue; const hit = [o[0], o[1], o[2] + h.t]; if (dark(h.tri)) continue;
+        const score = -n[2] - Math.abs(fx) + (colKey(h.tri) === bodyK ? (d.logoCol ? 5 : 1) : 0); if (!pick || score > pick.score) pick = { hit, n, score }; }
+      // ni de lado ni de frente: encima de lo de delante (el guardabarros o el capó), mirando hacia arriba
+      if (!pick) for (const fz of [-0.36, -0.3, -0.42, -0.24]) for (const fx of [0, 0.12, -0.12]) { const o = [mx[0] * fx, mx[1] + 1, cz + Lz * fz], h = cast(o, [0, -1, 0]); if (!h) continue;
+        let n = h.n; if (n[1] < 0) n = n.map(x => -x); if (n[1] < 0.6 || dark(h.tri)) continue; const hit = [o[0], o[1] - h.t, o[2]];
+        const score = n[1] - Math.abs(fx) + (colKey(h.tri) === bodyK ? 5 : 0); if (!pick || score > pick.score) pick = { hit, n, score }; }
+      if (pick) sides.push(pick); }
+    for (const pick of sides) { if (!pick) continue;
+      const size = Math.max(0.16, Math.min(0.5, H * 0.32, Lz * 0.16)), n = pick.n, up0 = Math.abs(n[1]) > 0.6 ? [0, 0, -1] : [0, 1, 0], dn = up0[0] * n[0] + up0[1] * n[1] + up0[2] * n[2];   /* encima: el dibujo mira hacia delante */
+      let up = [up0[0] - n[0] * dn, up0[1] - n[1] * dn, up0[2] - n[2] * dn]; const ul = Math.hypot(...up) || 1; up = up.map(x => x / ul);
+      const rt = [up[1] * n[2] - up[2] * n[1], up[2] * n[0] - up[0] * n[2], up[0] * n[1] - up[1] * n[0]];   // derecha vista desde fuera
+      const c = pick.hit.map((x, a) => x + n[a] * 0.012), h2 = size / 2;
+      const V4 = [[-1, 1], [1, 1], [1, -1], [-1, -1]].map(([a, b]) => c.map((x, k) => x + rt[k] * a * h2 + up[k] * b * h2)), UV = [[0, 0], [1, 0], [1, 1], [0, 1]];
+      for (const order of [[0, 1, 2, 0, 2, 3], [0, 2, 1, 0, 3, 2]]) for (const j of order) { g.pos.push(...V4[j]); g.uv.push(...UV[j]); g.lay.push(4); } }
+    d.mesh.textures.set('LOGOHI', { w: img.w, h: img.h, data: img.data, smooth: true });
+  }
+  async function custom(files, name, lvl, team, extra, C) {
     const d = await orig(files, C.base, lvl, team, { ...extra, paint: null, logo: null, logoHi: null });
     const paint = (extra.paint || [238, 238, 234]).map(v => v / 255);
     const gl = extra.glass ? extra.glass.map(v => v / 255 * 0.8) : null;   // cristales del garaje
@@ -21,9 +83,11 @@
     if (NM === 'MINIMO') return minimo(d, (extra.paint || [190, 20, 25]).map(v => v / 255), gl);
     if (NM === 'BAV30' && !(BRR.KJ_MESH && BRR.KJ_MESH.BAV30)) return coupe(d, (extra.paint || (NM === 'BAV30' ? [235, 235, 230] : NM === 'ZETA35' ? [160, 18, 30] : [235, 150, 30])).map(v => v / 255), NM, gl);
     if (NM === 'KART') return kart(d, (extra.paint || [230, 40, 30]).map(v => v / 255));
-    if (BRR.KJ_MESH && BRR.KJ_MESH[NM]) return kjcar(d, (extra.paint || (NM === 'SUPREMO' ? [225, 120, 20] : NM === 'BAMBINO' ? [140, 190, 225] : NM === 'DEFENSOR' ? [38, 72, 44] : NM === 'ROTATIVO' ? [236, 236, 232] : NM === 'PANDA' ? [238, 238, 234] : NM === 'BAV30' ? [235, 235, 230] : NM === 'ZETA35' ? [160, 18, 30] : [40, 70, 160])).map(v => v / 255), gl, NM);
+    if (BRR.KJ_MESH && BRR.KJ_MESH[NM]) return kjcar(d, (extra.paint || (NM === 'SUPREMO' ? [225, 120, 20] : NM === 'BAMBINO' ? [140, 190, 225] : NM === 'DEFENSOR' ? [38, 72, 44] : NM === 'MONTES' ? [196, 194, 184] : NM === 'ROTATIVO' ? [236, 236, 232] : NM === 'PANDA' ? [238, 238, 234] : NM === 'BAV30' ? [235, 235, 230] : NM === 'ZETA35' ? [160, 18, 30] : [40, 70, 160])).map(v => v / 255), gl, NM);
     if (NM === 'AVISPA') return avispa(d, (extra.paint || [220, 140, 152]).map(v => v / 255));
     if (NM === 'MOWER') return mower(d, (extra.paint || [24, 110, 20]).map(v => v / 255));
+    if (NM === 'QUAD') return quad(d, (extra.paint || [240, 196, 24]).map(v => v / 255));
+    if (NM === 'SNOWBIKE') return snowbike(d, (extra.paint || [200, 22, 22]).map(v => v / 255));
     if (NM === 'HOVERBIKE') return hoverbike(d, (extra.paint || [222, 196, 28]).map(v => v / 255));
     if (NM === 'CYBER') return cyber(d, (extra.paint || [186, 188, 192]).map(v => v / 255), gl);
     if (NM === 'JETSKI') return jetski(d, (extra.paint || [215, 25, 25]).map(v => v / 255));
@@ -389,7 +453,7 @@
     const { W, M: WM, G } = placeWheels(d, [wf[0], wf[1], wf[2], wf[3]], [wr[0], wr[1], wr[2], wr[3]], [0.72, 0.73, 0.76]);
     const COL = M.cols.map(c => c === 'paint' ? P : c === 'glass' ? (gl || [0.07, 0.09, 0.12]) : c === 'brake' ? [0.55, 0.04, 0.03] : c), bi = M.cols.indexOf('brake');
     const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => COL[k] || P, new Set(bi >= 0 ? [bi] : []), false);
-    const BB = NM === 'BAMBINO', DF = NM === 'DEFENSOR', TF = NM === 'PANDA', B3 = NM === 'BAV30', Z3 = NM === 'ZETA35', gearF = BB || DF ? d.gearF : TF ? d.gearF.map(r => [r[0] * 1.45, r[1] * 1.9, ...r.slice(2)]) : B3 ? d.gearF.map(r => [r[0] * 1.42, r[1] * 1.85, ...r.slice(2)]) : Z3 ? d.gearF.map(r => [r[0] * 1.5, r[1] * 2.0, ...r.slice(2)]) : d.gearF.map(r => [r[0] * 1.7, r[1] * 2.15, ...r.slice(2)]);   // Tofu 86: el motor de siempre del Panda 86 (mucho par para derrapar)
+    const BB = NM === 'BAMBINO', DF = NM === 'DEFENSOR' || NM === 'MONTES', TF = NM === 'PANDA', B3 = NM === 'BAV30', Z3 = NM === 'ZETA35', gearF = BB || DF ? d.gearF : TF ? d.gearF.map(r => [r[0] * 1.45, r[1] * 1.9, ...r.slice(2)]) : B3 ? d.gearF.map(r => [r[0] * 1.42, r[1] * 1.85, ...r.slice(2)]) : Z3 ? d.gearF.map(r => [r[0] * 1.5, r[1] * 2.0, ...r.slice(2)]) : d.gearF.map(r => [r[0] * 1.7, r[1] * 2.15, ...r.slice(2)]);   // Tofu 86: el motor de siempre del Panda 86 (mucho par para derrapar)
     if (TF || B3 || Z3) { const zb = mx[2] - 0.05, zf = mn[2] + 0.1;   // Tofu 86, B 30 y Lady350 (coches de drift): su motor de siempre, con mucho par
       return { ...d, gearF, name: NM, vname: NM, mesh: body.mb, brake: body.brake, wheels: W, wheelMeshes: WM, box: { c: [0, G + (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2], h: [mx[0] - 0.06, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, interior: null, logoSlot: false,
         brakeSpots: [[-0.52, 0.72 + G, zb], [0.52, 0.72 + G, zb]], headl: [[-0.5, 0.6 + G, zf], [0.5, 0.6 + G, zf]], nitro: [0.3, 0.3 + G, zb + 0.04], decoParts: [], headPos: null }; }   // Supremo y Horizonte: más potentes que el Cívico (punta ~210 km/h); el Bambino, con el motor del Mini; el Defensor, con el del jeep
@@ -405,7 +469,7 @@
     if (!BRR.HOVERBIKE_MESH) return d;
     const COL = [P, [0.05, 0.05, 0.055], [0.16, 0.16, 0.18], [0.36, 0.36, 0.39], [0.15, 0.9, 0.95], [0.07, 0.1, 0.14], [0.85, 0.18, 0.08]];
     const body = meshCar(d.mesh.pal, BRR.HOVERBIKE_MESH.body, k => COL[k] || P, null, true);
-    return { ...d, name: 'HOVERBIKE', vname: 'HOVERBIKE', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: d.wheels.map(() => null),
+    return { ...d, name: 'HOVERBIKE', vname: 'HOVERBIKE', logoFwd: true, logoCol: P, mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: d.wheels.map(() => null),
       box: { c: [0, 0.35, 0], h: [0.5, 0.4, 1.12] }, brakeSpots: [], nitro: [0, 0.35, 1.15], headPos: window.BRR_HBHEAD || [0, 1.0, 0.18] };
   }
   // ---------- Avispa (escúter italiano clásico, ciudad): malla del modelo (avispa_data.js) sobre el Mini (mismo manejo y velocidad), sin ruedas del juego (las suyas van en la malla),
@@ -425,6 +489,23 @@
     return { ...d, name: 'MOWER', vname: 'MOWER', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: (d.wheels || []).map(() => null),
       box: { c: [0, (mn[1] + mx[1]) / 2 + G, (mn[2] + mx[2]) / 2], h: [mx[0] * 0.8, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, brakeSpots: [], nitro: [0, 0.4 + G, mx[2]], headPos: window.BRR_MWHEAD || [0, s[1] + 0.66 + G, s[2] - 0.1] };
   }
+  // ---------- quad (circuitos de tierra): malla del modelo (quad_data.js, con sus ruedas) sobre el quad 6x6 del juego (misma física), pequeño, con el piloto montado ----------
+  function quad(d, P) {
+    const M = BRR.QUAD_MESH; if (!M) return d;
+    const zs = d.wheels.map(w => w.c[2]), zf = Math.min(...zs), zr = Math.max(...zs), d4 = { ...d, wheels: d.wheels.filter(w => w.c[2] === zf || w.c[2] === zr) };   // del 6x6, las de delante y las de atrás
+    const wf = M.wheels.front, wr = M.wheels.rear, { W, M: WM, G } = placeWheels(d4, wf, wr, [0.72, 0.73, 0.76]), [mn, mx] = M.ext;   // ruedas del juego
+    const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => { const c = M.cols[k]; return c === 'paint' ? P : c || P; }, null, false);
+    return { ...d, name: 'QUAD', vname: 'QUAD', logoFront: true, logoTop: true, logoCol: P, mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheels: W, wheelMeshes: WM, groundY: G,
+      box: d.box, hitBox: { c: [0, G + mx[1] * 0.45, (mn[2] + mx[2]) / 2], h: [mx[0], mx[1] * 0.45, (mx[2] - mn[2]) / 2] }, brakeSpots: [], nitro: [0, G + 0.4, mx[2]], headPos: window.BRR_QDHEAD || [0, G + M.seat[0] + 0.62, 0.08] };
+  }
+  // ---------- moto de nieve (circuitos de nieve): malla del modelo (snowbike_data.js) sobre el quitanieves (misma física: corre y reacciona como él), con el piloto montado en el asiento ----------
+  function snowbike(d, P) {
+    const M = BRR.SNOWBIKE_MESH; if (!M) return d;
+    const G = window.BRR_SBOFF != null ? window.BRR_SBOFF : d.wheels && d.wheels.length ? Math.min(...d.wheels.map(w => w.c[1] - w.radius)) : d.box.c[1] - d.box.h[1];   // el suelo del quitanieves (bajo sus ruedas u orugas)
+    const body = meshCar(d.mesh.pal, { ...M.body, yOff: G }, k => { const c = M.cols[k]; return c === 'paint' ? P : c === 'glass' ? [0.08, 0.1, 0.13] : c || P; }, null, false), [mn, mx] = M.ext;   // por las dos caras
+    return { ...d, name: 'SNOWBIKE', vname: 'SNOWBIKE', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: (d.wheels || []).map(() => null), parts: [], blade: null, groundY: G, logoCol: P, logoFront: true, logoTop: true,
+      box: d.box, hitBox: { c: [0, G + (mn[1] + mx[1]) / 2, (mn[2] + mx[2]) / 2], h: [mx[0] * 0.85, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, brakeSpots: [], nitro: [0, G + 0.45, mx[2]], headPos: window.BRR_SBHEAD || [0, G + M.seatTop + 0.62, 0.32] };
+  }
   // ---------- ciberpickup: malla del modelo (cyber_data.js) con ruedas del juego en sus pasos de rueda; motor, marchas, peso y suspensión del dumper ----------
   function cyber(d, P, gl) {
     if (!BRR.CYBER_MESH) return d;
@@ -439,8 +520,8 @@
     if (!BRR.JETSKI_MESH) return d;
     const COL = [P, [0.11, 0.11, 0.12], [0.05, 0.05, 0.055], [0.17, 0.17, 0.19], [0.74, 0.75, 0.78], [0.95, 0.95, 0.86]];
     const body = meshCar(d.mesh.pal, BRR.JETSKI_MESH.body, k => COL[k] || P, null, true);
-    return { ...d, name: 'JETSKI', vname: 'JETSKI', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, box: { c: [0, 0.15, 0], h: [0.54, 0.45, 1.43] },
-      brakeSpots: [], nitro: [0, 0.0, 1.44], headPos: [0, 1.02, 0.05] };
+    return { ...d, name: 'JETSKI', vname: 'JETSKI', logoFwd: true, logoCol: P, mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, box: { c: [0, 0.15, 0], h: [0.54, 0.45, 1.43] },
+      brakeSpots: [], nitro: [0, 0.0, 1.44], headPos: [0, 1.02, 0.05], headYaw: 0, lean: false, leanK: 1 };   /* el piloto de la moto de agua va recto (lo de ir de lado es solo de la lancha) */
   }
   function minimo(d, P, gl) {
     const M = BRR.MINIMO_MESH; if (!M) return minimoOld(d, P, gl);

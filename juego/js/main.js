@@ -24,6 +24,7 @@
   if (BRR.HORN_RENAMED && BRR.HORN_RENAMED[opt.horn]) opt.horn = BRR.HORN_RENAMED[opt.horn];
   if (!BRR.HORNS.some(h => h.id === opt.horn)) opt.horn = 'normal';
   if (typeof opt.logo === 'string' && opt.logo.startsWith('x:') && !(BRR.LOGOS_EXTRA || []).some(l => 'x:' + l.id === opt.logo)) opt.logo = 0;
+  opt.damage = '1';   // los daños son parte del juego (ya no es una opción)
   opt.menu = 'moderno';   // el menú clásico se retiró: siempre el menú moderno (el juego original sigue en «Juego original (1995)»)
   setTimeout(() => applyAccess(), 0); BRR.texHD = opt.filter !== 'nearest'; BRR.flatGround = opt.ground === 'original'; BRR.roundCars = opt.vround !== 'original'; BRR.newClouds = opt.clouds !== 'originales';   BRR.menuImg = opt.menuImg || 'hd'; document.body.classList.toggle('img-pixel', BRR.menuImg === 'pixel');
   const save = () => ST.set('brr_opt', JSON.stringify(opt));
@@ -37,10 +38,10 @@
     for (const k of ['vsfx', 'vmusic', 'vvoice', 'vmaster', 'vengine', 'vui', 'vamb']) { const el = $('o_' + k); el.value = opt[k]; const sv = () => { const v = $('o_' + k + '_v'); if (v) v.textContent = opt[k] + '%'; }; sv(); el.oninput = () => { opt[k] = +el.value; sv(); applyVol(); save(); }; }
     // ajustes nuevos: listas y casillas que solo se guardan (se leen donde se usan)
     { const el = $('o_lang'); el.innerHTML = Object.entries(BRR.LANGS).map(([k, n]) => `<option value="${k}">${n}</option>`).join(''); el.value = BRR.lang(); el.onchange = () => BRR.setLang(el.value); }
-    for (const k of ['ssao', 'relief', 'bloom', 'gloss', 'engSnd', 'fxs', 'aa', 'parts', 'fpslim', 'hudw', 'hudstyle', 'aiPack', 'touch', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'damage', 'ground', 'vround', 'clouds', 'modeMusic']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ssao') R.ssao = opt.ssao === 'no' ? 0 : 1; if (k === 'relief') R.relief = opt.relief === 'no' ? 0 : 1; if (k === 'bloom') R.bloom = opt.bloom === 'no' ? 0 : opt.bloom === 'fuerte' ? 1.6 : 0.9; if (k === 'vround') { BRR.roundCars = opt.vround !== 'original'; if (typeof qvLoad === 'function') qvLoad(); } if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
+    for (const k of ['ssao', 'relief', 'bloom', 'gloss', 'engSnd', 'fxs', 'aa', 'parts', 'fpslim', 'hudw', 'hudstyle', 'aiPack', 'touch', 'speedo', 'rumble', 'msrc', 'rivLook', 'menuImg', 'cb', 'uiz', 'assist', 'ground', 'vround', 'clouds', 'modeMusic']) { const el = $('o_' + k); el.value = opt[k]; el.onchange = () => { opt[k] = el.value; save(); applyHud(); applyVol(); if (k === 'clouds') BRR.newClouds = opt.clouds !== 'originales'; if (k === 'fxs' && fx) fx.orig = opt.fxs !== 'moderno'; if (k === 'ssao') R.ssao = opt.ssao === 'no' ? 0 : 1; if (k === 'relief') R.relief = opt.relief === 'no' ? 0 : 1; if (k === 'bloom') R.bloom = opt.bloom === 'no' ? 0 : opt.bloom === 'fuerte' ? 1.6 : 0.9; if (k === 'vround') { BRR.roundCars = opt.vround !== 'original'; if (typeof qvLoad === 'function') qvLoad(); } if (k === 'ground') { BRR.flatGround = opt.ground === 'original'; if (BRR.lvlCache) BRR.lvlCache.clear && BRR.lvlCache.clear(); } if (k === 'cb' || k === 'uiz') { applyAccess(); showTeamHead(); renderHomeProf(); } if (k === 'menuImg') { document.body.classList.toggle('img-pixel', opt.menuImg === 'pixel'); $('o_menuImg_n').hidden = false; } if (k === 'aa') R.fxaa = opt.aa === '1'; if (k === 'msrc' && state === 'menu') { if (audio) audio.stopMusic(); menuMusic(); } }; }
     { const el = $('o_modeVol'); el.value = opt.modeVol ?? 80; const sv = () => $('o_modeVol_v').textContent = (opt.modeVol ?? 80) + '%'; sv(); el.oninput = () => { opt.modeVol = +el.value; sv(); save(); if (audio && audio.stream) { audio.streamK = opt.modeVol / 100; audio.setVolumes({}); } }; }
     $('o_modeMusic').addEventListener('change', () => { if (!audio || !(state === 'race' || state === 'pause') || !modeKind(curLevelId)) return; audio.stopMusic(); if (!modeMusic(curLevelId)) audio.playMusic(Math.abs([...String(curLevelId)].reduce((a, c) => a * 31 + c.charCodeAt(0), 0))); });   // se cambia al momento, también en pausa
-    for (const k of ['noNew', 'cabin', 'hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
+    for (const k of ['noNew', 'noDents', 'noNeon', 'cabin', 'hmini', 'hpos', 'htimes', 'hnitro', 'hmsg', 'hnames', 'hhelp', 'spatial', 'autopause']) { const el = $('o_' + k); el.checked = !!opt[k]; el.onchange = () => { opt[k] = el.checked; save(); applyHud(); }; }
     { const el = $('o_hudsc'); el.value = opt.hudsc; const sv = () => $('o_hudsc_v').textContent = opt.hudsc + '%'; sv(); el.oninput = () => { opt.hudsc = +el.value; sv(); save(); applyHud(); }; }
     for (const b of document.querySelectorAll('.otabs button')) b.onclick = () => { for (const x of document.querySelectorAll('.otabs button')) x.classList.toggle('on', x === b); for (const pg of document.querySelectorAll('.opage')) pg.hidden = pg.dataset.op !== b.dataset.ot; };
     R.fxaa = opt.aa === '1'; R.ssao = opt.ssao === 'no' ? 0 : 1; R.relief = opt.relief === 'no' ? 0 : 1; R.bloom = opt.bloom === 'no' ? 0 : opt.bloom === 'fuerte' ? 1.6 : 0.9;
@@ -167,7 +168,7 @@
   const FREE_ONLY = new Set(['CITY3']);   // circuitos solo para el modo libre (fuera de carrera rápida, contrarreloj, retos, online y clasificaciones)
   const LEVEL_NAMES = { CITY: 'Ciudad', DIRT: 'Tierra', MOON: 'Marte', WATER: 'Río', SNOW: 'Nieve', RUF: 'Desierto', RIG: 'Plataforma', CHOPPER: 'Helicóptero', TEST: 'Prueba' };
   const VEH_NAMES = { MINIMO: 'Mínimo 50', PANDA: 'Tofu 86', GT: 'GT Racer', KART: 'Go-kart', F1: 'Fórmula', GTS: 'GT Sprint', CIVICO: 'Cívico', BAV30: 'B 30', ZETA35: 'Lady350', JEEP: 'Jeep', MINI: 'Mini', BEETLE: 'Escarabajo', ATV: 'Quad 6x6', CAT: 'Dumper', MONS: 'Monster truck', TRUCK: 'Camión', JCB: 'Excavadora', CABBET: 'Escarabajo descapotable', CABMINI: 'Mini descapotable',
-    PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', JETSKI: 'Moto de agua', CYBER: 'Ciberpickup', SUPREMO: 'Supremo', HORIZONTE: 'Horizonte', HOVERBIKE: 'Moto aérea', BAMBINO: 'Bambino', DEFENSOR: 'Defensor', ROTATIVO: 'Rotativo', MOWER: 'Hover Mower', AVISPA: 'Avispa', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
+    PLOUGH: 'Quitanieves', SNOWCAT: 'Máquina de nieve', BUGGY: 'Buggy lunar', JETCAR: 'Jet car', UFO: 'OVNI', INFLATE: 'Lancha neumática', JETSKI: 'Moto de agua', SNOWBIKE: 'Moto de nieve', QUAD: 'Quad', MONTES: 'Montés 4x4', CYBER: 'Ciberpickup', SUPREMO: 'Supremo', HORIZONTE: 'Horizonte', HOVERBIKE: 'Moto aérea', BAMBINO: 'Bambino', DEFENSOR: 'Defensor', ROTATIVO: 'Rotativo', MOWER: 'Hover Mower', AVISPA: 'Avispa', HOVCAR: 'Aerodeslizador', HELI: 'Helicóptero', COPTER: 'Helicóptero ligero' };
   // vehículos de cada circuito (líneas "car" del guion del nivel), como en el original
   const levelCars = {};
   const KANJO_CARS = ['CIVICO', 'SUPREMO', 'HORIZONTE', 'ROTATIVO'];   // Kanjo Loop: el Cívico, el Supremo, el Horizonte y el Rotativo (mismo manejo)
@@ -193,6 +194,9 @@
       if (/^MOON[123]$/i.test(id) && files.has('JETCAR.VHC') && !L.includes('HOVERBIKE')) { const m = L.indexOf('JETCAR'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'HOVERBIKE'); }   // en Marte, Venus y la Luna, también la moto aérea (se maneja como el jet car)
       if (/^RUF[123]$/i.test(id) && files.has('CAT.VHC') && !L.includes('CYBER')) { const m = L.indexOf('CAT'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'CYBER'); }   // en el desierto, también la ciberpickup (se conduce como el dumper)
       if (/^CHOPPER\d$/i.test(id) && files.has('COPTER.VHC') && !L.includes('MOWER')) { const m = L.indexOf('COPTER'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'MOWER'); }   // en los circuitos de helicóptero, también el cortacésped aéreo (vuela como el helicóptero ligero)
+      if (/^DIRT[123]$/i.test(id) && files.has('ATV.VHC') && !L.includes('QUAD')) { const m = L.indexOf('ATV'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'QUAD'); }   // en los circuitos de tierra, también el quad (pequeño, con la física del quad 6x6)
+      if (/^DIRT[123]$/i.test(id) && files.has('JEEP.VHC') && !L.includes('MONTES')) L.push('MONTES');   // y el Montés 4x4 (utilitario 4x4, con la física del jeep)
+      if (/^SNOW[123]$/i.test(id) && files.has('PLOUGH.VHC') && !L.includes('SNOWBIKE')) { const m = L.indexOf('PLOUGH'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'SNOWBIKE'); }   // en la nieve, también la moto de nieve (corre y reacciona como el quitanieves)
       if (/^RIG\d$/i.test(id) && files.has('JEEP.VHC') && !L.includes('DEFENSOR')) L.push('DEFENSOR');   // en las plataformas, también el Defensor (todoterreno clásico, con la física del jeep)
       if (/^WATER[123]$/i.test(id) && files.has('INFLATE.VHC') && !L.includes('JETSKI')) { const m = L.indexOf('INFLATE'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'JETSKI'); }   // en los ríos, también la moto de agua (con la física de la lancha) como otro principal
       { const m = L.findIndex(n => n === 'MINI' || n === 'CABMINI'); if (m >= 0 && !L.includes('MINIMO') && files.has('MINI.VHC')) L.splice(m + 1, 0, 'MINIMO'); }   // donde sale el Mini del juego, también el Mínimo 50 (Mini R50) como otro principal
@@ -328,7 +332,7 @@
     for (let f = 0; f < 0.6; f += 0.02) { const yA = mx - hh * f, yB = yA - hh * 0.04, B = H.filter(g => g[1] <= yA && g[1] >= yB); if (B.length && Math.max(...B.map(g => g[0])) - Math.min(...B.map(g => g[0])) >= hw * 0.72) return yA; } return mx; };
   // con gorro, el pelo que sobresale por arriba del cráneo (crestas, moños) no se pinta: si no, atravesaba el gorro
   const hatHead = (c, head, xf) => { if (!c.hat) return head; const G = head.verts.map(v => v ? xf(v) : null), sk = skullTop(usedV(head).map(xf)); return { ...head, faces: head.faces.filter(f => !f.idx.every(i => G[i] && G[i][1] > sk - 0.02 * Math.abs(sk))) }; };
-  function addAcc(mb, id, H) { const A = accOf(id), M = accMesh(id); if (!A || !M || !H.length) return;
+  function addAcc(mb, id, H) { const A = accOf(id), M = accMesh(id); if (!A || !M || !H.length || A.kind === 'glasses') return;   /* (gafas: quitadas)*/
     const mn = [0, 1, 2].map(a => Math.min(...H.map(g => g[a]))), mx = [0, 1, 2].map(a => Math.max(...H.map(g => g[a]))), hw = mx[0] - mn[0], hh = mx[1] - mn[1], hd = mx[2] - mn[2];
     const P = { ...ACC_POS[A.kind], ...(ACC_ITEM[id] || {}), ...(ACC_FIT[id] || {}) }, k = hw * (P.s || 1), fz = window.BRR_ACCZ != null ? window.BRR_ACCZ : -1;   // la cara mira hacia -z en el mundo del juego
     // lo alto del cráneo, sin el pelo: la primera franja (de arriba abajo) donde la cabeza ya es ancha (una cresta o un moño son estrechos)
@@ -344,7 +348,7 @@
     for (let k = 0; k < 6; k++) for (const i of [240 + k, 10 + k]) for (let c = 0; c < 3; c++) o[i * 3 + c] = Math.min(255, b[c] * f[k]) | 0; return o; };
   const mySkin = () => opt.skin != null && opt.skin >= 0 ? opt.skin : -1;
   const myHead = () => opt.head != null ? opt.head : (opt.char || 0), myBody = () => opt.body != null ? opt.body : Math.max(0, BODIES.indexOf(CHARS[(opt.char || 0) % 6].b));
-  const myHat = () => opt.hat || '', myGl = () => opt.glasses || '';
+  const myHat = () => opt.hat || '', myGl = () => '';   /* (las gafas se quitaron: solo gorros) */
   const mySpec = () => specOf(myHead(), myBody(), mySkin(), myHat(), myGl());
   const specFrom = e => e.head != null || e.body != null ? specOf(e.head != null ? e.head : e.char || 0, e.body != null ? e.body : BODIES.indexOf(CHARS[(e.char || 0) % 6].b), e.skin, e.hat, e.gl) : null;
   let charArc = null, charPal = null; const charCache = new Map();
@@ -608,14 +612,15 @@
     $('pf_heads').innerHTML = heads.join('');
     $('pf_skins').innerHTML = [-1, 0, 1, 2, 3].map(i => `<div class="pitem pskin${mySkin() === i ? ' on' : ''}" tabindex="0" data-sk="${i}" title="${i < 0 ? 'La de cada cabeza' : SKIN_N[i]}"><span style="background:${i < 0 ? 'linear-gradient(90deg,#f5c89a 50%,#7a4a26 50%)' : 'rgb(' + SKINS[i].join(',') + ')'}"></span><div>${i < 0 ? 'Original' : SKIN_N[i]}</div></div>`).join('');
     // complementos: gorros/cascos y gafas (con la cabeza elegida debajo)
-    for (const [kind, box, cur] of [['hat', 'pf_hats', myHat()], ['glasses', 'pf_glasses', myGl()]]) { const L = ['', ...(BRR.ACCESSORIES || []).filter(a => a.kind === kind).map(a => a.id)], cells = [];
+    for (const [kind, box, cur] of [['hat', 'pf_hats', myHat()]]) { const L = ['', ...(BRR.ACCESSORIES || []).filter(a => a.kind === kind).map(a => a.id)], cells = [];
       for (const id of L) cells.push(`<div class="pitem${cur === id ? ' on' : ''}" tabindex="0" data-acc="${kind}" data-id="${id}" title="${id ? esc(accOf(id).name) : 'Ninguno'}"><img src="${await headURL(specOf(myHead(), myBody(), mySkin(), kind === 'hat' ? id : myHat(), kind === 'glasses' ? id : myGl()), team).catch(() => '')}"><div>${id ? esc(accOf(id).name) : 'Ninguno'}</div></div>`);
       $(box).innerHTML = cells.join(''); }
     const chars = []; for (let i = 0; i < BODIES.length; i++) chars.push(`<div class="pitem${myBody() === i ? ' on' : ''}" tabindex="0" data-bd="${i}"><img src="${await charURL(specOf(myHead(), i, mySkin()), team).catch(() => '')}"><div>${['Hombre', 'Mujer', 'Niño', 'Grandullón'][i] || 'Cuerpo ' + (i + 1)}</div></div>`);
     $('pf_chars').innerHTML = chars.join('');
     const logos = []; for (let i = 0; i < BRR.NLOGOS(); i++) logos.push(`<div class="pitem${(opt.logo || 0) === i ? ' on' : ''}" tabindex="0" data-l="${i}"><img src="${orig ? await orig.logoURL(i, team, hexRGB(opt.paint)).catch(() => '') : ''}"></div>`);
-    for (const L of BRR.LOGOS_EXTRA || []) logos.push(`<div class="pitem${opt.logo === 'x:' + L.id ? ' on' : ''}" tabindex="0" data-x="${L.id}" title="${esc(L.n)}"><img src="${L.src}" style="background:${carColOpt()};image-rendering:auto"></div>`);
-    logos.push(`<div class="pitem${opt.logo === 'custom' ? ' on' : ''}" tabindex="0" data-custom="1" title="Tu propio logo (PNG)">${opt.customLogo ? `<img src="${opt.customLogo}" style="background:${carColOpt()}">` : '<div style="font-size:42px;line-height:72px">＋</div>'}<div>Logo propio</div></div>`);
+    const framed = async src => (orig && orig.frameURL ? await orig.frameURL(src, team, hexRGB(opt.paint)).catch(() => null) : null);   /* los logos añadidos y el propio, con el mismo recuadro que los originales */
+    for (const L of BRR.LOGOS_EXTRA || []) { const fu = await framed(L.src); logos.push(`<div class="pitem${opt.logo === 'x:' + L.id ? ' on' : ''}" tabindex="0" data-x="${L.id}" title="${esc(L.n)}"><img src="${fu || L.src}" style="${fu ? '' : 'background:' + carColOpt() + ';'}image-rendering:auto"></div>`); }
+    { const fu = opt.customLogo ? await framed(opt.customLogo) : null; logos.push(`<div class="pitem${opt.logo === 'custom' ? ' on' : ''}" tabindex="0" data-custom="1" title="Tu propio logo (PNG)">${opt.customLogo ? `<img src="${fu || opt.customLogo}" style="${fu ? '' : 'background:' + carColOpt() + ';'}image-rendering:auto">` : '<div style="font-size:42px;line-height:72px">＋</div>'}<div>Logo propio</div></div>`); }
     const cols = [];
     cols.push(`<div class="pitem${opt.paint ? ' on' : ''}" tabindex="0" data-paint="1" title="Color propio (RGB)"><div style="height:40px;border-radius:8px;background:${opt.paint || 'conic-gradient(red,yellow,lime,cyan,blue,magenta,red)'}"></div>${opt.paint ? 'Color propio' : 'Color RGB…'}</div>`);
     cols.push(...[1, 2, 3, 4, 5, 6].map(t => `<div class="pitem${team === t && !opt.paint ? ' on' : ''}" tabindex="0" data-t="${t}" style="background:${TEAM[t].c}55"><div style="height:40px;border-radius:8px;background:${TEAM[t].c}"></div>${TEAM[t].n}</div>`));
@@ -1131,7 +1136,7 @@
       R.free(statics); R.free(terrainB); for (const d of animDraws) R.free(d.b); animDraws = []; if (horizonB) R.free(horizonB); horizonB = null; if (props && props.models) for (const m of props.models.values()) { if (m && m.fr) for (const f of m.fr.values()) R.free(f); else if (m && typeof m[Symbol.iterator] === 'function') R.free(m); }   /* (las banderas animadas: una malla por fotograma) */   // fuera de la tarjeta gráfica el circuito anterior
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
       animDraws = (lvl.animMeshes || []).map(m => ({ a: m.a, v: m.v, b: R.upload(m.mb) })); horizonB = lvl.horizon ? R.upload(lvl.horizon) : null;   // piezas animadas (tele, público) y la Tierra del cielo de la Luna
-      R.setEnvironment(lvl.sun, lvl.sky, lvl.skyGrad); { const at = makeAtmos(level, lvl.sun, lvl.sky, lvl.skyGrad); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
+      R.setEnvironment(lvl.sun, lvl.sky, lvl.skyGrad); R.starK = /MOON3/.test(String(level).split('~')[0]) ? 1 : 0;   /* la Luna: estrellas y Vía Láctea de fondo */ { const at = makeAtmos(level, lvl.sun, lvl.sky, lvl.skyGrad); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
       // jugadores humanos: el equipo elegido para J1 y los siguientes colores para los demás
       $('phuds').innerHTML = ''; humans = [];
       const teams = [team, ...[1, 2, 3, 4, 5, 6].filter(t => t !== team)];
@@ -1465,6 +1470,7 @@
   }
   let finishTimer = null, netResT = null;
   function showResults() {
+    { const sb = document.getElementById('specbar'); if (sb) sb.hidden = true; }
     clearTimeout(finishTimer); finishTimer = null; if (state !== 'race' && state !== 'results') return;
     updatePositions(0);
     const multi = humans.length > 1, h0 = humans[0], rec = getRec(h0), bestLap = h0.race.lapTimes.length ? Math.min(...h0.race.lapTimes) : null;
@@ -1499,6 +1505,7 @@
   }
   $('r_again').onclick = restart;
   function toMenu() {
+    { const sb = document.getElementById('specbar'); if (sb) sb.hidden = true; const ph = document.getElementById('phuds'); if (ph) ph.style.visibility = ''; }   /* fuera la barra de espectador (derby: al morir se pasa a espectador) */
     if (netRace) { const ids = netRace.resultIds; netRace = null; netWait = false; clearTimeout(netResT); $('netbar').hidden = true; if (BRR_net.isHost && BRR_net.room) netAfterRace(ids); fromOrig = false; if (orig) orig.close(); opt.menu = 'moderno';
       setTimeout(() => { go(BRR_net.lanUrl ? 'lan' : 'online'); netRenderRoom(); }, 50); }
     statsFlush(); clearTimeout(finishTimer); finishTimer = null; $('results').hidden = true; if (audio) { audio.stopAll(); audio.stopMusic(); }
@@ -1716,6 +1723,11 @@
     const list = (w.pad ? PAD[w.a] : KB[w.L][w.a]).slice(); if (v == null) list.splice(w.i, 1); else list[w.i] = v;
     store[w.a] = list.filter(x => x != null); save(); applyBindings(); kWait = null; renderKeys();
   }
+  /* menú: Esc hace lo mismo que el botón «Volver» (o «Cerrar») visible de la ventana que esté por encima */
+  addEventListener('keydown', e => { if (e.code !== 'Escape' || e.repeat || state !== 'menu' || kWait) return;
+    const vis = el => el && !el.hidden && !el.disabled && el.offsetParent !== null && getComputedStyle(el).visibility !== 'hidden';
+    const B = [...document.querySelectorAll('button')].filter(b => vis(b) && (/^◀/.test(b.textContent.trim()) || /_(back|close)$/.test(b.id) || b.dataset.go === 'back' || b.textContent.trim() === 'Cerrar' || (b.classList.contains('optbtn') && b.classList.contains('main'))));
+    if (B.length) { e.preventDefault(); B[B.length - 1].click(); } });
   addEventListener('keydown', e => { if (!kWait || kWait.pad) return; e.preventDefault(); e.stopImmediatePropagation();
     if (e.code === 'Escape') { kWait = null; renderKeys(); return; } setBind(kWait, e.code === 'Delete' ? null : e.code); }, true);
   function padListen() { const w = kWait, prev = new Set(); for (const g of pads()) g.buttons.forEach((b, i) => { if (b.pressed) prev.add(g.index + ':' + i); });
@@ -2046,6 +2058,10 @@
     q('sp_cam').onclick = () => { const h = humans[0]; h.specCam = CY[(CY.indexOf(h.specCam || 'tv') + 1) % CY.length]; h.cam.init = false; specUI(); };
     q('sp_exit').onclick = () => { $('specbar').hidden = true; $('phuds').style.visibility = ''; toMenu(); };
     addEventListener('keydown', e => { if (!((netRace && netRace.role === 'spec') || derbySpec()) || state !== 'race') return; if (e.code === 'ArrowRight' || e.code === 'ArrowUp') q('sp_next').onclick(); else if (e.code === 'ArrowLeft' || e.code === 'ArrowDown') q('sp_prev').onclick(); else if (e.code === 'KeyC') q('sp_cam').onclick(); }, true);
+    /* mando: las flechas izquierda/derecha de la cruceta cambian de piloto */
+    let padPrev = {}; setInterval(() => { if (!((netRace && netRace.role === 'spec') || derbySpec()) || state !== 'race') { padPrev = {}; return; } const now = {};
+      for (const g of pads()) { const b = i => g.buttons[i] && g.buttons[i].pressed, ax = g.axes[0] || 0; now.l = now.l || b(14) || (g.mapping !== 'standard' && ax < -0.7); now.r = now.r || b(15) || (g.mapping !== 'standard' && ax > 0.7); }
+      if (now.l && !padPrev.l) q('sp_prev').onclick(); if (now.r && !padPrev.r) q('sp_next').onclick(); padPrev = now; }, 60);
   })();
   function specLeave() { netRace = null; netWait = false; $('specbar').hidden = true; $('phuds').style.visibility = ''; state = 'menu'; }
   const R3 = a => a.map(x => Math.round(x * 1000) / 1000);
@@ -3525,9 +3541,10 @@
   }
   function garApply(c, G = garMine()) {   // al empezar la carrera
     if (!c || !G) return; c.gar = G; if (G.turboCol && hexRGB(G.turboCol)) c._tint = hexRGB(G.turboCol).map(x => x / 255);
-    c.neon = G.neon === 'si' && hexRGB(G.neonCol || '#00e5ff') ? hexRGB(G.neonCol || '#00e5ff').map(x => x / 255) : null; c.lightT = { blanca: 1, intermedia: 2, amarilla: 3 }[G.lightCol] || 0; c.neonK = Math.max(0.1, Math.min(1.4, (G.neonInt ?? 70) / 100));
+    { const nc = G.neonCol === 'carro' ? carCol(c) : G.neonCol || '#00e5ff'; c.neon = G.neon === 'si' && hexRGB(nc) ? hexRGB(nc).map(x => x / 255) : null; }   /* 'carro': del color del coche */ c.lightT = { blanca: 1, intermedia: 2, amarilla: 3 }[G.lightCol] || 0; c.neonK = Math.max(0.1, Math.min(1.4, (G.neonInt ?? 70) / 100));
   }
   function neonFrame() {   // neones: luz de color bajo la carrocería (como los coches tuneados)
+    if (opt.noNeon) return;   /* opción «Sin neones»: no se ven los de nadie */
     for (const c of [...humans.map(h => h.car), ...rivals.map(r => r.car)]) { if (!c || !c.neon || c.out || camDist(c.p) > 120) continue; const b = c.def.box, R = c.R, y = b.c[1] - b.h[1] + 0.12, pul = (c.neonK ?? 0.7) / 0.7;   // luz fija (sin destellos); la intensidad se elige en el garaje
       // mancha de luz en el suelo (rectángulo algo más grande que el coche, pegado al terreno) y un brillo en los bajos
       const rt = BRR.mv(R, [1, 0, 0]), fw = BRR.mv(R, [0, 0, 1]), cc = V.add(c.p, BRR.mv(R, [0, 0, b.c[2]])), W = b.h[0] * 2.0, L = b.h[2] * 1.45;
@@ -3551,7 +3568,7 @@
     if ($('gr_vsel').options.length !== all.length) $('gr_vsel').innerHTML = all.map(n => `<option value="${n}">${esc(VEH_NAMES[n] || n)}</option>`).join(''); $('gr_vsel').value = garSel;
     $('gr_rim').value = RIM_STYLES[GC().rim] ? GC().rim : 'orig'; $('gr_rimsize').value = String(GC().rimSize || 17); $('gr_rimcol').value = GC().rimCol || 'plata'; $('gr_rimsize').hidden = $('gr_rimcol').hidden = $('gr_rim').value === 'orig'; rimPreview();
     $('gr_lights').value = GC().lightCol || 'normal'; setTimeout(garPreview, 0);
-    $('gr_turbo').value = GC().turboCol || '#ff8c1e'; $('gr_neon').value = GC().neon === 'si' ? 'si' : 'no'; $('gr_neonint').value = GC().neonInt ?? 70; $('gr_neonint').hidden = GC().neon !== 'si'; $('gr_neoncol').value = GC().neonCol || '#00e5ff';
+    $('gr_turbo').value = GC().turboCol || '#ff8c1e'; $('gr_neon').value = GC().neon === 'si' ? 'si' : 'no'; $('gr_neonint').value = GC().neonInt ?? 70; $('gr_neonint').hidden = GC().neon !== 'si'; $('gr_neoncol').value = GC().neonCol && GC().neonCol !== 'carro' ? GC().neonCol : '#00e5ff'; $('gr_neon0').hidden = GC().neon !== 'si';
     $('gr_low').value = String(GC().low || 0); $('gr_camber').value = String(GC().camber || 0); $('gr_finish').value = GC().finish || 'normal'; $('gr_tone2').value = GC().tone2 || 'no'; $('gr_tone2col').value = GC().tone2Col || '#111111'; $('gr_tone2col').hidden = (GC().tone2 || 'no') === 'no'; $('gr_stripes').value = GC().stripes || 'no'; $('gr_stripecol').value = GC().stripeCol || '#f2f2ee'; $('gr_stripecol').hidden = (GC().stripes || 'no') === 'no'; $('gr_num').value = GC().num || '';
     $('gr_glass').value = GC().glass || 'normal'; $('gr_glasscol').value = GC().glassCol || '#46607a'; $('gr_glasscol').hidden = (GC().glass || 'normal') !== 'color'; $('gr_neoncol').hidden = GC().neon !== 'si';
   }
@@ -3582,6 +3599,8 @@
   $('gr_neonint').oninput = () => { GC().neonInt = +$('gr_neonint').value; garSave(); };
   $('gr_neon').onchange = () => { GC().neon = $('gr_neon').value; garSave(); garRender(); if (GC().neon === 'si') achUnlock('t_neon'); };
   $('gr_neoncol').oninput = () => { GC().neonCol = $('gr_neoncol').value; garSave(); };
+  $('gr_neon0').onclick = () => { GC().neonCol = 'carro'; garSave(); garRender(); };   /* neones del mismo color que el coche */
+  for (const [id, v] of [['gr_neonall1', 'si'], ['gr_neonall0', 'no']]) $(id).onclick = () => { const A = opt.garVeh || (opt.garVeh = {}); const L = new Set([...Object.keys(A), ...[...$('gr_vsel').options].map(o => o.value)]); for (const k of L) { if (!k) continue; garCfg(k); A[k].neon = v; } garSave(); garRender(); if (v === 'si') achUnlock('t_neon'); };
   for (const [id, k, numK] of [['gr_low', 'low', 1], ['gr_camber', 'camber', 1], ['gr_finish', 'finish'], ['gr_tone2', 'tone2'], ['gr_tone2col', 'tone2Col'], ['gr_stripes', 'stripes'], ['gr_stripecol', 'stripeCol'], ['gr_num', 'num']]) $(id).onchange = () => { GC()[k] = numK ? +$(id).value : id === 'gr_num' ? $(id).value.replace(/[^0-9]/g, '').slice(0, 2) : $(id).value; garSave(); garRender(); };
   $('gr_glass').onchange = () => { GC().glass = $('gr_glass').value; garSave(); garRender(); if (GC().glass !== 'normal') achUnlock('t_cristal'); };
   $('gr_glasscol').oninput = () => { GC().glassCol = $('gr_glasscol').value; garSave(); };
@@ -3645,7 +3664,7 @@
   const drawOf = c => { const h = humans.find(x => x.car === c); if (h) return h.draw; const r = rivals.find(x => x.car === c); return r && r.draw; };
   function dentReset(c) { const D = drawOf(c); if (!D || !c.dented) return; const gl = R.gl; for (const b of D) { if (!b.pbuf || !b.cur) continue; b.cur = null; gl.bindBuffer(gl.ARRAY_BUFFER, b.pbuf); gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(b.base), gl.STATIC_DRAW); } c.dented = false; }
   function dentFrame(c) {
-    const v = c.hitV || 0, hr = c.hitR; c.hitV = 0; if (v < 3 || !hr || opt.damage === '0' || opt.dents === 'no' || c.def.name === 'KART') return;   // el kart no se abolla (solo suma el % de daño)
+    const v = c.hitV || 0, hr = c.hitR; c.hitV = 0; if (v < 3 || !hr || opt.damage === '0' || opt.dents === 'no' || opt.noDents || c.def.name === 'KART') return;   // el kart no se abolla (solo suma el % de daño)
     const D = drawOf(c); if (!D || camDist(c.p) > 140) return;
     const L = BRR.mtv(c.R, hr), b = c.def.box, cx = b.c[0], cy = b.c[1], cz = b.c[2];   // punto del golpe en coordenadas del coche
     const dir = V.norm([cx - L[0], (cy - L[1]) * 0.3, cz - L[2]]), depth = Math.min(0.34, (v - 3) * 0.027) * (100 / Math.max(40, c.def.tough || 100)), rad = 0.8 + Math.min(0.6, v * 0.03);

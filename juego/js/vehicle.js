@@ -183,6 +183,10 @@
       const bg = bgC || [rgba[((oy + 1) * 256 + ox + 1) * 4], rgba[((oy + 1) * 256 + ox + 1) * 4 + 1], rgba[((oy + 1) * 256 + ox + 1) * 4 + 2]];
       for (let y = 0; y < 40; y++) for (let x = 0; x < 40; x++) { const k = ((oy + y) * 256 + ox + x) * 4, j = (y * 40 + x) * 4, a = L[j + 3] / 255;
         for (let c = 0; c < 3; c++) rgba[k + c] = Math.round(L[j + c] * a + bg[c] * (1 - a)); rgba[k + 3] = 255; } }
+    /* el logo del equipo tal como queda en la hoja de texturas (40×40): para ponérselo a los coches nuevos, que no tienen hueco de logo */
+    let teamLogo = null; for (const [tn, rgba] of mb.textures) { if (!rgba || !slotTex.has(tn) || rgba.length < 256 * 192 * 4) continue; const L = new Uint8Array(40 * 40 * 4); let sum = 0, sq = 0;
+      for (let y = 0; y < 40; y++) for (let x = 0; x < 40; x++) { for (let c = 0; c < 4; c++) L[(y * 40 + x) * 4 + c] = c === 3 ? 255 : rgba[((slotY + y) * 256 + slotX + x) * 4 + c]; const v = L[(y * 40 + x) * 4] + L[(y * 40 + x) * 4 + 1] + L[(y * 40 + x) * 4 + 2]; sum += v; sq += v * v; }
+      if (sq / 1600 - (sum / 1600) ** 2 > 400) { teamLogo = L; break; } }   /* (solo si de verdad hay un dibujo: algunos vehículos tienen el hueco liso) */
     const shapeCache = new Map(); const wheelMeshes = []; const wheelRad = [];
     for (const w of wheels) {
       const sh = shapes[w.shape]; let m = null;
@@ -245,7 +249,7 @@
         interior = { mesh: imb, steer, dials, dash: dash ? dash.toUpperCase() : null, dashBase: T ? new Uint8Array(T) : null, pal }; } } } catch (e) { interior = null; }
     if (brakeMB) { const P = []; for (const g of brakeMB.groups.values()) for (let i = 0; i < g.pos.length; i += 3) P.push([g.pos[i], g.pos[i + 1], g.pos[i + 2]]);
       for (const sd of [-1, 1]) { const Q = P.filter(p => Math.sign(p[0] || sd) === sd); if (Q.length) brakeSpots.push([0, 1, 2].map(a => Q.reduce((s, q) => s + q[a], 0) / Q.length)); } }
-    const OUT = {
+    const OUT = { teamLogo,
       dmgFx, brakeSpots, tough: (() => { const m = all.match(/hnd damage\s+(\d+)/); return m ? +m[1] : 100; })(),
       kind, decoParts, brake: brakeMB, interior,
       name, vname, mesh: mb, wheelMeshes, engineWav: engM ? name + '/' + engM[1].toUpperCase() + '.WAV' : null,
