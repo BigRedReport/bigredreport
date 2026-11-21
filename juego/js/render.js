@@ -98,11 +98,11 @@ precision mediump float; in vec2 vuv; uniform sampler2D T; uniform int useTex; o
 in vec2 p; uniform mat4 IVP; out vec3 dir; void main(){ vec4 a=IVP*vec4(p,1.,1.); dir=a.xyz/a.w; gl_Position=vec4(p,0.9999,1.); }`,
         `#version 300 es
 precision highp float; in vec3 dir; uniform vec3 cam; uniform vec3 hor; uniform vec3 zen; uniform vec3 L; uniform int mode; out vec4 o;
-uniform float night; uniform float cloudK; uniform vec3 cloudC; uniform float time; uniform vec3 sunCol;
+uniform float night; uniform float cloudK; uniform vec3 cloudC; uniform float time; uniform vec3 sunCol; uniform int gN; uniform vec3 gS[24];
 float hs(vec2 p){ return fract(sin(dot(p,vec2(127.1,311.7)))*43758.5453); }
 float vn(vec2 p){ vec2 i=floor(p), f=fract(p); f=f*f*(3.-2.*f); return mix(mix(hs(i),hs(i+vec2(1,0)),f.x),mix(hs(i+vec2(0,1)),hs(i+vec2(1,1)),f.x),f.y); }
 float fbm(vec2 p){ float s=0., a=.5; for(int i=0;i<5;i++){ s+=vn(p)*a; p=p*2.03+vec2(17.1,9.3); a*=.5; } return s; }
-void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
+void main(){ vec3 d=normalize(dir-cam); if(mode==0){ /* degradado por franjas como en el original (de horizonte a cénit) */ if(gN>0){ int k=int(clamp(d.y/.5,0.,.9999)*float(gN)); vec3 g=gS[0]; for(int i=1;i<24;i++) if(i==k) g=gS[i]; o=vec4(g,1.); return; } o=vec4(hor,1.); return; }
   float h=clamp(d.y,0.,1.); vec3 c=mix(hor,zen,pow(h,.55)); float sd=max(dot(d,L),0.);
   c+=sunCol*(pow(sd,180.)*.8*(1.-night)+pow(sd,8.)*.18);
   /* estrellas de noche */
@@ -112,7 +112,7 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
     float cov=smoothstep(1.-cloudK*.9,1.15-cloudK*.75,n)*smoothstep(.01,.18,d.y); vec3 cc=cloudC*(.78+.32*fbm(uv*2.+11.))+sunCol*pow(sd,6.)*.25;
     c=mix(c,cc,cov*.95); }
   o=vec4(c,1.); }`, ['p']);
-      this.SU = uniforms(gl, this.spr, ['IVP', 'cam', 'hor', 'zen', 'L', 'mode', 'night', 'cloudK', 'cloudC', 'time', 'sunCol']);
+      this.SU = uniforms(gl, this.spr, ['IVP', 'cam', 'hor', 'zen', 'L', 'mode', 'night', 'cloudK', 'cloudC', 'time', 'sunCol', 'gN', 'gS']);
       this.skyVao = gl.createVertexArray(); gl.bindVertexArray(this.skyVao); const sb = gl.createBuffer(); gl.bindBuffer(gl.ARRAY_BUFFER, sb);
       gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([-1, -1, 3, -1, -1, 3]), gl.STATIC_DRAW); gl.enableVertexAttribArray(0); gl.vertexAttribPointer(0, 2, gl.FLOAT, false, 0, 0); gl.bindVertexArray(null);
       this.aniso = gl.getExtension('EXT_texture_filter_anisotropic');
@@ -134,10 +134,12 @@ void main(){ vec3 d=normalize(dir-cam); if(mode==0){ o=vec4(hor,1.); return; }
       gl.bindFramebuffer(gl.FRAMEBUFFER, null);
     }
     // ambiente del circuito: dirección del sol (script "light") y colores de cielo/suelo
-    setEnvironment(L, sky) {
+    setEnvironment(L, sky, grad) {
       this.L = BRR.V.norm(L); this.sky = sky;
       const lum = sky[0] * .3 + sky[1] * .59 + sky[2] * .11;
       this.zen = sky.map(c => c * 0.78); this.hor = sky.map(c => Math.min(1, c * 0.85 + 0.2));
+      /* cielo con degradado del original (colores de horizonte a cénit, 0-255) */ this.skyGrad = grad && grad.length ? new Float32Array(grad.flat().map(x => x / 255)) : null;
+      if (grad && grad.length) { const g = grad.map(c => c.map(x => x / 255)); this.hor = g[0]; this.zen = g[g.length - 1]; }
       this.skyC = sky.map(c => 0.6 + c * 0.55); this.gndC = [0.45, 0.4, 0.34]; this.sunC = [1.05, 0.98, 0.88].map(c => c * (0.85 + lum * 0.3));
       this.base = { L: this.L, zen: this.zen, hor: this.hor, skyC: this.skyC, gndC: this.gndC, sunC: this.sunC }; this.atmos = null;
     }
@@ -325,7 +327,7 @@ void main(){ if(bright==1){ vec3 c=vec3(0.); for(int i=-1;i<=2;i+=2) for(int j=-
       gl.disable(gl.DEPTH_TEST); gl.disable(gl.CULL_FACE); gl.useProgram(this.spr);
       gl.uniformMatrix4fv(this.SU.IVP, false, BRR.M4.inv(VP)); gl.uniform3fv(this.SU.cam, camPos);
       gl.uniform3fv(this.SU.hor, fogc); gl.uniform3fv(this.SU.zen, this.zen || fog); gl.uniform3fv(this.SU.L, this.L); gl.uniform1i(this.SU.mode, modern ? 1 : 0);
-      { const A = this.atmos || {}; gl.uniform1f(this.SU.night, A.night || 0); gl.uniform1f(this.SU.cloudK, A.cloudK || 0); gl.uniform3fv(this.SU.cloudC, A.cloudC || [1, 1, 1]); gl.uniform1f(this.SU.time, (performance.now() / 1000) % 10000); gl.uniform3fv(this.SU.sunCol, A.sunCol || [1, .9, .7]); }
+      { const A = this.atmos || {}; gl.uniform1f(this.SU.night, A.night || 0); gl.uniform1f(this.SU.cloudK, A.cloudK || 0); gl.uniform3fv(this.SU.cloudC, A.cloudC || [1, 1, 1]); gl.uniform1f(this.SU.time, (performance.now() / 1000) % 10000); gl.uniform3fv(this.SU.sunCol, A.sunCol || [1, .9, .7]); const G = this.skyGrad; gl.uniform1i(this.SU.gN, G ? G.length / 3 : 0); if (G) gl.uniform3fv(this.SU.gS, G); }
       if (!this.thumbMode) { gl.bindVertexArray(this.skyVao); gl.drawArrays(gl.TRIANGLES, 0, 3); }
       gl.enable(gl.DEPTH_TEST); gl.useProgram(this.pr);
       if (this.cull !== false) { gl.enable(gl.CULL_FACE); gl.cullFace(gl.BACK); gl.frontFace(gl.CCW); } else gl.disable(gl.CULL_FACE);

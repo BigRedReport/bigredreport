@@ -17,6 +17,10 @@
           gates.push({ num: j, last: j === k - 1, c: a, ax: [-t[2], 0, t[0]], az: t, hw: 32 });
         }
       }
+      /* circuitos propios (karts, Kanjo...): la puerta solo tan ancha como la carretera, para que no la cruce otro tramo cercano del trazado */
+      if (String(lvl.name || '').includes('~') && lvl.courseW && lvl.courseW.length === n) for (const g of gates) {
+        let bi = 0, bd = 1e18; for (let i = 0; i < n; i++) { const d = (P[i][0] - g.c[0]) ** 2 + (P[i][2] - g.c[2]) ** 2; if (d < bd) { bd = d; bi = i; } }
+        g.hw = Math.min(g.hw, lvl.courseW[bi] / 2 + 6); }
       for (const g of gates) { // sentido de paso hacia delante según el recorrido (tramo alineado con la puerta)
         const s = this.project(g.c, { axis: g.az }); g.s = s.s; g.fwdSign = Math.sign(V.dot(g.az, s.t)) || 1;
       }

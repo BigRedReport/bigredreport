@@ -60,7 +60,8 @@ jobs:
         run: |
           V="$(tr -d ' \r\n' < VERSION)"
           mkdir -p escritorio/game && cp -r juego/. escritorio/game/
-          cd escritorio && npm pkg set version="$V" && npm install --no-audit --no-fund
+          case "$V" in *.*.*) NV="$V";; *) NV="$V.0";; esac   # npm necesita tres números («1.2» → 1.2.0)
+          cd escritorio && npm pkg set version="$NV" && npm install --no-audit --no-fund
       - name: Construir
         working-directory: escritorio
         run: |

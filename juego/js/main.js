@@ -412,7 +412,7 @@
     let body = null; try { if (front && files.has('CHARSCN.SCN')) body = await charURL(mySpec(), t); } catch (e) { }
     if (tok !== showTeamHead.tok) return;
     $('d_head').innerHTML = (body ? `<img src="${body}" alt="" style="height:96px;width:auto">` : headImg(t, 54)) + nm; }
-  $('m_team').addEventListener('change', showTeamHead); $('m_team').addEventListener('change', qvLoad); $('m_veh').addEventListener('change', qvLoad);
+  $('m_team').addEventListener('change', showTeamHead); $('m_team').addEventListener('change', qvLoad); $('m_veh').addEventListener('change', qvLoad); $('m_veh').addEventListener('change', () => { if (qmode === 'tt' && isGPLevel($('m_level').value)) { drawLB(); showTTBest(); } });   /* GP y F1 comparten circuito: cada uno con sus tiempos */
   // ---------- menú original (pantallas .SCN del juego) ----------
   let orig = null, fromOrig = false;
   async function startOrigMenu() {
@@ -493,7 +493,7 @@
   function showTTBest() {
     const el = $('d_ttbest'); if (!el) return; if (qmode !== 'tt') { el.hidden = true; return; }
     const id = $('m_level').value, laps = +$('m_laps').value || 3; let best = null, lap = null;
-    try { for (const k of ST.keys()) { const m = k.match(/^brr_rec_(.+)_([A-Z0-9]+)_(\d+)$/); if (!m || m[1] !== id) continue; const r = JSON.parse(ST.get(k));
+    try { for (const k of ST.keys()) { const m = k.match(/^brr_rec_(.+)_([A-Z0-9]+)_(\d+)$/); if (!m || m[1] !== id) continue; if (isGPLevel(id) && (m[2] === 'F1') !== ($('m_veh').value === 'F1')) continue; const r = JSON.parse(ST.get(k));
       if (+m[3] === laps && r.total && (!best || r.total < best.t)) best = { t: r.total, v: m[2] }; if (r.lap && (!lap || r.lap < lap.t)) lap = { t: r.lap, v: m[2] }; } } catch (e) { }
     el.hidden = false;
     const vn = v => '<span>' + esc(VEH_NAMES[v] || v) + '</span>';
@@ -529,7 +529,11 @@
     if (ck === 'drift' || (id && (kindOfId(id) === 'drift' || customKinds.some(c => c.id === id && c.kind === 'drift')))) return 'drift';
     if (isKanjoLevel(level)) return 'kanjo'; if (ck === 'gp' || isGPLevel(level)) return 'gp'; return null; }
   function modeMusic(level) { const k = modeKind(level); if (!k || !audio || opt.modeMusic === 'original') return false; audio.playStream('music/' + k + '.mp3', (opt.modeVol ?? 80) / 100); $('trackinfo').textContent = ''; return true; }
-  function menuMusic() { if (audio && audio.ctx && state === 'menu') audio.playTrack(2); }
+  // música del menú: la propia del port (music/menu.mp3, «Racing» de MokkaMusic, sin copyright); con «música original» o la tuya, la pista 2 del CD como antes
+  function menuMusic() { if (!audio || !audio.ctx || state !== 'menu') return;
+    if (opt.modeMusic === 'original' || opt.msrc === 'mias') return audio.playTrack(2);
+    if (audio.stream && audio.musicTrack === 'stream' && audio.stream._menu && !audio.stream.paused) return;   // ya suena (no se reinicia con cada clic)
+    if (audio.playStream('music/menu.mp3', (opt.modeVol ?? 80) / 100) && audio.stream) audio.stream._menu = true; }
   // ---------- menú principal: pantallas y navegación ----------
   const VIEWS = {
     home: { pane: 'home', col: 'h_main', title: '' }, single: { pane: 'home', col: 'h_single', title: 'Un jugador', back: 'home' }, multi: { pane: 'home', col: 'h_multi', title: 'Multijugador', back: 'home' },
@@ -874,7 +878,8 @@
   function drawLB() {
     const id = $('m_level').value, mine = lbLocal(id).map(r => ({ ...r, name: r.name || 'Tú', pid: BRR.cloud && BRR.cloud.id })), on = lbOnline && lbOnline.level === id ? lbOnline : [];
     const best = new Map(); for (const r of on.concat(mine)) { const k = (r.pid || r.name) + '|' + (r.veh || ''); const o = best.get(k); if (!o || r.lap < o.lap) best.set(k, r); }
-    const rows = [...best.values()].sort((a, b) => a.lap - b.lap);
+    const gpF1 = isGPLevel(id) ? $('m_veh').value === 'F1' : null;   /* GP y F1 usan los mismos circuitos: solo los tiempos del modo elegido */
+    const rows = [...best.values()].filter(r => gpF1 === null || (r.veh === 'F1') === gpF1).sort((a, b) => a.lap - b.lap);
     const fr = new Set(frList().map(f => f.id)), me = BRR.cloud && BRR.cloud.id, tr = (r, i) => `<tr${r.pid === me ? ' class="me"' : fr.has(r.pid) ? ' class="fr"' : ''}><td>${i + 1}. ${fr.has(r.pid) ? '👫 ' : ''}${esc(r.name || '?')} <span class="small">${VEH_NAMES[r.veh] || r.veh || ''}</span></td><td>${fmt(r.lap)}</td></tr>`;
     const extra = rows.map((r, i) => [r, i]).filter(([r, i]) => i >= 10 && (fr.has(r.pid) || r.pid === me)).slice(0, 6);   // tus amigos (y tú) aunque no estéis entre los 10 primeros
     $('d_lbt').innerHTML = rows.length ? rows.slice(0, 10).map(tr).join('') + (extra.length ? '<tr><td class="small">…</td><td></td></tr>' + extra.map(([r, i]) => tr(r, i)).join('') : '') : '<tr><td class="small">Aún no hay tiempos. ¡Sé el primero!</td></tr>';
@@ -1111,7 +1116,7 @@
         trackProcs.push({ n: o.n, p: [x, lvl.terrain(x, z) - 0.03, z], R: [[c, 0, -sn], [0, 1, 0], [sn, 0, c]], up: procMesh(o.n).up, smoke: D.smoke }); }
       trackBridges = cT && cT.bridge && BRR.editor && BRR.editor.spline ? buildBridges(cT) : [];
       trackDerby = lvl.derby && BRR.derby ? BRR.derby.build(lvl, R) : null;
-      if (trackKanjo && trackKanjo.free) trackKanjo.free(); if (trackTraffic && trackTraffic.free) trackTraffic.free(); trackKanjo = lvl.kanjo && BRR.kanjo ? BRR.kanjo.build(lvl, R) : null; trackTraffic = trackKanjo ? BRR.kanjo.traffic(lvl, R, netRace ? (netRace.kjTraffic || 'normal') : ttMode ? 'mucho' : opt.kjTraffic || 'normal')   /* contrarreloj: siempre con mucho tráfico (misma dificultad para todos los tiempos) */ : null;   // modo Kanjo: tablero elevado, muros, farolas y ciudad
+      if (trackKanjo && trackKanjo.free) trackKanjo.free(); if (trackTraffic && trackTraffic.free) trackTraffic.free(); trackKanjo = lvl.kanjo && BRR.kanjo ? BRR.kanjo.build(lvl, R) : null; trackTraffic = trackKanjo ? BRR.kanjo.traffic(lvl, R, netRace ? (netRace.kjTraffic || 'normal') : ttMode ? 'normal' : opt.kjTraffic || 'normal')   /* contrarreloj: siempre con tráfico medio (misma dificultad para todos los tiempos) */ : null;   // modo Kanjo: tablero elevado, muros, farolas y ciudad
       if (cT && trackMerge.length && BRR.editor && BRR.editor.spline) {   // ninguna valla encima de la carretera (cruces) ni debajo de un puente
         const S = BRR.editor.spline(cT.road), half = (cT.w || 14) / 2, G = new Map(), key = (x, z) => Math.floor(x / 24) + ',' + Math.floor(z / 24);
         for (const p of S) { const x = p.x * 8, z = -p.z * 8, k = key(x, z); if (!G.has(k)) G.set(k, []); G.get(k).push([x, z]); }
@@ -1123,10 +1128,10 @@
       if (cT) for (const g of lvl.checkpoints || []) { if (g.num === 0) continue; const M = [[g.ax[0], 0, g.az[0]], [0, 1, 0], [g.ax[2], 0, g.az[2]]], y = lvl.terrain(g.c[0], g.c[2]);
         { const hw = (cT.w || 14) / 2, px = hw + 1, onRoad = sx => lvl.roadDist && lvl.roadDist(g.c[0] + g.ax[0] * px * sx, g.c[2] + g.ax[2] * px * sx) < hw + 0.9; if (onRoad(1) || onRoad(-1)) continue; }   // un poste que caería sobre otro tramo de pista (tramos juntos, curvas cerradas): ese pórtico no se pone
         trackProcs.push({ n: 'GANTRY', w: cT.w || 14, p: [g.c[0], y - 0.05, g.c[2]], R: M, up: gantryMesh(cT.w || 14).up }); }
-      R.free(statics); R.free(terrainB); for (const d of animDraws) R.free(d.b); animDraws = []; if (horizonB) R.free(horizonB); horizonB = null; if (props && props.models) for (const m of props.models.values()) R.free(m);   // fuera de la tarjeta gráfica el circuito anterior
+      R.free(statics); R.free(terrainB); for (const d of animDraws) R.free(d.b); animDraws = []; if (horizonB) R.free(horizonB); horizonB = null; if (props && props.models) for (const m of props.models.values()) { if (m && m.fr) for (const f of m.fr.values()) R.free(f); else if (m && typeof m[Symbol.iterator] === 'function') R.free(m); }   /* (las banderas animadas: una malla por fotograma) */   // fuera de la tarjeta gráfica el circuito anterior
       R.allTex = []; statics = R.upload(lvl.mesh); terrainB = R.upload(lvl.terrainMesh);
       animDraws = (lvl.animMeshes || []).map(m => ({ a: m.a, v: m.v, b: R.upload(m.mb) })); horizonB = lvl.horizon ? R.upload(lvl.horizon) : null;   // piezas animadas (tele, público) y la Tierra del cielo de la Luna
-      R.setEnvironment(lvl.sun, lvl.sky); { const at = makeAtmos(level, lvl.sun, lvl.sky); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
+      R.setEnvironment(lvl.sun, lvl.sky, lvl.skyGrad); { const at = makeAtmos(level, lvl.sun, lvl.sky, lvl.skyGrad); R.setAtmos(at.A); lvl.atmosInfo = at; } R.setPalAnim(lvl.palAnim, lvl.pal); R.mode = opt.light === 'original' ? 0 : 1; R.setShadows(R.mode ? opt.shadows : 0);
       // jugadores humanos: el equipo elegido para J1 y los siguientes colores para los demás
       $('phuds').innerHTML = ''; humans = [];
       const teams = [team, ...[1, 2, 3, 4, 5, 6].filter(t => t !== team)];
@@ -1868,7 +1873,7 @@
       // cruce: el tramo j (más tarde en la vuelta) va arriba; con «bridgeFirst», el que se pasa primero desde la salida (Oriokart)
       const F = !!T.bridgeFirst, hi = F ? i : j, li = F ? j : i, t = F ? X(S[i], S[(i + 1) % n], S[j], S[(j + 1) % n]) : t0;
       const lo = [S[li], S[(li + 1) % n]], ang = Math.abs(Math.asin(Math.max(-1, Math.min(1, S[i].tx * S[j].tz - S[i].tz * S[j].tx)))) || 0.5;
-      const SH = !!T.bridgeShort, sc = S[hi].s + t * (S[(hi + 1) % n].s - S[hi].s), H = SH ? 3.0 : 6.5, Lf = SH ? Math.min(20, (half + 1.5) / Math.max(0.35, Math.sin(ang)) + 1) : Math.min(60, (half + 5) / Math.max(0.35, Math.sin(ang)) + 4), Lr = SH ? 16 : 70, TOT = S.total;   // «bridgeShort»: puente de kart, bajo y corto (lo justo para pasar por debajo)
+      const SH = !!T.bridgeShort, sc = S[hi].s + t * (S[(hi + 1) % n].s - S[hi].s), H = SH ? 3.0 : 2.5, Lf = SH ? Math.min(20, (half + 1.5) / Math.max(0.35, Math.sin(ang)) + 1) : Math.min(60, (half + 5) / Math.max(0.35, Math.sin(ang)) + 4), Lr = SH ? 16 : 70, TOT = S.total;   // «bridgeShort»: puente de kart, bajo y corto (lo justo para pasar por debajo)
       const hAt = ds => { const a = Math.abs(ds); if (a <= Lf) return H; if (a >= Lf + Lr) return 0; const u = 1 - (a - Lf) / Lr; return H * u * u * (3 - 2 * u); };
       const dist = (a, b) => { let d = a - b; if (d > TOT / 2) d -= TOT; if (d < -TOT / 2) d += TOT; return d; };
       const lowD = (x, z) => { let m = 1e9; for (let k = -40; k <= 40; k++) { const p = S[(li + k + n) % n], q = W(p); m = Math.min(m, Math.hypot(x - q[0], z - q[2])); } return m; };
@@ -1915,12 +1920,13 @@
     if (env === 'MOON') c = 'despejado';   // en Marte y Venus no llueve ni hay nubes
     return { h, c, env };
   }
-  function makeAtmos(level, sun, sky) {
+  function makeAtmos(level, sun, sky, grad) {
     const { h, c, env } = pickAtmos(level); if (h === 'original' && c === 'despejado') return { h, c, A: { cloudK: env === 'MOON' ? 0 : 0.22, cloudC: [0.97, 0.97, 0.99], sunCol: [1, 0.9, 0.7] } };
     const az = Math.atan2(sun[2], sun[0]), el = d => { const e = d * Math.PI / 180; return [Math.cos(az) * Math.cos(e), Math.sin(e), Math.sin(az) * Math.cos(e)]; };
     const mix = (a, b, t) => a.map((x, i) => x + (b[i] - x) * t), mul = (a, k) => a.map(x => x * k);
     let A = { cloudK: 0.22, cloudC: [0.97, 0.97, 0.99], sunCol: [1, 0.9, 0.7], fogK: 1, wet: 0, night: 0, lights: false };
     const base = { zen: sky.map(x => x * 0.78), hor: sky.map(x => Math.min(1, x * 0.85 + 0.2)), skyC: sky.map(x => 0.6 + x * 0.55), sunC: [1.05, 0.98, 0.88], gndC: [0.45, 0.4, 0.34] };
+    if (grad && grad.length) { base.hor = grad[0].map(x => x / 255); base.zen = grad[grad.length - 1].map(x => x / 255); }   /* cielo con degradado del original */
     Object.assign(A, base);
     if (h === 'manana') Object.assign(A, { L: el(11), zen: [0.36, 0.48, 0.7], hor: [0.98, 0.74, 0.56], skyC: [0.78, 0.7, 0.68], sunC: [1.18, 0.8, 0.52], sunCol: [1, 0.7, 0.42], cloudC: [1, 0.86, 0.78] });
     if (h === 'dia') Object.assign(A, { L: el(58), zen: [0.24, 0.45, 0.82], hor: [0.7, 0.8, 0.93], skyC: [0.76, 0.83, 0.96], sunC: [1.12, 1.04, 0.94] });
@@ -2206,7 +2212,7 @@
   let lastNewMode = null;
   function newModeUI() { const m = $('n_mode').value, K = newKind(); $('n_kjrow').hidden = m !== 'kanjo'; $('n_dbrow').hidden = m !== 'derby';
     $('n_mapsrow').hidden = m === 'rotate' || m === 'champ'; $('n_seriesrow').hidden = m !== 'champ'; const kjT = m === 'kanjo' ? $('n_kjtype').value : null; $('n_laps').parentElement.hidden = m === 'free' || m === 'drift' || m === 'derby' || kjT === 'libre'; $('n_ai').parentElement.hidden = $('n_diff').parentElement.hidden = m === 'free' || m === 'drift' || (kjT && kjT !== 'carrera'); $('n_crazy').parentElement.hidden = m === 'free' || m === 'drift' || m === 'gp' || m === 'f1' || m === 'kartgp' || m === 'kanjo' || m === 'derby';   /* Kanjo Loop: sus propios modos (carrera, contrarreloj, libre), no los modos extra */
-    if (kjT === 'tt') $('n_kjtraf').value = 'mucho'; $('n_kjtraf').disabled = kjT === 'tt';   /* contrarreloj: siempre con mucho tráfico */
+    if (kjT === 'tt') $('n_kjtraf').value = 'normal'; $('n_kjtraf').disabled = kjT === 'tt';   /* contrarreloj: siempre con tráfico medio */
     newMaps = newMaps.filter(id => kindOfT(tById(id)) === K); if (!newMaps.length) { const f = netTracks(K)[0]; if (f) newMaps = [f.id]; }   // solo circuitos de ese modo
     if (m !== lastNewMode) { if (/^(gp|f1|kartgp)$/.test(m) || /^(gp|f1|kartgp)$/.test(lastNewMode || '')) $('n_laps').value = '0'; lastNewMode = m; }   // Grand Prix online: las vueltas de cada circuito (se pueden cambiar)
     if (m !== 'list' && m !== 'gp' && m !== 'f1' && m !== 'kartgp' && m !== 'derby' && newMaps.length > 1) newMaps = newMaps.slice(0, 1);

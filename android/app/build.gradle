@@ -1,7 +1,7 @@
 plugins { id 'com.android.application' }
 // versión: la del archivo VERSION del repositorio (0.88.0 → código 8800)
 def ver = new File(rootDir, '../VERSION').text.trim()
-def p = ver.tokenize('.').collect { it.toInteger() }
+def p = (ver.tokenize('.').collect { it.toInteger() } + [0, 0, 0]).take(3)   // «1.2» vale como 1.2.0
 android {
     namespace 'com.bigredreport.app'
     compileSdk 34

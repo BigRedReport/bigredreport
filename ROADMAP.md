@@ -238,4 +238,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Avispa, Defensor, Rotativo, moto aérea y Hover Mower; Tofu 86, B 30 y Lady350; gorros y gafas; objetos del derby; modo libre con todo; opción «Sin coches nuevos» (1.1.9)
 - [x] Objetos visibles otra vez; vehículos originales con más polígonos; arreglos de la Avispa, Hover Mower, Rotativo, Escarabajo y OVNI (1.1.10)
 - [x] Anuncios y señales originales, 16 logos, cielos y suelos, agua ajustada, banderas, lancha neumática, portadas del derby, vídeo en el menú (1.1.11)
+- [x] Cielos con degradado, arreglo de carga tras mapas con banderas, circuitos del editor sin baches, puente de Suzuka, controles de Oriokart, clasificaciones GP/F1, música del menú (1.2)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

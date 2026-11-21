@@ -72,7 +72,7 @@
   // ---------- del circuito del editor a los datos del juego ----------
   // devuelve { h, t, S (curva), gates } con el terreno allanado bajo la carretera y la carretera pintada
   function prepare(T, B) {
-    const h = T.h.slice(), t = T.t.slice(), S = spline(T.road), w = (T.w || 14) / CM, half = w / 2; let best = null;
+    const h = T.h.slice(), hf = Float32Array.from(T.h), t = T.t.slice(), S = spline(T.road), w = (T.w || 14) / CM, half = w / 2; let best = null;
     if (S.length) {
       // altura de la carretera: el terreno bajo ella suavizado a lo largo (sin baches)
       let y = S.map(p => hAt(T.h, p.x, p.z)); const n = y.length;
@@ -80,11 +80,11 @@
       const R = half + 2.2, tgt = new Float32Array(65536); best = new Float32Array(65536).fill(1e9);
       S.forEach((p, i) => { for (let z = Math.floor(p.z - R); z <= Math.ceil(p.z + R); z++) for (let x = Math.floor(p.x - R); x <= Math.ceil(p.x + R); x++) { if (x < 0 || z < 0 || x > 255 || z > 255) continue;
         const d = Math.hypot(x - p.x, z - p.z), k = z * 256 + x; if (d < best[k]) { best[k] = d; tgt[k] = y[i]; } } });
-      for (let k = 0; k < 65536; k++) { const d = best[k]; if (d > R) continue; const a = d <= half + 0.6 ? 1 : 1 - (d - half - 0.6) / (R - half - 0.6); h[k] = Math.round(h[k] + (tgt[k] - h[k]) * Math.max(0, Math.min(1, a))); }
+      for (let k = 0; k < 65536; k++) { const d = best[k]; if (d > R) continue; const a = d <= half + 0.6 ? 1 : 1 - (d - half - 0.6) / (R - half - 0.6); hf[k] = h[k] + (tgt[k] - h[k]) * Math.max(0, Math.min(1, a)); h[k] = Math.round(hf[k]); }   /* hf: la misma altura sin redondear (sin escalones en las cuestas) */
       // suelo de carretera bajo la cinta (para el polvo, el agarre y los sonidos)
       const RT = T.roadTile ?? B.roadTile; for (let z = 0; z < 255; z++) for (let x = 0; x < 255; x++) { const k = z * 256 + x; if (Math.max(best[k], best[k + 1], best[k + 256], best[k + 257]) < half) t[k] = RT; }   // solo las casillas que quedan del todo bajo la cinta
     }
-    return { h, t, S, gates: gatesOf(S), half, best: S.length ? best : null };
+    return { h, hf, t, S, gates: gatesOf(S), half, best: S.length ? best : null };
   }
   function gatesOf(S) { const G = S.length ? Math.max(3, Math.min(12, Math.round(S.total / 260))) : 0, gates = [];
     for (let g = 0; g < G; g++) { const s = g * S.total / G; let i = 0; while (i < S.length - 1 && S[i + 1].s <= s) i++; gates.push({ num: g, last: g === G - 1, p: S[i] }); }
@@ -112,12 +112,12 @@
   const hex = v => (v < 0 ? '-&' : '&') + Math.abs(Math.round(v)).toString(16).toUpperCase();
   async function build(files, T) {
     setK(T); const B0 = await loadBase(files, T.base); if (T.gen && !T.genOk) { T.t.fill(T.groundTile ?? B0.groundTile); T.genOk = 1; }   // circuitos generados: suelo liso con la baldosa del tema
-    const B = B0, P = prepare(T, B), { h, t, S, gates, half } = P;
+    const B = B0, P = prepare(T, B), { h, hf, t, S, gates, half } = P;
     if (S.length < 8) throw new Error('La carretera necesita al menos 3 puntos');
     const name = T.base + '~' + T.id, L = new Map();
     for (const [k, v] of B.L) if (!/\.REC$/i.test(k) && !/^MAP\.(MPH|MPC|CHT|DAT|SHL|CSE|GRP)$/i.test(k) && !/\.TXT$/i.test(k)) L.set(k, v);
     const mre = new RegExp('^' + B.mapn + '\\.', 'i'); for (const k of [...L.keys()]) if (mre.test(k)) L.delete(k);
-    L.set('MAP.COL', B.col); L.set('MAP.MPH', h); L.set('MAP.MPC', t);
+    L.set('MAP.COL', B.col); L.set('MAP.MPH', h); L.set('MAP.MPF', hf);   /* alturas finas: la carretera sin baches */ L.set('MAP.MPC', t);
     const cht = new Uint8Array(768); for (let k = 0; k < 256; k++) { cht[k] = 1; cht[256 + k] = 0; cht[512 + k] = k < B.nT ? k : 255; } L.set('MAP.CHT', cht);
     // objetos: controles (invisibles), pancarta de salida/control con sus postes y los que has puesto
     const names = [], recs = []; const nid = n => { let i = names.indexOf(n); if (i < 0) { names.push(n); i = names.length - 1; } return i; };

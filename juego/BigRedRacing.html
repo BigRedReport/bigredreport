@@ -272,8 +272,8 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
         <button class="hbtn" data-go="comm"><span class="ico">🗺️</span>Circuitos y editor</button>
         <button class="hbtn" data-go="options"><span class="ico">⚙️</span>Opciones</button>
         <button class="hbtn" data-go="mods"><span class="ico">🧩</span>Mods</button>
-        <div class="hrow"><button class="hbtn small2" data-go="dos" title="F2">Juego original (1995)</button>
-        <button class="hbtn small2 dnt" data-go="donate">❤ Apoyar el proyecto</button>
+        <button class="hbtn" data-go="dos" title="F2"><span class="ico">🕹️</span>Juego original (1995)</button>
+        <div class="hrow"><button class="hbtn small2 dnt" data-go="donate">❤ Apoyar el proyecto</button>
         <button class="hbtn small2" data-go="exit">Salir</button></div>
         <div id="updbar" class="updbar" hidden></div>
       </div>
@@ -445,7 +445,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
       </div>
     </div></aside>
   </section>
-  <footer class="mfoot"><span class="small" id="cdinfo"></span><span class="small" id="pad">Mando: conéctalo y pulsa un botón para que el navegador lo detecte.</span></footer>
+  <footer class="mfoot" hidden style="display:none"><span class="small" id="cdinfo"></span><span class="small" id="pad">Mando: conéctalo y pulsa un botón para que el navegador lo detecte.</span></footer>
 </div>
 </div>
 
@@ -529,7 +529,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   </div>
   <div class="opage" data-op="j" hidden>
     <div class="opt"><span>Idioma</span><select id="o_lang" data-notr></select><span></span></div>
-    <div class="opt"><span>Sin coches nuevos</span><input id="o_noNew" type="checkbox"><span class="small">carrera rápida y campeonato: solo los vehículos originales del juego, sin los añadidos</span></div>
+    <div class="opt"><span>Sin coches nuevos</span><input id="o_noNew" type="checkbox"></div>
     <div class="opt"><span>Rivales</span><select id="o_origai"><option value="0">IA nueva (con físicas, recomendado)</option><option value="1">Originales de 1995 (carreras grabadas: van por raíles)</option></select><span></span></div>
     <div class="opt"><span>Pelotón (goma elástica)</span><select id="o_aiPack"><option value="no">No: cada uno a su ritmo (carreras justas)</option><option value="si">Sí: los rivales te esperan o se acercan</option></select><span></span></div>
     <div class="opt"><span>Aspecto de los rivales</span><select id="o_rivLook"><option value="aleatorio">Colores RGB y bocinas al azar</option><option value="clasico">Colores de equipo (como el original)</option></select><span></span></div>

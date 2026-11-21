@@ -7,6 +7,16 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.2**
+- **Cielos:** todos los circuitos con el cielo en degradado por franjas del original (Kenia, Irlanda, España, Alemania, Noruega, México, Inglaterra, Francia, Egipto, EE. UU., India, China, Japón, Escocia, Rusia, Italia, Hawái); con luz moderna, degradado suave.
+- **Arreglo:** tras una carrera en un mapa con banderas animadas, la siguiente se quedaba colgada al cargar.
+- **Circuitos del editor:** la altura del suelo bajo la carretera ya no se redondea (sin baches en las cuestas, p. ej. Donington Park).
+- **Puente de Suzuka:** más bajo (2,5 m).
+- **Controles:** en los circuitos propios cada puerta mide lo que la carretera (Oriokart ya no da avisos falsos).
+- **Contrarreloj:** el Kanjo Loop con tráfico medio; GP y F1 con clasificación y récord separados.
+- **Menú:** música nueva, botón «Juego original (1995)» como los demás, sin avisos en las esquinas.
+- **Escenarios y vehículos:** campos de Italia del todo marrones; piloto de la Avispa más alto y asiento marrón.
+
 **Novedades de la 1.1.11**
 - **Carteles y señales:** cada valla publicitaria lleva su anuncio original y cada señal su flecha; las señales de flecha se rompen al chocar (queda un trozo del poste).
 - **Logos:** 16 logos de equipo del juego original que faltaban (de TEAMS.TEA).
