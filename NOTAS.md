@@ -7,6 +7,18 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.1.11**
+- **Carteles y señales:** cada valla publicitaria lleva su anuncio original y cada señal su flecha; las señales de flecha se rompen al chocar (queda un trozo del poste).
+- **Logos:** 16 logos de equipo del juego original que faltaban (de TEAMS.TEA).
+- **Escenarios:** cielo morado en Australia y el Ártico, suelo marrón en Chile, campos marrones en Italia, sol naciente en Japón, ventanas azules en los edificios de ciudad, arco de hielo del Ártico sin pilares ni piezas oscuras.
+- **Agua:** el efecto de olas se ajusta a la orilla en todos los circuitos (y vuelve al agua de la nieve; la nieve de Hawái ya no ondula).
+- **Banderas:** ondean con el viento.
+- **Lancha neumática:** el piloto va sentado de lado y se inclina en las curvas.
+- **Vehículos:** caja de choque de la Avispa a su tamaño; los cristales del Escarabajo ya no se pintan.
+- **Piloto y escudería:** fuera cinco gorros.
+- **Destruction derby:** portadas nuevas de las cinco arenas.
+- **Menú:** vídeo de fondo.
+
 **Novedades de la 1.1.10**
 - **Arreglado:** los objetos que se mueven (conos, árboles, postes, rampas del modo libre), la estructura del destruction derby, la ciudad del Kanjo Loop, vallas, puentes y tubos se habían vuelto invisibles en la 1.1.9.
 - **Vehículos originales con más polígonos:** subdivisión que conserva aristas y esquinas (solo se suavizan las zonas curvas) y ruedas más redondas; se puede desactivar en Opciones › Gráficos › Vehículos.

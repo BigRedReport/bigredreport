@@ -237,4 +237,5 @@ Fallos y mejoras encontrados probando la 0.13. Se van tachando según se arregla
 - [x] Marte, Venus y la Luna como en el original (cielos, Tierra, tele, público, base de la Luna); descompresor para navegadores antiguos (1.1.8)
 - [x] Avispa, Defensor, Rotativo, moto aérea y Hover Mower; Tofu 86, B 30 y Lady350; gorros y gafas; objetos del derby; modo libre con todo; opción «Sin coches nuevos» (1.1.9)
 - [x] Objetos visibles otra vez; vehículos originales con más polígonos; arreglos de la Avispa, Hover Mower, Rotativo, Escarabajo y OVNI (1.1.10)
+- [x] Anuncios y señales originales, 16 logos, cielos y suelos, agua ajustada, banderas, lancha neumática, portadas del derby, vídeo en el menú (1.1.11)
 - [ ] Ideas: modo fútbol (tipo Rocket League)

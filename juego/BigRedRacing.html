@@ -78,6 +78,7 @@ input[type=range]{width:100%;accent-color:var(--red)}
 .small{font-size:12px;color:var(--mut)}
 
 #menu{padding:0;align-items:stretch;justify-content:stretch;background:#07080b center/cover no-repeat}
+#menu{isolation:isolate}#menuvid{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-1;pointer-events:none}
 #menu::before{content:"";position:absolute;inset:0;background:linear-gradient(180deg,rgba(7,8,11,.55),rgba(7,8,11,.88));pointer-events:none}
 .mwrap{position:relative;display:flex;flex-direction:column;width:100%;height:100%;padding:18px 22px 10px;gap:14px}
 .mtop{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
@@ -254,7 +255,7 @@ body.img-pixel .tcard img,body.img-pixel .dimg img,body.img-pixel .ntrack img{im
   <p id="folder_msg" class="small"></p>
 </div></div>
 
-<div class="screen" id="menu" hidden>
+<div class="screen" id="menu" hidden><video id="menuvid" src="menu_bg.mp4" autoplay muted loop playsinline preload="auto" aria-hidden="true"></video>
 <div class="mwrap">
   <header class="mtop">
     <h1 class="logo"><b>Big Red</b> Racing</h1>

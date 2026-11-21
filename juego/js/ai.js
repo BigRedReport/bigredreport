@@ -520,7 +520,7 @@
   // penetración (teorema del eje separador en planta) y rebote; los rivales grabados empujan como si pesaran muchísimo
   // soft: en la salida los toques solo separan (sin rebote ni trompos) para que no se forme una pelotera
   BRR.carCollisions = function (cars, soft) {
-    const box = c => { const R = c.R, b = c.def.box, ctr = V.add(c.p, BRR.mv(R, b.c)), f = V.norm([R[0][2], 0, R[2][2]]), r = [f[2], 0, -f[0]]; return { ctr, f, r, h: b.h }; };
+    const box = c => { const R = c.R, b = c.def.hitBox || c.def.box, ctr = V.add(c.p, BRR.mv(R, b.c)), f = V.norm([R[0][2], 0, R[2][2]]), r = [f[2], 0, -f[0]]; return { ctr, f, r, h: b.h }; };
     for (let i = 0; i < cars.length; i++) for (let j = i + 1; j < cars.length; j++) {
       const A = cars[i], B = cars[j], dx = A.p[0] - B.p[0], dz = A.p[2] - B.p[2]; if (A.kinematic && B.kinematic) continue;
       if (dx * dx + dz * dz > 144) continue;

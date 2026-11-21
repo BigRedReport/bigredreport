@@ -101,7 +101,7 @@
     if (!rgb) return P; const lum = c => 0.3 * P[c * 3] + 0.59 * P[c * 3 + 1] + 0.11 * P[c * 3 + 2] + 1;
     const sat = c => { const r = P[c * 3], g = P[c * 3 + 1], b = P[c * 3 + 2], mx = Math.max(r, g, b); return mx > 60 ? (mx - Math.min(r, g, b)) / mx : 0; };
     let base = onlyRamp;
-    if (base == null) { const cnt = new Map(); for (const m of models) for (const f of m.faces) if (!f.tex && f.color != null && f.cond == null) cnt.set(f.color, (cnt.get(f.color) || 0) + f.idx.length);
+    if (base == null) { const cnt = new Map(); for (const m of models) for (const f of m.faces) if (!f.tex && f.color != null && f.cond == null && !(f.color >= 96 && f.color <= 111) && f.color < 224) cnt.set(f.color, (cnt.get(f.color) || 0) + f.idx.length);
       const c0 = [...cnt].sort((a, b) => b[1] * (sat(b[0]) > 0.3 ? 6 : 1) - a[1] * (sat(a[0]) > 0.3 ? 6 : 1))[0]; if (!c0) return P; base = c0[0] & ~15; }
     let ref = base; for (let c = base; c < base + 16; c++) if (sat(c) > sat(ref) || (sat(c) === sat(ref) && lum(c) > lum(ref))) ref = c;
     const out = new Uint8Array(P), l0 = lum(ref), [R0, G0, B0] = rgb;
@@ -256,7 +256,10 @@
       gearF: table('f') || [[0, 600], [35000, 0]], gearB: table('b') || [[0, 444], [15000, 0]],
       steer: steerM ? [num(steerM[1]), num(steerM[2]), num(steerM[3]), num(steerM[4])] : [7000, 0x280, 28000, 0x180],
     };
-    if (NM === 'UFO') scaleDef(OUT, 0.5);   // el ovni del original es gigante: a la mitad
+    if (NM === 'UFO') scaleDef(OUT, 0.5);
+    if (NM === 'INFLATE') {   // lancha neumática: como en el original, el piloto va sentado de lado en el flotador izquierdo, junto al motor, y la lancha se inclina en las curvas
+      if (window.BRR_INFHEAD) OUT.headPos = window.BRR_INFHEAD;   /* (el original ya lo pone en el flotador izquierdo) */
+      OUT.headYaw = window.BRR_INFYAW != null ? window.BRR_INFYAW : -1.25; OUT.lean = true; OUT.leanK = 0.55; OUT.groundY = Math.min(...OUT.wheels.map(w => w.c[1] - w.radius)); }   // el ovni del original es gigante: a la mitad
     return OUT;
   };
   // más polígonos para las carrocerías: subdivisión de Loop con aristas vivas. Una arista es «viva» si separa caras con más de ~35° de ángulo,
@@ -371,9 +374,9 @@
       this.altOff = 0;
       // esferas de la carrocería a lo largo del eje largo
       // esferas de la carrocería: siempre por encima del punto de apoyo de las ruedas (si no, rozan el suelo sin parar)
-      const wb = Math.min(...this.W.map(w => w.c[1] - w.radius)), c = def.box.c;
-      const r = Math.max(0.35, Math.min(h[0], h[1]) * 0.8), cy = Math.max(c[1], wb + 0.35 + r), n = Math.max(2, Math.round(h[2] * 2 / r));
-      this.spheres = []; for (let i = 0; i < n; i++) { const t = n === 1 ? 0 : i / (n - 1) * 2 - 1; this.spheres.push([c[0], cy, c[2] + t * Math.max(0, h[2] - r)]); }
+      const HB = def.hitBox || def.box, hh = HB.h, wb = Math.min(...this.W.map(w => w.c[1] - w.radius)), c = HB.c;   // caja de choque propia (escúter) o la de siempre
+      const r = Math.max(0.35, Math.min(hh[0], hh[1]) * 0.8), cy = Math.max(c[1], wb + 0.35 + r), n = Math.max(2, Math.round(hh[2] * 2 / r));
+      this.spheres = []; for (let i = 0; i < n; i++) { const t = n === 1 ? 0 : i / (n - 1) * 2 - 1; this.spheres.push([c[0], cy, c[2] + t * Math.max(0, hh[2] - r)]); }
       this.sr = r; this.contacts = [];
       this.reset(lvl.start.x, lvl.start.z, lvl.start.yaw);
     }

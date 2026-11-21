@@ -3,6 +3,8 @@
 "use strict";
 (function () {
   const BRR = window.BRR;
+  BRR.DECAL_EXTRA = [1, 2, 7, 8, 9, 11, 12, 14, 15, 16, 17, 18, 19, 20, 22, 23];   // (las otras 6 ya están entre los 13 del menú, y la 0 es una interrogación)
+  BRR.NLOGOS = () => 13 + BRR.DECAL_EXTRA.length;
   const W = 320, H = 200;
   // sprites: u16 número, u32 posiciones; cada uno: u16 ancho, alto, a, b + píxeles (0 = transparente)
   function parseSPR(d) {
@@ -246,7 +248,7 @@
     // logotipo de la escudería como imagen (para el menú moderno): panel del color + dibujo del logo, con la paleta de LOGOSCN
     async logoURL(logo, team, paint) {
       const S = await this.scene('LOGOSCN'); if (!S.rawData || !S.sprites.length) return null;
-      const pal = BRR.pal6(S.rawData.subarray(0, 768)), p = S.sprites[13 + (team - 1) * 5], l = S.sprites[logo]; if (!l) return null;
+      const pal = BRR.pal6(S.rawData.subarray(0, 768)), p = S.sprites[13 + (team - 1) * 5], l = await this.logoSprite(logo); if (!l) return null;
       const w = p ? p.w : l.w + 16, h = p ? p.h : l.h + 16, cv = document.createElement('canvas'); cv.width = w; cv.height = h;
       const g = cv.getContext('2d'), im = g.createImageData(w, h);
       const put = (sp, ox, oy) => { if (!sp) return; for (let j = 0; j < sp.h; j++) for (let i = 0; i < sp.w; i++) { const c = sp.px[j * sp.w + i]; if (!c) continue; const x = ox + i, y = oy + j; if (x < 0 || y < 0 || x >= w || y >= h) continue; const k = (y * w + x) * 4; im.data[k] = pal[c * 3]; im.data[k + 1] = pal[c * 3 + 1]; im.data[k + 2] = pal[c * 3 + 2]; im.data[k + 3] = 255; } };
@@ -257,8 +259,18 @@
       put(l, 8, 8); g.putImageData(im, 0, 0); return cv.toDataURL();
     }
     // logo i en RGBA 40×40 (transparente donde no hay dibujo), para pintarlo en los coches
+    // logos de los equipos del juego (TEAMS.TEA › DECALS.TM: 24 dibujos de 40×40 en rejilla de 6) que no están entre los 13 del menú: se añaden detrás (logo 13 en adelante)
+    async decals() {
+      if (this._dec !== undefined) return this._dec; this._dec = [];
+      try { const A = await this.files.archive('TEAMS.TEA'), tm = A.get('DECALS.TM'); if (!tm) return this._dec; const bg = tm[0];
+        for (const t of BRR.DECAL_EXTRA) { const sx = (t % 6) * 40, sy = (t / 6 | 0) * 40, px = new Uint8Array(1600);
+          for (let y = 0; y < 40; y++) for (let x = 0; x < 40; x++) { const c = tm[(sy + y) * 256 + sx + x]; px[y * 40 + x] = c === bg ? 0 : c || 1; }
+          this._dec.push({ w: 40, h: 40, px }); } } catch (e) { }
+      return this._dec;
+    }
+    async logoSprite(i) { const S = await this.scene('LOGOSCN'); return i < 13 ? S.sprites[i] : (await this.decals())[i - 13]; }
     async logoRGBA(i) {
-      const S = await this.scene('LOGOSCN'); const l = S.sprites[i]; if (!l || !S.rawData) return null; const pal = BRR.pal6(S.rawData.subarray(0, 768)), o = new Uint8ClampedArray(40 * 40 * 4);
+      const S = await this.scene('LOGOSCN'); const l = await this.logoSprite(i); if (!l || !S.rawData) return null; const pal = BRR.pal6(S.rawData.subarray(0, 768)), o = new Uint8ClampedArray(40 * 40 * 4);
       const ox = Math.floor((40 - l.w) / 2), oy = Math.floor((40 - l.h) / 2);
       for (let j = 0; j < l.h; j++) for (let x = 0; x < l.w; x++) { const c = l.px[j * l.w + x]; if (!c) continue; const X = x + ox, Y = j + oy; if (X < 0 || Y < 0 || X >= 40 || Y >= 40) continue; const k = (Y * 40 + X) * 4; o[k] = pal[c * 3]; o[k + 1] = pal[c * 3 + 1]; o[k + 2] = pal[c * 3 + 2]; o[k + 3] = 255; }
       return o;

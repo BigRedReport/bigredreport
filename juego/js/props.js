@@ -10,10 +10,18 @@
     constructor(lvl, R) {
       this.lvl = lvl; this.R = R; this.models = new Map(); this.list = []; this.grid = new Map();
       for (const p of lvl.props) {
+        if (p.mv != null) { p.name0 = p.name; p.name = p.name + '@' + p.mv; }   // variante (la flecha de cada señal)
         if (!this.models.has(p.name)) {
-          const m = lvl.getModel(p.name), mb = new BRR.MeshBuilder(lvl.pal); mb.hd = true;
+          const m = p.mv != null ? (lvl.getModelV(p.name0, p.mv) || lvl.getModel(p.name0)) : lvl.getModel(p.name), mb = new BRR.MeshBuilder(lvl.pal); mb.hd = true;
+          // señales: al romperse queda un trocito del poste clavado en el suelo
+          if (p.mv != null) { const sm = { ...m, faces: m.faces.filter(f => !f.tex) }; if (sm.faces.length) { const ys = sm.faces.flatMap(f => f.idx.map(i => m.verts[i] ? m.verts[i][1] : 0)), y0 = Math.max(...ys), cut = y0 - (y0 - Math.min(...ys)) * 0.14;
+            const sb = new BRR.MeshBuilder(lvl.pal); sb.hd = true; sb.addModel({ ...sm, verts: m.verts.map(v => v && [v[0], Math.max(v[1], cut), v[2]]) }, v => BRR.toGL(v[0], v[1], v[2]), n => lvl.find(n + '.TM')); this.models.set(p.name + '#resto', R.upload(sb)); } }
           mb.addModel(m, v => BRR.toGL(v[0], v[1], v[2]), n => lvl.find(n + '.TM'));
           this.models.set(p.name, R.upload(mb));
+          // banderas (y lo que se mueva con una animación del circuito): una malla por fotograma
+          if (/^FLAG/.test(p.name) && m.animBits && lvl.anims && lvl.anims.length) { const raw = lvl.find(p.name + '.3DW'), A = lvl.anims.findIndex(a => (a.mask | m.animBits) === a.mask);
+            if (raw && !raw.faces && A >= 0) { const fr = new Map(); for (const v of new Set(lvl.anims[A].seq)) { const mv = BRR.parse3DW(raw, 0, v), fb = new BRR.MeshBuilder(lvl.pal); fb.hd = true; fb.addModel(mv, q => BRR.toGL(q[0], q[1], q[2]), n => lvl.find(n + '.TM')); fr.set(v, R.upload(fb)); }
+              this.models.set(p.name + '#anim', { A, fr }); } }
           // animales (ovejas...): como en el original, al pisarlos quedan aplastados y rojos
           if (BRR.isCritter(p)) { const P = lvl.pal, red = new Uint8Array(P);
             for (let c = 0; c < 256; c++) { const l = (0.3 * P[c * 3] + 0.59 * P[c * 3 + 1] + 0.11 * P[c * 3 + 2]) / 255; red[c * 3] = Math.min(255, 90 + l * 200); red[c * 3 + 1] = l * 30; red[c * 3 + 2] = l * 25; }
@@ -67,7 +75,10 @@
       const f2 = far * far;
       for (const o of this.list) {
         const dx = o.pos[0] - cam[0], dz = o.pos[2] - cam[2]; if (dx * dx + dz * dz > f2) continue;
+        const an = !o.squash && this.models.get(o.name + '#anim');
+        if (an) { const A = this.lvl.anims[an.A], v = A.seq[(Math.floor(performance.now() / 1000 * 25 / Math.max(1, A.speed)) + Math.abs(o.p0[0] * 7 | 0)) % A.seq.length]; const b = an.fr.get(v); if (b) { this.R.draw(b, BRR.M4.fromRT(o.rot, o.pos)); continue; } }
         this.R.draw(this.models.get(o.squash ? o.name + '#rojo' : o.name), BRR.M4.fromRT(o.rot, o.pos));
+        if (o.v && o.mv != null && this.models.get(o.name + '#resto')) this.R.draw(this.models.get(o.name + '#resto'), BRR.M4.fromRT(o.R0, o.p0));   // el trozo de poste que queda
       }
     }
   };

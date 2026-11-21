@@ -510,6 +510,8 @@
   function renderFront() {
     if (!front) return;
     if (front.bg.menu) $('menu').style.backgroundImage = `url(${front.bg.menu})`;
+    // vídeo de fondo del menú (brasas): solo se reproduce mientras el menú está a la vista
+    { const v = $('menuvid'); if (v) { v.muted = true; setInterval(() => { const on = !!v.offsetParent && !document.hidden; if (on && v.paused) v.play().catch(() => {}); else if (!on && !v.paused) v.pause(); }, 700); } }
     makeGlobes();
     if (front.bg.load) $('loading').style.backgroundImage = `url(${front.bg.load})`;
     $('tracks').innerHTML = front.tracks.map(t => card(t)).join('');
@@ -607,7 +609,7 @@
       $(box).innerHTML = cells.join(''); }
     const chars = []; for (let i = 0; i < BODIES.length; i++) chars.push(`<div class="pitem${myBody() === i ? ' on' : ''}" tabindex="0" data-bd="${i}"><img src="${await charURL(specOf(myHead(), i, mySkin()), team).catch(() => '')}"><div>${['Hombre', 'Mujer', 'Niño', 'Grandullón'][i] || 'Cuerpo ' + (i + 1)}</div></div>`);
     $('pf_chars').innerHTML = chars.join('');
-    const logos = []; for (let i = 0; i < 13; i++) logos.push(`<div class="pitem${(opt.logo || 0) === i ? ' on' : ''}" tabindex="0" data-l="${i}"><img src="${orig ? await orig.logoURL(i, team, hexRGB(opt.paint)).catch(() => '') : ''}"></div>`);
+    const logos = []; for (let i = 0; i < BRR.NLOGOS(); i++) logos.push(`<div class="pitem${(opt.logo || 0) === i ? ' on' : ''}" tabindex="0" data-l="${i}"><img src="${orig ? await orig.logoURL(i, team, hexRGB(opt.paint)).catch(() => '') : ''}"></div>`);
     for (const L of BRR.LOGOS_EXTRA || []) logos.push(`<div class="pitem${opt.logo === 'x:' + L.id ? ' on' : ''}" tabindex="0" data-x="${L.id}" title="${esc(L.n)}"><img src="${L.src}" style="background:${carColOpt()};image-rendering:auto"></div>`);
     logos.push(`<div class="pitem${opt.logo === 'custom' ? ' on' : ''}" tabindex="0" data-custom="1" title="Tu propio logo (PNG)">${opt.customLogo ? `<img src="${opt.customLogo}" style="background:${carColOpt()}">` : '<div style="font-size:42px;line-height:72px">＋</div>'}<div>Logo propio</div></div>`);
     const cols = [];
@@ -649,7 +651,7 @@
   function rivalLooks(n, avoid) {
     const out = [], names = RIVAL_TEAMS.filter(n => n !== myTeamName()).sort(() => Math.random() - 0.5), hues = avoid.filter(x => x != null), horns = BRR.HORNS.map(x => x.id).filter(x => x !== 'propia').sort(() => Math.random() - 0.5);
     // logos distintos para cada rival (los 13 del original y los añadidos), sin repetir el del jugador
-    const mine = typeof opt.logo === 'number' ? opt.logo : opt.logo, logos = [...Array.from({ length: 13 }, (_, i) => i), ...(BRR.LOGOS_EXTRA || []).map(l => 'x:' + l.id)].filter(l => l !== mine).sort(() => Math.random() - 0.5);
+    const mine = typeof opt.logo === 'number' ? opt.logo : opt.logo, logos = [...Array.from({ length: BRR.NLOGOS() }, (_, i) => i), ...(BRR.LOGOS_EXTRA || []).map(l => 'x:' + l.id)].filter(l => l !== mine).sort(() => Math.random() - 0.5);
     for (let k = 0; k < n; k++) { let best = 0, bd = -1;
       for (let t = 0; t < 40; t++) { const h = Math.random() * 360, d = Math.min(360, ...hues.map(q => Math.min(Math.abs(h - q), 360 - Math.abs(h - q)))); if (d > bd) { bd = d; best = h; } }
       hues.push(best); out.push({ paint: hslHex(best, 0.7 + Math.random() * 0.3, 0.42 + Math.random() * 0.16), horn: horns[k % horns.length], teamName: names[k % names.length], logo: logos[k % logos.length], gar: garRandom() }); }
@@ -1004,7 +1006,7 @@
   // ---------- pantalla partida: un recuadro por jugador (uno por mando conectado) con su coche girando, equipo, color, logo, llantas y claxon ----------
   let splitCfg = null, splLoop = 0;
   const SPL_FIELDS = ['veh', 'team', 'paint', 'logo', 'rim', 'horn'];
-  const splLogos = () => [...Array.from({ length: 13 }, (_, i) => ({ v: i, n: 'Logo ' + (i + 1) })), ...(BRR.LOGOS_EXTRA || []).map(l => ({ v: 'x:' + l.id, n: l.n }))];
+  const splLogos = () => [...Array.from({ length: BRR.NLOGOS() }, (_, i) => ({ v: i, n: 'Logo ' + (i + 1) })), ...(BRR.LOGOS_EXTRA || []).map(l => ({ v: 'x:' + l.id, n: l.n }))];
   const splDev = (i, n) => { const P = pads(), cnt = P.filter(g => padSeen(g).active).length || P.length, kbN = Math.min(2, Math.max(0, n - cnt)); return i < kbN ? (kbN === 1 ? '⌨️ Teclado' : i === 0 ? '⌨️ Teclado (flechas)' : '⌨️ Teclado (WASD)') : '🎮 Mando ' + (i - kbN + 1); };
   const splThumbCache = new Map();
   async function splThumb(veh, team, paint, rim) {   // la carrocería con sus ruedas, como en el menú original
@@ -2770,14 +2772,15 @@
     let Rm = c.R; if (c.out) return;
     // escúter: se inclina hacia dentro en las curvas (gira la carrocería y el piloto sobre el suelo, alrededor del eje de la marcha)
     let leanP = null;
-    if (c.def.lean) { const sp = Math.hypot(c.v[0], c.v[2]), tgt = Math.max(-0.42, Math.min(0.42, -(c.steerAng || 0) * Math.min(1, sp / 9) * (window.BRR_LEANK || 1.4)));
+    if (c.def.lean) { const sp = Math.hypot(c.v[0], c.v[2]), tgt = Math.max(-0.42, Math.min(0.42, -(c.steerAng || 0) * Math.min(1, sp / 9) * (window.BRR_LEANK || 1.4) * (c.def.leanK || 1)));
       c.leanA = (c.leanA || 0) + (tgt - (c.leanA || 0)) * 0.12; const a = c.leanA, ca = Math.cos(a), sa = Math.sin(a), g = c.def.groundY || 0;
       Rm = mm3(Rm, [[ca, -sa, 0], [sa, ca, 0], [0, 0, 1]]); leanP = V.add(c.p, V.sub(BRR.mv(c.R, [0, g, 0]), BRR.mv(Rm, [0, g, 0]))); }
     const cp = leanP || c.p;
     if (hide) { if (hide === 'capo' && dd.interior && opt.cabin !== false) drawInterior(c, dd.interior); return; }
     const GA = c.gar || null, low = GA && GA.low > 0 ? Math.min(0.1, GA.low / 100) : 0, pb = low ? V.add(cp, BRR.mv(Rm, [0, -low, 0])) : cp, fin = (GA && GA.finish) || 'normal', camb = GA && GA.camber > 0 ? Math.min(12, GA.camber) * Math.PI / 180 : 0;   // garaje: coche rebajado, acabado de la pintura y caída de las ruedas
     if (R.drawCarBody) R.drawCarBody(body, BRR.M4.fromRT(Rm, pb), opt.gloss !== 'no' && R.mode && fin !== 'mate' ? (fin === 'metal' ? 1.9 : fin === 'perla' ? 2.7 : 1) : 0); else R.draw(body, BRR.M4.fromRT(Rm, pb));   // reflejos en la carrocería
-    if (c.headDraw && c.def.headPos) R.draw((c.def.name === 'JETSKI' && c.headDraw.ski) || (c.def.name === 'HOVERBIKE' && c.headDraw.bike) || c.headDraw, BRR.M4.fromRT(Rm, V.add(cp, BRR.mv(Rm, c.def.headPos))));   // el piloto
+    if (c.headDraw && c.def.headPos) { const hy = c.def.headYaw || 0, HR = hy ? mm3(Rm, [[Math.cos(hy), 0, Math.sin(hy)], [0, 1, 0], [-Math.sin(hy), 0, Math.cos(hy)]]) : Rm;   /* (lancha neumática: sentado de lado, junto al motor) */
+      R.draw((c.def.name === 'JETSKI' && c.headDraw.ski) || (c.def.name === 'HOVERBIKE' && c.headDraw.bike) || c.headDraw, BRR.M4.fromRT(HR, V.add(cp, BRR.mv(Rm, c.def.headPos)))); }   // el piloto
     if (dd.brake && c.brakeLight) { R.drawGlow(dd.brake, BRR.M4.fromRT(Rm, pb), 1.7);   // luces de freno, con halo de luz
       if (fx && c.def.brakeSpots) for (const q of c.def.brakeSpots) { const p = V.add(cp, BRR.mv(Rm, [q[0], q[1], q[2] + 0.05])); fx.glow(p, [1, 0.12, 0.08, 0.55], 0.45); fx.glow(p, [1, 0.55, 0.45, 0.6], 0.16); } }
     for (const d of dd.deco) {   // hélices, rotores, timones y orugas
@@ -2929,7 +2932,7 @@
   // bomba caliente (sin vueltas): cada coche tiene 2 minutos de vida con la bomba encima; su reloj solo corre mientras la lleva.
   // Se pasa al chocar. Si a uno se le acaba, explota (eliminado) y la bomba pasa al más cercano. Gana el último que queda.
   // ¿se tocan? (basta un roce: distancia entre los coches menor que su tamaño)
-  const touching = (a, b) => { const ra = Math.hypot(a.def.box.h[0], a.def.box.h[2]) * 0.72, rb = Math.hypot(b.def.box.h[0], b.def.box.h[2]) * 0.72; return V.len(V.sub(a.p, b.p)) < ra + rb + 0.3; };
+  const touching = (a, b) => { const ha = (a.def.hitBox || a.def.box).h, hb = (b.def.hitBox || b.def.box).h, ra = Math.hypot(ha[0], ha[2]) * 0.72, rb = Math.hypot(hb[0], hb[2]) * 0.72; return V.len(V.sub(a.p, b.p)) < ra + rb + 0.3; };
   const touchOf = (c, alive, ok) => alive.find(o => o.car !== c && !o.car.out && ok(o.car) && touching(c, o.car));
   // bomba caliente (sin vueltas, libre): cada coche tiene 1 minuto con la bomba encima (su reloj solo corre mientras la lleva); se pasa con solo tocar a otro.
   // Si a uno se le acaba, explota (eliminado) y la bomba pasa al que más tiempo le quede (si empatan, a uno al azar). Gana el último vivo.

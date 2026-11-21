@@ -44,13 +44,14 @@ float shadow(vec3 n){
   float fade=smoothstep(.85,1.,max(abs(q.x-.5),abs(q.y-.5))*2.);
   return mix(s/9.,1.,fade); }
 void main(){ vec4 c = useTex>=1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) discard;
+  bool wpx = useTex==2 && c.a<0.9985;   /* píxel de agua del terreno (alfa 254 o color animado) */
   // colores animados del original (palanim): el alfa guarda la posición en el ciclo
   if(useTex==2 && animN>0 && c.a<0.99){ int i=int(floor(c.a*255.+.5))-200; if(i>=0 && i<animN){ c.rgb=animPal[(i+animN-int(animStep))%animN]; } c.a=1.; }
   // normal: suave si la malla la trae (terreno), si no la de la cara
   bool ter=dot(vn,vn)>0.25; vec3 n; if(ter) n=normalize(vn); else { n=normalize(cross(dFdx(wp),dFdy(wp))); if(dot(n,cam-wp)<0.) n=-n; }
   float d=length(wp-cam); vec3 rgb;
   /* texturas con volumen: relieve sacado del brillo de la propia textura (lo claro sobresale) y grano fino en el suelo; se apaga a lo lejos */
-  if(relief>0. && mode==1 && useTex>=1 && gloss<=0. && glow==0. && !(vwat>0.5 && c.b-c.r>0.06)){ float fd=1.-smoothstep(30.,110.,d);
+  if(relief>0. && mode==1 && useTex>=1 && gloss<=0. && glow==0. && !(vwat>0.5 && wpx)){ float fd=1.-smoothstep(30.,110.,d);
     if(fd>0.){ vec2 e=3./vec2(textureSize(T,0));
       vec2 g=vec2(lum3(texture(T,vuv+vec2(e.x,0.)).rgb)-lum3(texture(T,vuv-vec2(e.x,0.)).rgb), lum3(texture(T,vuv+vec2(0.,e.y)).rgb)-lum3(texture(T,vuv-vec2(0.,e.y)).rgb));
       vec3 dpx=dFdx(wp), dpy=dFdy(wp); vec2 dtx=dFdx(vuv), dty=dFdy(vuv); vec3 p2=cross(dpy,n), p1=cross(n,dpx);
@@ -62,7 +63,7 @@ void main(){ vec4 c = useTex>=1 ? texture(T,vuv) : vec4(vcol,1.); if(c.a<.5) dis
   if(mode==0){ float l=.66+.34*abs(dot(n,normalize(vec3(.4,.85,.3)))); rgb=c.rgb*l;
     float f=clamp((d-far*.55)/(far*.45),0.,1.); o=vec4(mix(rgb,fogc,f),1.); return; }
   // agua: olas que se mueven, brillo del sol y reflejo del cielo
-  if(vwat>0.5 && c.b-c.r>0.06 && c.b>c.g*0.72){ vec2 q=wp.xz; float t=time;   /* solo en los píxeles con color de agua (las baldosas de la orilla tienen arena y hierba que no deben ondular) */
+  if(vwat>0.5 && wpx){ vec2 q=wp.xz; float t=time;   /* solo en los píxeles con color de agua (las baldosas de la orilla tienen arena y hierba que no deben ondular) */
     vec3 nw=normalize(vec3(sin(q.x*.55+t*1.6)*.07+sin((q.x+q.y)*1.3-t*2.3)*.04, 1., cos(q.y*.6+t*1.3)*.07+sin((q.x-q.y)*1.1+t*1.9)*.04));
     vec3 Vd=normalize(cam-wp); float fres=pow(1.-max(dot(nw,Vd),0.),3.), sp=pow(max(dot(reflect(-L,nw),Vd),0.),70.);
     c.rgb*=0.9+0.1*sin(q.x*.9+q.y*.7+t*2.);
