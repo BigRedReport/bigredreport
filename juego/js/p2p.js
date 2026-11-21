@@ -103,7 +103,7 @@
     advertise() { const r = this.host; if (!r || !this.connected) return; this.mq.pub(T + 'rooms/' + r.id, r.pub ? JSON.stringify(this.roomInfo()) : '', true); }
     toMember(m, msg) { if (m.self) setTimeout(() => this.recv(msg), 0); else if (m.ch && m.ch.readyState === 'open') try { m.ch.send(JSON.stringify(msg)); } catch (e) { } }
     roomUpdate() { const r = this.host, info = { ...this.roomInfo(), pub: r.pub, secret: r.pass, banned: [...r.banned] }, mem = [...r.members.values()].map(m => ({ id: m.id, name: m.name, host: m === r.hostM, data: m.data || {}, lost: !!m.lost }));
-      for (const m of r.members.values()) this.toMember(m, { t: 'room', room: info, you: m.id, members: mem }); }
+      for (const m of r.members.values()) this.toMember(m, { t: 'room', room: info, you: m.id, members: mem, tok: m.tok }); }
     hostMsg(m, msg) {   // lo mismo que onMsg de server/brr-server.js
       const r = this.host; if (!r) return;
       switch (msg.t) {
@@ -129,10 +129,13 @@
         const r = this.host;
         if (r.banned.has(s.from)) return this.sig(s.from, { type: 'error', msg: 'No puedes entrar en esta partida' });
         const old = r.members.get(s.from);   // vuelve alguien que se había cortado (o el resto tras cambiar de anfitrión): conserva su sitio
-        if (r.pass && r.pass !== s.pass && !old) return this.sig(s.from, { type: 'error', msg: 'Contraseña incorrecta' });
-        if (r.members.size >= r.max && !old) return this.sig(s.from, { type: 'error', msg: 'La partida está llena' });
-        if (old) { clearTimeout(old.lostT); try { old.pc && old.pc.close(); } catch (e) { } r.members.delete(s.from); }
-        const m = { id: s.from, name: String(s.name || 'Piloto').slice(0, 20), data: (old && old.data) || cleanData(s.data) };
+        // el id lo elige el propio emisor y el buzón es público: solo se acepta como "el mismo" si demuestra conocer el token privado que se le envió por el canal cifrado
+        const resuming = !!(old && old.tok && old.tok === s.tok);
+        if (old && !resuming) return this.sig(s.from, { type: 'error', msg: 'Ese identificador ya está en uso' });
+        if (r.pass && r.pass !== s.pass && !resuming) return this.sig(s.from, { type: 'error', msg: 'Contraseña incorrecta' });
+        if (r.members.size >= r.max && !resuming) return this.sig(s.from, { type: 'error', msg: 'La partida está llena' });
+        if (resuming) { clearTimeout(old.lostT); try { old.pc && old.pc.close(); } catch (e) { } r.members.delete(s.from); }
+        const m = { id: s.from, name: String(s.name || 'Piloto').slice(0, 20), data: (resuming && old.data) || cleanData(s.data), tok: (resuming && old.tok) || rid(16) };
         const pc = new RTCPeerConnection(ICE); m.pc = pc; this.links.set(s.from, pc);
         pc.onicecandidate = e => { if (e.candidate) this.sig(s.from, { type: 'ice', c: e.candidate }); };
         pc.ondatachannel = e => { const ch = e.channel; m.ch = ch;
@@ -160,12 +163,12 @@
       ch.onmessage = ev => { this.lastRx = Date.now(); try { this.recv(JSON.parse(ev.data)); } catch (e) { } };
       ch.onclose = () => { if (this.ch !== ch) return; this.ch = null; if (this.room && !this.closedOk) this.lostHost(); };
       const o = await pc.createOffer(); await pc.setLocalDescription(o);
-      this.sig(code, { type: 'offer', sdp: pc.localDescription, name: this.name, pass, data });
+      this.sig(code, { type: 'offer', sdp: pc.localDescription, name: this.name, pass, data, tok: this.resumeTok });
       setTimeout(() => { if (this.joining === code) { this.joining = null; if (!quiet) this.emit('error', { t: 'error', msg: 'No se ha podido conectar con esa partida (¿código correcto? A veces los routers bloquean la conexión directa).' }); else this.emit('joinfail', { code }); } }, quiet ? 6000 : 15000);
     }
     recv(m) {   // mensajes del "servidor" (el anfitrión)
       if (m.t === 'ping') return;
-      if (m.t === 'room') { this.room = m.room; this.members = m.members; this.lastRoom = { room: m.room, members: m.members }; this.closedOk = false; }
+      if (m.t === 'room') { this.room = m.room; this.members = m.members; this.lastRoom = { room: m.room, members: m.members }; this.closedOk = false; if (m.tok) this.resumeTok = m.tok; }
       if (m.t === 'closed') { if (m.kicked) { this.closedOk = true; this.room = null; this.members = []; this.lastRoom = null; this.emit('closed', m); return; }
         this.lostHost(true); return; }   // el anfitrión se va: otro ocupa su lugar
       this.emit(m.t, m);
