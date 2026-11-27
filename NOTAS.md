@@ -7,6 +7,12 @@ Port jugable de Big Red Racing (1995). Necesitas tu copia original del juego (la
 - **Android:** `BigRedReport-Android.apk` → ábrelo en el móvil e instálalo (Android pedirá permitir instalar apps de esta fuente).
 - **Navegador:** https://bigredreport.github.io/bigredreport/juego/BigRedRacing.html o `BigRedRacing_port.zip`.
 
+**Novedades de la 1.2.2**
+- **Quad:** más pequeño y con la física del jeep (solo giran las ruedas de delante).
+- **Torneo:** «Siguiente carrera» ya no falla con progresos guardados que no encajan con las series actuales.
+- **Juego original (1995):** el emulador ya no se para con el error de paleta (CopyOnLock / SDL_HWPALETTE).
+- **Avisos de fallos:** ya no se envía el bloqueo del navegador a la música o al vídeo antes de tocar la pantalla.
+
 **Novedades de la 1.2.1**
 - **Vehículos nuevos:** moto de nieve (SNOW1-3, como el quitanieves), quad (DIRT1-3, como el quad 6x6, con ruedas del juego) y Montés 4x4 (DIRT1-3, como el jeep).
 - **Logos:** todos los coches nuevos llevan el logo del equipo (costados, capó o delante); los logos añadidos y el propio, con el recuadro de los originales en el selector.

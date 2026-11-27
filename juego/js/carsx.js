@@ -6,7 +6,7 @@
 "use strict";
 (function () {
   const BRR = window.BRR;
-  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Tofu 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'B 30' }, ZETA35: { base: 'MINI', name: 'Lady350' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' }, HOVERBIKE: { base: 'JETCAR', name: 'Moto aérea' }, DEFENSOR: { base: 'JEEP', name: 'Defensor' }, ROTATIVO: { base: 'MINI', name: 'Rotativo' }, MOWER: { base: 'COPTER', name: 'Hover Mower' }, SNOWBIKE: { base: 'PLOUGH', name: 'Moto de nieve' }, QUAD: { base: 'ATV', name: 'Quad' }, MONTES: { base: 'JEEP', name: 'Montés 4x4' }, AVISPA: { base: 'MINI', name: 'Avispa' }, BAMBINO: { base: 'MINI', name: 'Bambino' } };
+  BRR.CUSTOM_CARS = { PANDA: { base: 'MINI', name: 'Tofu 86' }, GT: { base: 'MINI', name: 'GT' }, GTS: { base: 'MINI', name: 'GT Sprint' }, CIVICO: { base: 'MINI', name: 'Cívico' }, BAV30: { base: 'MINI', name: 'B 30' }, ZETA35: { base: 'MINI', name: 'Lady350' }, KART: { base: 'MINI', name: 'Go-kart' }, F1: { base: 'MINI', name: 'Fórmula' }, MINIMO: { base: 'MINI', name: 'Mínimo 50' }, JETSKI: { base: 'INFLATE', name: 'Moto de agua' }, CYBER: { base: 'CAT', name: 'Ciberpickup' }, SUPREMO: { base: 'MINI', name: 'Supremo' }, HORIZONTE: { base: 'MINI', name: 'Horizonte' }, HOVERBIKE: { base: 'JETCAR', name: 'Moto aérea' }, DEFENSOR: { base: 'JEEP', name: 'Defensor' }, ROTATIVO: { base: 'MINI', name: 'Rotativo' }, MOWER: { base: 'COPTER', name: 'Hover Mower' }, SNOWBIKE: { base: 'PLOUGH', name: 'Moto de nieve' }, QUAD: { base: 'JEEP', name: 'Quad' }, MONTES: { base: 'JEEP', name: 'Montés 4x4' }, AVISPA: { base: 'MINI', name: 'Avispa' }, BAMBINO: { base: 'MINI', name: 'Bambino' } };
   const orig = BRR.loadVehicle;
   BRR.loadVehicle = async function (files, name, lvl, team = 1, extra = {}) {
     const C = BRR.CUSTOM_CARS[String(name).toUpperCase()]; if (!C) return orig(files, name, lvl, team, extra);
@@ -489,7 +489,7 @@
     return { ...d, name: 'MOWER', vname: 'MOWER', mesh: body.mb, brake: body.brake, decoParts: [], interior: null, logoSlot: false, wheelMeshes: (d.wheels || []).map(() => null),
       box: { c: [0, (mn[1] + mx[1]) / 2 + G, (mn[2] + mx[2]) / 2], h: [mx[0] * 0.8, (mx[1] - mn[1]) / 2, (mx[2] - mn[2]) / 2] }, brakeSpots: [], nitro: [0, 0.4 + G, mx[2]], headPos: window.BRR_MWHEAD || [0, s[1] + 0.66 + G, s[2] - 0.1] };
   }
-  // ---------- quad (circuitos de tierra): malla del modelo (quad_data.js, con sus ruedas) sobre el quad 6x6 del juego (misma física), pequeño, con el piloto montado ----------
+  // ---------- quad (circuitos de tierra): malla del modelo (quad_data.js, con sus ruedas) sobre el jeep (misma física: solo giran las ruedas de delante), pequeño, con el piloto montado ----------
   function quad(d, P) {
     const M = BRR.QUAD_MESH; if (!M) return d;
     const zs = d.wheels.map(w => w.c[2]), zf = Math.min(...zs), zr = Math.max(...zs), d4 = { ...d, wheels: d.wheels.filter(w => w.c[2] === zf || w.c[2] === zr) };   // del 6x6, las de delante y las de atrás

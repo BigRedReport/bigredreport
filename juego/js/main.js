@@ -194,7 +194,7 @@
       if (/^MOON[123]$/i.test(id) && files.has('JETCAR.VHC') && !L.includes('HOVERBIKE')) { const m = L.indexOf('JETCAR'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'HOVERBIKE'); }   // en Marte, Venus y la Luna, también la moto aérea (se maneja como el jet car)
       if (/^RUF[123]$/i.test(id) && files.has('CAT.VHC') && !L.includes('CYBER')) { const m = L.indexOf('CAT'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'CYBER'); }   // en el desierto, también la ciberpickup (se conduce como el dumper)
       if (/^CHOPPER\d$/i.test(id) && files.has('COPTER.VHC') && !L.includes('MOWER')) { const m = L.indexOf('COPTER'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'MOWER'); }   // en los circuitos de helicóptero, también el cortacésped aéreo (vuela como el helicóptero ligero)
-      if (/^DIRT[123]$/i.test(id) && files.has('ATV.VHC') && !L.includes('QUAD')) { const m = L.indexOf('ATV'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'QUAD'); }   // en los circuitos de tierra, también el quad (pequeño, con la física del quad 6x6)
+      if (/^DIRT[123]$/i.test(id) && files.has('JEEP.VHC') && !L.includes('QUAD')) { const m = L.indexOf('ATV'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'QUAD'); }   // en los circuitos de tierra, también el quad (pequeño, con la física del jeep)
       if (/^DIRT[123]$/i.test(id) && files.has('JEEP.VHC') && !L.includes('MONTES')) L.push('MONTES');   // y el Montés 4x4 (utilitario 4x4, con la física del jeep)
       if (/^SNOW[123]$/i.test(id) && files.has('PLOUGH.VHC') && !L.includes('SNOWBIKE')) { const m = L.indexOf('PLOUGH'); L.splice(m >= 0 ? m + 1 : L.length, 0, 'SNOWBIKE'); }   // en la nieve, también la moto de nieve (corre y reacciona como el quitanieves)
       if (/^RIG\d$/i.test(id) && files.has('JEEP.VHC') && !L.includes('DEFENSOR')) L.push('DEFENSOR');   // en las plataformas, también el Defensor (todoterreno clásico, con la física del jeep)
@@ -973,7 +973,10 @@
   });
   // torneo: series en orden, hay que ganar 'need' carreras de la serie para pasar a la siguiente; puntos 10-5-3-2-1-0
   const TKEY = 'brr_tourn';
-  const tget = () => { try { return JSON.parse(ST.get(TKEY)) || null; } catch (e) { return null; } };
+  const tget = () => { let T; try { T = JSON.parse(ST.get(TKEY)) || null; } catch (e) { T = null; } if (!T || !front || !front.series || !front.series.length) return T;
+    /* progreso guardado que ya no encaja con las series actuales (serie o carrera de más): se ajusta en vez de romper el botón */
+    if (!(T.series >= 0)) T.series = 0; if (T.series >= front.series.length) { T.series = front.series.length - 1; T.over = true; }
+    const se = front.series[T.series]; if (!se || !se.use || !(T.idx >= 0) || T.idx >= se.use.length) { T.idx = se && se.use ? Math.max(0, Math.min(T.idx | 0, se.use.length - 1)) : 0; } return T; };
   const tset = T => ST.set(TKEY, JSON.stringify(T));
   const tnew = () => ({ series: 0, idx: 0, wins: 0, pts: {}, done: {}, over: false });
   function renderTourn() {
@@ -3971,8 +3974,8 @@
     addEventListener('error', e => report(e.message, e.error && e.error.stack));
     // la física de un coche se rompió y se recuperó sola: no se molesta al jugador, pero se manda el dato (una vez) para encontrar la causa
     { let once = false; BRR.onPhysBreak = info => { if (once) return; once = true; try { if (BRR.cloud) BRR.cloud.report({ msg: 'Física recuperada: ' + info.car + ' (' + info.bad + ')', stack: JSON.stringify(info), ver: BRR.VERSION || '?', where: netRace ? 'Online' : humans.length > 1 ? 'Pantalla partida' : 'En carrera', track: lvl ? lvl.name + (car ? ' · ' + car.def.name : '') : '', ua: navigator.userAgent.slice(0, 160), lang: BRR.lang ? BRR.lang() : '' }); } catch (x) { } }; }
-    const netErr = m => /Failed to fetch|NetworkError|Load failed|network error|ERR_INTERNET|aborted/i.test(String(m || ''));   /* sin conexión: no es un fallo del juego (aviso #17) */
-    addEventListener('unhandledrejection', e => { if (typeof Event !== 'undefined' && e.reason instanceof Event) return;   /* fallo de conexión o de carga (chat, nube…): no es un fallo del juego (#23) */ const m = e.reason && (e.reason.message || e.reason); if (netErr(m)) return; report(m, e.reason && e.reason.stack); }); }
+    const netErr = m => /Failed to fetch|NetworkError|Load failed|network error|ERR_INTERNET|aborted|play method is not allowed|play\(\) failed because the user|play\(\) request was interrupted/i.test(String(m || ''));   /* sin conexión: no es un fallo del juego (aviso #17) */
+    addEventListener('unhandledrejection', e => { if (typeof Event !== 'undefined' && e.reason instanceof Event) return; if (e.reason && (e.reason.name === 'NotAllowedError' || e.reason.name === 'AbortError')) return;   /* el navegador no deja reproducir sonido o vídeo hasta que se toca la pantalla: no es un fallo (#44) */   /* fallo de conexión o de carga (chat, nube…): no es un fallo del juego (#23) */ const m = e.reason && (e.reason.message || e.reason); if (netErr(m)) return; report(m, e.reason && e.reason.stack); }); }
   // instalable como app (solo en la versión web; abriendo el archivo directamente no se puede)
   if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => { });
   let installEv = null; addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEv = e; const b = $('o_install'); if (b) b.hidden = false; });
